@@ -5,6 +5,9 @@ title: "Testing MDX with Custom Components"
 subTitle: "A simple test to understand how MDX works in Next.js"
 author: "Gianluca Belvisi"
 hashtags: "test, mdx, tech"
+featureImage: "travel-1.jpg"
+cardImage: "travel-1.jpg"
+onHover: "🧪"
 hidden: false
 ---
 
@@ -143,4 +146,14 @@ And we can embed other services too:
 
 <FigureLabel>CodePen embed with a custom 2:1 ratio - ResponsiveEmbed works with any iframe!</FigureLabel>
 
-🎉 **ALL COMPONENTS COMPLETE!** 🎉 
+🎉 **ALL COMPONENTS COMPLETE!** 🎉
+
+## Testing Co-located Images
+
+Now let's test images stored right next to the MDX file (just like in Gatsby):
+
+![Co-located image](travel-1.jpg)
+
+<FigureLabel>This image is stored in the same folder as the MDX file! No more complex path management - just like Gatsby!</FigureLabel>
+
+The system automatically copies co-located images to the public directory and serves them correctly! 📁✨ 
