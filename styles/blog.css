@@ -1,0 +1,48 @@
+.mdx-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem auto;
+}
+
+.mdx-content p {
+  margin-bottom: 1.2rem;
+  margin-top: 0;
+}
+
+.mdx-content h1 {
+  margin-top: 2.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.mdx-content h2 {
+  margin-top: 2rem;
+  margin-bottom: 0.8rem;
+}
+
+.mdx-content h3 {
+  margin-top: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.mdx-content h4,
+.mdx-content h5,
+.mdx-content h6 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.8rem;
+}
+
+.full-width-media {
+  /* Break out to full post width (same as feature image: grid columns 3-12) */
+  width: calc(100% + 8.4rem + 4rem); /* Content + 2 columns + 2 gaps */
+  margin-left: calc(-4.2rem - 2rem); /* Pull left by column + gap */
+  margin-right: calc(-4.2rem - 2rem); /* Pull right by column + gap */
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.full-width-media img {
+  width: 100%;
+  height: auto;
+  display: block;
+} 

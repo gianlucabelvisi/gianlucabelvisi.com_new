@@ -2,6 +2,7 @@ import { GetStaticPaths, GetStaticProps } from 'next'
 import { serialize } from 'next-mdx-remote/serialize'
 import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
 import { getAllPosts, getPostBySlug, PostData } from '../../lib/posts'
+import '../../styles/blog.css'
 import Highlight from '../../components/Highlight'
 import Dialogue from '../../components/Dialogue'
 import GlyphLeft from '../../components/GlyphLeft'
@@ -10,6 +11,7 @@ import FigureLabel from '../../components/FigureLabel'
 import TextBox from '../../components/TextBox'
 import YouTube from '../../components/YouTube'
 import ResponsiveEmbed from '../../components/ResponsiveEmbed'
+import Pony from '../../components/mdx/Pony'
 
 interface PostPageProps {
   source: MDXRemoteSerializeResult
@@ -27,6 +29,7 @@ const components = {
   TextBox,
   YouTube,
   ResponsiveEmbed,
+  Pony,
 }
 
 export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
@@ -139,7 +142,7 @@ export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
             <span style={{ color: '#ff9664', marginLeft: '.5rem' }}>❞</span>
           </div>
           
-          <div style={{ lineHeight: 1.6 }}>
+          <div className="mdx-content" style={{ lineHeight: 1.6 }}>
             <MDXRemote {...source} components={components} />
           </div>
         </div>

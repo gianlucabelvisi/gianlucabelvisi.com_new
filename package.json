@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@fontsource/irish-grover": "^5.2.5",
     "gray-matter": "^4.0.3",
     "next": "15.3.3",
     "next-mdx-remote": "^5.0.0",
