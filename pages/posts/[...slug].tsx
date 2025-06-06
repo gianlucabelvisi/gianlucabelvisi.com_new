@@ -3,6 +3,11 @@ import { serialize } from 'next-mdx-remote/serialize'
 import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
 import { getAllPosts, getPostBySlug, PostData } from '../../lib/posts'
 import Highlight from '../../components/Highlight'
+import Dialogue from '../../components/Dialogue'
+import GlyphLeft from '../../components/GlyphLeft'
+import GlyphRight from '../../components/GlyphRight'
+import FigureLabel from '../../components/FigureLabel'
+import TextBox from '../../components/TextBox'
 
 interface PostPageProps {
   source: MDXRemoteSerializeResult
@@ -12,6 +17,11 @@ interface PostPageProps {
 // Define which components are available in MDX
 const components = {
   Highlight,
+  Dialogue,
+  GlyphLeft,
+  GlyphRight,
+  FigureLabel,
+  TextBox,
 }
 
 export default function PostPage({ source, frontmatter }: PostPageProps) {

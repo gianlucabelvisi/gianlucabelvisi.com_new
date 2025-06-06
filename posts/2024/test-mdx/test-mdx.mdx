@@ -1,0 +1,100 @@
+---
+path: "/test-mdx"
+date: 2024-12-19
+title: "Testing MDX with Custom Components"
+subTitle: "A simple test to understand how MDX works in Next.js"
+author: "Gianluca Belvisi"
+hashtags: "test, mdx, tech"
+hidden: false
+---
+
+# Testing MDX Components
+
+This is a simple test post to understand how **MDX** works with custom components.
+
+Here's some regular markdown text, and now let's test our custom Highlight component:
+
+<Highlight>This text should be highlighted in yellow!</Highlight>
+
+And let's try different colors:
+
+<Highlight color="blue">Blue highlighted text</Highlight>
+
+<Highlight color="green">Green highlighted text</Highlight>
+
+<Highlight color="red">Red highlighted text for important stuff!</Highlight>
+
+## How cool is this?
+
+Pretty cool! We can mix regular markdown with React components seamlessly.
+
+**Bold text**, *italic text*, and `code snippets` all work as expected.
+
+But we can also add:
+- Interactive components
+- Custom styling
+- Dynamic behavior
+
+This is the power of **MDX** - it's like markdown but supercharged with React! 🚀
+
+## Testing Dialogue Components
+
+Now let's test our Dialogue component with the orange quotation marks:
+
+<Dialogue>You are not giving up, Gotham tells me around the 20th move. Good!</Dialogue>
+
+<Dialogue>Now, this is a really bad move.</Dialogue>
+
+<Dialogue>Hey, are we ok?</Dialogue>
+
+You can also use individual glyphs: <GlyphLeft/>Let's spice things up<GlyphRight/> and trigger a flurry of trades.
+
+And mix them with highlights:
+
+<Dialogue>I think you have <Highlight color="red">one move left</Highlight>.</Dialogue>
+
+Pretty cool! The orange quotation marks match the blog's styling perfectly! 🎯
+
+## Testing FigureLabel Component
+
+Now let's test image captions with the FigureLabel component using local images:
+
+![Travel Photo](/images/posts/2024/travel-1.jpg)
+
+<FigureLabel>A beautiful travel photo from the original blog collection - stored locally in the project!</FigureLabel>
+
+Let's also test HTML img tags with local images:
+
+<img src="/images/posts/2024/truth.jpg" alt="Truth illustration" style={{maxWidth: '100%', height: 'auto'}} />
+
+<FigureLabel>This "truth" illustration works perfectly with HTML img tags too!</FigureLabel>
+
+And here's a profile image using standard MDX:
+
+![Profile](/images/gianluca-1.jpg)
+
+<FigureLabel>Profile photo from the root images folder - no more weird Gatsby workarounds needed!</FigureLabel>
+
+Perfect! The centered, italicized captions look exactly like the original blog! ✨
+
+## Testing TextBox Component
+
+Now let's test highlighted content boxes:
+
+<TextBox title="Important Notice">
+This is a highlighted content box with a semi-transparent background and orange left border. Perfect for calling attention to important information!
+</TextBox>
+
+<TextBox>
+This TextBox has no title, just the content with the signature orange accent styling from the original blog.
+</TextBox>
+
+And we can mix TextBox with other components:
+
+<TextBox title="Chess Wisdom">
+<Dialogue>You are not giving up, Gotham tells me around the 20th move. Good!</Dialogue>
+
+This shows how <Highlight>multiple components work together</Highlight> within a TextBox!
+</TextBox>
+
+Excellent! All components are working perfectly in the new folder structure! 🎯 

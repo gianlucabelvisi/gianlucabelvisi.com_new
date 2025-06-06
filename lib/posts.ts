@@ -28,7 +28,15 @@ export function getAllPosts(): PostData[] {
     const { data, content } = matter(fileContents)
     
     // Create slug from file path (remove .mdx extension)
-    const slug = fileName.replace(/\.mdx$/, '')
+    let slug = fileName.replace(/\.mdx$/, '')
+    
+    // If the filename matches the folder name (e.g., test-mdx/test-mdx.mdx), 
+    // remove the duplicate part to get cleaner URLs (e.g., 2024/test-mdx instead of 2024/test-mdx/test-mdx)
+    const parts = slug.split('/')
+    if (parts.length >= 2 && parts[parts.length - 1] === parts[parts.length - 2]) {
+      parts.pop() // Remove the duplicate filename part
+      slug = parts.join('/')
+    }
     
     // Ensure date is a string for JSON serialization
     const frontmatter = {
