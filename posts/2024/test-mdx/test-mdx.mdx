@@ -97,4 +97,50 @@ And we can mix TextBox with other components:
 This shows how <Highlight>multiple components work together</Highlight> within a TextBox!
 </TextBox>
 
-Excellent! All components are working perfectly in the new folder structure! 🎯 
+Excellent! All components are working perfectly in the new folder structure! 🎯
+
+## Testing YouTube Component
+
+Let's test YouTube video embeds:
+
+<YouTube source="dQw4w9WgXcQ" />
+
+<FigureLabel>The classic Rick Roll - perfect for testing YouTube embeds!</FigureLabel>
+
+And we can put YouTube videos inside TextBoxes too:
+
+<TextBox title="Featured Video">
+Here's an educational video about React:
+
+<YouTube source="Ke90Tje7VS0" />
+
+<FigureLabel>React in 100 Seconds by Fireship - great for learning!</FigureLabel>
+</TextBox>
+
+Perfect! YouTube embeds work beautifully with responsive design! 📺
+
+## Testing ResponsiveEmbed Component
+
+The ResponsiveEmbed component is more flexible - it can embed ANY iframe with custom aspect ratios:
+
+<ResponsiveEmbed src="https://www.youtube.com/embed/Ke90Tje7VS0" ratio="16:9" />
+
+<FigureLabel>Using ResponsiveEmbed with 16:9 ratio - same as YouTube component but more flexible!</FigureLabel>
+
+Let's try a different aspect ratio:
+
+<ResponsiveEmbed src="https://www.youtube.com/embed/dQw4w9WgXcQ" ratio="4:3" />
+
+<FigureLabel>Same video but with 4:3 ratio - notice the different aspect ratio!</FigureLabel>
+
+And we can embed other services too:
+
+<ResponsiveEmbed 
+  src="https://codepen.io/team/codepen/embed/PNaGbb" 
+  ratio="2:1" 
+  title="CodePen Embed"
+/>
+
+<FigureLabel>CodePen embed with a custom 2:1 ratio - ResponsiveEmbed works with any iframe!</FigureLabel>
+
+🎉 **ALL COMPONENTS COMPLETE!** 🎉 
