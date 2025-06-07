@@ -67,4 +67,20 @@
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* Strikethrough support for ~~text~~ markdown syntax */
+.mdx-content del {
+  text-decoration: line-through;
+  color: #999;
+}
+
+/* Strong emphasis support */
+.mdx-content strong {
+  font-weight: bold;
+}
+
+/* Italic emphasis support */
+.mdx-content em {
+  font-style: italic;
 } 

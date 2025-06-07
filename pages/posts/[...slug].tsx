@@ -4,11 +4,14 @@ import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
 import { getAllPosts, getPostBySlug, PostData } from '../../lib/posts'
 import '../../styles/blog.css'
 import Highlight from '../../components/Highlight'
+import BlogSubTitle from '../../components/BlogSubTitle'
 import Dialogue from '../../components/Dialogue'
 import Email from '../../components/Email'
 import GlyphLeft from '../../components/GlyphLeft'
 import GlyphRight from '../../components/GlyphRight'
 import FigureLabel from '../../components/FigureLabel'
+import MarginBottom from '../../components/MarginBottom'
+import Quote from '../../components/Quote'
 import TextBox from '../../components/TextBox'
 import YouTube from '../../components/YouTube'
 import ResponsiveEmbed from '../../components/ResponsiveEmbed'
@@ -29,16 +32,20 @@ interface PostPageProps {
 // Define which components are available in MDX
 const components = {
   Highlight,
+  BlogSubTitle,
   Dialogue,
   Email,
   GlyphLeft,
   GlyphRight,
   FigureLabel,
+  MarginBottom,
+  Quote,
   TextBox,
   YouTube,
   ResponsiveEmbed,
   Pony,
   Poll,
+  PostFooter,
   ShakyTitle,
   UnicornButton,
 }
