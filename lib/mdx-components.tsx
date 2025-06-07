@@ -14,6 +14,15 @@ import Poll from '../components/Poll'
 import PostFooter from '../components/PostFooter'
 import { ShakyTitle } from '../components/ShakyTitle'
 import UnicornButton from '../components/UnicornButton'
+import ThreeColumns from '../components/ThreeColumns'
+import Col23 from '../components/Col23'
+import YouTubeAudio from '../components/YouTubeAudio'
+import Richer from '../components/Richer'
+import Greenlights from '../components/Greenlights'
+import Hailmary from '../components/Hailmary'
+import Pride from '../components/Pride'
+import Crime from '../components/Crime'
+import Truth from '../components/Truth'
 
 export const mdxComponents = {
   BlogSubTitle,
@@ -32,4 +41,13 @@ export const mdxComponents = {
   PostFooter,
   ShakyTitle,
   UnicornButton,
+  ThreeColumns,
+  Col23,
+  YouTubeAudio,
+  Richer,
+  Greenlights,
+  Hailmary,
+  Pride,
+  Crime,
+  Truth,
 } 

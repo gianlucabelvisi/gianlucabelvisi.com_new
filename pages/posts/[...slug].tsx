@@ -19,6 +19,15 @@ import Pony from '../../components/Pony'
 import Poll from '../../components/Poll'
 import { ShakyTitle } from '../../components/ShakyTitle'
 import UnicornButton from '../../components/UnicornButton'
+import ThreeColumns from '../../components/ThreeColumns'
+import Col23 from '../../components/Col23'
+import YouTubeAudio from '../../components/YouTubeAudio'
+import Richer from '../../components/Richer'
+import Greenlights from '../../components/Greenlights'
+import Hailmary from '../../components/Hailmary'
+import Pride from '../../components/Pride'
+import Crime from '../../components/Crime'
+import Truth from '../../components/Truth'
 import SocialShare from '../../components/SocialShare'
 import PostFooter from '../../components/PostFooter'
 import MailChimpForm from '../../components/MailChimpForm'
@@ -48,6 +57,15 @@ const components = {
   PostFooter,
   ShakyTitle,
   UnicornButton,
+  ThreeColumns,
+  Col23,
+  YouTubeAudio,
+  Richer,
+  Greenlights,
+  Hailmary,
+  Pride,
+  Crime,
+  Truth,
 }
 
 export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
@@ -55,7 +73,9 @@ export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
   const getImagePath = (imageName: string) => {
     if (!imageName) return ''
     // For co-located images in the post directory structure
-    return `/images/posts/${slug}/${imageName}`
+    // Remove '/index' from the end of slug if present
+    const cleanSlug = slug.endsWith('/index') ? slug.slice(0, -6) : slug
+    return `/images/posts/${cleanSlug}/${imageName}`
   }
   
   // Format date nicely
