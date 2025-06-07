@@ -28,6 +28,8 @@ import Hailmary from '../../components/Hailmary'
 import Pride from '../../components/Pride'
 import Crime from '../../components/Crime'
 import Truth from '../../components/Truth'
+import Books2022 from '../../components/Books2022'
+import Spoiler from '../../components/Spoiler'
 import SocialShare from '../../components/SocialShare'
 import PostFooter from '../../components/PostFooter'
 import MailChimpForm from '../../components/MailChimpForm'
@@ -66,6 +68,8 @@ const components = {
   Pride,
   Crime,
   Truth,
+  Books2022,
+  Spoiler,
 }
 
 export default function PostPage({ source, frontmatter, slug }: PostPageProps) {

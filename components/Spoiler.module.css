@@ -1,0 +1,112 @@
+.spoilerContainer {
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.spoilerContent {
+  position: relative;
+  background: rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(255, 140, 0, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.spoilerContent:hover {
+  border-color: rgba(255, 140, 0, 0.6);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.spoilerContent.revealed {
+  cursor: default;
+  background: rgba(255, 140, 0, 0.1);
+  border-color: rgba(255, 140, 0, 0.5);
+}
+
+.spoilerOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+}
+
+.spoilerText {
+  color: white;
+  font-weight: 600;
+  text-align: center;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 140, 0, 0.2);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 140, 0, 0.4);
+  transition: all 0.3s ease;
+}
+
+.spoilerContent:hover .spoilerText {
+  background: rgba(255, 140, 0, 0.3);
+  border-color: rgba(255, 140, 0, 0.6);
+  transform: scale(1.05);
+}
+
+.content {
+  filter: blur(10px);
+  opacity: 0.3;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  pointer-events: none;
+}
+
+.content.contentRevealed {
+  filter: blur(0);
+  opacity: 1;
+  user-select: text;
+  pointer-events: auto;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .spoilerContent {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 140, 0, 0.4);
+  }
+
+  .spoilerContent:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .spoilerContent.revealed {
+    background: rgba(255, 140, 0, 0.08);
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .spoilerText {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .spoilerContent,
+  .spoilerOverlay,
+  .content,
+  .spoilerText {
+    transition: none;
+  }
+  
+  .spoilerContent:hover .spoilerText {
+    transform: none;
+  }
+} 

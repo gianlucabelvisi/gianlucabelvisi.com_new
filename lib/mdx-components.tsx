@@ -23,6 +23,8 @@ import Hailmary from '../components/Hailmary'
 import Pride from '../components/Pride'
 import Crime from '../components/Crime'
 import Truth from '../components/Truth'
+import Books2022 from '../components/Books2022'
+import Spoiler from '../components/Spoiler'
 
 export const mdxComponents = {
   BlogSubTitle,
@@ -50,4 +52,6 @@ export const mdxComponents = {
   Pride,
   Crime,
   Truth,
+  Books2022,
+  Spoiler,
 } 

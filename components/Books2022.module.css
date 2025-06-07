@@ -1,0 +1,152 @@
+/* PhotoStack Animation matching the original Gatsby blog */
+
+.wrapper {
+  position: relative;
+  height: 400px;
+  margin: 3rem 0;
+  overflow: visible;
+  border-radius: 16px;
+  background: transparent;
+}
+
+.background {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 2px, transparent 2px),
+    radial-gradient(circle at 75% 75%, rgba(255,255,255,0.1) 2px, transparent 2px);
+  background-size: 50px 50px;
+}
+
+.photoWrapper {
+  position: absolute;
+  z-index: var(--z-index);
+  top: calc(50% + var(--y-delta));
+  left: calc(25% + var(--x-delta));
+  transform: rotate(var(--rotation)) translate(-50%, -50%);
+  animation: photoSequence 7s ease-out var(--delay) forwards;
+  scale: 1;
+  transition: all 500ms ease;
+}
+
+.photo {
+  width: 150px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 
+    0 10px 30px rgba(0,0,0,0.3),
+    0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* The main animation sequence matching the original */
+@keyframes photoSequence {
+  0% {
+    transform: rotate(var(--rotation)) translate(-50%, -50%);
+  }
+  20% {
+    transform: rotate(0deg) translate(-50%, -50%);
+  }
+  40% {
+    transform: scale(1.21) translate(-50%, -50%);
+  }
+  43% {
+    transform: scale(1.2) translate(-50%, -50%);
+    opacity: 1;
+  }
+  45% {
+    transform: scale(1.19) translate(-50%, -50%);
+    opacity: 1;
+  }
+  47% {
+    transform: scale(1.2) translate(-50%, -50%);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(1.2) translate(-50%, -50%) translateY(400%) rotate(25deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0) translate(-50%, -50%) translateY(1000%) rotate(720deg);
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.debugInfo {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  font-size: 10px;
+  color: white;
+  opacity: 0.7;
+  z-index: 9999;
+}
+
+/* Mobile responsive adjustments */
+@media screen and (max-width: 1000px) {
+  .photoWrapper {
+    top: calc(50% + var(--y-delta));
+    scale: 0.9;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .photoWrapper {
+    scale: 0.8;
+  }
+  
+  .wrapper {
+    height: 300px;
+    margin: 2rem 0;
+  }
+}
+
+@media screen and (max-width: 550px) {
+  .photoWrapper {
+    left: calc(20% + var(--x-delta));
+    scale: 0.6;
+  }
+}
+
+@media screen and (max-width: 470px) {
+  .photoWrapper {
+    left: calc(10% + var(--x-delta));
+    scale: 0.5;
+  }
+}
+
+@media screen and (max-width: 400px) {
+  .photoWrapper {
+    top: calc(50% + var(--y-delta));
+    left: calc(10% + var(--x-delta));
+    scale: 0.5;
+  }
+  
+  .wrapper {
+    height: 250px;
+  }
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .photoWrapper {
+    animation: none;
+  }
+  
+  .photoWrapper {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+    position: static;
+    display: inline-block;
+    margin: 0.5rem;
+  }
+  
+  .wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+  }
+} 
