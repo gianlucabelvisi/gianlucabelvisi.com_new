@@ -5,8 +5,9 @@ const GlyphLeft = () => {
     <ImQuotesLeft 
       style={{ 
         color: '#ff9664',
-        display: 'inline-block',
-        verticalAlign: 'baseline'
+        display: 'inline',
+        verticalAlign: 'baseline',
+        marginRight: '0.25rem'
       }} 
     />
   )

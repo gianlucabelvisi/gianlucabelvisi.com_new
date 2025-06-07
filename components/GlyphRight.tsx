@@ -5,8 +5,9 @@ const GlyphRight = () => {
     <ImQuotesRight 
       style={{ 
         color: '#ff9664',
-        display: 'inline-block',
-        verticalAlign: 'baseline'
+        display: 'inline',
+        verticalAlign: 'baseline',
+        marginLeft: '0.25rem'
       }} 
     />
   )

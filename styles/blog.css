@@ -32,6 +32,28 @@
   margin-bottom: 0.8rem;
 }
 
+/* Fix list styling to keep markers inside text boundary */
+.mdx-content ol,
+.mdx-content ul {
+  margin: 1rem 0;
+  padding-left: 2rem; /* Provide space for list markers */
+  list-style-position: inside; /* Keep markers inside the content area */
+}
+
+.mdx-content ol li,
+.mdx-content ul li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.mdx-content ol {
+  list-style-type: decimal;
+}
+
+.mdx-content ul {
+  list-style-type: disc;
+}
+
 .full-width-media {
   /* Extend slightly beyond text boundary for more impact */
   width: calc(100% + 4rem); /* Just extend by 2rem on each side */

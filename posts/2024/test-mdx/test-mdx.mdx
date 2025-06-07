@@ -216,6 +216,42 @@ Even when collapsed, this <Highlight>complex content with multiple components</H
 
 </TextBox>
 
-🎉 **NEW COMPONENTS COMPLETE!** 🎉
+## Testing ShakyTitle Component 📢
 
-All components are now ready for the diabetes post migration! Poll component provides interactive voting functionality, and TextBox enhancement allows collapsible content sections. 
+The new ShakyTitle component features animated emojis and shaking text for dramatic effect:
+
+<ShakyTitle emoji={"👀"} title={"Important clarification"} />
+
+This is content after a ShakyTitle. Notice the pulsing emoji and the shaking orange text!
+
+<ShakyTitle emoji={"💩"} title={"Should I test animations?"} />
+
+Another ShakyTitle to make sure the animations work consistently. The animations should run infinitely with smooth CSS transitions.
+
+<ShakyTitle emoji={"🐶"} title={"Getting ready for doggo post!"} />
+
+Perfect for dramatic section breaks in the upcoming doggo post migration!
+
+## Testing UnicornButton Component 🦄
+
+The UnicornButton is the most complex component - it features Firebase click tracking with tooltips:
+
+<UnicornButton page={"test"} id={"1"} tooltip={"This is a test tooltip - click to increment!"} />
+
+Try clicking the unicorn above! It should:
+- ✅ Show a tooltip on hover
+- ✅ Bounce when clicked
+- ✅ Increment the counter with Firebase storage
+- ✅ Update in real-time across browser sessions
+
+Let's test multiple buttons with different tooltips:
+
+<UnicornButton page={"test"} id={"2"} tooltip={"Second button with different tooltip!"} />
+
+<UnicornButton page={"test"} id={"3"} tooltip={"This one tracks separately from the others"} />
+
+Each button maintains its own click count using Firebase Realtime Database, just like in the original doggo post!
+
+🎉 **ALL COMPONENTS COMPLETE!** 🎉
+
+All components are now ready for the doggo post migration! ShakyTitle provides animated section headers, Poll component provides interactive voting functionality, and TextBox enhancement allows collapsible content sections. 

@@ -7,14 +7,12 @@ interface DialogueProps {
 
 const Dialogue = ({ children }: DialogueProps) => {
   return (
-    <p style={{ 
-      margin: '0 0 1rem 0',
+    <span style={{ 
+      display: 'inline',
       lineHeight: '1.9rem'
     }}>
-      <GlyphLeft />
-      {children}
-      <GlyphRight />
-    </p>
+      <GlyphLeft />{' '}{children}{' '}<GlyphRight />
+    </span>
   )
 }
 

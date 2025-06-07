@@ -5,6 +5,7 @@ import { getAllPosts, getPostBySlug, PostData } from '../../lib/posts'
 import '../../styles/blog.css'
 import Highlight from '../../components/Highlight'
 import Dialogue from '../../components/Dialogue'
+import Email from '../../components/Email'
 import GlyphLeft from '../../components/GlyphLeft'
 import GlyphRight from '../../components/GlyphRight'
 import FigureLabel from '../../components/FigureLabel'
@@ -13,6 +14,8 @@ import YouTube from '../../components/YouTube'
 import ResponsiveEmbed from '../../components/ResponsiveEmbed'
 import Pony from '../../components/Pony'
 import Poll from '../../components/Poll'
+import { ShakyTitle } from '../../components/ShakyTitle'
+import UnicornButton from '../../components/UnicornButton'
 import SocialShare from '../../components/SocialShare'
 import PostFooter from '../../components/PostFooter'
 import MailChimpForm from '../../components/MailChimpForm'
@@ -27,6 +30,7 @@ interface PostPageProps {
 const components = {
   Highlight,
   Dialogue,
+  Email,
   GlyphLeft,
   GlyphRight,
   FigureLabel,
@@ -35,6 +39,8 @@ const components = {
   ResponsiveEmbed,
   Pony,
   Poll,
+  ShakyTitle,
+  UnicornButton,
 }
 
 export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
@@ -100,7 +106,8 @@ export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
               left: 0,
               width: '100%',
               height: '100%',
-              objectFit: 'cover'
+              objectFit: 'cover',
+              objectPosition: 'top'
             }}
           />
         </div>
