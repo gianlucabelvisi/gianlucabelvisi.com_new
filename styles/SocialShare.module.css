@@ -1,0 +1,20 @@
+.socialShare {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  position: absolute;
+  left: -60px;
+  margin-top: calc(7.8rem + 1rem);
+}
+
+@media (max-width: 768px) {
+  .socialShare {
+    left: -35px;
+  }
+}
+
+@media (max-width: 500px) {
+  .socialShare {
+    display: none;
+  }
+} 

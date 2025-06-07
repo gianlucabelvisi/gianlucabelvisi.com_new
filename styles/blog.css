@@ -33,10 +33,10 @@
 }
 
 .full-width-media {
-  /* Break out to full post width (same as feature image: grid columns 3-12) */
-  width: calc(100% + 8.4rem + 4rem); /* Content + 2 columns + 2 gaps */
-  margin-left: calc(-4.2rem - 2rem); /* Pull left by column + gap */
-  margin-right: calc(-4.2rem - 2rem); /* Pull right by column + gap */
+  /* Extend slightly beyond text boundary for more impact */
+  width: calc(100% + 4rem); /* Just extend by 2rem on each side */
+  margin-left: -2rem; /* Pull left by 2rem */
+  margin-right: -2rem; /* Pull right by 2rem */
   margin-top: 2rem;
   margin-bottom: 2rem;
 }

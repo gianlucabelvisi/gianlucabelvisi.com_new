@@ -11,7 +11,11 @@ import FigureLabel from '../../components/FigureLabel'
 import TextBox from '../../components/TextBox'
 import YouTube from '../../components/YouTube'
 import ResponsiveEmbed from '../../components/ResponsiveEmbed'
-import Pony from '../../components/mdx/Pony'
+import Pony from '../../components/Pony'
+import Poll from '../../components/Poll'
+import SocialShare from '../../components/SocialShare'
+import PostFooter from '../../components/PostFooter'
+import MailChimpForm from '../../components/MailChimpForm'
 
 interface PostPageProps {
   source: MDXRemoteSerializeResult
@@ -30,6 +34,7 @@ const components = {
   YouTube,
   ResponsiveEmbed,
   Pony,
+  Poll,
 }
 
 export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
@@ -117,7 +122,7 @@ export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
           position: 'sticky',
           top: 0
         }}>
-          {/* Social sharing would go here */}
+          <SocialShare path={frontmatter.path || `/posts/${slug}`} />
         </div>
 
         {/* Post Content */}
@@ -150,12 +155,17 @@ export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
         {/* Post Footer */}
         <div style={{ 
           marginTop: '3rem',
-          padding: '2rem 0',
-          borderTop: '1px solid #eee'
+          padding: '2rem 0'
         }}>
-          <p style={{ color: '#888' }}>
-            By {frontmatter.author} • Tags: {frontmatter.hashtags}
+          <PostFooter 
+            path={frontmatter.path || `/posts/${slug}`} 
+            author={frontmatter.author} 
+          />
+          <p style={{ color: '#888', marginTop: '1rem' }}>
+            Tags: {frontmatter.hashtags}
           </p>
+          
+          <MailChimpForm />
         </div>
       </div>
     </div>

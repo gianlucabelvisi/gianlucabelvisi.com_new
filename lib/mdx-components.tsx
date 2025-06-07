@@ -6,6 +6,7 @@ import TextBox from '../components/TextBox'
 import YouTube from '../components/YouTube'
 import ResponsiveEmbed from '../components/ResponsiveEmbed'
 import Highlight from '../components/Highlight'
+import Poll from '../components/Poll'
 
 export const mdxComponents = {
   Dialogue,
@@ -16,4 +17,5 @@ export const mdxComponents = {
   YouTube,
   ResponsiveEmbed,
   Highlight,
+  Poll,
 } 

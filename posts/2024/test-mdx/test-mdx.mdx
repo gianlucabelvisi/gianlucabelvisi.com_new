@@ -156,4 +156,66 @@ Now let's test images stored right next to the MDX file (just like in Gatsby):
 
 <FigureLabel>This image is stored in the same folder as the MDX file! No more complex path management - just like Gatsby!</FigureLabel>
 
-The system automatically copies co-located images to the public directory and serves them correctly! 📁✨ 
+The system automatically copies co-located images to the public directory and serves them correctly! 📁✨
+
+## Testing Poll Component 🗳️
+
+Let's test our new interactive Poll component with the same question from the diabetes post:
+
+<Poll
+  id="lap_sitting_test"
+  question="How did you like sitting on my lap?"
+  answers={["It was a once in a lifetime experience!", "It was kinda mid", "I haven't sat on your lap yet"]}
+  labels={["Loved it!", "Mid", "DM me"]}
+/>
+
+The Poll component features:
+- ✅ Interactive voting with Firebase storage
+- ✅ Beautiful pie chart results with animated transitions
+- ✅ Custom labels vs full answer text
+- ✅ Vote counting
+- ✅ Orange accent styling matching the blog theme
+
+## Testing Enhanced TextBox (Closeable) 📦
+
+The TextBox component now supports collapsible content! Let's test it:
+
+### Regular TextBox (unchanged)
+
+<TextBox title="Regular TextBox">
+This is a regular TextBox component without closeable functionality - works exactly as before.
+</TextBox>
+
+### Closeable TextBox with title
+
+<TextBox title="Definition" closeable={true}>
+*From mald +‎ -ing, itself a blend of mad +‎ bald.*
+
+Malding is a slang word used to describe an angry person. A combo of the words **mad** and **balding**, malding refers to someone (often a gamer) who gets extremely heated about something to the point where they could metaphorically pull out their hair.
+
+This content can be collapsed and expanded using the Hide/Show buttons!
+</TextBox>
+
+### Closeable TextBox without title
+
+<TextBox closeable={true}>
+This TextBox has no title but is still closeable! You can collapse and expand it using the buttons. Perfect for optional content or detailed explanations that don't clutter the main flow.
+</TextBox>
+
+### Closeable TextBox with components inside
+
+<TextBox title="Chess Memory" closeable={true}>
+
+<Dialogue>You are not giving up, Gotham tells me around the 20th move. Good!</Dialogue>
+
+Even when collapsed, this <Highlight>complex content with multiple components</Highlight> maintains its formatting perfectly!
+
+<YouTube source="dQw4w9WgXcQ" />
+
+<FigureLabel>Everything works inside closeable TextBoxes!</FigureLabel>
+
+</TextBox>
+
+🎉 **NEW COMPONENTS COMPLETE!** 🎉
+
+All components are now ready for the diabetes post migration! Poll component provides interactive voting functionality, and TextBox enhancement allows collapsible content sections. 
