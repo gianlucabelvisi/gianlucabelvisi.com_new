@@ -36,6 +36,7 @@ import Indented from '../../components/mdx/Indented'
 import Listen from '../../components/mdx/Listen'
 import Nsfw from '../../components/mdx/Nsfw'
 import Batman from '../../components/mdx/Batman'
+import Reddit from '../../components/mdx/Reddit'
 import ProfitBox from '../../components/ProfitBox'
 import SocialShare from '../../components/SocialShare'
 import PostFooter from '../../components/PostFooter'
@@ -83,6 +84,7 @@ const components = {
   Listen,
   Nsfw,
   Batman,
+  Reddit,
   ProfitBox,
 }
 
