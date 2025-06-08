@@ -15,18 +15,22 @@ const Dialogue = ({ children, withQuotesBegin = true, withQuotesEnd = true }: Di
       {withQuotesBegin && (
         <span style={{ 
           color: '#ff9664',
-          whiteSpace: 'nowrap'
+          whiteSpace: 'nowrap',
+          fontSize: '1.2rem',
+          marginRight: '0.2rem'
         }}>
-          ❝&nbsp;
+          ❝
         </span>
       )}
       {children}
       {withQuotesEnd && (
         <span style={{ 
           color: '#ff9664',
-          whiteSpace: 'nowrap'
+          whiteSpace: 'nowrap',
+          fontSize: '1.2rem',
+          marginLeft: '0.2rem'
         }}>
-          &nbsp;❞
+          ❞
         </span>
       )}
     </span>

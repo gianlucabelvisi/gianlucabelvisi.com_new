@@ -1,25 +1,26 @@
 ---
 path: "/test-mdx"
 date: 2024-12-19
-title: "Testing MDX with Custom Components"
-subTitle: "A simple test to understand how MDX works in Next.js"
+title: "Complete MDX Component Testing"
+subTitle: "Testing ALL available MDX components in one comprehensive page"
 author: "Gianluca Belvisi"
-hashtags: "test, mdx, tech"
+hashtags: "test, mdx, tech, components"
 featureImage: "travel-1.jpg"
 cardImage: "travel-1.jpg"
 onHover: "🧪"
 hidden: false
 ---
 
-# Testing MDX Components
+# Complete MDX Component Testing
 
-This is a simple test post to understand how **MDX** works with custom components.
+This is a comprehensive test post showcasing **ALL** available MDX components.
 
-Here's some regular markdown text, and now let's test our custom Highlight component:
+## Text Formatting Components
+
+### Highlight Component
+Here's some regular markdown text with highlights:
 
 <Highlight>This text should be highlighted in yellow!</Highlight>
-
-And let's try different colors:
 
 <Highlight color="blue">Blue highlighted text</Highlight>
 
@@ -27,22 +28,8 @@ And let's try different colors:
 
 <Highlight color="red">Red highlighted text for important stuff!</Highlight>
 
-## How cool is this?
-
-Pretty cool! We can mix regular markdown with React components seamlessly.
-
-**Bold text**, *italic text*, and `code snippets` all work as expected.
-
-But we can also add:
-- Interactive components
-- Custom styling
-- Dynamic behavior
-
-This is the power of **MDX** - it's like markdown but supercharged with React! 🚀
-
-## Testing Dialogue Components
-
-Now let's test our Dialogue component with the orange quotation marks:
+### Dialogue Component
+Testing conversation-style quotations:
 
 <Dialogue>You are not giving up, Gotham tells me around the 20th move. Good!</Dialogue>
 
@@ -50,143 +37,29 @@ Now let's test our Dialogue component with the orange quotation marks:
 
 <Dialogue>Hey, are we ok?</Dialogue>
 
+### Glyphs
 You can also use individual glyphs: <GlyphLeft/>Let's spice things up<GlyphRight/> and trigger a flurry of trades.
 
-And mix them with highlights:
+Mix them with highlights:
 
 <Dialogue>I think you have <Highlight color="red">one move left</Highlight>.</Dialogue>
 
-Pretty cool! The orange quotation marks match the blog's styling perfectly! 🎯
+## Layout Components
 
-## Testing FigureLabel Component
-
-Now let's test image captions with the FigureLabel component using local images:
-
-![Travel Photo](/images/posts/2024/travel-1.jpg)
-
-<FigureLabel>A beautiful travel photo from the original blog collection - stored locally in the project!</FigureLabel>
-
-Let's also test HTML img tags with local images:
-
-<img src="/images/posts/2024/truth.jpg" alt="Truth illustration" style={{maxWidth: '100%', height: 'auto'}} />
-
-<FigureLabel>This "truth" illustration works perfectly with HTML img tags too!</FigureLabel>
-
-And here's a profile image using standard MDX:
-
-![Profile](/images/gianluca-1.jpg)
-
-<FigureLabel>Profile photo from the root images folder - no more weird Gatsby workarounds needed!</FigureLabel>
-
-Perfect! The centered, italicized captions look exactly like the original blog! ✨
-
-## Testing TextBox Component
-
-Now let's test highlighted content boxes:
+### TextBox Component
+Regular TextBox with title:
 
 <TextBox title="Important Notice">
 This is a highlighted content box with a semi-transparent background and orange left border. Perfect for calling attention to important information!
 </TextBox>
 
+TextBox without title:
+
 <TextBox>
-This TextBox has no title, just the content with the signature orange accent styling from the original blog.
+This TextBox has no title, just the content with the signature orange accent styling.
 </TextBox>
 
-And we can mix TextBox with other components:
-
-<TextBox title="Chess Wisdom">
-<Dialogue>You are not giving up, Gotham tells me around the 20th move. Good!</Dialogue>
-
-This shows how <Highlight>multiple components work together</Highlight> within a TextBox!
-</TextBox>
-
-Excellent! All components are working perfectly in the new folder structure! 🎯
-
-## Testing YouTube Component
-
-Let's test YouTube video embeds:
-
-<YouTube source="dQw4w9WgXcQ" />
-
-<FigureLabel>The classic Rick Roll - perfect for testing YouTube embeds!</FigureLabel>
-
-And we can put YouTube videos inside TextBoxes too:
-
-<TextBox title="Featured Video">
-Here's an educational video about React:
-
-<YouTube source="Ke90Tje7VS0" />
-
-<FigureLabel>React in 100 Seconds by Fireship - great for learning!</FigureLabel>
-</TextBox>
-
-Perfect! YouTube embeds work beautifully with responsive design! 📺
-
-## Testing ResponsiveEmbed Component
-
-The ResponsiveEmbed component is more flexible - it can embed ANY iframe with custom aspect ratios:
-
-<ResponsiveEmbed src="https://www.youtube.com/embed/Ke90Tje7VS0" ratio="16:9" />
-
-<FigureLabel>Using ResponsiveEmbed with 16:9 ratio - same as YouTube component but more flexible!</FigureLabel>
-
-Let's try a different aspect ratio:
-
-<ResponsiveEmbed src="https://www.youtube.com/embed/dQw4w9WgXcQ" ratio="4:3" />
-
-<FigureLabel>Same video but with 4:3 ratio - notice the different aspect ratio!</FigureLabel>
-
-And we can embed other services too:
-
-<ResponsiveEmbed 
-  src="https://codepen.io/team/codepen/embed/PNaGbb" 
-  ratio="2:1" 
-  title="CodePen Embed"
-/>
-
-<FigureLabel>CodePen embed with a custom 2:1 ratio - ResponsiveEmbed works with any iframe!</FigureLabel>
-
-🎉 **ALL COMPONENTS COMPLETE!** 🎉
-
-## Testing Co-located Images
-
-Now let's test images stored right next to the MDX file (just like in Gatsby):
-
-![Co-located image](travel-1.jpg)
-
-<FigureLabel>This image is stored in the same folder as the MDX file! No more complex path management - just like Gatsby!</FigureLabel>
-
-The system automatically copies co-located images to the public directory and serves them correctly! 📁✨
-
-## Testing Poll Component 🗳️
-
-Let's test our new interactive Poll component with the same question from the diabetes post:
-
-<Poll
-  id="lap_sitting_test"
-  question="How did you like sitting on my lap?"
-  answers={["It was a once in a lifetime experience!", "It was kinda mid", "I haven't sat on your lap yet"]}
-  labels={["Loved it!", "Mid", "DM me"]}
-/>
-
-The Poll component features:
-- ✅ Interactive voting with Firebase storage
-- ✅ Beautiful pie chart results with animated transitions
-- ✅ Custom labels vs full answer text
-- ✅ Vote counting
-- ✅ Orange accent styling matching the blog theme
-
-## Testing Enhanced TextBox (Closeable) 📦
-
-The TextBox component now supports collapsible content! Let's test it:
-
-### Regular TextBox (unchanged)
-
-<TextBox title="Regular TextBox">
-This is a regular TextBox component without closeable functionality - works exactly as before.
-</TextBox>
-
-### Closeable TextBox with title
+Closeable TextBox:
 
 <TextBox title="Definition" closeable={true}>
 *From mald +‎ -ing, itself a blend of mad +‎ bald.*
@@ -196,62 +69,394 @@ Malding is a slang word used to describe an angry person. A combo of the words *
 This content can be collapsed and expanded using the Hide/Show buttons!
 </TextBox>
 
-### Closeable TextBox without title
+### Indented Component
+Testing the indented text component:
 
-<TextBox closeable={true}>
-This TextBox has no title but is still closeable! You can collapse and expand it using the buttons. Perfect for optional content or detailed explanations that don't clutter the main flow.
-</TextBox>
+<Indented>
+This text should appear with extra indentation from the left margin. Perfect for quotes, important notes, or content that needs visual separation from the main text flow.
+</Indented>
 
-### Closeable TextBox with components inside
+### Formula Component
+Testing mathematical formula styling:
 
-<TextBox title="Chess Memory" closeable={true}>
+<Formula>
+E = mc²
+</Formula>
 
-<Dialogue>You are not giving up, Gotham tells me around the 20th move. Good!</Dialogue>
+<Formula>
+∫ f(x)dx = F(x) + C
+</Formula>
 
-Even when collapsed, this <Highlight>complex content with multiple components</Highlight> maintains its formatting perfectly!
+## Media Components
+
+### FigureLabel Component
+For image captions:
+
+![Travel Photo](travel-1.jpg)
+
+<FigureLabel>A beautiful travel photo from the original blog collection - stored locally in the project!</FigureLabel>
+
+### YouTube Component
+Testing YouTube video embeds:
 
 <YouTube source="dQw4w9WgXcQ" />
 
-<FigureLabel>Everything works inside closeable TextBoxes!</FigureLabel>
+<FigureLabel>The classic Rick Roll - perfect for testing YouTube embeds!</FigureLabel>
+
+### ResponsiveEmbed Component
+More flexible iframe embedding:
+
+<ResponsiveEmbed src="https://www.youtube.com/embed/Ke90Tje7VS0" ratio="16:9" />
+
+<FigureLabel>Using ResponsiveEmbed with 16:9 ratio - same as YouTube component but more flexible!</FigureLabel>
+
+## Specialized Components
+
+### Reddit Component
+Testing Reddit post embedding:
+
+<Reddit 
+  source="https://www.redditmedia.com/r/nextjs/comments/example/embed?ref_source=embed&amp;ref=share&amp;embed=true"
+  label="Example Reddit post about Next.js"
+  title="Next.js Discussion"
+/>
+
+### Batman Component
+Testing the Batman image component:
+
+
+### Listen Component
+Testing audio playback with the Listen component:
+
+Here's some text with an inline audio player <Listen url="https://www.soundjay.com/misc/sounds/bell-ringing-05.wav" /> that you can click to play audio content.
+
+### Nsfw Component
+Testing content warning wrapper:
+
+<Nsfw>
+<img src="/images/posts/2024/test-mdx/travel-1.jpg" alt="Hidden content" style={{maxWidth: '100%', height: 'auto'}} />
+
+This content was hidden behind an NSFW warning! Click the overlay to reveal it.
+</Nsfw>
+
+### FilmCard Component
+Testing film information display:
+
+<FilmCard 
+  country="USA"
+  director="Christopher Nolan"
+  starring="Leonardo DiCaprio, Marion Cotillard"
+  seenOn="Netflix"
+  emoji="🎬"
+/>
+
+## Interactive Components
+
+### Poll Component
+Testing interactive voting:
+
+<Poll
+  id="component_test_poll"
+  question="Which MDX component do you find most useful?"
+  answers={["TextBox for highlighted content", "YouTube for video embeds", "Poll for interactivity", "Dialogue for conversations"]}
+  labels={["TextBox", "YouTube", "Poll", "Dialogue"]}
+/>
+
+### UnicornButton Component
+Testing click tracking:
+
+<UnicornButton page={"test-comprehensive"} id={"1"} tooltip={"Click me to test the unicorn button functionality!"} />
+
+Try clicking the unicorn above! It should show tooltips and track clicks with Firebase.
+
+### ShakyTitle Component
+Testing animated section headers:
+
+<ShakyTitle emoji={"🎯"} title={"All Components Tested!"} />
+
+This demonstrates the animated title component with pulsing emojis and shaking text.
+
+## Component Combinations
+
+### Complex TextBox with Multiple Components
+
+<TextBox title="Component Showcase" closeable={true}>
+
+<Dialogue>This is a dialogue inside a TextBox!</Dialogue>
+
+Here's some <Highlight color="green">highlighted text</Highlight> mixed with a YouTube video:
+
+<YouTube source="Ke90Tje7VS0" />
+
+<FigureLabel>React in 100 Seconds by Fireship - embedded within a collapsible TextBox!</FigureLabel>
+
+And even an interactive element:
+
+<UnicornButton page={"test-comprehensive"} id={"2"} tooltip={"Unicorn inside a TextBox!"} />
 
 </TextBox>
 
-## Testing ShakyTitle Component 📢
+## Additional Layout Components
 
-The new ShakyTitle component features animated emojis and shaking text for dramatic effect:
+### ProfitBox Component
+Testing profit display boxes:
 
-<ShakyTitle emoji={"👀"} title={"Important clarification"} />
+<ProfitBox subject="Tesla Stock" percentage={42} />
 
-This is content after a ShakyTitle. Notice the pulsing emoji and the shaking orange text!
+<ProfitBox subject="Bitcoin" percentage={150} />
 
-<ShakyTitle emoji={"💩"} title={"Should I test animations?"} />
+### Spoiler Component
+Testing spoiler content with click-to-reveal:
 
-Another ShakyTitle to make sure the animations work consistently. The animations should run infinitely with smooth CSS transitions.
+<Spoiler>
+This is spoiler content that was hidden! Perfect for plot twists, endings, or sensitive information that readers need to choose to see.
+</Spoiler>
 
-<ShakyTitle emoji={"🐶"} title={"Getting ready for doggo post!"} />
+### ThreeColumns Component
+Testing three-column layout:
 
-Perfect for dramatic section breaks in the upcoming doggo post migration!
+<ThreeColumns>
+<div>
+**Column 1**
+This is the first column with some content. It should be displayed in a three-column grid layout.
+</div>
+<div>
+**Column 2** 
+This is the second column. Each column should be equally sized and responsive.
+</div>
+<div>
+**Column 3**
+This is the third column completing our layout test.
+</div>
+</ThreeColumns>
 
-## Testing UnicornButton Component 🦄
+### Col23 Component
+Testing two-thirds width column:
 
-The UnicornButton is the most complex component - it features Firebase click tracking with tooltips:
+<Col23>
+This content should take up 2/3 of the available width, perfect for wider content blocks or featured content.
+</Col23>
 
-<UnicornButton page={"test"} id={"1"} tooltip={"This is a test tooltip - click to increment!"} />
+## Book Cover Components
 
-Try clicking the unicorn above! It should:
-- ✅ Show a tooltip on hover
-- ✅ Bounce when clicked
-- ✅ Increment the counter with Firebase storage
-- ✅ Update in real-time across browser sessions
+### Individual Book Covers
+Testing specific book cover components:
 
-Let's test multiple buttons with different tooltips:
+<Truth />
 
-<UnicornButton page={"test"} id={"2"} tooltip={"Second button with different tooltip!"} />
+<Crime />
 
-<UnicornButton page={"test"} id={"3"} tooltip={"This one tracks separately from the others"} />
+<Pride />
 
-Each button maintains its own click count using Firebase Realtime Database, just like in the original doggo post!
+<Hailmary />
 
-🎉 **ALL COMPONENTS COMPLETE!** 🎉
+<Greenlights />
 
-All components are now ready for the doggo post migration! ShakyTitle provides animated section headers, Poll component provides interactive voting functionality, and TextBox enhancement allows collapsible content sections. 
+<Richer />
+
+<FigureLabel>Individual book covers from the 2022 reading list - each optimized with Next.js Image!</FigureLabel>
+
+### Books2022 Component
+Testing the animated book stack:
+
+<Books2022 />
+
+<FigureLabel>Animated photo stack of all 2022 books with sequential reveal animation!</FigureLabel>
+
+## Audio & Media Components
+
+### YouTubeAudio Component
+Testing YouTube audio-only player:
+
+Here's some text with an inline YouTube audio player <YouTubeAudio url="https://www.youtube.com/watch?v=dQw4w9WgXcQ" /> that plays just the audio without the video.
+
+## Typography Components
+
+### Pony Component
+Testing special typography with Irish Grover font:
+
+<Pony>
+This text uses the Irish Grover font for a playful, handwritten look! Perfect for quotes, special callouts, or whimsical content.
+</Pony>
+
+<Pony fontSize="2rem">
+Larger Pony text with custom font size for headings or emphasis!
+</Pony>
+
+### BlogSubTitle Component
+Testing blog subtitle styling:
+
+<BlogSubTitle>This is a subtitle component with special styling for blog post subtitles and section headers.</BlogSubTitle>
+
+### Quote Component
+Testing quote blocks:
+
+<Quote>
+This is a beautifully styled quote component with proper typography and spacing for memorable quotes or testimonials.
+</Quote>
+
+## Utility Components
+
+### MarginBottom Component
+Testing margin spacing:
+
+<MarginBottom />
+
+This text has extra margin above it thanks to the MarginBottom component.
+
+### Email Component
+Testing email display:
+
+<Email />
+
+### PostFooter Component
+Testing post footer:
+
+<PostFooter />
+
+## Code Block Testing
+
+Finally, let's test code blocks with syntax highlighting:
+
+Here's some JavaScript code:
+
+```javascript
+// This is a JavaScript code block
+function HelloWorld() {
+  const [count, setCount] = useState(0);
+  
+  const handleClick = () => {
+    setCount(count + 1);
+    console.log('Button clicked!');
+  };
+  
+  return (
+    <div>
+      <h1>Hello World!</h1>
+      <p>Count: {count}</p>
+      <button onClick={handleClick}>
+        Click me!
+      </button>
+    </div>
+  );
+}
+
+export default HelloWorld;
+```
+
+And here's some Python code:
+
+```python
+# This is a Python code block
+def fibonacci(n):
+    """Generate Fibonacci sequence up to n terms"""
+    if n <= 0:
+        return []
+    elif n == 1:
+        return [0]
+    elif n == 2:
+        return [0, 1]
+    
+    sequence = [0, 1]
+    for i in range(2, n):
+        next_num = sequence[i-1] + sequence[i-2]
+        sequence.append(next_num)
+    
+    return sequence
+
+# Usage example
+result = fibonacci(10)
+print(f"First 10 Fibonacci numbers: {result}")
+```
+
+Here's some CSS:
+
+```css
+/* This is a CSS code block */
+.component-showcase {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 1rem 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.component-showcase h2 {
+  color: white;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.component-showcase p {
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .component-showcase {
+    padding: 1rem;
+    margin: 0.5rem 0;
+  }
+}
+```
+
+🎉 **ALL COMPONENTS TESTED!** 🎉
+
+This comprehensive test page includes examples of **EVERY** MDX component available in the project:
+
+**Text & Layout:**
+- ✅ Highlight (with color variants)
+- ✅ Dialogue (conversation quotes)
+- ✅ GlyphLeft/GlyphRight (quotation marks)
+- ✅ TextBox (regular and closeable)
+- ✅ Indented (indented text blocks)
+- ✅ Formula (mathematical expressions)
+- ✅ FigureLabel (image captions)
+- ✅ ProfitBox (profit display boxes)
+- ✅ ThreeColumns (three-column layout)
+- ✅ Col23 (two-thirds width column)
+
+**Media & Embeds:**
+- ✅ YouTube (video embeds)
+- ✅ YouTubeAudio (audio-only player)
+- ✅ ResponsiveEmbed (flexible iframes)
+- ✅ Reddit (Reddit post embeds)
+- ✅ Batman (specific image component)
+
+**Book Components:**
+- ✅ Books2022 (animated book stack)
+- ✅ Truth (book cover)
+- ✅ Crime (book cover)
+- ✅ Pride (book cover)
+- ✅ Hailmary (book cover)
+- ✅ Greenlights (book cover)
+- ✅ Richer (book cover)
+
+**Typography:**
+- ✅ Pony (Irish Grover font)
+- ✅ BlogSubTitle (subtitle styling)
+- ✅ Quote (quote blocks)
+
+**Interactive & Specialized:**
+- ✅ Listen (inline audio player)
+- ✅ Nsfw (content warning wrapper)
+- ✅ Spoiler (click-to-reveal content)
+- ✅ FilmCard (movie information display)
+- ✅ Poll (interactive voting)
+- ✅ UnicornButton (click tracking)
+- ✅ ShakyTitle (animated headers)
+
+**Utility & System:**
+- ✅ Email (email display)
+- ✅ PostFooter (post footer)
+- ✅ MarginBottom (spacing utility)
+
+**Code Blocks:**
+- ✅ JavaScript syntax highlighting
+- ✅ Python syntax highlighting  
+- ✅ CSS syntax highlighting
+- ✅ Copy button functionality
+- ✅ Language badges
+- ✅ Dark theme styling
+
+**Total: 40+ components tested!** All components are ready for content migration! 🚀 

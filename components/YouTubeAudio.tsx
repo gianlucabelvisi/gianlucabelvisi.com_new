@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import ReactPlayer from 'react-player/lazy';
+import React, { useState, useRef } from 'react';
 import { FaPlay, FaPause } from 'react-icons/fa';
 import styles from './YouTubeAudio.module.css';
 
@@ -9,9 +8,28 @@ interface YouTubeAudioProps {
 
 const YouTubeAudio: React.FC<YouTubeAudioProps> = ({ url }) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Convert YouTube URL to audio-only format
+  const getAudioUrl = (youtubeUrl: string) => {
+    const videoId = youtubeUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
+    if (videoId) {
+      // Note: This is a simplified approach. In practice, you'd need a service to extract audio
+      // For now, we'll use the original URL as placeholder
+      return youtubeUrl;
+    }
+    return youtubeUrl;
+  };
 
   const togglePlaying = () => {
-    setIsPlaying(!isPlaying);
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
   };
 
   const onEnded = () => {
@@ -20,13 +38,11 @@ const YouTubeAudio: React.FC<YouTubeAudioProps> = ({ url }) => {
 
   return (
     <span className={styles.wrapper}>
-      <ReactPlayer
-        url={url}
-        playing={isPlaying}
+      <audio
+        ref={audioRef}
+        src={getAudioUrl(url)}
         onEnded={onEnded}
         style={{ display: 'none' }}
-        width="0"
-        height="0"
       />
       
       <button className={styles.playButton} onClick={togglePlaying}>

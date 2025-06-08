@@ -6,8 +6,8 @@
 
 .nsfwContent {
   position: relative;
-  background: rgba(255, 0, 0, 0.1);
-  border: 2px solid rgba(255, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.08);
+  border: 2px solid rgba(0, 0, 0, 0.15);
   border-radius: 8px;
   padding: 1rem;
   transition: all 0.3s ease;
@@ -16,14 +16,14 @@
 }
 
 .nsfwContent:hover {
-  border-color: rgba(255, 0, 0, 0.6);
-  background: rgba(255, 0, 0, 0.15);
+  border-color: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.12);
 }
 
 .nsfwContent.revealed {
   cursor: default;
-  background: rgba(255, 0, 0, 0.05);
-  border-color: rgba(255, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
 }
 
 .nsfwOverlay {
@@ -32,33 +32,192 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 0, 0, 0.9);
+  background: linear-gradient(135deg, rgba(20, 20, 20, 0.95) 0%, rgba(40, 40, 40, 0.92) 100%);
   backdrop-filter: blur(8px);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 2;
+  z-index: 4;
   border-radius: 6px;
+}
+
+.nsfwOverlay.overlayAnimating {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Curtain Effect */
+.curtainContainer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.curtainLeft,
+.curtainRight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background: linear-gradient(90deg, 
+    #8B0000 0%, 
+    #A52A2A 10%, 
+    #DC143C 25%, 
+    #B22222 40%, 
+    #8B0000 50%,
+    #A52A2A 60%,
+    #DC143C 75%,
+    #B22222 90%,
+    #8B0000 100%
+  );
+  box-shadow: 
+    inset 2px 0 10px rgba(0, 0, 0, 0.3),
+    inset -2px 0 10px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(0, 0, 0, 0.5);
+  transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.curtainLeft {
+  left: 0;
+  background: linear-gradient(90deg, 
+    #8B0000 0%, 
+    #A52A2A 15%, 
+    #DC143C 30%, 
+    #B22222 50%, 
+    #8B0000 70%,
+    #654321 85%,
+    #4A4A4A 100%
+  );
+  box-shadow: 
+    inset -8px 0 15px rgba(0, 0, 0, 0.4),
+    2px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.curtainRight {
+  right: 0;
+  background: linear-gradient(90deg, 
+    #4A4A4A 0%,
+    #654321 15%,
+    #8B0000 30%, 
+    #B22222 50%, 
+    #DC143C 70%, 
+    #A52A2A 85%, 
+    #8B0000 100%
+  );
+  box-shadow: 
+    inset 8px 0 15px rgba(0, 0, 0, 0.4),
+    -2px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Add curtain texture pattern */
+.curtainLeft::before,
+.curtainRight::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0, 0, 0, 0.1) 3px,
+      rgba(0, 0, 0, 0.1) 6px
+    );
+  opacity: 0.6;
+}
+
+/* Curtain opening animations */
+.curtainLeftOpen {
+  transform: translateX(-100%);
+  opacity: 0.8;
+}
+
+.curtainRightOpen {
+  transform: translateX(100%);
+  opacity: 0.8;
 }
 
 .nsfwWarning {
   text-align: center;
-  color: white;
+  color: #e0e0e0;
 }
 
 .nsfwTitle {
   font-size: 4rem;
   margin: 0 0 1rem 0;
   font-weight: bold;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  color: #ff6b6b;
+  text-shadow: 
+    0 0 10px rgba(255, 107, 107, 0.3),
+    0 0 20px rgba(255, 107, 107, 0.2),
+    0 0 30px rgba(255, 107, 107, 0.1),
+    2px 2px 4px rgba(0, 0, 0, 0.8);
+  animation: eerieGlow 3s ease-in-out infinite alternate;
+  letter-spacing: 0.1em;
+  filter: drop-shadow(0 0 5px rgba(255, 107, 107, 0.4));
+}
+
+@keyframes eerieGlow {
+  0% {
+    text-shadow: 
+      0 0 10px rgba(255, 107, 107, 0.3),
+      0 0 20px rgba(255, 107, 107, 0.2),
+      0 0 30px rgba(255, 107, 107, 0.1),
+      2px 2px 4px rgba(0, 0, 0, 0.8);
+    opacity: 0.9;
+  }
+  25% {
+    text-shadow: 
+      0 0 15px rgba(255, 107, 107, 0.5),
+      0 0 25px rgba(255, 107, 107, 0.3),
+      0 0 35px rgba(255, 107, 107, 0.2),
+      2px 2px 4px rgba(0, 0, 0, 0.8);
+    opacity: 1;
+  }
+  50% {
+    text-shadow: 
+      0 0 8px rgba(255, 107, 107, 0.2),
+      0 0 18px rgba(255, 107, 107, 0.15),
+      0 0 28px rgba(255, 107, 107, 0.1),
+      2px 2px 4px rgba(0, 0, 0, 0.8);
+    opacity: 0.8;
+  }
+  75% {
+    text-shadow: 
+      0 0 20px rgba(255, 107, 107, 0.6),
+      0 0 30px rgba(255, 107, 107, 0.4),
+      0 0 40px rgba(255, 107, 107, 0.2),
+      2px 2px 4px rgba(0, 0, 0, 0.8);
+    opacity: 1;
+  }
+  100% {
+    text-shadow: 
+      0 0 12px rgba(255, 107, 107, 0.4),
+      0 0 22px rgba(255, 107, 107, 0.25),
+      0 0 32px rgba(255, 107, 107, 0.15),
+      2px 2px 4px rgba(0, 0, 0, 0.8);
+    opacity: 0.95;
+  }
 }
 
 .nsfwSubtitle {
   font-size: 1.2rem;
   margin: 0;
-  opacity: 0.9;
+  opacity: 0.8;
+  font-style: italic;
+  color: #ccc;
 }
 
 .nsfwContent:hover .nsfwWarning {
-  transform: scale(1.05);
+  transform: scale(1.02);
+}
+
+.nsfwContent:hover .nsfwTitle {
+  animation-duration: 2s;
 }
 
 .content {
@@ -79,16 +238,30 @@
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .nsfwContent {
-    background: rgba(255, 0, 0, 0.08);
-    border-color: rgba(255, 0, 0, 0.4);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
   .nsfwContent:hover {
-    background: rgba(255, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
   }
 
   .nsfwContent.revealed {
-    background: rgba(255, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .nsfwOverlay {
+    background: linear-gradient(135deg, rgba(10, 10, 10, 0.98) 0%, rgba(25, 25, 25, 0.95) 100%);
+  }
+
+  .nsfwWarning {
+    color: #f0f0f0;
+  }
+
+  .nsfwSubtitle {
+    color: #ddd;
   }
 }
 

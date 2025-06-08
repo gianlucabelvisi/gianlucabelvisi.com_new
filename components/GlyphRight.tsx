@@ -6,7 +6,9 @@ const GlyphRight = () => {
       style={{ 
         color: '#ff9664',
         display: 'inline',
-        verticalAlign: 'baseline'
+        verticalAlign: 'baseline',
+        marginLeft: '0.2rem',
+        fontSize: '1.1rem'
       }} 
     />
   )

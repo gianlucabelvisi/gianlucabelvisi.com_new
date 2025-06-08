@@ -22,9 +22,12 @@ const Books2022: React.FC<Books2022Props> = ({ background = "desk4" }) => {
   // Book covers are in the public/images/books2022/ directory
   const imagePath = '/images/books2022';
 
-  // Random positioning function
-  const random = (min: number, max: number) => {
-    return Math.random() * (max - min) + min;
+  // Deterministic "random" positioning function using index as seed
+  const deterministicRandom = (index: number, min: number, max: number) => {
+    // Simple pseudo-random number generator using index as seed
+    const seed = (index * 9301 + 49297) % 233280;
+    const value = seed / 233280;
+    return value * (max - min) + min;
   };
 
   useEffect(() => {
@@ -52,13 +55,13 @@ const Books2022: React.FC<Books2022Props> = ({ background = "desk4" }) => {
       {bookCovers.map((book, index) => {
         const fullImagePath = `${imagePath}/${book.src}`;
         
-        // Generate random placement values like the original
+        // Generate deterministic placement values
         const placement = {
           zIndex: 1000 - index,
           delay: 4 * index + 1, // 4 second delays: 1s, 5s, 9s, 13s, etc.
-          rotation: random(-45, 45),
-          xDelta: random(-10, 10),
-          yDelta: random(-10, 10)
+          rotation: deterministicRandom(index, -45, 45),
+          xDelta: deterministicRandom(index + 100, -10, 10),
+          yDelta: deterministicRandom(index + 200, -10, 10)
         };
         
         return (

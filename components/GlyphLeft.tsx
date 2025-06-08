@@ -6,7 +6,9 @@ const GlyphLeft = () => {
       style={{ 
         color: '#ff9664',
         display: 'inline',
-        verticalAlign: 'baseline'
+        verticalAlign: 'baseline',
+        marginRight: '0.2rem',
+        fontSize: '1.1rem'
       }} 
     />
   )
