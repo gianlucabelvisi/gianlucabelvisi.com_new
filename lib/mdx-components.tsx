@@ -30,6 +30,7 @@ import Formula from '../components/mdx/Formula'
 import Indented from '../components/mdx/Indented'
 import Listen from '../components/mdx/Listen'
 import Nsfw from '../components/mdx/Nsfw'
+import Batman from '../components/mdx/Batman'
 
 export const mdxComponents = {
   BlogSubTitle,
@@ -64,4 +65,5 @@ export const mdxComponents = {
   Indented,
   Listen,
   Nsfw,
+  Batman,
 } 

@@ -4,7 +4,8 @@ interface FigureLabelProps {
 
 const FigureLabel = ({ children }: FigureLabelProps) => {
   return (
-    <div style={{
+    <span style={{
+      display: 'block',
       width: '100%',
       textAlign: 'center',
       marginBottom: '2rem',
@@ -14,7 +15,7 @@ const FigureLabel = ({ children }: FigureLabelProps) => {
       textWrap: 'balance' as any // TypeScript doesn't know about this CSS property yet
     }}>
       <em>{children}</em>
-    </div>
+    </span>
   )
 }
 
