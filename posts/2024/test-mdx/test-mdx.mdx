@@ -291,8 +291,8 @@ Testing blog subtitle styling:
 ### Quote Component
 Testing quote blocks:
 
-<Quote>
-This is a beautifully styled quote component with proper typography and spacing for memorable quotes or testimonials.
+<Quote from="Steve Jobs">
+Innovation distinguishes between a leader and a follower.
 </Quote>
 
 ## Utility Components
@@ -307,7 +307,24 @@ This text has extra margin above it thanks to the MarginBottom component.
 ### Email Component
 Testing email display:
 
-<Email />
+<Email 
+  from="steve@apple.com" 
+  to="team@apple.com" 
+  subject="Think Different Campaign Ideas"
+>
+Hey team,
+
+I've been thinking about our upcoming marketing campaign. We need something that really captures the essence of what Apple stands for.
+
+What if we focused on the crazy ones? The misfits. The rebels. The troublemakers. The round pegs in the square holes - the ones who see things differently.
+
+They're not fond of rules, and they have no respect for the status quo. You can quote them, disagree with them, glorify or vilify them. About the only thing you can't do is ignore them because they change things.
+
+Let me know your thoughts.
+
+Best,
+Steve
+</Email>
 
 ### PostFooter Component
 Testing post footer:

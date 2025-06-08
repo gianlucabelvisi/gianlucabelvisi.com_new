@@ -1,69 +1,205 @@
 .spoilerContainer {
-  margin: 1.5rem 0;
-  border-radius: 8px;
+  margin: 2rem 0;
+  border-radius: 12px;
   overflow: hidden;
 }
 
 .spoilerContent {
   position: relative;
-  background: rgba(0, 0, 0, 0.1);
-  border: 2px solid rgba(255, 140, 0, 0.3);
-  border-radius: 8px;
-  padding: 1rem;
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, rgba(255, 150, 100, 0.08) 0%, rgba(255, 150, 100, 0.04) 100%);
+  border: 2px solid rgba(255, 150, 100, 0.2);
+  border-radius: 12px;
+  padding: 2rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  box-shadow: 0 4px 20px rgba(255, 150, 100, 0.1),
+              0 2px 8px rgba(0, 0, 0, 0.08),
+              0 1px 3px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
 }
 
 .spoilerContent:hover {
-  border-color: rgba(255, 140, 0, 0.6);
-  background: rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 150, 100, 0.4);
+  background: linear-gradient(135deg, rgba(255, 150, 100, 0.12) 0%, rgba(255, 150, 100, 0.06) 100%);
+  box-shadow: 0 6px 30px rgba(255, 150, 100, 0.15),
+              0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 
 .spoilerContent.revealed {
   cursor: default;
-  background: rgba(255, 140, 0, 0.1);
-  border-color: rgba(255, 140, 0, 0.5);
+  background: linear-gradient(135deg, rgba(255, 150, 100, 0.06) 0%, rgba(255, 150, 100, 0.02) 100%);
+  border-color: rgba(255, 150, 100, 0.3);
+  transform: none;
 }
 
+.spoilerContent.animating {
+  transform: scale(1.02);
+}
+
+/* Decorative background elements */
+.backgroundPattern {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(255, 150, 100, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(50%, -50%);
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.spoilerContent:hover .backgroundPattern {
+  transform: translate(40%, -40%) scale(1.1);
+  opacity: 0.8;
+}
+
+.cornerDecoration {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(45deg, rgba(255, 150, 100, 0.08) 0%, transparent 50%);
+  border-radius: 0 50px 0 0;
+  pointer-events: none;
+}
+
+/* Title styling */
+.titleContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #ff9664;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.clickHint {
+  font-size: 0.8rem;
+  color: rgba(255, 150, 100, 0.7);
+  font-style: italic;
+  opacity: 0.8;
+  transition: all 0.3s ease;
+}
+
+.spoilerContent:hover .clickHint {
+  color: #ff9664;
+  opacity: 1;
+}
+
+/* Spoiler overlay */
 .spoilerOverlay {
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
+  background: linear-gradient(135deg, 
+    rgba(255, 150, 100, 0.85) 0%, 
+    rgba(255, 120, 80, 0.9) 30%,
+    rgba(255, 100, 60, 0.95) 70%,
+    rgba(255, 150, 100, 0.85) 100%);
+  backdrop-filter: blur(12px);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 2;
+  z-index: 3;
+  border-radius: 10px;
 }
 
-.spoilerText {
-  color: white;
-  font-weight: 600;
-  text-align: center;
-  font-size: 1rem;
+/* Spoiler button */
+.spoilerButton {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: rgba(255, 140, 0, 0.2);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 140, 0, 0.4);
-  transition: all 0.3s ease;
+  gap: 1rem;
+  padding: 1.2rem 2.5rem;
+  background: linear-gradient(135deg, #fff 0%, #f8f8f8 100%);
+  border-radius: 25px;
+  color: #ff9664;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.4),
+              0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.8);
 }
 
-.spoilerContent:hover .spoilerText {
-  background: rgba(255, 140, 0, 0.3);
-  border-color: rgba(255, 140, 0, 0.6);
-  transform: scale(1.05);
+.spoilerContent:hover .spoilerButton {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 40px rgba(255, 255, 255, 0.6),
+              0 4px 15px rgba(0, 0, 0, 0.2);
+  background: linear-gradient(135deg, #fff 0%, #fff 100%);
+  border-color: rgba(255, 255, 255, 1);
 }
 
+.lockIcon {
+  font-size: 1.5rem;
+  animation: lockPulse 2s ease-in-out infinite;
+  color: #ff9664;
+  flex-shrink: 0;
+}
+
+.buttonTextContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.spoilerMainText {
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #ff9664;
+  line-height: 1;
+}
+
+.spoilerSubText {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 150, 100, 0.8);
+  font-style: italic;
+  line-height: 1;
+}
+
+.buttonGlow {
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(45deg, #ff9664, #ffd700, #ff9664);
+  border-radius: 25px;
+  opacity: 0;
+  z-index: -1;
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+/* Content - always maintains its natural size */
 .content {
-  filter: blur(10px);
-  opacity: 0.3;
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: blur(15px);
+  opacity: 0.2;
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   pointer-events: none;
+  position: relative;
+  z-index: 1;
+  line-height: 1.6;
+  /* Content always takes up its natural space */
+  visibility: visible;
 }
 
 .content.contentRevealed {
@@ -73,27 +209,72 @@
   pointer-events: auto;
 }
 
+/* Animations */
+@keyframes lockPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 0.3; }
+}
+
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .spoilerContent {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 140, 0, 0.4);
+    background: linear-gradient(135deg, rgba(255, 150, 100, 0.06) 0%, rgba(255, 150, 100, 0.03) 100%);
+    border-color: rgba(255, 150, 100, 0.25);
   }
 
   .spoilerContent:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: linear-gradient(135deg, rgba(255, 150, 100, 0.1) 0%, rgba(255, 150, 100, 0.05) 100%);
+    border-color: rgba(255, 150, 100, 0.4);
   }
 
   .spoilerContent.revealed {
-    background: rgba(255, 140, 0, 0.08);
+    background: linear-gradient(135deg, rgba(255, 150, 100, 0.04) 0%, rgba(255, 150, 100, 0.02) 100%);
+  }
+
+  .spoilerOverlay {
+    background: linear-gradient(135deg, 
+      rgba(255, 120, 80, 0.8) 0%, 
+      rgba(255, 100, 60, 0.85) 30%,
+      rgba(255, 80, 40, 0.9) 70%,
+      rgba(255, 120, 80, 0.8) 100%);
+  }
+
+  .spoilerButton {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 248, 248, 0.9) 100%);
   }
 }
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
-  .spoilerText {
-    font-size: 0.9rem;
-    padding: 0.4rem 0.8rem;
+  .spoilerContent {
+    padding: 1.5rem;
+  }
+
+  .spoilerButton {
+    padding: 1rem 2rem;
+    gap: 0.8rem;
+  }
+
+  .spoilerMainText {
+    font-size: 1rem;
+  }
+
+  .spoilerSubText {
+    font-size: 0.7rem;
+  }
+
+  .lockIcon {
+    font-size: 1.3rem;
+  }
+
+  .backgroundPattern {
+    width: 80px;
+    height: 80px;
   }
 }
 
@@ -102,11 +283,13 @@
   .spoilerContent,
   .spoilerOverlay,
   .content,
-  .spoilerText {
+  .spoilerButton,
+  .backgroundPattern {
     transition: none;
   }
   
-  .spoilerContent:hover .spoilerText {
-    transform: none;
+  .lockIcon,
+  .buttonGlow {
+    animation: none;
   }
 } 
