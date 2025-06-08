@@ -147,6 +147,12 @@ export function getAllPosts(): PostData[] {
       slug = parts.join('/')
     }
     
+    // If the filename is 'index', remove it to get cleaner URLs (e.g., 2023/loggo instead of 2023/loggo/index)
+    if (parts.length >= 1 && parts[parts.length - 1] === 'index') {
+      parts.pop() // Remove the 'index' part
+      slug = parts.join('/')
+    }
+    
     // Ensure date is a string for JSON serialization
     const frontmatter = {
       ...data,
