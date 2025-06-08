@@ -1,0 +1,31 @@
+.listenWrapper {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+}
+
+.playButton {
+  background-color: #ff6b35;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.playButton:hover {
+  background-color: #e55a2b;
+  transform: scale(1.1);
+}
+
+.playIcon {
+  color: white;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+} 

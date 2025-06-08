@@ -33,6 +33,8 @@ import Spoiler from '../../components/Spoiler'
 import FilmCard from '../../components/mdx/FilmCard'
 import Formula from '../../components/mdx/Formula'
 import Indented from '../../components/mdx/Indented'
+import Listen from '../../components/mdx/Listen'
+import Nsfw from '../../components/mdx/Nsfw'
 import ProfitBox from '../../components/ProfitBox'
 import SocialShare from '../../components/SocialShare'
 import PostFooter from '../../components/PostFooter'
@@ -77,6 +79,8 @@ const components = {
   FilmCard,
   Formula,
   Indented,
+  Listen,
+  Nsfw,
   ProfitBox,
 }
 

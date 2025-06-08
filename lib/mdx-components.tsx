@@ -28,6 +28,8 @@ import Spoiler from '../components/Spoiler'
 import FilmCard from '../components/mdx/FilmCard'
 import Formula from '../components/mdx/Formula'
 import Indented from '../components/mdx/Indented'
+import Listen from '../components/mdx/Listen'
+import Nsfw from '../components/mdx/Nsfw'
 
 export const mdxComponents = {
   BlogSubTitle,
@@ -60,4 +62,6 @@ export const mdxComponents = {
   FilmCard,
   Formula,
   Indented,
+  Listen,
+  Nsfw,
 } 
