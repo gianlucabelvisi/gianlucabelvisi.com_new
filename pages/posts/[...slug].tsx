@@ -41,6 +41,8 @@ import ProfitBox from '../../components/ProfitBox'
 import SocialShare from '../../components/SocialShare'
 import PostFooter from '../../components/PostFooter'
 import MailChimpForm from '../../components/MailChimpForm'
+import CodeBlock from '../../components/mdx/CodeBlock'
+import InlineCode from '../../components/mdx/InlineCode'
 
 interface PostPageProps {
   source: MDXRemoteSerializeResult
@@ -50,6 +52,19 @@ interface PostPageProps {
 
 // Define which components are available in MDX
 const components = {
+  // Code components
+  pre: (props: any) => {
+    return <CodeBlock {...props} />;
+  },
+  code: (props: any) => {
+    // If code has a className (language), it's likely inside a pre block, return as is
+    if (props.className && props.className.startsWith('language-')) {
+      return <code {...props} />;
+    }
+    // Otherwise it's inline code
+    return <InlineCode {...props} />;
+  },
+  // MDX components
   Highlight,
   BlogSubTitle,
   Dialogue,

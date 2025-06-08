@@ -417,63 +417,38 @@ Here's some CSS:
 }
 ```
 
-🎉 **ALL COMPONENTS TESTED!** 🎉
+**Total: 40+ components tested!** All components are ready for content migration! 🚀
 
-This comprehensive test page includes examples of **EVERY** MDX component available in the project:
+## Long Line Testing
 
-**Text & Layout:**
-- ✅ Highlight (with color variants)
-- ✅ Dialogue (conversation quotes)
-- ✅ GlyphLeft/GlyphRight (quotation marks)
-- ✅ TextBox (regular and closeable)
-- ✅ Indented (indented text blocks)
-- ✅ Formula (mathematical expressions)
-- ✅ FigureLabel (image captions)
-- ✅ ProfitBox (profit display boxes)
-- ✅ ThreeColumns (three-column layout)
-- ✅ Col23 (two-thirds width column)
+Testing how code blocks handle very long lines that exceed the container width:
 
-**Media & Embeds:**
-- ✅ YouTube (video embeds)
-- ✅ YouTubeAudio (audio-only player)
-- ✅ ResponsiveEmbed (flexible iframes)
-- ✅ Reddit (Reddit post embeds)
-- ✅ Batman (specific image component)
+```javascript
+// Testing horizontal scrolling with very long lines
+const veryLongVariableName = 'This is an extremely long string that will definitely exceed the width of most containers and should trigger horizontal scrolling in the code block component';
 
-**Book Components:**
-- ✅ Books2022 (animated book stack)
-- ✅ Truth (book cover)
-- ✅ Crime (book cover)
-- ✅ Pride (book cover)
-- ✅ Hailmary (book cover)
-- ✅ Greenlights (book cover)
-- ✅ Richer (book cover)
+const configurationObject = { apiEndpoint: 'https://api.example.com/v2/users/profile/settings/preferences/notifications/email/subscriptions/marketing/campaigns', timeout: 30000, retries: 3, headers: { 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c' } };
 
-**Typography:**
-- ✅ Pony (Irish Grover font)
-- ✅ BlogSubTitle (subtitle styling)
-- ✅ Quote (quote blocks)
+function processUserDataWithVeryLongFunctionNameThatExceedsNormalLength(userData, configurationSettings, validationRules, transformationPipeline) {
+  return userData.map(user => ({ ...user, processed: true, timestamp: Date.now(), configuration: configurationSettings }));
+}
+```
 
-**Interactive & Specialized:**
-- ✅ Listen (inline audio player)
-- ✅ Nsfw (content warning wrapper)
-- ✅ Spoiler (click-to-reveal content)
-- ✅ FilmCard (movie information display)
-- ✅ Poll (interactive voting)
-- ✅ UnicornButton (click tracking)
-- ✅ ShakyTitle (animated headers)
+```python
+# Testing very long Python lines  
+very_long_dictionary = {'extremely_long_key_name_that_goes_on_and_on_and_on': 'value', 'another_super_long_key_with_lots_of_descriptive_text': 'another_value', 'configuration_settings_for_machine_learning_model_training_parameters': {'learning_rate': 0.001, 'batch_size': 32, 'epochs': 100}}
 
-**Utility & System:**
-- ✅ Email (email display)
-- ✅ PostFooter (post footer)
-- ✅ MarginBottom (spacing utility)
+def process_machine_learning_training_data_with_advanced_preprocessing_and_feature_engineering_pipeline(input_data, preprocessing_config, feature_engineering_params, model_hyperparameters):
+    return input_data.apply(lambda x: x.transform() if hasattr(x, 'transform') else x).pipe(lambda df: df.fillna(0)).pipe(lambda df: df.apply(preprocessing_config['normalization_function']))
+```
 
-**Code Blocks:**
-- ✅ JavaScript syntax highlighting
-- ✅ Python syntax highlighting  
-- ✅ CSS syntax highlighting
-- ✅ Copy button functionality
-- ✅ Language badges
-- ✅ Dark theme styling
+```css
+/* Testing very long CSS lines */
+.extremely-long-class-name-that-describes-a-very-specific-component-with-lots-of-styling-requirements {
+  background: linear-gradient(135deg, rgba(255, 123, 67, 0.8) 0%, rgba(255, 154, 67, 0.9) 25%, rgba(255, 185, 67, 1.0) 50%, rgba(255, 216, 67, 0.9) 75%, rgba(255, 247, 67, 0.8) 100%);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05), 0 12px 24px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  font-family: 'Inter', 'Helvetica Neue', 'Arial', 'Segoe UI', 'Roboto', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica', sans-serif;
+}
+```
 
-**Total: 40+ components tested!** All components are ready for content migration! 🚀 
+This should test how our code blocks handle horizontal overflow! The lines above are intentionally very long to trigger horizontal scrolling.
