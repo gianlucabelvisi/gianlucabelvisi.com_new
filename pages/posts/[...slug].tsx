@@ -33,6 +33,7 @@ import Spoiler from '../../components/Spoiler'
 import FilmCard from '../../components/mdx/FilmCard'
 import Formula from '../../components/mdx/Formula'
 import Indented from '../../components/mdx/Indented'
+import ProfitBox from '../../components/ProfitBox'
 import SocialShare from '../../components/SocialShare'
 import PostFooter from '../../components/PostFooter'
 import MailChimpForm from '../../components/MailChimpForm'
@@ -76,6 +77,7 @@ const components = {
   FilmCard,
   Formula,
   Indented,
+  ProfitBox,
 }
 
 export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
