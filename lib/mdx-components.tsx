@@ -25,6 +25,9 @@ import Crime from '../components/Crime'
 import Truth from '../components/Truth'
 import Books2022 from '../components/Books2022'
 import Spoiler from '../components/Spoiler'
+import FilmCard from '../components/mdx/FilmCard'
+import Formula from '../components/mdx/Formula'
+import Indented from '../components/mdx/Indented'
 
 export const mdxComponents = {
   BlogSubTitle,
@@ -54,4 +57,7 @@ export const mdxComponents = {
   Truth,
   Books2022,
   Spoiler,
+  FilmCard,
+  Formula,
+  Indented,
 } 

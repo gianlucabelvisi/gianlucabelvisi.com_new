@@ -1,0 +1,38 @@
+.wrapper {
+  background-color: rgba(0, 0, 0, 0.03);
+  border-left: 3px solid #ff6b6b;
+  padding: 1rem;
+  margin-top: -1rem;
+  margin-bottom: 2rem;
+}
+
+.content {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .content {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding-bottom: 0.7rem;
+  color: #ff6b6b;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.footer {
+  /* Default text styling */
+} 

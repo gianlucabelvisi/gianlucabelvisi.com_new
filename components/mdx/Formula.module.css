@@ -1,0 +1,10 @@
+.formula {
+  text-align: center;
+  font-size: 1.8em;
+  font-family: 'Courier New', monospace;
+  background-color: transparent;
+  border: none;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  font-weight: bold;
+} 

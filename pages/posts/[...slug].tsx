@@ -30,6 +30,9 @@ import Crime from '../../components/Crime'
 import Truth from '../../components/Truth'
 import Books2022 from '../../components/Books2022'
 import Spoiler from '../../components/Spoiler'
+import FilmCard from '../../components/mdx/FilmCard'
+import Formula from '../../components/mdx/Formula'
+import Indented from '../../components/mdx/Indented'
 import SocialShare from '../../components/SocialShare'
 import PostFooter from '../../components/PostFooter'
 import MailChimpForm from '../../components/MailChimpForm'
@@ -70,6 +73,9 @@ const components = {
   Truth,
   Books2022,
   Spoiler,
+  FilmCard,
+  Formula,
+  Indented,
 }
 
 export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
