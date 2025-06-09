@@ -31,19 +31,15 @@ const Books2022: React.FC<Books2022Props> = ({ background = "desk4" }) => {
   };
 
   useEffect(() => {
-    console.log('Books2022 PhotoStack component mounted');
-    console.log('Image path:', imagePath);
-    console.log('Book covers count:', bookCovers.length);
-    console.log('First few covers:', bookCovers.slice(0, 5));
+    // Component mounted
   }, []);
 
   const handleImageLoad = (src: string) => {
-    console.log(`Image loaded successfully: ${src}`);
     setLoadedImages(prev => new Set([...prev, src]));
   };
 
   const handleImageError = (src: string) => {
-    console.error(`Failed to load image: ${src}`);
+    // Image failed to load
   };
 
   return (

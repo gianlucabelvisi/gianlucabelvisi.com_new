@@ -5,7 +5,7 @@ const copyToClipboard = (str: string) => {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(str).then(
       function () {
-        console.log("Copying to clipboard was successful!");
+        // Successfully copied
       },
       function (err) {
         console.error("Could not copy text: ", err);

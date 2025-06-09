@@ -6,7 +6,6 @@ interface QuoteProps {
 }
 
 const Quote = ({ children, from, title, bouncy = false }: QuoteProps) => {
-  console.log('Quote component props:', { children, from, title, bouncy });
   return (
     <div style={{
       background: 'linear-gradient(135deg, rgba(255, 150, 100, 0.08) 0%, rgba(255, 150, 100, 0.04) 100%)',
