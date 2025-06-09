@@ -122,7 +122,8 @@ function copyPostImages() {
   })
 }
 
-export function getAllPosts(): PostData[] {
+// Get all posts including hidden ones (for internal use)
+function getAllPostsIncludingHidden(): PostData[] {
   const fileNames = getAllMdxFiles(postsDirectory)
   
   // Copy co-located images to public directory
@@ -166,14 +167,25 @@ export function getAllPosts(): PostData[] {
     }
   })
 
-  // Filter out hidden posts and sort by date (newest first)
+  // Return all posts including hidden ones, sorted by date (newest first)
   return allPostsData
-    .filter(post => !post.frontmatter.hidden)
     .sort((a, b) => (a.frontmatter.date < b.frontmatter.date ? 1 : -1))
 }
 
+export function getAllPosts(): PostData[] {
+  // Get all posts including hidden ones, then filter out hidden posts
+  return getAllPostsIncludingHidden()
+    .filter(post => !post.frontmatter.hidden)
+}
+
+// Export this function for generating static paths (includes hidden posts)
+export function getAllPostsForPaths(): PostData[] {
+  return getAllPostsIncludingHidden()
+}
+
 export function getPostBySlug(slug: string): PostData | null {
-  const posts = getAllPosts()
+  // Use the function that includes hidden posts so we can find hidden posts by slug
+  const posts = getAllPostsIncludingHidden()
   return posts.find(post => post.slug === slug) || null
 }
 

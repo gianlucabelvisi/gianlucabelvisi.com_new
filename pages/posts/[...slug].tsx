@@ -1,7 +1,7 @@
 import { GetStaticPaths, GetStaticProps } from 'next'
 import { serialize } from 'next-mdx-remote/serialize'
 import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
-import { getAllPosts, getPostBySlug, PostData } from '../../lib/posts'
+import { getAllPosts, getAllPostsForPaths, getPostBySlug, PostData } from '../../lib/posts'
 import '../../styles/blog.css'
 import Highlight from '../../components/Highlight'
 import BlogSubTitle from '../../components/BlogSubTitle'
@@ -248,7 +248,7 @@ export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
 }
 
 export const getStaticPaths: GetStaticPaths = async () => {
-  const posts = getAllPosts()
+  const posts = getAllPostsForPaths()
   const paths = posts.map(post => ({
     params: { slug: post.slug.split('/') }
   }))

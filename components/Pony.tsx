@@ -7,16 +7,17 @@ interface PonyProps {
 
 export default function Pony({ children, fontSize = "1.4rem" }: PonyProps) {
   return (
-    <div 
+    <span 
       style={{
         fontFamily: "Irish Grover, cursive",
         fontSize: fontSize,
         paddingBottom: "1.5rem",
         paddingLeft: "3rem",
-        paddingRight: "3rem"
+        paddingRight: "3rem",
+        display: "inline-block" // Allows padding while still being inline
       }}
     >
       {children}
-    </div>
+    </span>
   );
 } 
