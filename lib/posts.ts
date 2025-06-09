@@ -157,7 +157,10 @@ function getAllPostsIncludingHidden(): PostData[] {
     // Ensure date is a string for JSON serialization
     const frontmatter = {
       ...data,
-      date: typeof data.date === 'string' ? data.date : data.date?.toISOString?.() || data.date
+      date: typeof data.date === 'string' 
+        ? data.date 
+        : data.date?.toISOString?.() 
+        || (data.date ? String(data.date) : '1900-01-01') // Fallback date for posts without dates
     }
     
     return {
@@ -168,7 +171,9 @@ function getAllPostsIncludingHidden(): PostData[] {
   })
 
   // Return all posts including hidden ones, sorted by date (newest first)
+  // Filter out posts with invalid dates
   return allPostsData
+    .filter(post => post.frontmatter.date && post.frontmatter.date !== '1900-01-01')
     .sort((a, b) => (a.frontmatter.date < b.frontmatter.date ? 1 : -1))
 }
 
