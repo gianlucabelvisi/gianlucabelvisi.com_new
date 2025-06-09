@@ -110,7 +110,13 @@ export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
     // For co-located images in the post directory structure
     // Remove '/index' from the end of slug if present
     const cleanSlug = slug.endsWith('/index') ? slug.slice(0, -6) : slug
-    return `/images/posts/${cleanSlug}/${imageName}`
+    
+    // Get the directory path (remove the filename part)
+    // e.g., "2021/impostor/impostor-syndrome" -> "2021/impostor"
+    const slugParts = cleanSlug.split('/')
+    const directoryPath = slugParts.slice(0, -1).join('/')
+    
+    return `/images/posts/${directoryPath}/${imageName}`
   }
   
   // Format date nicely
