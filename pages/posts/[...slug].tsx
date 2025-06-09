@@ -42,7 +42,9 @@ import SocialShare from '../../components/SocialShare'
 import PostFooter from '../../components/PostFooter'
 import MailChimpForm from '../../components/MailChimpForm'
 import CodeBlock from '../../components/mdx/CodeBlock'
-import InlineCode from '../../components/mdx/InlineCode'
+// import InlineCode from '../../components/mdx/InlineCode'
+import TvCard from '../../components/mdx/TvCard'
+import SpicyTake from '../../components/mdx/SpicyTake'
 
 interface PostPageProps {
   source: MDXRemoteSerializeResult
@@ -61,8 +63,15 @@ const components = {
     if (props.className && props.className.startsWith('language-')) {
       return <code {...props} />;
     }
-    // Otherwise it's inline code
-    return <InlineCode {...props} />;
+    // Otherwise it's inline code - temporarily using regular code element
+    return <code style={{
+      background: '#f1f5f9',
+      color: '#1e293b',
+      padding: '0.2rem 0.4rem',
+      borderRadius: '4px',
+      fontFamily: 'monospace',
+      fontSize: '0.875em'
+    }} {...props} />;
   },
   // MDX components
   Highlight,
@@ -101,6 +110,8 @@ const components = {
   Batman,
   Reddit,
   ProfitBox,
+  TvCard,
+  SpicyTake,
 }
 
 export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
@@ -108,15 +119,9 @@ export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
   const getImagePath = (imageName: string) => {
     if (!imageName) return ''
     // For co-located images in the post directory structure
-    // Remove '/index' from the end of slug if present
-    const cleanSlug = slug.endsWith('/index') ? slug.slice(0, -6) : slug
-    
-    // Get the directory path (remove the filename part)
-    // e.g., "2021/impostor/impostor-syndrome" -> "2021/impostor"
-    const slugParts = cleanSlug.split('/')
-    const directoryPath = slugParts.slice(0, -1).join('/')
-    
-    return `/images/posts/${directoryPath}/${imageName}`
+    // The slug for directory-based posts (index.mdx) is already the complete directory path
+    // So we can use it directly: e.g., "2022/tv-shows" -> "/images/posts/2022/tv-shows/"
+    return `/images/posts/${slug}/${imageName}`
   }
   
   // Format date nicely
