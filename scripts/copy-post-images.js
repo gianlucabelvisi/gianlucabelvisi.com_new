@@ -21,14 +21,34 @@ function copyImageFiles(src, dest) {
   });
 }
 
+function removeDirectory(dirPath) {
+  if (fs.existsSync(dirPath)) {
+    try {
+      fs.rmSync(dirPath, { recursive: true, force: true });
+    } catch (error) {
+      // If rmSync fails, try manually removing files first
+      console.log(`Cleaning directory manually: ${dirPath}`);
+      const files = fs.readdirSync(dirPath);
+      files.forEach(file => {
+        const filePath = path.join(dirPath, file);
+        const stat = fs.statSync(filePath);
+        if (stat.isDirectory()) {
+          removeDirectory(filePath);
+        } else {
+          fs.unlinkSync(filePath);
+        }
+      });
+      fs.rmdirSync(dirPath);
+    }
+  }
+}
+
 function copyAllPostImages() {
   const postsDir = path.join(__dirname, '..', 'posts');
   const publicImagesDir = path.join(__dirname, '..', 'public', 'images', 'posts');
   
-  // Clean existing images
-  if (fs.existsSync(publicImagesDir)) {
-    fs.rmSync(publicImagesDir, { recursive: true, force: true });
-  }
+  // Clean existing images with better error handling
+  removeDirectory(publicImagesDir);
   
   function processDirectory(currentDir, relativePath = '') {
     const items = fs.readdirSync(currentDir);

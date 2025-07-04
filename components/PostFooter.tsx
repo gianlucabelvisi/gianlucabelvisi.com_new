@@ -1,6 +1,7 @@
 import React from 'react';
 import Reactions from './Reactions';
 import ViewCounter from './ViewCounter';
+import styles from './PostFooter.module.css';
 
 interface PostFooterProps {
   path: string;
@@ -9,38 +10,16 @@ interface PostFooterProps {
 
 const PostFooter = ({ path, author }: PostFooterProps) => {
   return (
-    <div>
+    <div className={styles.container}>
       {/* First Line: Reactions and View Counter */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '1rem',
-        '@media (max-width: 550px)': {
-          display: 'block',
-          flexDirection: 'column',
-          justifyItems: 'start',
-          gap: '0.7rem'
-        }
-      }}>
+      <div className={styles.reactionsRow}>
         <Reactions id={path} />
         <ViewCounter id={path} />
       </div>
 
       {/* Second Line: Author */}
-      <div style={{
-        marginTop: '2rem',
-        display: 'flex',
-        '@media (max-width: 550px)': {
-          flexDirection: 'column',
-          gap: '2rem'
-        }
-      }}>
-        <div style={{
-          flexBasis: '40%',
-          flexGrow: 1
-        }}>
+      <div className={styles.authorRow}>
+        <div className={styles.authorInfo}>
           by <strong>{author}</strong>
         </div>
       </div>
