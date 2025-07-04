@@ -126,26 +126,10 @@ export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
       return imageName
     }
     
-    // For co-located images, we need to find the correct directory
-    // The images are copied to the post directory structure
-    // If the slug has a filename part (not index), remove it to get the directory
-    let imageDir = slug
-    const parts = slug.split('/')
-    
-    // If the slug looks like "2021/sforza-1/sforza1", we want "2021/sforza-1"
-    // This happens when the MDX file is not named "index.mdx"
-    if (parts.length >= 2) {
-      const lastPart = parts[parts.length - 1]
-      const secondLastPart = parts[parts.length - 2]
-      
-      // If the last part looks like a filename (not just a directory name)
-      // and it's different from the directory name, remove it
-      if (lastPart !== secondLastPart && lastPart !== 'index') {
-        imageDir = parts.slice(0, -1).join('/')
-      }
-    }
-    
-    return `/images/posts/${imageDir}/${imageName}`
+    // For co-located images, the slug already represents the correct directory structure
+    // The posts.ts file handles slug processing (removing index.mdx, etc.)
+    // So we can use the slug directly as the image directory
+    return `/images/posts/${slug}/${imageName}`
   }
   
   // Format date nicely
