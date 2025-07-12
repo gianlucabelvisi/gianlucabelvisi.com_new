@@ -39,6 +39,7 @@ import Nsfw from '../../components/mdx/Nsfw'
 import Batman from '../../components/mdx/Batman'
 import Reddit from '../../components/mdx/Reddit'
 import Break from '../../components/mdx/Break'
+import Song from '../../components/mdx/Song'
 import ProfitBox from '../../components/ProfitBox'
 import SocialShare from '../../components/SocialShare'
 import PostFooter from '../../components/PostFooter'
@@ -112,6 +113,7 @@ const components = {
   Batman,
   Reddit,
   Break,
+  Song,
   ProfitBox,
   TvCard,
   SpicyTake,

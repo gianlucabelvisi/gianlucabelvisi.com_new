@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
+
+.song {
+  font-family: "Indie Flower", sans-serif;
+  padding-left: 4rem;
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+}
+
+@media screen and (max-width: 500px) {
+  .song {
+    padding-left: 2rem;
+    font-size: 1.1rem;
+  }
+} 
