@@ -40,6 +40,7 @@ import Batman from '../../components/mdx/Batman'
 import Reddit from '../../components/mdx/Reddit'
 import Break from '../../components/mdx/Break'
 import Song from '../../components/mdx/Song'
+import Question from '../../components/mdx/Question'
 import ProfitBox from '../../components/ProfitBox'
 import SocialShare from '../../components/SocialShare'
 import PostFooter from '../../components/PostFooter'
@@ -114,6 +115,7 @@ const components = {
   Reddit,
   Break,
   Song,
+  Question,
   ProfitBox,
   TvCard,
   SpicyTake,

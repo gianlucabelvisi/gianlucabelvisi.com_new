@@ -1,0 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Irish+Grover&display=swap');
+
+.question {
+  font-family: "Irish Grover", cursive;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  padding-left: 1rem;
+  font-size: 1.3rem;
+}
+
+.questionLabel {
+  font-family: "Irish Grover", cursive;
+  font-size: 1.3rem;
+  padding-right: 1rem;
+} 
