@@ -1,0 +1,42 @@
+.button {
+  background: #007acc;
+  color: white;
+  white-space: nowrap;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 10px 32px;
+  overflow: hidden;
+  cursor: pointer;
+  text-indent: 23px;
+  font-weight: bold;
+  transition: all 1.2s, border 0.5s 1.2s, box-shadow 0.3s 1.5s;
+  display: inline-block;
+  border: 3px solid transparent;
+}
+
+.button:hover {
+  text-indent: 0;
+  background: #005a9e;
+  color: white;
+  border: 3px solid #333;
+  box-shadow: 3px 3px 2px rgba(0, 0, 0, 0.15);
+}
+
+.button:hover .onHover {
+  transform: translateX(0);
+  opacity: 1 !important;
+  width: var(--hover-width);
+  padding-left: 2ch;
+}
+
+.onHover {
+  display: inline-block;
+  transform: translateX(300px);
+  font-weight: normal;
+  opacity: 0 !important;
+  width: 0;
+  padding: 0;
+  transition: opacity 0.1s 0.5s, transform 0.4s 0.5s, width 0.4s 0.5s, padding-left 0.4s 0.5s;
+} 

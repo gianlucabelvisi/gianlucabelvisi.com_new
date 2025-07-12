@@ -49,6 +49,7 @@ import CodeBlock from '../../components/mdx/CodeBlock'
 // import InlineCode from '../../components/mdx/InlineCode'
 import TvCard from '../../components/mdx/TvCard'
 import SpicyTake from '../../components/mdx/SpicyTake'
+import LinkButton from '../../components/mdx/LinkButton'
 
 interface PostPageProps {
   source: MDXRemoteSerializeResult
@@ -119,6 +120,7 @@ const components = {
   ProfitBox,
   TvCard,
   SpicyTake,
+  LinkButton,
 }
 
 export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
