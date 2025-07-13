@@ -1,3 +1,4 @@
+import { ImQuotesLeft, ImQuotesRight } from 'react-icons/im'
 import styles from './Dialogue.module.css'
 
 interface DialogueProps {
@@ -7,9 +8,9 @@ interface DialogueProps {
 export default function Dialogue({ children }: DialogueProps) {
   return (
     <div className={styles.dialogue}>
-      <span className={styles.quote}>‹</span>
+      <ImQuotesLeft className={styles.quote} />
       <span className={styles.text}>{children}</span>
-      <span className={styles.quote}>›</span>
+      <ImQuotesRight className={styles.quote} />
     </div>
   )
-} 
+}
