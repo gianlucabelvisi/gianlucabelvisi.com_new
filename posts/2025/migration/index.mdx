@@ -1,0 +1,660 @@
+---
+path: "/migration"
+date: 2025-01-13
+title: "Behind the Scenes: Migrating 38 Blog Posts from Gatsby to Next.js"
+subTitle: "A transparent look at rebuilding this blog with better tech, one component at a time"
+author: "Gianluca Belvisi"
+cardImage: "cover.jpg"
+featureImage: "cover.jpg"
+featureImagePhone: "cover_mobile.jpg"
+onHover: "🚀"
+hashtags: "tech, migration, nextjs, gatsby, meta"
+hidden: false
+---
+
+## Overview
+Migrate the existing Gatsby blog to Next.js while maintaining all functionality and improving the development experience by removing GraphQL complexity.
+
+---
+
+## Phase 1: Proof of Concept (PoC) 🚀
+
+### 1.1 Baby Steps - MDX Understanding ✅
+
+- ✅ Initialize Next.js project in `new_blog/` folder
+- ✅ Install MDX dependencies:
+
+  ```bash
+  npm install gray-matter next-mdx-remote
+  ```
+
+- ✅ Create a simple custom component (e.g., `Highlight` component)
+- ✅ Create one test MDX post using the custom component
+- ✅ Set up basic dynamic post rendering to understand how MDX works
+- ✅ Test: Verify custom component renders correctly in MDX
+
+### 1.2 Real Content Test - Component by Component
+
+**Target Post**: Chess post (`old_blog/src/posts/2024/chess/_chess.mdx`) ✅
+
+**Step 1: Identify Required Components**
+
+- ✅ List all custom components used in the chess post
+- ✅ Prioritize by complexity (start with simplest)
+
+**Step 2: Create Components One by One**
+
+- ✅ `Dialogue` component - for quoted speech
+- ✅ `GlyphLeft/GlyphRight` components - for orange quotation marks
+- ✅ `FigureLabel` component - for image captions
+- ✅ ~~`BlogImage` component~~ - **Not needed! Standard MDX + HTML work perfectly**
+- ✅ `TextBox` component - for highlighted content boxes
+- ✅ `YouTube` component - for embedded videos
+- ✅ `ResponsiveEmbed` component - for responsive embeds
+- ✅ `Pony` component - for Irish Grover styled text
+
+⚠️ **IMPORTANT REMINDERS**: 
+
+**File Location**: Always create new files in `new_blog/` directory, NOT the root! We're working in the new_blog folder structure.
+
+**Testing Before Completion**: Always ask user to test the post before marking it as complete! Check:
+- Cover image alignment (should be `object-position: top`)
+- All components working correctly  
+- All images loading properly
+- Mobile responsiveness
+- Interactive elements functional
+
+**MDX Components**: When adding new MDX components, you MUST update TWO files:
+1. `lib/mdx-components.tsx` - Add import and export
+2. `pages/posts/[...slug].tsx` - Add import and add to components object
+Otherwise you'll get "Expected component to be defined" errors!
+
+**Hydration Errors**: Watch out for nested `<p>` tags! MDX automatically wraps content in paragraphs, so components used inline should use `<span>` or `<div>`, NOT `<p>` tags. Common culprits:
+- `Dialogue` component - use `<span>` not `<p>`
+- Any component that might be used mid-paragraph
+- Always test for hydration errors after migrating posts
+
+**Step 3: Test Each Component**
+
+- ✅ Create test MDX files for each component as we build them
+- ✅ Verify each component renders correctly before moving to next
+
+**Step 4: Build Proper Blog Post Layout** ✅
+
+- ✅ Create sophisticated blog post template matching Gatsby design:
+  - ✅ CSS Grid layout (12-column responsive grid)
+  - ✅ Feature image with overlay positioning
+  - ✅ Post header with date
+  - ✅ Content area with sidebar for social sharing
+  - ✅ Proper title/subtitle styling with orange quotation marks
+  - ✅ Support for multiple image formats (featureImage, featureImagePhone, cardImage)
+  - ✅ Responsive design for mobile
+  - ✅ Handle frontmatter: cardImage, featureImage, featureImagePhone, onHover
+- ✅ Update PostData interface to include new frontmatter fields
+- ✅ Test with existing test post
+
+**Step 5: Copy the Real Post**
+
+- ✅ Copy chess post content to new_blog
+- ✅ Import all required components
+- ✅ Test full post rendering with proper layout
+- ✅ Fix any remaining issues
+
+**Step 6: Enhanced Features**
+
+- ✅ Social sharing sidebar with sticky positioning
+- ✅ Firebase reactions system (👍🏽 😂 🥰 😬 🦄)
+- ✅ Firebase view counter
+- ✅ PostFooter with author and tags
+- ✅ MailChimp newsletter signup integration
+- ✅ Full-width media support for dramatic content
+- ✅ Proper typography spacing (paragraphs, headers)
+- ✅ Fixed hydration errors and nested tag issues
+
+### 1.3 Content Discovery System
+
+- ✅ Create `lib/posts.js` with:
+  - ✅ `getAllPosts()` function to recursively scan `/posts` directory
+  - ✅ Frontmatter parsing with gray-matter
+  - ✅ Support for nested directory structures
+  - ✅ Post sorting by date (newest first)
+  - ✅ Filter hidden and future-dated posts
+- ✅ Test with the copied blog post
+- ✅ Co-located image support with automatic copying
+
+### 1.4 Dynamic Post Pages
+
+- ✅ Create `pages/posts/[...slug].js` for dynamic routing
+- ✅ Implement `getStaticPaths()` to generate all post routes
+- ✅ Implement `getStaticProps()` to fetch individual post data
+- ✅ Basic post rendering with `next-mdx-remote`
+- ✅ Test with nested URL paths (e.g., `/posts/2024/my-post`)
+
+### 1.5 Homepage with Post Listing
+
+- ✅ Create basic homepage (`pages/index.js`)
+- ✅ Use `getStaticProps()` to fetch all posts
+- ✅ Simple post list layout (title, date, excerpt)
+- ✅ Verify automatic post discovery works
+- ✅ Test: Add new MDX file and confirm it appears automatically
+
+### 1.6 Basic Styling Setup
+
+- ✅ Install and configure styled-components
+- ✅ Create basic global styles
+- ✅ Simple responsive layout structure
+
+**PoC Success Criteria:**
+✅ Drop an MDX file in `/posts` → automatically appears on homepage  
+✅ Click post → navigate to full post page  
+✅ MDX content renders correctly  
+✅ Nested directory structure supported  
+
+### 1.7 Next Target Assessment - Diabetes Post
+
+**Target Post**: Diabetes post (`old_blog/src/posts/2024/diabetes/_diabetes.mdx`)
+
+**Component Analysis:**
+- ✅ `YouTube` - Already have
+- ✅ `TextBox` - Already have ✅ closeable prop added
+- ✅ `Dialogue` - Already have
+- ✅ `FigureLabel` - Already have  
+- ✅ `GlyphRight/GlyphLeft` - Already have
+- ✅ `Pony` - Already have
+- ✅ `ResponsiveEmbed` - Already have
+- ✅ `Poll` - **COMPLETED** - Interactive voting with Firebase integration
+
+**Required Components for Phase 2:**
+
+**Step 1: New Components**
+
+- ✅ `Poll` component - Interactive voting system with:
+  - ✅ Multiple choice answers
+  - ✅ Vote tallying (Firebase integration)
+  - ✅ Custom labels vs answers
+  - ✅ Real-time results display with pie charts
+  - ✅ Animated transitions and vote counting
+
+**Step 2: Component Enhancements**
+
+- ✅ `TextBox` component - Add `closeable` prop functionality
+  - ✅ Collapsible content areas
+  - ✅ Toggle show/hide behavior
+  - ✅ Maintain styling consistency
+  - ✅ Works with and without titles
+  - ✅ Supports nested components
+
+**Step 3: Content Migration Strategy (Based on Chess Post Learnings)**
+
+- ✅ **Image Optimization**: 25 images successfully migrated (including missing ginger.jpg)
+- ✅ **Co-location Strategy**: All diabetes images copied to `posts/2024/diabetes/` structure
+- ✅ **Large File Handling**: 11MB cover image works perfectly
+- ✅ **Mobile Variants**: `cover_mobile.png` responsive loading implemented
+- ✅ **Path Rewriting**: All image paths updated to work with co-location
+- ✅ **Content Cleanup**: Removed old Gatsby imports and fixed hydration issues
+
+**Step 4: Content Complexity Assessment**
+
+- ✅ **High Complexity**: Personal/emotional content about health diagnosis and friend's death - BEAUTIFULLY RENDERED
+- ✅ **Technical Elements**: Medical terminology, Swedish healthcare system - All working
+- ✅ **Interactive Elements**: Poll component integration - Firebase voting functional
+- ✅ **Rich Media**: Multiple YouTube embeds, responsive embeds - All working
+- ✅ **Narrative Structure**: Two-part story with complex emotional journey - Perfectly preserved
+
+🎉 **DIABETES POST MIGRATION COMPLETE!** 🎉 ✅
+
+**FINAL RESULT**: Stunning blog post with Semola the cat, interactive voting, collapsible definitions, beautiful storytelling about health, friendship, and loss. All 25 images working, Firebase integration active, all components functional!
+
+### 1.8 Books 2022 Post Migration 📚🎮 ✅
+
+**Target Post**: Books 2022 post (`old_blog/src/posts/2023/books/_books22.mdx`)
+
+**Content Scope:**
+- ✅ **411 lines** of brilliant content about reading 52 books in 2022
+- ✅ **Elden Ring gaming sections** - Malenia boss fights, character builds, FromSoftware analysis
+- ✅ **Interactive elements** - Poll component, animated book stack
+- ✅ **Complex book reviews** - Left Hand of Darkness, Feynman, Evelyn Hugo, Klara and the Sun
+- ✅ **Personal storytelling** - Reading struggles, relationship breakups for books, book bro identity
+
+**Component Analysis:**
+- ✅ `Poll` - Already have (used for "How many books did you read?")
+- ✅ `YouTube` - Already have  
+- ✅ `FigureLabel` - Already have
+- ✅ `ResponsiveEmbed` - Already have
+- ✅ `Books2022` - **COMPLETED** - Stunning 3D animated photo stack with CSS performance optimization
+- ✅ `Spoiler` - **COMPLETED** - Click-to-reveal spoiler component with smooth blur/unblur
+
+**Required Components for Books 2022 Post:**
+
+**Step 1: Advanced Animation Component**
+
+- ✅ `Books2022` component - High-performance animated photo stack
+  - ✅ 3D CSS transforms with perspective and translateZ
+  - ✅ Individual book hover effects with scaling and z-index
+  - ✅ Staggered entrance animations with custom delays
+  - ✅ Background patterns and center glow effects
+  - ✅ Mobile responsive design and reduced motion support
+  - ✅ GPU-accelerated animations replacing heavy old performance
+
+- ✅ `Spoiler` component - Interactive spoiler revealer
+  - ✅ Blur/unblur content hiding with backdrop filter
+  - ✅ Click to reveal with smooth transitions
+  - ✅ Orange border styling consistent with blog theme
+  - ✅ Accessibility support and mobile optimization
+
+**Step 2: Content Migration Strategy**
+
+- ✅ **Gaming Content Excellence**: Elden Ring sections with Malenia boss fights - PERFECTION
+- ✅ **Book Reviews**: Detailed reviews of sci-fi, fiction, and non-fiction - All preserved
+- ✅ **Personal Growth**: "Am I getting smarter?" self-reflection - Beautiful storytelling
+- ✅ **Performance vs Content**: Reading struggles vs relationship priorities - Honest and funny
+- ✅ **Interactive Elements**: Poll about reading habits + animated book showcase
+- ✅ **Media Integration**: YouTube videos, responsive embeds, multiple book cover images
+
+🎉 **BOOKS 2022 POST MIGRATION COMPLETE!** 🎉 ✅
+
+**FINAL RESULT**: Spectacular post combining gaming culture (Elden Ring/Malenia), literary criticism, personal growth reflection, and stunning 3D animated book stack! The performance-optimized Books2022 component creates an engaging visual showcase while the Spoiler component adds interactive storytelling elements. Gaming meets reading culture!
+
+**Component Innovations:**
+- ✅ **Books2022 Animation**: CSS 3D transforms with perspective, individual rotations, hover effects, staggered entrance
+- ✅ **Performance Optimization**: GPU acceleration, will-change properties, reduced motion support
+- ✅ **Spoiler Interactivity**: Blur effects, backdrop filters, smooth reveal animations
+- ✅ **Mobile First**: Responsive design with proper touch interactions
+
+### 1.9 Next Target Assessment - Doggo Post 🐶
+
+**Target Post**: Doggo post (`old_blog/src/posts/2023/doggo/_doggo.mdx`)
+
+**Content Scope:**
+- [ ] **492 lines** of content (most complex yet!)
+- [ ] **Controversial humor** with content warnings about animals
+- [ ] **Interactive elements** throughout (multiple UnicornButtons)
+- [ ] **Complex narrative** about pandemic isolation and wanting companionship
+- [ ] **Mixed media** - YouTube videos, polls, images
+- [ ] **Advanced Firebase interactions** - button click counting with tooltips
+
+**Component Analysis:**
+- ✅ `Poll` - Already have (used for "Are you feeling compelled to read a post?")
+- ✅ `YouTube` - Already have  
+- ✅ `FigureLabel` - Already have
+- ✅ `Dialogue, Pony` - Already have
+- ✅ `ResponsiveEmbed` - Already have
+- [ ] `ShakyTitle` - **NEW** - Title component with emoji and special styling
+- [ ] `UnicornButton` - **NEW** - Complex Firebase button with click counting and tooltips
+
+**Required Components for Doggo Post:**
+
+**Step 1: New Components**
+
+- ✅ `ShakyTitle` component - Special title styling with emoji integration
+  - ✅ Support for emoji parameter
+  - ✅ Special typography/animation effects (pulsing emoji + shaking text)
+  - ✅ Consistent with existing design system
+  - ✅ CSS modules approach for clean styling
+  - ✅ Added to both mdx-components.tsx and [...slug].tsx
+
+- ✅ `UnicornButton` component - Advanced interactive button system
+  - ✅ Firebase integration for click counting
+  - ✅ Tooltip support with custom messages
+  - ✅ Unique button IDs per page
+  - ✅ Real-time click feedback and bounce animation
+  - ✅ CSS modules approach for clean styling
+  - ✅ Added to both mdx-components.tsx and [...slug].tsx
+
+**Step 2: Content Migration Strategy**
+
+- ✅ **Sensitive Content Handling**: Post contains controversial humor about animals - All preserved with content warnings
+- ✅ **Content Warnings**: Maintain author's content warnings and disclaimers - Perfect opening section
+- ✅ **Interactive Progression**: 12 UnicornButtons throughout narrative - All working with Firebase tracking
+- ✅ **Media Integration**: YouTube videos embedded throughout story - All working
+- ✅ **Emotional Journey**: Complex narrative about pandemic, isolation, wanting companionship - Complete
+- ✅ **Content Structure**: 492 lines migrated with all components working
+- ✅ **Images**: All 15 images successfully copied and serving
+- ✅ **Component Updates**: BlogImage → regular markdown, Indented → TextBox
+
+**Step 3: Technical Challenges**
+
+- [ ] **Advanced Firebase**: Button click counting system with real-time updates
+- [ ] **Tooltip System**: Custom tooltip positioning and messaging
+- [ ] **Performance**: 492 lines with multiple interactive elements
+- [ ] **Mobile Responsiveness**: Ensure all interactions work on mobile
+- [ ] **Database Costs**: Implement reasonable rate limiting for click spam
+
+✅ **DOGGO POST MIGRATION COMPLETE!** ✅
+
+**NEEDS USER TESTING**: Controversial humor about fake animal rescues, 12 interactive UnicornButtons with Firebase tracking, ShakyTitle animations, complex emotional storytelling about pandemic isolation, and the PERFECT plot twist ending where he gets caught in his own lies! All 15 images copied, all components implemented.
+
+### 1.9 Philosophy Post Migration 🧐 ✅
+
+**Target Post**: Philosophy post (`old_blog/src/posts/2023/philosophy/_philosophy.mdx`)
+
+**Content Scope:**
+- ✅ **312 lines** of content successfully migrated 
+- ✅ **Ethics focus**: Trolley problem, break-up advice, Thanos philosophy
+- ✅ **April Fools structure**: Fake ending then real content working perfectly
+- ✅ **23 images** with philosophical memes and illustrations - all loading
+
+**Component Analysis:**
+- ✅ `TextBox` - Already have, working great
+- ✅ `Dialogue` - Already have, multi-part conversations fixed
+- ✅ `FigureLabel` - Already have, perfect for meme captions
+- ✅ `Pony` - Already have, doorbell effect brilliant
+- ✅ `MarginBottom` - **COMPLETED** - Clean spacing utility
+- ✅ `BlogSubTitle` - **COMPLETED** - Orange double quotes, left-aligned
+- ✅ `Quote` - **COMPLETED** - Bouncy Sean Carroll quote is PERFECT!
+
+**Step 1: New Utility Components - COMPLETED**
+
+- ✅ `MarginBottom` component - Simple spacing utility
+  - ✅ Takes size prop for different spacing amounts
+  - ✅ Clean utility for consistent margins  
+  - ✅ Reusable across multiple posts
+
+- ✅ `BlogSubTitle` component - Styled subtitle
+  - ✅ Orange color styling
+  - ✅ Left-aligned layout
+  - ✅ Clean typography
+
+- ✅ `Quote` component - Animated quote display  
+  - ✅ Support for author attribution (`from` prop)
+  - ✅ Bouncy animation (`bouncy={true}`)
+  - ✅ Professional quote styling
+
+**Step 2: Enhanced Dialogue Component - COMPLETED**
+
+- ✅ Enhanced `withQuotesBegin` and `withQuotesEnd` props
+  - ✅ Multi-part dialogue sequences working
+  - ✅ All conversations flow as continuous dialogues
+  - ✅ Fixed line-breaking issues
+
+**Step 3: Content Migration Strategy - COMPLETED**
+
+- ✅ **Original Content Preserved**: Copied fresh from original, removed all my additions
+- ✅ **Ethics Theme**: Trolley problem, moral philosophy discussions - perfect
+- ✅ **Interactive Structure**: April Fools fake ending, then real art discussion 
+- ✅ **Dialogue Flow**: Thanos conversation, Nazi thought experiments, break-up advice
+- ✅ **Component Integration**: All MDX components working seamlessly
+
+🎉 **PHILOSOPHY POST MIGRATION COMPLETE!** 🎉 ✅
+
+**FINAL RESULT**: Brilliant philosophical storytelling with perfect April Fools structure! Trolley problem ethics, Thanos conversations, Nazi thought experiments, break-up advice, and Sean Carroll's bouncy quote. All 23 images working, all dialogues flowing as continuous conversations, Quote component is absolutely perfect!
+
+**Philosophy Migration Benefits:**
+- ✅ **Quick Win**: Clean migration with original content preserved
+- ✅ **Foundation Building**: MarginBottom, BlogSubTitle, Quote components ready for other posts
+- ✅ **Dialogue Mastery**: Fixed multi-part conversation formatting
+- ✅ **Component Polish**: Quote component with bouncy animation is chef's kiss! 💋👌
+
+**FIXED**: Cover image alignment issue - added `object-position: top` to prevent character heads from being cut off.
+
+**PLEASE TEST**:
+- ✅ Cover image now aligned from top (character head should be visible)  
+- [ ] All 12 UnicornButtons working with Firebase tracking
+- [ ] ShakyTitle animations (pulsing emoji + shaking text)
+- [ ] All 15 images loading correctly
+- [ ] YouTube embeds functional
+- [ ] TextBox email formatting correct
+- [ ] Mobile responsiveness
+- [ ] Poll component at the end working
+
+**Most Complex Post Yet**: 492 lines of sophisticated storytelling with mature themes, multiple interactive elements, and brilliant narrative structure. From fake animal rescue schemes to pandemic loneliness to getting busted by dog breeders - this post has it all!
+
+**Learnings from Chess Post Applied:**
+
+- ✅ **Image Co-location**: Proven successful, apply same strategy
+- ✅ **Component Testing**: Build components individually before full migration
+- ✅ **Progressive Enhancement**: Start with basic rendering, add interactivity
+- ✅ **Path Management**: Automated image path rewriting works well
+- ✅ **Typography**: Proper spacing and typography rules established
+- ✅ **Layout System**: CSS Grid blog post layout ready to use
+
+---
+
+## 📋 REMAINING POSTS TO MIGRATE
+
+### **2024 Posts** ✅ ALL COMPLETE!
+
+- ✅ **Chess** (`2024/chess/chess.mdx`) ✅ COMPLETED
+- ✅ **Diabetes** (`2024/diabetes/diabetes.mdx` + `_diabetes.mdx`) ✅ COMPLETED
+- ✅ **Test MDX** (`2024/test-mdx/`) ✅ COMPLETED - Testing components
+
+### **2023 Posts** ✅ ALL COMPLETE!
+
+- ✅ **Books 2022** (`2023/books-2022/index.mdx`) ✅ COMPLETED
+- ✅ **Doggo** (`2023/doggo/doggo.mdx`) ✅ COMPLETED
+- ✅ **Habits** (`2023/habits/index.mdx`) ✅ COMPLETED
+- ✅ **Loggo** (`2023/loggo/index.mdx`) ✅ COMPLETED
+- ✅ **Philosophy** (`2023/philosophy/philosophy.mdx`) ✅ COMPLETED
+
+### **2022 Posts** ✅ ALL COMPLETE!
+
+- ✅ **Investing** (`2022/investing/index.mdx`) ✅ COMPLETED
+- ✅ **Shower Thoughts** (`2022/shower-thoughts/index.mdx`) ✅ COMPLETED
+- ✅ **Films** (`2022/films/index.mdx`) ✅ COMPLETED
+- ✅ **Books 2021** (`2022/books/index.mdx`) ✅ COMPLETED
+- ✅ **r/place** (`2022/rplace/index.mdx`) ✅ COMPLETED
+- ✅ **Wink** (`2022/wink/index.mdx`) ✅ COMPLETED
+- ✅ **Sforza 5** (`2022/sforza-5/index.mdx` + `legacy.mdx`) ✅ COMPLETED - Epic conclusion!
+- ✅ **TV Shows 2022** (`2022/tv-shows/index.mdx`) ✅ COMPLETED
+
+### **2021 Posts** ✅ ALL COMPLETE!
+
+- ✅ **Impostor Syndrome** (`2021/impostor/impostor-syndrome.mdx` + `overcoming-impostor-syndrome.mdx`) ✅ COMPLETED - Main + hidden sequel
+- ✅ **Sforza 1** (`2021/sforza-1/sforza1.mdx`) ✅ COMPLETED
+- ✅ **Sforza 2** (`2021/sforza-2/index.mdx`) ✅ COMPLETED
+- ✅ **Sforza 3** (`2021/sforza-3/index.mdx`) ✅ COMPLETED
+- ✅ **Sforza 4** (`2021/sforza-4/index.mdx`) ✅ COMPLETED
+
+🏰 **CATERINA SFORZA COMPLETE SERIES (5 PARTS) FULLY MIGRATED!** ⚔️
+
+### **2020 Posts** ✅ ALL COMPLETE!
+
+- ✅ **800A** (`2020/800A/index.mdx`) ✅ COMPLETED
+- ✅ **Devs** (`2020/devs/index.mdx`) ✅ COMPLETED
+- ✅ **Investing** (`2020/investing/index.mdx`) ✅ COMPLETED
+- ✅ **Meat** (`2020/meat/index.mdx`) ✅ COMPLETED
+- ✅ **Germany** (`2020/germany/index.mdx`) ✅ COMPLETED
+- ✅ **Diet** (`2020/diet/index.mdx`) ✅ COMPLETED
+- ✅ **Books 2020** (`2020/books/index.mdx`) ✅ COMPLETED
+- ✅ **Drone** (`2020/drone/index.mdx`) ✅ COMPLETED
+- ✅ **Mindfulness** (`2020/mindfulness/index.mdx`) ✅ COMPLETED
+- ✅ **Fasting** (`2020/fasting/index.mdx`) ✅ COMPLETED
+- ✅ **23 or Me** (`2020/23-or-me/index.mdx`) ✅ COMPLETED
+
+### **2019 Posts** ✅ ALL COMPLETE!
+
+- ✅ **Jokes** (`2019/jokes/index.mdx`) ✅ COMPLETED
+- ✅ **Naked** (`2019/naked/index.mdx`) ✅ COMPLETED
+
+### **Other** ❓
+
+- [ ] **Release Notes** (`release-notes/release_notes.mdx`)
+
+**🎉 INCREDIBLE PROGRESS: 38 POSTS MIGRATED! 🎉**
+**📚 ONLY ~1 POST REMAINING (Release Notes)** 
+
+---
+
+## Phase 2: Core Features Migration 🏗️
+
+### 2.1 Content Structure
+
+- [ ] Copy all posts from `old_blog/src/posts/` to `new_blog/posts/`
+- [ ] Verify all frontmatter is parsed correctly
+- [ ] Handle any content format inconsistencies
+- [ ] Test post discovery with full content library
+
+### 2.2 Advanced Post Features
+
+- [ ] Implement hashtag system and filtering
+- [ ] Support for multiple image formats (card, feature, mobile)
+- [ ] Handle `onHover` emoji metadata
+- [ ] Author and publication date handling
+- [ ] Hidden post functionality
+
+### 2.3 Homepage Sliders (Netflix-style)
+
+- [ ] Create `NetflixSlider` component
+- [ ] Implement post grouping logic:
+  - [ ] Latest posts
+  - [ ] Posts by hashtags (Caterina Sforza, food, mindfulness)
+  - [ ] Random posts
+  - [ ] Chronological order
+- [ ] Featured post component for hero section
+- [ ] Responsive slider with touch/swipe support
+
+### 2.4 Image Optimization
+
+- [ ] Migrate images from `old_blog/src/assets/images/`
+- [ ] Configure Next.js Image optimization
+- [ ] Update image paths in MDX content
+- [ ] Implement responsive image loading
+
+---
+
+## Phase 3: Layout & Design System 🎨
+
+### 3.1 Component System
+
+- [ ] Migrate core components from old_blog:
+  - [ ] Layout, Header, Footer
+  - [ ] Navigation (Desktop/Mobile menu)
+  - [ ] BlogCard component
+  - [ ] Button components
+- [ ] Create MDX component library:
+  - [ ] Custom text components (Dialogue, FigureLabel, etc.)
+  - [ ] Media components (YouTube, ResponsiveEmbed)
+  - [ ] Interactive components (Poll, TextBox, etc.)
+
+### 3.2 Styling System
+- [ ] Migrate theme system from old_blog
+- [ ] Implement dark/light mode toggle
+- [ ] Responsive design patterns
+- [ ] Animation system (migrate from AOS to Framer Motion?)
+
+### 3.3 Advanced Layout Features
+- [ ] Netflix-style dark theme as default
+- [ ] Gradient overlays and visual effects
+- [ ] Hover effects and emoji indicators
+- [ ] Mobile-first responsive design
+
+---
+
+## Phase 4: Advanced Features ⚡
+
+### 4.1 SEO & Meta
+- [ ] Migrate SEO component functionality
+- [ ] Open Graph meta tags
+- [ ] JSON-LD structured data
+- [ ] Sitemap generation
+- [ ] RSS feed generation
+
+### 4.2 Interactive Features
+- [ ] Comment system (Disqus integration)
+- [ ] Social sharing buttons
+- [ ] Newsletter signup (MailChimp integration)
+- [ ] View counter system
+- [ ] Reaction system (emoji reactions)
+
+### 4.3 UI/UX Improvements
+- [ ] **Migrate to react-tooltip** - Replace all custom tooltips with react-tooltip for better positioning and consistency
+  - [ ] Install react-tooltip dependency
+  - [ ] Replace UnicornButton custom tooltip with react-tooltip
+  - [ ] Add tooltips to other interactive components as needed
+  - [ ] Standardize tooltip styling across the blog
+  - [ ] Test tooltip positioning on all devices
+
+### 4.4 Analytics & Tracking
+- [ ] Firebase/Analytics integration
+- [ ] Performance monitoring
+- [ ] Error tracking
+
+---
+
+## Phase 5: Performance & Production 🚀
+
+### 5.1 Optimization
+- [ ] Implement ISR (Incremental Static Regeneration)
+- [ ] Bundle size optimization
+- [ ] Image optimization and lazy loading
+- [ ] Code splitting for components
+
+### 5.2 PWA Features
+- [ ] Service worker setup
+- [ ] Offline support
+- [ ] App manifest
+- [ ] Mobile app-like experience
+
+### 5.3 Deployment
+- [ ] Configure deployment (Vercel/Netlify)
+- [ ] Environment variables setup
+- [ ] Custom domain configuration
+- [ ] Performance testing
+
+---
+
+## Phase 6: Content Migration & Testing 🧪
+
+### 6.1 Content Audit
+- [ ] Verify all posts migrated correctly
+- [ ] Check all images and media files
+- [ ] Test all internal links
+- [ ] Validate frontmatter consistency
+
+### 6.2 Feature Parity Testing
+- [ ] Compare with old blog functionality
+- [ ] Cross-browser testing
+- [ ] Mobile responsiveness testing
+- [ ] Performance benchmarking
+
+### 6.3 Go-Live Preparation
+- [ ] Setup redirects from old URLs
+- [ ] DNS/domain migration plan
+- [ ] Backup and rollback strategy
+- [ ] Launch checklist
+
+---
+
+## Success Metrics 📊
+
+### Technical Goals
+- [ ] **Build Time**: Faster than Gatsby build
+- [ ] **Page Load**: <2s for homepage, <1s for posts
+- [ ] **Developer Experience**: No GraphQL complexity
+- [ ] **Content Workflow**: MDX file → automatic publication
+
+### Feature Parity
+- [ ] All posts accessible and properly formatted
+- [ ] Netflix-style homepage working
+- [ ] All interactive elements functional
+- [ ] Mobile responsiveness maintained
+- [ ] SEO performance maintained or improved
+
+### Bonus Goals
+- [ ] Better TypeScript support
+- [ ] Improved component reusability
+- [ ] Enhanced performance metrics
+- [ ] Simplified deployment process
+
+---
+
+## Notes & Considerations
+
+### Migration Strategy
+- Build new blog alongside old one
+- Phase rollout allows for testing and refinement
+- Keep old blog as fallback during transition
+
+### Content Handling
+- Maintain existing URL structure for SEO
+- Preserve all existing content and metadata
+- Handle any content format inconsistencies gracefully
+
+### Risk Mitigation
+- Comprehensive testing at each phase
+- Feature flags for gradual rollout
+- Performance monitoring throughout
+
+---
+
+**Next Step**: Start Phase 1 - PoC Setup 🚀 
