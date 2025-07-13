@@ -1,0 +1,14 @@
+.code {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: var(--color-text-primary);
+  padding: 0.2em 0.4em;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.9em;
+  font-family: 'Courier New', monospace;
+  border: 1px solid #cbd5e1;
+  transition: background 0.2s ease;
+}
+
+.code:hover {
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+} 

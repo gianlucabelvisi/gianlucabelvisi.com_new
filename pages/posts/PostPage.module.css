@@ -1,16 +1,114 @@
 .container {
-  height: 100%;
-  display: grid;
-  grid-template-columns: 1fr repeat(12, minmax(auto, 4.2rem)) 1fr;
-  grid-template-rows: 7.8rem 20rem 4rem auto;
-  gap: 0 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
+  background-color: var(--color-white);
+  min-height: 100vh;
 }
 
-@media (max-width: 768px) {
-  .container {
-    grid-template-columns: 2rem repeat(6, 1fr) 2rem;
-    grid-gap: 0 1rem;
-  }
+.header {
+  text-align: center;
+  margin-bottom: var(--spacing-xxl);
+  padding-bottom: var(--spacing-xl);
+  border-bottom: 2px solid var(--color-accent-background);
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-md);
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: var(--color-primary-light);
+  font-style: italic;
+  margin-bottom: var(--spacing-lg);
+}
+
+.meta {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-md);
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+}
+
+.author {
+  color: var(--color-text-secondary);
+}
+
+.date {
+  color: var(--color-text-secondary);
+}
+
+.hashtags {
+  color: var(--color-primary-light);
+  font-weight: 500;
+}
+
+.hashtags::before {
+  content: '#';
+  color: var(--color-primary-light);
+}
+
+.content {
+  line-height: 1.8;
+  color: var(--color-text-primary);
+  font-size: 1.1rem;
+}
+
+.content h1, .content h2, .content h3, .content h4, .content h5, .content h6 {
+  color: var(--color-text-primary);
+  margin-top: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+}
+
+.content p {
+  margin-bottom: var(--spacing-lg);
+}
+
+.content a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.content a:hover {
+  color: var(--color-primary-dark);
+}
+
+.content blockquote {
+  border-left: 4px solid var(--color-primary-light);
+  padding-left: var(--spacing-lg);
+  margin: var(--spacing-xl) 0;
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+.content code {
+  background: var(--color-accent-background);
+  padding: 0.2em 0.4em;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.9em;
+  color: var(--color-text-primary);
+}
+
+.content pre {
+  background: var(--color-accent-background);
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-md);
+  overflow-x: auto;
+  margin: var(--spacing-xl) 0;
+}
+
+.content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+  margin: var(--spacing-xl) 0;
 }
 
 .postHeader {
@@ -104,6 +202,32 @@
 
 .mdxContent {
   line-height: 1.6;
+}
+
+/* Image constraints for MDX content */
+.mdxContent img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+  margin: var(--spacing-xl) 0;
+  display: block;
+}
+
+/* Also add global constraint for any images inside mdx-content class */
+:global(.mdx-content img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+  margin: var(--spacing-xl) 0;
+  display: block;
+}
+
+/* Ensure all MDX content elements are properly constrained */
+.mdxContent * {
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .postFooterArea {

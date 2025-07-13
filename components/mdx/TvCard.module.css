@@ -1,0 +1,19 @@
+.card {
+  background-color: var(--color-accent-background);
+  border: 1px solid var(--color-text-light);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-lg);
+  margin: var(--spacing-xl) 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.header {
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
+  font-weight: bold;
+}
+
+.content {
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+} 

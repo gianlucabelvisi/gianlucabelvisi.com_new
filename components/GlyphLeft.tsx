@@ -1,17 +1,7 @@
-import { ImQuotesLeft } from 'react-icons/im'
+import styles from './GlyphLeft.module.css'
 
-const GlyphLeft = () => {
+export default function GlyphLeft() {
   return (
-    <ImQuotesLeft 
-      style={{ 
-        color: '#ff9664',
-        display: 'inline',
-        verticalAlign: 'baseline',
-        marginRight: '0.2rem',
-        fontSize: '1.1rem'
-      }} 
-    />
+    <span className={styles.glyph}>‹</span>
   )
-}
-
-export default GlyphLeft 
+} 

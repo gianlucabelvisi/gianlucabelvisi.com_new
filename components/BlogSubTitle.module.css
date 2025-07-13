@@ -1,0 +1,7 @@
+.subtitle {
+  font-size: 1.2rem;
+  font-style: italic;
+  color: var(--color-primary-light);
+  text-align: left;
+  margin-bottom: var(--spacing-md);
+} 

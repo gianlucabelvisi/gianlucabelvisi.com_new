@@ -72,4 +72,35 @@
   font-weight: bold;
   margin: 0;
   animation: pulse 7s ease-in-out infinite;
+}
+
+.profitBox {
+  background: linear-gradient(135deg, rgba(255, 150, 100, 0.08) 0%, rgba(255, 150, 100, 0.04) 100%);
+  border: 2px solid var(--color-primary-light);
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-lg);
+  margin: var(--spacing-xl) 0;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+}
+
+.profitBox h3 {
+  color: var(--color-primary);
+  margin-bottom: var(--spacing-md);
+}
+
+.profitBox p {
+  color: var(--color-text-primary);
+  line-height: 1.6;
+}
+
+.amount {
+  color: var(--color-primary-light);
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.percentage {
+  color: var(--color-primary-light);
+  font-weight: bold;
 } 

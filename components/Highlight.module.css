@@ -1,0 +1,31 @@
+.highlight {
+  padding: 0.2em 0.4em;
+  border-radius: var(--border-radius-sm);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.yellow {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.blue {
+  background-color: #dbeafe;
+  color: var(--color-secondary-dark);
+}
+
+.green {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.red {
+  background-color: #fecaca;
+  color: #991b1b;
+}
+
+.highlight:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+} 

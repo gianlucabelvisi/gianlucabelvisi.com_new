@@ -1,11 +1,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Irish+Grover&display=swap');
 
 .question {
-  font-family: "Irish Grover", cursive;
-  margin-top: 2rem;
-  margin-bottom: 1rem;
-  padding-left: 1rem;
-  font-size: 1.3rem;
+  background: linear-gradient(135deg, rgba(255, 150, 100, 0.08) 0%, rgba(255, 150, 100, 0.04) 100%);
+  border-left: 4px solid var(--color-primary-light);
+  border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+  padding: var(--spacing-lg);
+  margin: var(--spacing-xl) 0;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+}
+
+.question::before {
+  content: '?';
+  position: absolute;
+  top: -8px;
+  left: var(--spacing-md);
+  background: var(--color-primary-light);
+  color: var(--color-white);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+.content {
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  font-weight: 500;
 }
 
 .questionLabel {
