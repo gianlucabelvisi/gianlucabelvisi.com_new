@@ -1,6 +1,7 @@
 import { GetStaticPaths, GetStaticProps } from 'next'
 import { serialize } from 'next-mdx-remote/serialize'
 import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
+import remarkGfm from 'remark-gfm'
 import { getAllPosts, getAllPostsForPaths, getPostBySlug, PostData } from '../../lib/posts'
 import styles from './PostPage.module.css'
 import Highlight from '../../components/Highlight'
@@ -226,7 +227,14 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     return { notFound: true }
   }
   
-  const mdxSource = await serialize(post.content)
+  const mdxSource = await serialize(post.content, {
+    mdxOptions: {
+      remarkPlugins: [
+        // Add support for strikethrough and other GitHub flavored markdown
+        remarkGfm
+      ]
+    }
+  })
   
   return {
     props: {
