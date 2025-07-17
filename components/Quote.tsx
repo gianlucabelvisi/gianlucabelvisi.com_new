@@ -10,7 +10,7 @@ interface QuoteProps {
 
 const Quote = ({ children, from, title, bouncy = false }: QuoteProps) => {
   return (
-    <div className={`${styles.quoteContainer} ${bouncy ? styles.bouncy : ''}`}>
+    <div className={styles.quoteContainer}>
       {/* Decorative background elements */}
       <div className={styles.decorativeTopRight} />
       <div className={styles.decorativeBottomLeft} />

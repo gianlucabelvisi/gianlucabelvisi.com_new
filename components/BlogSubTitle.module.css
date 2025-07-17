@@ -1,7 +1,35 @@
 .subtitle {
-  font-size: 1.4rem;
-  font-style: italic;
-  color: var(--color-primary-light);
+  margin-bottom: 2rem;
   text-align: left;
-  margin-bottom: var(--spacing-md);
+  font-size: 1.4rem;
+  position: relative;
+  line-height: 1.4;
+}
+
+.subtitle .quoteStart {
+  position: absolute;
+  top: 0;
+  left: -1.5rem;
+  color: var(--color-primary);
+}
+
+.subtitle .quoteEnd {
+  position: absolute;
+  bottom: 0;
+  right: -1.5rem;
+  color: var(--color-primary);
+}
+
+@media screen and (max-width: 768px) {
+  .subtitle {
+    font-size: 1.2rem;
+  }
+  
+  .subtitle .quoteStart {
+    left: -1rem;
+  }
+  
+  .subtitle .quoteEnd {
+    right: -1rem;
+  }
 } 

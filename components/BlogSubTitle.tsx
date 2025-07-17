@@ -7,7 +7,9 @@ interface BlogSubTitleProps {
 const BlogSubTitle = ({ children }: BlogSubTitleProps) => {
   return (
     <div className={styles.subtitle}>
+      <span className={styles.quoteStart}>❝</span>
       {children}
+      <span className={styles.quoteEnd}>❞</span>
     </div>
   )
 }
