@@ -1,0 +1,165 @@
+@keyframes tooltipAppear {
+  0% { 
+    opacity: 0; 
+    transform: translateX(-50%) translateY(10px) scale(0.8);
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes floatingSparkles {
+  0% { 
+    transform: translateY(0px) rotate(0deg) scale(1);
+    opacity: 0.6;
+  }
+  25% { 
+    transform: translateY(-15px) rotate(90deg) scale(1.2);
+    opacity: 1;
+  }
+  50% { 
+    transform: translateY(-30px) rotate(180deg) scale(0.8);
+    opacity: 0.8;
+  }
+  75% { 
+    transform: translateY(-15px) rotate(270deg) scale(1.1);
+    opacity: 1;
+  }
+  100% { 
+    transform: translateY(0px) rotate(360deg) scale(1);
+    opacity: 0.6;
+  }
+}
+
+.wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.reactionButton {
+  cursor: pointer;
+  position: relative;
+  font-size: 1.2rem;
+  margin-right: 0.4rem;
+  display: flex;
+  background: rgba(0, 0, 0, 0.02);
+  padding: 0.4rem;
+  border-radius: 12px;
+  transition: all 0.2s ease-in-out;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.reactionButton:hover {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.reactionButton:hover .emoji {
+  transform: scale(1.4);
+}
+
+.emojiContainer {
+  position: relative;
+  margin-right: 0.4rem;
+  width: 1.4rem;
+}
+
+.emoji {
+  opacity: 1;
+  position: absolute;
+  top: 0;
+  transition: all 0.2s ease-in-out;
+  z-index: 10;
+}
+
+.count {
+  color: #757070;
+}
+
+/* Enhanced Tooltip */
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 0.8rem);
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, 
+    var(--color-primary) 0%, 
+    var(--color-primary-dark) 100%);
+  color: white;
+  padding: 0.8rem 1.2rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  min-width: max-content;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3),
+              0 0 15px rgba(255, 105, 180, 0.2);
+  border: 1px solid rgba(255, 105, 180, 0.3);
+  animation: tooltipAppear 0.3s ease-out forwards;
+}
+
+.tooltipContent {
+  position: relative;
+  z-index: 2;
+  font-weight: 500;
+}
+
+.tooltipSparkle {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 0.8rem;
+  animation: floatingSparkles 2s ease-in-out infinite;
+}
+
+.tooltipSparkle2 {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  font-size: 0.9rem;
+  animation: floatingSparkles 2.5s ease-in-out infinite;
+  animation-delay: 0.7s;
+}
+
+.tooltipSparkle3 {
+  position: absolute;
+  bottom: -4px;
+  right: 20%;
+  font-size: 0.7rem;
+  animation: floatingSparkles 1.8s ease-in-out infinite;
+  animation-delay: 1.2s;
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--color-primary-dark);
+}
+
+.tooltip::before {
+  content: '';
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 7px solid transparent;
+  border-top-color: rgba(255, 105, 180, 0.3);
+}
+
+/* Mobile adjustments */
+@media (max-width: 568px) {
+  .reactionButton {
+    font-size: 1.2rem;
+  }
+} 

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ref, runTransaction } from 'firebase/database';
 import { database } from '../lib/firebase';
 import { ReactionData } from '../data/ReactionData';
+import styles from './Reaction.module.css';
 
 interface ReactionProps {
   id: string;
@@ -10,6 +11,7 @@ interface ReactionProps {
 
 const Reaction = ({ id, item }: ReactionProps) => {
   const [reaction, setReaction] = useState<number>(0);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   const increaseCount = () => {
     const reactionRef = ref(database, 'reactions/' + id + '/' + item.name);
@@ -38,63 +40,46 @@ const Reaction = ({ id, item }: ReactionProps) => {
   }, [id, item.name]);
 
   return (
-    <div
-      title={item.tooltip}
-      onClick={increaseCount}
-      style={{
-        cursor: 'pointer',
-        position: 'relative',
-        fontSize: '1.2rem',
-        marginRight: '.4rem',
-        display: 'flex',
-        background: 'rgba(0, 0, 0, 0.02)',
-        padding: '.4rem',
-        borderRadius: '12px',
-        transition: 'all .2s ease-in-out',
-        userSelect: 'none',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.paddingLeft = '1rem';
-        e.currentTarget.style.paddingRight = '1rem';
-        const emoji = e.currentTarget.querySelector('.emoji') as HTMLElement;
-        if (emoji) emoji.style.transform = 'scale(1.4)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.paddingLeft = '.4rem';
-        e.currentTarget.style.paddingRight = '.4rem';
-        const emoji = e.currentTarget.querySelector('.emoji') as HTMLElement;
-        if (emoji) emoji.style.transform = 'scale(1)';
-      }}
-      onMouseDown={(e) => {
-        const emoji = e.currentTarget.querySelector('.emoji') as HTMLElement;
-        if (emoji) {
-          emoji.style.animation = '.4s ease-in-out 0s 1 pulse';
-          setTimeout(() => {
-            emoji.style.animation = '';
-          }, 400);
-        }
-      }}
-    >
-      <div style={{ position: 'relative', marginRight: '.4rem', width: '1.4rem' }}>
-        <div 
-          className="emoji"
-          style={{
-            opacity: 1,
-            position: 'absolute',
-            top: 0,
-            transition: 'all .2s ease-in-out',
-            zIndex: 10,
-          }}
-        >
-          {item.icon}
+    <div className={styles.wrapper}>
+      <div
+        className={styles.reactionButton}
+        onClick={increaseCount}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        onMouseDown={(e) => {
+          const emoji = e.currentTarget.querySelector('.emoji') as HTMLElement;
+          if (emoji) {
+            emoji.style.animation = '.4s ease-in-out 0s 1 pulse';
+            setTimeout(() => {
+              emoji.style.animation = '';
+            }, 400);
+          }
+        }}
+      >
+        <div className={styles.emojiContainer}>
+          <div className={`emoji ${styles.emoji}`}>
+            {item.icon}
+          </div>
+        </div>
+        <div className={styles.count}>
+          {reaction ?? 0}
         </div>
       </div>
-      <div style={{ color: '#757070' }}>
-        {reaction ?? 0}
-      </div>
+
+      {showTooltip && (
+        <div className={styles.tooltip}>
+          <div className={styles.tooltipContent}>
+            {item.tooltip}
+          </div>
+          <div className={styles.tooltipSparkle}>✨</div>
+          <div className={styles.tooltipSparkle2}>🌟</div>
+          <div className={styles.tooltipSparkle3}>⭐</div>
+        </div>
+      )}
+
       <style jsx>{`
         @keyframes pulse {
-          from { transform: scale(1.4); }
+          from { transform: scale(1); }
           to { transform: scale(4); }
         }
       `}</style>

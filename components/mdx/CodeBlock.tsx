@@ -138,7 +138,7 @@ const CodeBlock = (props: CodeBlockProps) => {
       marginBottom: "3rem",
       borderRadius: "16px",
       overflow: "hidden",
-      background: "red",
+      background: "#0d1117",
       border: "1px solid #30363d",
       boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2)",
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
