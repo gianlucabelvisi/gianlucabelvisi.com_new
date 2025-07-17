@@ -1,6 +1,7 @@
 import { GetStaticProps } from 'next'
 import Link from 'next/link'
 import { getAllPosts, PostData } from '../lib/posts'
+import styles from '../styles/Home.module.css'
 
 interface HomePageProps {
   posts: PostData[]
@@ -39,11 +40,7 @@ export default function HomePage({ posts }: HomePageProps) {
                 <h3 style={{ margin: '0 0 0.5rem 0' }}>
                   <Link 
                     href={`/posts/${post.slug}`}
-                    style={{ 
-                      textDecoration: 'none', 
-                      color: '#333',
-                      ':hover': { color: '#0066cc' }
-                    }}
+                    className={styles.postTitleLink}
                   >
                     {post.frontmatter.title}
                   </Link>

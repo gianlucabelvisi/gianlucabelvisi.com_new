@@ -13,7 +13,8 @@ hidden: false
 ---
 
 ## Overview
-Migrate the existing Gatsby blog to Next.js while maintaining all functionality and improving the development experience by removing GraphQL complexity.
+
+Migrate the existing Gatsby blog to Next.js while maintaining all functionality and improving the development experience by removing GraphQL, which is cringe.
 
 ---
 
@@ -266,12 +267,12 @@ Otherwise you'll get "Expected component to be defined" errors!
 **Target Post**: Doggo post (`old_blog/src/posts/2023/doggo/_doggo.mdx`)
 
 **Content Scope:**
-- [ ] **492 lines** of content (most complex yet!)
-- [ ] **Controversial humor** with content warnings about animals
-- [ ] **Interactive elements** throughout (multiple UnicornButtons)
-- [ ] **Complex narrative** about pandemic isolation and wanting companionship
-- [ ] **Mixed media** - YouTube videos, polls, images
-- [ ] **Advanced Firebase interactions** - button click counting with tooltips
+- ✅ **492 lines** of content (most complex yet!)
+- ✅ **Controversial humor** with content warnings about animals
+- ✅ **Interactive elements** throughout (multiple UnicornButtons)
+- ✅ **Complex narrative** about pandemic isolation and wanting companionship
+- ✅ **Mixed media** - YouTube videos, polls, images
+- ✅ **Advanced Firebase interactions** - button click counting with tooltips
 
 **Component Analysis:**
 - ✅ `Poll` - Already have (used for "Are you feeling compelled to read a post?")
@@ -314,11 +315,11 @@ Otherwise you'll get "Expected component to be defined" errors!
 
 **Step 3: Technical Challenges**
 
-- [ ] **Advanced Firebase**: Button click counting system with real-time updates
-- [ ] **Tooltip System**: Custom tooltip positioning and messaging
-- [ ] **Performance**: 492 lines with multiple interactive elements
-- [ ] **Mobile Responsiveness**: Ensure all interactions work on mobile
-- [ ] **Database Costs**: Implement reasonable rate limiting for click spam
+- ✅ **Advanced Firebase**: Button click counting system with real-time updates
+- ✅ **Tooltip System**: Custom tooltip positioning and messaging
+- ✅ **Performance**: 492 lines with multiple interactive elements
+- ✅ **Mobile Responsiveness**: Ensure all interactions work on mobile
+- ✅ **Database Costs**: Implement reasonable rate limiting for click spam
 
 ✅ **DOGGO POST MIGRATION COMPLETE!** ✅
 
@@ -389,13 +390,13 @@ Otherwise you'll get "Expected component to be defined" errors!
 
 **PLEASE TEST**:
 - ✅ Cover image now aligned from top (character head should be visible)  
-- [ ] All 12 UnicornButtons working with Firebase tracking
-- [ ] ShakyTitle animations (pulsing emoji + shaking text)
-- [ ] All 15 images loading correctly
-- [ ] YouTube embeds functional
-- [ ] TextBox email formatting correct
-- [ ] Mobile responsiveness
-- [ ] Poll component at the end working
+- ✅ All 12 UnicornButtons working with Firebase tracking
+- ✅ ShakyTitle animations (pulsing emoji + shaking text)
+- ✅ All 15 images loading correctly
+- ✅ YouTube embeds functional
+- ✅ TextBox email formatting correct
+- ✅ Mobile responsiveness
+- ✅ Poll component at the end working
 
 **Most Complex Post Yet**: 492 lines of sophisticated storytelling with mature themes, multiple interactive elements, and brilliant narrative structure. From fake animal rescue schemes to pandemic loneliness to getting busted by dog breeders - this post has it all!
 
@@ -468,23 +469,30 @@ Otherwise you'll get "Expected component to be defined" errors!
 
 ### **Other** ❓
 
-- [ ] **Release Notes** (`release-notes/release_notes.mdx`)
+- ✅ **Release Notes** (`release-notes/release_notes.mdx`)
 
-**🎉 INCREDIBLE PROGRESS: 38 POSTS MIGRATED! 🎉**
-**📚 ONLY ~1 POST REMAINING (Release Notes)** 
+**🎉 INCREDIBLE PROGRESS: 47 POSTS MIGRATED! 🎉**
 
 ---
 
-## Phase 2: Core Features Migration 🏗️
+## Phase 2: Core Features Migration and Additions 🏗️
 
 ### 2.1 Content Structure
 
-- [ ] Copy all posts from `old_blog/src/posts/` to `new_blog/posts/`
-- [ ] Verify all frontmatter is parsed correctly
-- [ ] Handle any content format inconsistencies
-- [ ] Test post discovery with full content library
+- ✅ Copy all posts from `old_blog/src/posts/` to `new_blog/posts/`
+- ✅ Verify all frontmatter is parsed correctly
+- ✅ Handle any content format inconsistencies
+- ✅ Test post discovery with full content library
+- [ ] Some pages, like impostor-syndrome and the last caterina sforza, have 2 mdx in the folder. This is fucking up the way you generate the pages, leading to debt like @impostor-syndrome.tsx and @overcoming-impostor-syndrome.tsx. We need to remove this hack by splitting the posts containing two mdx into two. So we have two folders each containing a post and the images related to it
+    - [ ] Let's start with impostor syndrome
+    - [ ] Once confirmed it works, let's do caterina
 
-### 2.2 Advanced Post Features
+### 2.2 TODO
+- [ ]
+
+
+
+### 2.4 Advanced Post Features
 
 - [ ] Implement hashtag system and filtering
 - [ ] Support for multiple image formats (card, feature, mobile)
@@ -492,7 +500,19 @@ Otherwise you'll get "Expected component to be defined" errors!
 - [ ] Author and publication date handling
 - [ ] Hidden post functionality
 
-### 2.3 Homepage Sliders (Netflix-style)
+
+---
+
+## Phase 3: Layout & Design System 🎨
+
+### 3.1 Dark Mode
+
+- [ ] Create a toggle component similar to an iOS toggle, with sun on one side and moon on the other.
+- [ ] For the time being, place the toggle on the top right
+- [ ] Define styles and colors for the dark mode
+- [ ] Bind dark and light mode the the toggle
+
+### 3.2 Homepage Sliders (Netflix-style)
 
 - [ ] Create `NetflixSlider` component
 - [ ] Implement post grouping logic:
@@ -510,29 +530,8 @@ Otherwise you'll get "Expected component to be defined" errors!
 - [ ] Update image paths in MDX content
 - [ ] Implement responsive image loading
 
----
 
-## Phase 3: Layout & Design System 🎨
-
-### 3.1 Component System
-
-- [ ] Migrate core components from old_blog:
-  - [ ] Layout, Header, Footer
-  - [ ] Navigation (Desktop/Mobile menu)
-  - [ ] BlogCard component
-  - [ ] Button components
-- [ ] Create MDX component library:
-  - [ ] Custom text components (Dialogue, FigureLabel, etc.)
-  - [ ] Media components (YouTube, ResponsiveEmbed)
-  - [ ] Interactive components (Poll, TextBox, etc.)
-
-### 3.2 Styling System
-- [ ] Migrate theme system from old_blog
-- [ ] Implement dark/light mode toggle
-- [ ] Responsive design patterns
-- [ ] Animation system (migrate from AOS to Framer Motion?)
-
-### 3.3 Advanced Layout Features
+### 3.2 Advanced Layout Features
 - [ ] Netflix-style dark theme as default
 - [ ] Gradient overlays and visual effects
 - [ ] Hover effects and emoji indicators

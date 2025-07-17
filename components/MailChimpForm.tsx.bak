@@ -75,7 +75,7 @@ const CustomForm = ({ status, message, onValidated }: CustomFormProps) => {
         {status === "success" && (
           <p
             style={{ marginBottom: '1rem' }}
-            dangerouslySetInnerHTML={{ __html: getMessageString(message) }}
+            dangerouslySetInnerHTML={{ __html: message || '' }}
           />
         )}
 

@@ -214,8 +214,8 @@
   display: block;
 }
 
-/* Also add global constraint for any images inside mdx-content class */
-:global(.mdx-content img) {
+/* Image styles for MDX content - applied via local class */
+.postContent :global(.mdx-content img) {
   max-width: 100%;
   height: auto;
   border-radius: var(--border-radius-md);

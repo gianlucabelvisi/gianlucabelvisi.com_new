@@ -233,3 +233,13 @@ a.secondary {
   padding-top: var(--spacing-sm);
   border-top: 1px solid var(--color-accent-background);
 }
+
+.postTitleLink {
+  text-decoration: none;
+  color: var(--color-text-primary);
+  transition: color 0.2s ease;
+}
+
+.postTitleLink:hover {
+  color: var(--color-primary);
+}

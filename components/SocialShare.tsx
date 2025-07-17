@@ -38,7 +38,11 @@ const SocialShare = ({ path }: SocialShareProps) => {
       <InstapaperShareButton url={url} title="InstaPaper">
         <InstapaperIcon size={32} round={true} />
       </InstapaperShareButton>
-      <PinterestShareButton url={url} title="Pin">
+      <PinterestShareButton 
+        url={url} 
+        title="Pin"
+        media={`https://gianlucabelvisi.com/images/gianluca-1.jpg`}
+      >
         <PinterestIcon size={32} round={true} />
       </PinterestShareButton>
     </div>

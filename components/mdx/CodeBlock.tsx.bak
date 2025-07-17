@@ -36,7 +36,7 @@ const CodeBlock = (props: CodeBlockProps) => {
 
   // Handle different prop structures
   if (!props.children || !props.children.props) {
-    return <pre style={{ fontFamily: 'monospace', padding: '1rem' }}>{String(props.children)}</pre>;
+    return <pre style={{ fontFamily: 'monospace', padding: '1rem' }}>{props.children}</pre>;
   }
 
   const className = props.children.props.className || "";
