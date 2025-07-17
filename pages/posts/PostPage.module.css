@@ -178,11 +178,13 @@
 
 .mdxContent a {
   color: var(--color-primary);
-  text-decoration: underline;
+  text-decoration: none;
+  font-weight: bold;
 }
 
 .mdxContent a:hover {
   color: var(--color-primary-dark);
+  text-decoration: underline;
 }
 
 .mdxContent ul,
