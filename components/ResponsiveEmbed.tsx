@@ -27,7 +27,7 @@ const ResponsiveEmbed = ({
       position: 'relative',
       height: 0,
       overflow: 'hidden',
-      maxWidth: '100%',
+      width: '100%',
       marginBottom: '2rem',
       paddingBottom,
       ...(fullWidth && {

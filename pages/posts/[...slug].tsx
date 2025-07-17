@@ -168,16 +168,16 @@ export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
         </div>
       )}
 
-      {/* Content Area */}
-      <div className={styles.contentArea}>
+      {/* Main Content */}
+      <div className={styles.mainContent}>
         
         {/* Sidebar */}
         <div className={styles.sidebar}>
           <SocialShare path={frontmatter.path || `/posts/${slug}`} />
         </div>
 
-        {/* Post Content */}
-        <div className={styles.postContent}>
+        {/* Post */}
+        <div className={styles.post}>
           <h1 className={styles.postTitle}>
             {frontmatter.title}
           </h1>
@@ -194,17 +194,16 @@ export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
         </div>
 
         {/* Post Footer */}
-        <div className={styles.postFooterArea}>
-          <PostFooter 
-            path={frontmatter.path || `/posts/${slug}`} 
-            author={frontmatter.author} 
-          />
-          <p className={styles.postTags}>
-            Tags: {frontmatter.hashtags}
-          </p>
-          
-          <MailChimpForm />
-        </div>
+        <PostFooter 
+          path={frontmatter.path || `/posts/${slug}`} 
+          author={frontmatter.author} 
+        />
+        
+        <p className={styles.postTags}>
+          Tags: {frontmatter.hashtags}
+        </p>
+        
+        <MailChimpForm />
       </div>
     </div>
   )

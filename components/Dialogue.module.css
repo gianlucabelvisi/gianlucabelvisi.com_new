@@ -1,7 +1,6 @@
 .dialogue {
   display: inline-block;
-  font-style: italic;
-  margin: var(--spacing-sm) 0;
+  margin-bottom: var(--spacing-lg);
 }
 
 .quote {
@@ -13,4 +12,6 @@
 
 .text {
   color: var(--color-text-primary);
+  font-size: 1.1rem;
+  font-weight: 500;
 } 

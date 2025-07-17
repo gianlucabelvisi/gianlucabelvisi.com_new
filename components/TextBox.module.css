@@ -91,4 +91,18 @@
 
 .contentInner {
   padding-bottom: 0;
+}
+
+/* Images within TextBox */
+.textbox img {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+  margin: var(--spacing-md) 0;
+  display: block;
+  background: var(--color-background-light);
+  padding: var(--spacing-sm);
+  object-fit: contain;
 } 

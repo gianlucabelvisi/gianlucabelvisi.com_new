@@ -92,6 +92,12 @@ a:hover {
   color: var(--color-link-hover);
 }
 
+/* Force responsive embeds to stretch to full width */
+iframe {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
