@@ -1,4 +1,4 @@
-import React, { useMemo } from "react"
+import React from "react"
 import styles from "./Books2022.module.css"
 import books2022Data from "../data/Books2022.json"
 
@@ -8,30 +8,28 @@ interface Books2022Props {
 
 const Books2022: React.FC<Books2022Props> = ({ background = "desk4" }) => {
   // Only show first 8 books for a cleaner animation
-  const visibleBooks = useMemo(() => {
-    return books2022Data.slice(0, 8).map((book, index) => {
-      const filename = book.img.split("/").pop() || ""
-      
-      // Generate random stack angles (human-like placement)
-      const stackRotation = (Math.random() - 0.5) * 30 // Random angle between -15° and 15°
-      
-      // Generate random flight directions - EPIC launches!
-      const flyX = (Math.random() - 0.5) * (1000 + Math.random() * 9000) + "px" // Random between -1000px to -10000px or +1000px to +10000px
-      const flyY = (Math.random() - 0.5) * (800 + Math.random() * 7200) + "px" // Random between -800px to -8000px or +800px to +8000px
-      
-      // Random final rotation for flight
-      const finalRotation = Math.random() * 360 + "deg"
-      
-      return {
-        src: filename,
-        title: book.title || `Book ${index + 1}`,
-        stackRotation: stackRotation + "deg",
-        flyX,
-        flyY,
-        finalRotation
-      }
-    })
-  }, []) // Empty dependency array ensures this runs only once
+  const visibleBooks = books2022Data.slice(0, 8).map((book, index) => {
+    const filename = book.img.split("/").pop() || ""
+    
+    // Generate random stack angles (human-like placement)
+    const stackRotation = (Math.random() - 0.5) * 30 // Random angle between -15° and 15°
+    
+    // Generate random flight directions - WAY off screen!
+    const flyX = (Math.random() - 0.5) * 2000 + "px" // Random between -1000px and 1000px
+    const flyY = (Math.random() - 0.5) * 1600 + "px" // Random between -800px and 800px
+    
+    // Random final rotation for flight
+    const finalRotation = Math.random() * 360 + "deg"
+    
+    return {
+      src: filename,
+      title: book.title || `Book ${index + 1}`,
+      stackRotation: stackRotation + "deg",
+      flyX,
+      flyY,
+      finalRotation
+    }
+  })
 
   // Book covers are in the post directory
   const imagePath = '/images/posts/2023/books-2022';
@@ -44,7 +42,7 @@ const Books2022: React.FC<Books2022Props> = ({ background = "desk4" }) => {
             key={index}
             className={styles.book}
             style={{
-              "--delay": `${index * 10}s`, // 10 seconds between each book
+              "--delay": `${index * 5}s`, // 5 seconds between each book
               "--z-index": visibleBooks.length - index, // Top book has highest z-index
               "--stack-rotation": book.stackRotation,
               "--offset-x": `${(index % 2) * 4}px`, // Slight offset for realistic stack
@@ -67,14 +65,3 @@ const Books2022: React.FC<Books2022Props> = ({ background = "desk4" }) => {
 }
 
 export default Books2022
-
-
-
-
-
-
-
-
-
-
-

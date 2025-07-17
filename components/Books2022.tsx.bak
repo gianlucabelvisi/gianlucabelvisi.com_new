@@ -1,0 +1,45 @@
+import React from "react"
+import styles from "./Books2022.module.css"
+import books2022Data from "../data/Books2022.json"
+
+interface Books2022Props {
+  background?: string
+}
+
+const Books2022: React.FC<Books2022Props> = ({ background = "desk4" }) => {
+  const visibleBooks = books2022Data.slice(0, 8).map((book, index) => {
+    const filename = book.img.split("/").pop() || ""
+    return {
+      src: filename,
+      title: book.title || `Book ${index + 1}`
+    }
+  })
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.stack}>
+        {visibleBooks.map((book, index) => (
+          <div
+            key={index}
+            className={styles.book}
+            style={{
+              "--delay": `${index * 0.3}s`,
+              "--rotation": `${(index - 4) * 8}deg`,
+              "--offset-x": `${(index % 3 - 1) * 15}px`,
+              "--offset-y": `${Math.sin(index * 0.8) * 8}px`,
+              zIndex: visibleBooks.length - index
+            } as React.CSSProperties}
+          >
+            <img
+              src={`/images/posts/2023/books-2022/animation/${book.src}`}
+              alt={book.title}
+              className={styles.bookCover}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default Books2022
