@@ -1,19 +1,76 @@
-.card {
-  background-color: var(--color-accent-background);
-  border: 1px solid var(--color-text-light);
-  border-radius: var(--border-radius-md);
-  padding: var(--spacing-lg);
-  margin: var(--spacing-xl) 0;
-  box-shadow: var(--shadow-sm);
+.tvCard {
+  margin: 0 0 2rem 0;
+  margin-top: -4px; /* Attach to previous component */
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  background: var(--color-background-light);
+  border: 1px solid var(--color-border);
+  border-top: none; /* Seamless connection to media above */
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  min-height: 80px;
 }
 
 .header {
-  color: var(--color-text-primary);
-  margin-bottom: var(--spacing-sm);
-  font-weight: bold;
+  background: var(--color-primary);
+  color: white;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.content {
-  color: var(--color-text-secondary);
-  line-height: 1.6;
+.value {
+  padding: 1rem;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: white;
+  color: var(--color-text-primary);
+  font-size: 1rem;
+  font-weight: 500;
+  border-right: 1px solid var(--color-border);
+}
+
+.column:last-child .value {
+  border-right: none;
+}
+
+@media screen and (max-width: 768px) {
+  .infoGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .header {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.7rem;
+  }
+  
+  .value {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .value {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+  }
+  
+  .column:last-child .value {
+    border-bottom: none;
+  }
 } 
