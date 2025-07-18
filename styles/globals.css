@@ -3,6 +3,7 @@
   --color-primary: #e87c48;
   --color-primary-dark: #bd643a;
   --color-primary-light: #ff9664;
+  --color-primary-rgb: 232, 124, 72;
   
   /* Secondary Blue Palette */
   --color-secondary: #135291;
@@ -23,6 +24,8 @@
   --color-accent-background: var(--color-background-light);
   --color-link: var(--color-primary);
   --color-link-hover: var(--color-primary-dark);
+  --color-border: #e5e5e5;
+  --color-border-light: #f0f0f0;
   
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -101,5 +104,84 @@ iframe {
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
+  }
+}
+
+/* Global table styling for MDX content */
+.mdx-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2rem 0;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--color-border);
+}
+
+.mdx-content table th {
+  background: var(--color-primary);
+  color: white;
+  padding: 1rem 1.5rem;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.mdx-content table td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+  text-align: center;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.mdx-content table tr:hover {
+  background: rgba(232, 124, 72, 0.04);
+}
+
+.mdx-content table tr:last-child td {
+  border-bottom: none;
+}
+
+.mdx-content table tbody tr:nth-child(even) {
+  background: #f8f9fa;
+}
+
+.mdx-content table tbody tr:nth-child(even):hover {
+  background: rgba(232, 124, 72, 0.06);
+}
+
+@media screen and (max-width: 768px) {
+  .mdx-content table {
+    font-size: 0.9rem;
+    margin: 1.5rem 0;
+  }
+  
+  .mdx-content table th,
+  .mdx-content table td {
+    padding: 0.8rem 1rem;
+  }
+  
+  .mdx-content table th {
+    font-size: 0.8rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .mdx-content table th,
+  .mdx-content table td {
+    padding: 0.7rem 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  .mdx-content table {
+    margin: 1rem -0.5rem;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
   }
 }
