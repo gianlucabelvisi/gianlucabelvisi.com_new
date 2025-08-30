@@ -6,6 +6,7 @@ const postsDirectory = path.join(process.cwd(), 'posts')
 
 export interface PostData {
   slug: string
+  imagePath: string // Original file path for image resolution
   frontmatter: {
     path: string
     date: string
@@ -137,21 +138,35 @@ function getAllPostsIncludingHidden(): PostData[] {
     // Rewrite relative image paths to absolute paths
     const processedContent = rewriteImagePaths(content, fileName)
     
-    // Create slug from file path (remove .mdx extension)
-    let slug = fileName.replace(/\.mdx$/, '')
+    // Create slug - prefer frontmatter.path, fallback to file-based slug
+    let slug: string
     
-    // If the filename matches the folder name (e.g., test-mdx/test-mdx.mdx), 
-    // remove the duplicate part to get cleaner URLs (e.g., 2024/test-mdx instead of 2024/test-mdx/test-mdx)
-    const parts = slug.split('/')
-    if (parts.length >= 2 && parts[parts.length - 1] === parts[parts.length - 2]) {
-      parts.pop() // Remove the duplicate filename part
-      slug = parts.join('/')
-    }
-    
-    // If the filename is 'index', remove it to get cleaner URLs (e.g., 2023/loggo instead of 2023/loggo/index)
-    if (parts.length >= 1 && parts[parts.length - 1] === 'index') {
-      parts.pop() // Remove the 'index' part
-      slug = parts.join('/')
+    if (data.path && typeof data.path === 'string') {
+      // Use frontmatter path, removing leading slash to create clean slug
+      slug = data.path.startsWith('/') ? data.path.slice(1) : data.path
+    } else {
+      // Fallback: create slug from file path, but remove year prefix for clean URLs
+      slug = fileName.replace(/\.mdx$/, '')
+      
+      // If the filename matches the folder name (e.g., test-mdx/test-mdx.mdx), 
+      // remove the duplicate part to get cleaner URLs (e.g., 2024/test-mdx instead of 2024/test-mdx/test-mdx)
+      const parts = slug.split('/')
+      if (parts.length >= 2 && parts[parts.length - 1] === parts[parts.length - 2]) {
+        parts.pop() // Remove the duplicate filename part
+        slug = parts.join('/')
+      }
+      
+      // If the filename is 'index', remove it to get cleaner URLs (e.g., 2023/loggo instead of 2023/loggo/index)
+      if (parts.length >= 1 && parts[parts.length - 1] === 'index') {
+        parts.pop() // Remove the 'index' part
+        slug = parts.join('/')
+      }
+      
+      // Remove year prefix (e.g., "2024/chess" becomes "chess")
+      const slugParts = slug.split('/')
+      if (slugParts.length > 1 && /^\d{4}$/.test(slugParts[0])) {
+        slug = slugParts.slice(1).join('/')
+      }
     }
     
     // Ensure date is a string for JSON serialization
@@ -163,8 +178,24 @@ function getAllPostsIncludingHidden(): PostData[] {
         || (data.date ? String(data.date) : '1900-01-01') // Fallback date for posts without dates
     }
     
+    // Create image path from original file structure (keep year folder)
+    let imagePath = fileName.replace(/\.mdx$/, '')
+    
+    // Clean up imagePath similar to old slug logic (for consistency with existing image structure)
+    const pathParts = imagePath.split('/')
+    if (pathParts.length >= 2 && pathParts[pathParts.length - 1] === pathParts[pathParts.length - 2]) {
+      pathParts.pop() // Remove duplicate filename part
+      imagePath = pathParts.join('/')
+    }
+    
+    if (pathParts.length >= 1 && pathParts[pathParts.length - 1] === 'index') {
+      pathParts.pop() // Remove 'index' part
+      imagePath = pathParts.join('/')
+    }
+
     return {
       slug,
+      imagePath, // Keep year-based path for images
       frontmatter: frontmatter as PostData['frontmatter'],
       content: processedContent,
     }

@@ -2,59 +2,60 @@ import { GetStaticPaths, GetStaticProps } from 'next'
 import { serialize } from 'next-mdx-remote/serialize'
 import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
 import remarkGfm from 'remark-gfm'
-import { getAllPosts, getAllPostsForPaths, getPostBySlug, PostData } from '../../lib/posts'
-import styles from './PostPage.module.css'
-import Highlight from '../../components/Highlight'
-import BlogSubTitle from '../../components/BlogSubTitle'
-import Dialogue from '../../components/Dialogue'
-import Email from '../../components/Email'
-import GlyphLeft from '../../components/GlyphLeft'
-import GlyphRight from '../../components/GlyphRight'
-import FigureLabel from '../../components/FigureLabel'
-import MarginBottom from '../../components/MarginBottom'
-import Quote from '../../components/Quote'
-import TextBox from '../../components/TextBox'
-import YouTube from '../../components/YouTube'
-import ResponsiveEmbed from '../../components/ResponsiveEmbed'
-import Pony from '../../components/Pony'
-import Poll from '../../components/Poll'
-import { ShakyTitle } from '../../components/ShakyTitle'
-import UnicornButton from '../../components/UnicornButton'
-import ThreeColumns from '../../components/ThreeColumns'
-import Col23 from '../../components/Col23'
-import YouTubeAudio from '../../components/YouTubeAudio'
-import Richer from '../../components/Richer'
-import Greenlights from '../../components/Greenlights'
-import Hailmary from '../../components/Hailmary'
-import Pride from '../../components/Pride'
-import Crime from '../../components/Crime'
-import Truth from '../../components/Truth'
-import Books2022 from '../../components/Books2022'
-import Spoiler from '../../components/Spoiler'
-import FilmCard from '../../components/mdx/FilmCard'
-import Formula from '../../components/mdx/Formula'
-import Indented from '../../components/mdx/Indented'
-import Listen from '../../components/mdx/Listen'
-import Nsfw from '../../components/mdx/Nsfw'
-import Batman from '../../components/mdx/Batman'
-import Reddit from '../../components/mdx/Reddit'
-import Break from '../../components/mdx/Break'
-import Song from '../../components/mdx/Song'
-import Question from '../../components/mdx/Question'
-import ProfitBox from '../../components/ProfitBox'
-import SocialShare from '../../components/SocialShare'
-import PostFooter from '../../components/PostFooter'
-import MailChimpForm from '../../components/MailChimpForm'
-import CodeBlock from '../../components/mdx/CodeBlock'
-// import InlineCode from '../../components/mdx/InlineCode'
-import TvCard from '../../components/mdx/TvCard'
-import SpicyTake from '../../components/mdx/SpicyTake'
-import LinkButton from '../../components/mdx/LinkButton'
+import { getAllPosts, getAllPostsForPaths, getPostBySlug, PostData } from '../lib/posts'
+import styles from './posts/PostPage.module.css'
+import Highlight from '../components/Highlight'
+import BlogSubTitle from '../components/BlogSubTitle'
+import Dialogue from '../components/Dialogue'
+import Email from '../components/Email'
+import GlyphLeft from '../components/GlyphLeft'
+import GlyphRight from '../components/GlyphRight'
+import FigureLabel from '../components/FigureLabel'
+import MarginBottom from '../components/MarginBottom'
+import Quote from '../components/Quote'
+import TextBox from '../components/TextBox'
+import YouTube from '../components/YouTube'
+import ResponsiveEmbed from '../components/ResponsiveEmbed'
+import Pony from '../components/Pony'
+import Poll from '../components/Poll'
+import { ShakyTitle } from '../components/ShakyTitle'
+import UnicornButton from '../components/UnicornButton'
+import ThreeColumns from '../components/ThreeColumns'
+import Col23 from '../components/Col23'
+import YouTubeAudio from '../components/YouTubeAudio'
+import Richer from '../components/Richer'
+import Greenlights from '../components/Greenlights'
+import Hailmary from '../components/Hailmary'
+import Pride from '../components/Pride'
+import Crime from '../components/Crime'
+import Truth from '../components/Truth'
+import Books2022 from '../components/Books2022'
+import Spoiler from '../components/Spoiler'
+import FilmCard from '../components/mdx/FilmCard'
+import Formula from '../components/mdx/Formula'
+import Indented from '../components/mdx/Indented'
+import Listen from '../components/mdx/Listen'
+import Nsfw from '../components/mdx/Nsfw'
+import Batman from '../components/mdx/Batman'
+import Reddit from '../components/mdx/Reddit'
+import Break from '../components/mdx/Break'
+import Song from '../components/mdx/Song'
+import Question from '../components/mdx/Question'
+import ProfitBox from '../components/ProfitBox'
+import SocialShare from '../components/SocialShare'
+import PostFooter from '../components/PostFooter'
+import MailChimpForm from '../components/MailChimpForm'
+import CodeBlock from '../components/mdx/CodeBlock'
+// import InlineCode from '../components/mdx/InlineCode'
+import TvCard from '../components/mdx/TvCard'
+import SpicyTake from '../components/mdx/SpicyTake'
+import LinkButton from '../components/mdx/LinkButton'
 
 interface PostPageProps {
   source: MDXRemoteSerializeResult
   frontmatter: PostData['frontmatter']
   slug: string
+  imagePath: string
 }
 
 // Define which components are available in MDX
@@ -123,7 +124,7 @@ const components = {
   LinkButton,
 }
 
-export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
+export default function PostPage({ source, frontmatter, slug, imagePath }: PostPageProps) {
   // Helper function to get image path
   const getImagePath = (imageName: string) => {
     if (!imageName) return ''
@@ -133,10 +134,9 @@ export default function PostPage({ source, frontmatter, slug }: PostPageProps) {
       return imageName
     }
     
-    // For co-located images, the slug already represents the correct directory structure
-    // The posts.ts file handles slug processing (removing index.mdx, etc.)
-    // So we can use the slug directly as the image directory
-    return `/images/posts/${slug}/${imageName}`
+    // Use imagePath (year-based structure) for co-located images
+    // This keeps images working while URLs are clean
+    return `/images/posts/${imagePath}/${imageName}`
   }
   
   // Format date nicely
@@ -243,7 +243,8 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     props: {
       source: mdxSource,
       frontmatter: post.frontmatter,
-      slug: slug
+      slug: slug,
+      imagePath: post.imagePath
     },
     // Regenerate the page at most once per hour
     revalidate: 3600

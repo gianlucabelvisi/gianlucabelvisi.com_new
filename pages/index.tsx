@@ -39,7 +39,7 @@ export default function HomePage({ posts }: HomePageProps) {
               >
                 <h3 style={{ margin: '0 0 0.5rem 0' }}>
                   <Link 
-                    href={`/posts/${post.slug}`}
+                    href={`/${post.slug}`}
                     className={styles.postTitleLink}
                   >
                     {post.frontmatter.title}

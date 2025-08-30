@@ -24,7 +24,7 @@ const Books2022: React.FC<Books2022Props> = ({ background = "desk4" }) => {
       
       return {
         src: filename,
-        title: book.title || `Book ${index + 1}`,
+        title: book.name || `Book ${index + 1}`,
         stackRotation: stackRotation + "deg",
         flyX,
         flyY,
