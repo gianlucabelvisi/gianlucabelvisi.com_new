@@ -233,7 +233,10 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
         // Add support for strikethrough and other GitHub flavored markdown
         remarkGfm
       ]
-    }
+    },
+    // Reduce bundle size by parsing on the server
+    parseFrontmatter: false,
+    scope: {}
   })
   
   return {
@@ -241,6 +244,8 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       source: mdxSource,
       frontmatter: post.frontmatter,
       slug: slug
-    }
+    },
+    // Regenerate the page at most once per hour
+    revalidate: 3600
   }
 } 
