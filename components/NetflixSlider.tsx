@@ -16,6 +16,7 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
   const [currentPage, setCurrentPage] = useState(0)
+  const [translateX, setTranslateX] = useState(0)
 
   const itemsPerPage = 5 // Number of cards visible at once
   const totalPages = Math.ceil(posts.length / itemsPerPage)
@@ -44,15 +45,22 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
   }, [posts])
 
   const scrollLeft = () => {
-    if (sliderRef.current) {
-      sliderRef.current.scrollBy({ left: -400, behavior: 'smooth' })
-    }
+    // Move by one card width (300px + 0.5rem gap = ~308px)
+    const cardWidth = 308
+    const newTranslateX = Math.min(translateX + cardWidth, 0)
+    setTranslateX(newTranslateX)
+    setCanScrollLeft(newTranslateX < 0)
+    setCanScrollRight(newTranslateX > -(posts.length - itemsPerPage) * cardWidth)
   }
 
   const scrollRight = () => {
-    if (sliderRef.current) {
-      sliderRef.current.scrollBy({ left: 400, behavior: 'smooth' })
-    }
+    // Move by one card width (300px + 0.5rem gap = ~308px)
+    const cardWidth = 308
+    const maxTranslate = -(posts.length - itemsPerPage) * cardWidth
+    const newTranslateX = Math.max(translateX - cardWidth, maxTranslate)
+    setTranslateX(newTranslateX)
+    setCanScrollLeft(newTranslateX < 0)
+    setCanScrollRight(newTranslateX > maxTranslate)
   }
 
   // Helper function to get card image path
@@ -105,7 +113,11 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
           </button>
         )}
         
-        <div className={styles.slider}>
+        <div className={styles.sliderViewport}>
+          <div 
+            className={styles.slider}
+            style={{ transform: `translateX(${translateX}px)` }}
+          >
           {posts.map((post, index) => {
             // Determine if this is one of the last few cards (for hover positioning)
             const isLast = index >= posts.length - 2
@@ -145,6 +157,7 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
               </div>
             </Link>
           )})}
+          </div>
         </div>
         
         {canScrollRight && (
