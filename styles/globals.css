@@ -10,22 +10,39 @@
   --color-secondary-dark: #0b3966;
   --color-secondary-light: #205b95;
   
-  /* Neutral Colors */
-  --color-background-light: #fafafb;
-  --color-background-dark: #131313;
-  --color-text-primary: #333333;
-  --color-text-secondary: #666666;
+  /* Netflix Dark Theme (Default) */
+  --color-background-main: #131313;
+  --color-background-card: #1a1a1a;
+  --color-background-hover: #2a2a2a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #cccccc;
   --color-text-light: #999999;
   --color-white: #ffffff;
   --color-black: #000000;
   
+  /* Legacy variables for compatibility */
+  --color-background-light: var(--color-background-main);
+  --color-background-dark: var(--color-background-main);
+  
   /* Accent Colors */
   --color-accent-border: var(--color-primary);
-  --color-accent-background: var(--color-background-light);
+  --color-accent-background: var(--color-background-main);
   --color-link: var(--color-primary);
-  --color-link-hover: var(--color-primary-dark);
-  --color-border: #e5e5e5;
-  --color-border-light: #f0f0f0;
+  --color-link-hover: var(--color-primary-light);
+  --color-border: #333333;
+  --color-border-light: #2a2a2a;
+  
+  /* Netflix Gradients */
+  --gradient-hero: linear-gradient(180deg, 
+    rgba(19, 19, 19, 0) 0%,
+    rgba(19, 19, 19, 0.1) 40%,
+    rgba(19, 19, 19, 0.7) 80%,
+    rgba(19, 19, 19, 1) 100%
+  );
+  --gradient-card: linear-gradient(145deg, 
+    rgba(26, 26, 26, 0.8) 0%, 
+    rgba(19, 19, 19, 0.9) 100%
+  );
   
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -46,16 +63,8 @@
   --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Dark mode variables (for future implementation) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background-light: var(--color-background-dark);
-    --color-text-primary: #ffffff;
-    --color-text-secondary: #cccccc;
-    --color-text-light: #999999;
-    --color-accent-background: var(--color-background-dark);
-  }
-}
+/* Force dark theme - no light mode override */
+/* Dark theme is always active regardless of system preference */
 
 html,
 body {
@@ -65,7 +74,7 @@ body {
 
 body {
   color: var(--color-text-primary);
-  background: var(--color-accent-background);
+  background: var(--color-background-main) !important;
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -101,10 +110,9 @@ iframe {
   min-width: 100% !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+/* Always use dark color scheme */
+html {
+  color-scheme: dark;
 }
 
 /* Global table styling for MDX content */
@@ -112,10 +120,10 @@ iframe {
   width: 100%;
   border-collapse: collapse;
   margin: 2rem 0;
-  background: white;
+  background: var(--color-background-card);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   border: 1px solid var(--color-border);
 }
 
@@ -148,11 +156,11 @@ iframe {
 }
 
 .mdx-content table tbody tr:nth-child(even) {
-  background: #f8f9fa;
+  background: var(--color-background-hover);
 }
 
 .mdx-content table tbody tr:nth-child(even):hover {
-  background: rgba(232, 124, 72, 0.06);
+  background: rgba(232, 124, 72, 0.1);
 }
 
 @media screen and (max-width: 768px) {
