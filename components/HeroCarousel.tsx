@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { PostData } from '../lib/posts'
+import { formatDate } from '../lib/dateUtils'
 import styles from './HeroCarousel.module.css'
 
 interface HeroCarouselProps {
@@ -104,7 +105,7 @@ export default function HeroCarousel({ posts, autoAdvanceInterval = 6000 }: Hero
                 <p className={styles.heroSubtitle}>{post.frontmatter.subTitle}</p>
                 
                 <div className={styles.heroMeta}>
-                  <span className={styles.heroDate}>{post.frontmatter.date}</span>
+                  <span className={styles.heroDate}>{formatDate(post.frontmatter.date)}</span>
                   <span className={styles.heroDivider}>•</span>
                   <span className={styles.heroAuthor}>by {post.frontmatter.author}</span>
                   {post.frontmatter.onHover && (
