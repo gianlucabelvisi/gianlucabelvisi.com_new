@@ -45,7 +45,7 @@ export default function FeaturedPost({ post, imagePath }: FeaturedPostProps) {
           <p className={styles.heroSubtitle}>{post.frontmatter.subTitle}</p>
           
           <div className={styles.heroMeta}>
-            <span className={styles.heroDate}>{post.frontmatter.date}</span>
+            <span className={styles.heroDate}>{formatDate(post.frontmatter.date)}</span>
             <span className={styles.heroDivider}>•</span>
             <span className={styles.heroAuthor}>by {post.frontmatter.author}</span>
             {post.frontmatter.onHover && (
