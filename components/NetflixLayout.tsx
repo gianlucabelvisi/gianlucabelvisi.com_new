@@ -18,3 +18,5 @@ export default function NetflixLayout({ children, isDark = true }: NetflixLayout
 export function GradientOverlay() {
   return <div className={styles.gradientOverlay} />
 }
+
+

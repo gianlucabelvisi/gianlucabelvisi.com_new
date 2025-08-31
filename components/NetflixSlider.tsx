@@ -44,9 +44,32 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
     }
   }, [posts])
 
+  // Handle window resize for responsive card widths
+  useEffect(() => {
+    const handleResize = () => {
+      // Reset translateX on resize to prevent misalignment
+      setTranslateX(0)
+      setCanScrollLeft(false)
+      setCanScrollRight(posts.length > itemsPerPage)
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [posts.length, itemsPerPage])
+
+  // Get responsive card width based on screen size
+  const getCardWidth = () => {
+    if (typeof window === 'undefined') return 308 // SSR fallback
+    const width = window.innerWidth
+    if (width <= 480) return 164 // 160px + 4px gap (0.25rem)
+    if (width <= 768) return 204 // 200px + 4px gap (0.25rem)
+    if (width <= 900) return 258 // 250px + 8px gap (0.5rem)
+    if (width <= 1200) return 288 // 280px + 8px gap (0.5rem)
+    return 308 // 300px + 8px gap (0.5rem - default)
+  }
+
   const scrollLeft = () => {
-    // Move by one card width (300px + 0.5rem gap = ~308px)
-    const cardWidth = 308
+    const cardWidth = getCardWidth()
     const newTranslateX = Math.min(translateX + cardWidth, 0)
     setTranslateX(newTranslateX)
     setCanScrollLeft(newTranslateX < 0)
@@ -54,8 +77,7 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
   }
 
   const scrollRight = () => {
-    // Move by one card width (300px + 0.5rem gap = ~308px)
-    const cardWidth = 308
+    const cardWidth = getCardWidth()
     const maxTranslate = -(posts.length - itemsPerPage) * cardWidth
     const newTranslateX = Math.max(translateX - cardWidth, maxTranslate)
     setTranslateX(newTranslateX)

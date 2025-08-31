@@ -17,6 +17,20 @@
   z-index: 10; /* Lower z-index so cards can scale above */
 }
 
+/* Responsive header adjustments */
+@media screen and (max-width: 768px) {
+  .sliderHeader {
+    padding: 0 1rem;
+    margin-bottom: 0.5rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .sliderHeader {
+    padding: 0 0.5rem;
+  }
+}
+
 .sliderTitle {
   color: var(--color-text-primary);
   font-size: 1.4rem;
@@ -53,7 +67,7 @@
   border: none;
   color: white;
   width: 50px;
-  height: calc(100% - 2rem);
+  height: 169px; /* Match default card height */
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
@@ -64,12 +78,13 @@
   transition: all 0.3s ease;
   z-index: 1000;
   position: absolute;
-  top: 1rem;
+  top: 50%;
+  transform: translateY(-50%); /* Center vertically */
 }
 
 .sliderButton:hover {
   background: rgba(0, 0, 0, 0.5);
-  transform: none;
+  transform: translateY(-50%); /* Maintain centering on hover */
 }
 
 .sliderButton:hover .sliderButtonIcon {
@@ -113,6 +128,33 @@
   transition: transform 300ms ease-in-out;
 }
 
+/* Responsive slider adjustments */
+@media screen and (max-width: 768px) {
+  .slider {
+    gap: 0.25rem;
+    padding: 0.25rem;
+  }
+  
+  .sliderButton {
+    height: 113px; /* Match tablet card height */
+    width: 45px;
+    font-size: 2.2rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .slider {
+    gap: 0.25rem;
+    padding: 0.25rem;
+  }
+  
+  .sliderButton {
+    height: 70px; /* Match mobile card height */
+    width: 40px; /* Smaller button on mobile */
+    font-size: 1.8rem;
+  }
+}
+
 /* Netflix Card Styling */
 .cardLink {
   display: block;
@@ -148,6 +190,36 @@
   background: var(--color-background-card);
   border: 1px solid transparent;
   --footer-height: 60px; /* Height for the content area */
+  flex-shrink: 0; /* Prevent cards from shrinking */
+}
+
+/* Responsive card sizing */
+@media screen and (max-width: 1200px) {
+  .card {
+    width: 280px;
+    height: 158px;
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .card {
+    width: 250px;
+    height: 141px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .card {
+    width: 200px;
+    height: 113px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .card {
+    width: 160px;
+    height: 70px; /* Shorter for mobile */
+  }
 }
 
 .card:hover {
