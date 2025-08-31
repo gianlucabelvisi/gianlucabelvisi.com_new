@@ -1,6 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { PostData } from '../lib/posts'
+import { formatDate } from '../lib/dateUtils'
 import styles from './FeaturedPost.module.css'
 
 interface FeaturedPostProps {
