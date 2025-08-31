@@ -1,7 +1,6 @@
 import { GetStaticProps } from 'next'
 import { getAllPosts, PostData } from '../lib/posts'
 import { groupPostsForHomepage } from '../lib/hashtags'
-import NetflixLayout from '../components/NetflixLayout'
 import FeaturedPost from '../components/FeaturedPost'
 import NetflixSlider from '../components/NetflixSlider'
 import styles from '../styles/Home.module.css'
@@ -23,7 +22,11 @@ export default function HomePage({ posts, groupedPosts }: HomePageProps) {
   const featuredPost = posts[0] // Latest post as featured
   
   return (
-    <NetflixLayout isDark={true}>
+    <div style={{ 
+      minHeight: '100vh', 
+      background: 'var(--color-background-main)',
+      color: 'var(--color-text-primary)'
+    }}>
       {posts.length === 0 ? (
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
           <h1 style={{ color: 'var(--color-text-primary)' }}>My Next.js MDX Blog</h1>
@@ -81,7 +84,7 @@ export default function HomePage({ posts, groupedPosts }: HomePageProps) {
           </div>
         </>
       )}
-    </NetflixLayout>
+    </div>
   )
 }
 

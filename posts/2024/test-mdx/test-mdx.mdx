@@ -564,3 +564,68 @@ Testing controversial opinion highlighting:
 <SpicyTake>Pineapple belongs on pizza and anyone who disagrees is wrong!</SpicyTake>
 
 These components were created for the **TV Shows 2022** post migration! They add perfect styling for entertainment content and hot takes. 🌶️📺
+
+## 🌙💡 Apple-Style Theme Toggle Testing
+
+### Theme System Features
+
+This post is perfect for testing the new **Apple-style theme toggle** system! Here's what to test:
+
+<TextBox title="Theme Testing Checklist" closeable={true}>
+
+✅ **Default Light Mode**: This post should start in **light mode** (white background, dark text)
+
+✅ **Smooth Toggle**: Look for the toggle in the **top-right corner** - it should animate smoothly over **1 second**
+
+✅ **Color Transitions**: All colors should transition smoothly when switching themes:
+- Background colors
+- Text colors  
+- Border colors
+- Shadow effects
+- Component backgrounds
+
+✅ **Toggle Animation**: The toggle thumb should **slide smoothly** (not teleport!) from one side to the other
+
+✅ **Persistence**: Theme choice should be **remembered** when you navigate away and back
+
+✅ **Homepage Behavior**: Homepage should **always be dark** (Netflix-style), posts should **default to light**
+
+</TextBox>
+
+### Global Duration Variable
+
+The theme transitions use a **global CSS variable** for easy tweaking:
+
+```css
+:root {
+  --theme-transition-duration: 1s;
+}
+```
+
+Want faster transitions? Just change it to `0.5s`. Want slower? Try `2s`!
+
+### Test Instructions
+
+<Dialogue>Try clicking the toggle in the top-right corner!</Dialogue>
+
+<Dialogue>Watch how smoothly everything transitions over 1 full second!</Dialogue>
+
+<Dialogue>Navigate to the homepage - it should be dark. Come back - your theme choice should be remembered!</Dialogue>
+
+### Visual Elements to Check
+
+All these components should transition smoothly:
+
+<Highlight color="blue">Highlighted text with different colors</Highlight>
+
+<SpicyTake>Spicy takes with background colors</SpicyTake>
+
+<TextBox title="TextBox Components">
+These should transition their background, border, and text colors smoothly!
+</TextBox>
+
+<Quote from="Theme System">
+All colors transition together in perfect harmony over 1 second with Apple's cubic-bezier easing!
+</Quote>
+
+**Perfect for testing the complete theme system!** 🎨✨

@@ -3,6 +3,7 @@ import { serialize } from 'next-mdx-remote/serialize'
 import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
 import remarkGfm from 'remark-gfm'
 import { getAllPosts, getAllPostsForPaths, getPostBySlug, PostData } from '../lib/posts'
+import ThemeToggle from '../components/ThemeToggle'
 import styles from './posts/PostPage.module.css'
 import Highlight from '../components/Highlight'
 import BlogSubTitle from '../components/BlogSubTitle'
@@ -150,6 +151,10 @@ export default function PostPage({ source, frontmatter, slug, imagePath }: PostP
   }
   return (
     <div className={styles.container}>
+      {/* Theme Toggle - Top Right */}
+      <div className={styles.themeToggleContainer}>
+        <ThemeToggle />
+      </div>
       
       {/* Post Header */}
       <div className={styles.postHeader}>
