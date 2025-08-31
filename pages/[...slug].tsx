@@ -141,15 +141,7 @@ export default function PostPage({ source, frontmatter, slug, imagePath }: PostP
     return `/images/posts/${imagePath}/${imageName}`
   }
   
-  // Format date nicely
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    })
-  }
+
   return (
     <div className={styles.container}>
       {/* Theme Toggle - Top Right */}
