@@ -18,6 +18,11 @@ export default function App({ Component, pageProps }: AppProps) {
   React.useEffect(() => {
     if (isHomepage) {
       document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      // For posts, check localStorage or default to light
+      const savedTheme = localStorage.getItem('blog-theme');
+      const initialTheme = savedTheme || 'light';
+      document.documentElement.setAttribute('data-theme', initialTheme);
     }
   }, [isHomepage]);
 

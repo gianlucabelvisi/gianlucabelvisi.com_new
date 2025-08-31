@@ -36,16 +36,12 @@ export function ThemeProvider({ children, defaultTheme = 'light', forceTheme }: 
   }, [forceTheme])
 
   useEffect(() => {
-    // Apply theme to document root
+    // Apply theme to document root immediately
     document.documentElement.setAttribute('data-theme', theme)
     
-    // Only add transition class after initialization and when not forced
-    // This prevents the initial load transition on homepage
-    if (isInitialized && !forceTheme) {
-      document.documentElement.classList.add('theme-transition')
-    } else {
-      document.documentElement.classList.remove('theme-transition')
-    }
+    // Never add transition class automatically - only during manual toggles
+    // This prevents any initial load transitions on both homepage and posts
+    document.documentElement.classList.remove('theme-transition')
     
     // Save to localStorage (unless forced)
     if (!forceTheme) {
@@ -60,6 +56,11 @@ export function ThemeProvider({ children, defaultTheme = 'light', forceTheme }: 
     document.documentElement.classList.add('theme-transition')
     
     setThemeState(prev => prev === 'light' ? 'dark' : 'light')
+    
+    // Remove transition class after animation completes to prevent future flashes
+    setTimeout(() => {
+      document.documentElement.classList.remove('theme-transition')
+    }, 1100) // Slightly longer than transition duration
   }
 
   const setTheme = (newTheme: Theme) => {
@@ -69,6 +70,11 @@ export function ThemeProvider({ children, defaultTheme = 'light', forceTheme }: 
     document.documentElement.classList.add('theme-transition')
     
     setThemeState(newTheme)
+    
+    // Remove transition class after animation completes
+    setTimeout(() => {
+      document.documentElement.classList.remove('theme-transition')
+    }, 1100) // Slightly longer than transition duration
   }
 
   return (
