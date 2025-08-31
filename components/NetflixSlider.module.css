@@ -112,6 +112,8 @@
   min-height: 180px;
   overflow: visible; /* No clipping at wrapper level */
   padding: 0;
+  touch-action: pan-x; /* Enable horizontal panning only */
+  user-select: none; /* Prevent text selection during drag */
 }
 
 .sliderWrapper::-webkit-scrollbar {
@@ -233,6 +235,26 @@
   }
 }
 
+/* Enlarged card state for mobile tap */
+.enlargedCard {
+  transform: scale(1.1);
+  z-index: 100;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8) !important;
+  transition: all 0.3s ease !important;
+}
+
+@media screen and (max-width: 768px) {
+  .enlargedCard {
+    transform: scale(1.15);
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .enlargedCard {
+    transform: scale(1.2);
+  }
+}
+
 .card:hover {
   border-color: var(--color-primary);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
@@ -313,6 +335,7 @@
   line-height: 1.2;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   transition: padding-top 1s ease;
@@ -327,6 +350,7 @@
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

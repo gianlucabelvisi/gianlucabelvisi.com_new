@@ -12,11 +12,19 @@ interface NetflixSliderProps {
 }
 
 export default function NetflixSlider({ title, posts, imagePath }: NetflixSliderProps) {
-  const sliderRef = useRef<HTMLDivElement>(null) // This now refers to the wrapper
+  const sliderRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
   const [currentPage, setCurrentPage] = useState(0)
   const [translateX, setTranslateX] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
+  const [enlargedCard, setEnlargedCard] = useState<number | null>(null)
+  
+  // Touch handling state
+  const [isDragging, setIsDragging] = useState(false)
+  const [startX, setStartX] = useState(0)
+  const [currentX, setCurrentX] = useState(0)
+  const [dragOffset, setDragOffset] = useState(0)
 
   const itemsPerPage = 5 // Number of cards visible at once
   const totalPages = Math.ceil(posts.length / itemsPerPage)
@@ -44,15 +52,20 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
     }
   }, [posts])
 
-  // Handle window resize for responsive card widths
+  // Handle window resize and mobile detection
   useEffect(() => {
     const handleResize = () => {
+      const mobile = window.innerWidth <= 768
+      setIsMobile(mobile)
+      
       // Reset translateX on resize to prevent misalignment
       setTranslateX(0)
       setCanScrollLeft(false)
       setCanScrollRight(posts.length > itemsPerPage)
+      setEnlargedCard(null) // Reset enlarged card on resize
     }
 
+    handleResize() // Initial check
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [posts.length, itemsPerPage])
@@ -83,6 +96,61 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
     setTranslateX(newTranslateX)
     setCanScrollLeft(newTranslateX < 0)
     setCanScrollRight(newTranslateX > maxTranslate)
+  }
+
+  // Touch handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile) return
+    setIsDragging(true)
+    setStartX(e.touches[0].clientX)
+    setCurrentX(e.touches[0].clientX)
+    setDragOffset(0)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile || !isDragging) return
+    e.preventDefault()
+    
+    const touch = e.touches[0]
+    setCurrentX(touch.clientX)
+    const offset = touch.clientX - startX
+    setDragOffset(offset)
+  }
+
+  const handleTouchEnd = () => {
+    if (!isMobile || !isDragging) return
+    setIsDragging(false)
+    
+    const threshold = 50 // Minimum swipe distance
+    const cardWidth = getCardWidth()
+    
+    if (Math.abs(dragOffset) > threshold) {
+      if (dragOffset > 0 && canScrollLeft) {
+        // Swipe right - scroll left
+        scrollLeft()
+      } else if (dragOffset < 0 && canScrollRight) {
+        // Swipe left - scroll right  
+        scrollRight()
+      }
+    }
+    
+    setDragOffset(0)
+  }
+
+  // Handle card tap for mobile
+  const handleCardTap = (e: React.MouseEvent, index: number) => {
+    if (!isMobile) return
+    
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (enlargedCard === index) {
+      // Tapping enlarged card opens the post
+      return // Let the Link handle navigation
+    } else {
+      // Tapping normal card enlarges it
+      setEnlargedCard(index)
+    }
   }
 
   // Helper function to get card image path
@@ -124,8 +192,14 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
         )}
       </div>
       
-      <div className={styles.sliderWrapper} ref={sliderRef}>
-        {canScrollLeft && (
+      <div 
+        className={styles.sliderWrapper} 
+        ref={sliderRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {!isMobile && canScrollLeft && (
           <button 
             className={`${styles.sliderButton} ${styles.leftButton}`} 
             onClick={scrollLeft}
@@ -134,11 +208,12 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
             <BsChevronCompactLeft className={styles.sliderButtonIcon} />
           </button>
         )}
-        
-        <div className={styles.sliderViewport}>
           <div 
             className={styles.slider}
-            style={{ transform: `translateX(${translateX}px)` }}
+            style={{ 
+              transform: `translateX(${translateX + (isDragging ? dragOffset : 0)}px)`,
+              transition: isDragging ? 'none' : 'transform 300ms ease-out'
+            }}
           >
           {posts.map((post, index) => {
             // Determine if this is one of the last few cards (for hover positioning)
@@ -148,8 +223,17 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
               key={post.slug} 
               href={`/${post.slug}`}
               className={`${styles.cardLink} ${isLast ? styles.lastCard : ''}`}
+              onClick={(e) => {
+                if (isMobile && enlargedCard !== index) {
+                  handleCardTap(e, index)
+                }
+              }}
             >
-              <div className={styles.card}>
+              <div 
+                className={`${styles.card} ${
+                  enlargedCard === index ? styles.enlargedCard : ''
+                }`}
+              >
                 <div className={styles.cardImageWrapper}>
                   <img
                     src={getCardImagePath(post)}
@@ -180,9 +264,8 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
             </Link>
           )})}
           </div>
-        </div>
         
-        {canScrollRight && (
+        {!isMobile && canScrollRight && (
           <button 
             className={`${styles.sliderButton} ${styles.rightButton}`} 
             onClick={scrollRight}
