@@ -20,36 +20,82 @@
 }
 
 .sliderControls {
+  display: none; /* Hide controls in header, we'll position them on the sides */
+}
+
+/* Progress Bar */
+.progressBar {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+}
+
+.progressDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.progressDot.activeDot {
+  background: rgba(255, 255, 255, 0.8);
+  transform: scale(1.2);
 }
 
 .sliderButton {
-  background: rgba(42, 42, 42, 0.8);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  border: none;
+  color: white;
+  width: 50px;
+  height: 100%;
+  border-radius: 0.5rem;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: center !important; /* Force center icon vertically */
+  justify-content: center !important; /* Force center icon horizontally */
   cursor: pointer;
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: 2.5rem;
+  font-weight: normal;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  z-index: 1000;
+  flex-grow: 0;
+  flex-shrink: 0;
+  align-self: stretch; /* Make button stretch to full slider height */
+  position: absolute;
+  top: 0;
+  bottom: 0;
 }
 
 .sliderButton:hover {
-  background: rgba(232, 124, 72, 0.8);
-  transform: scale(1.1);
-  border-color: var(--color-primary);
+  background: rgba(0, 0, 0, 0.5);
+  transform: none;
+}
+
+.sliderButton:hover .sliderButtonIcon {
+  transform: scale(1.2);
+}
+
+.leftButton {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  left: 0;
+}
+
+.rightButton {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  right: 0;
+}
+
+.sliderButtonIcon {
+  transition: transform 0.3s ease;
 }
 
 .sliderWrapper {
   position: relative;
-  overflow: hidden;
+  display: flex;
+  align-items: stretch; /* Allow children to stretch to full height */
+  min-height: calc(169px + 1rem); /* Card height + bottom padding for full slider area */
 }
 
 .slider {
@@ -57,9 +103,10 @@
   gap: 1rem;
   overflow-x: auto;
   scroll-behavior: smooth;
-  padding: 0 3rem 1rem 3rem;
+  padding: 0 1rem 1rem 1rem;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE and Edge */
+  flex: 1;
 }
 
 .slider::-webkit-scrollbar {

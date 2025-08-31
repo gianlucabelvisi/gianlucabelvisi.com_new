@@ -1,7 +1,7 @@
 import { GetStaticProps } from 'next'
 import { getAllPosts, PostData } from '../lib/posts'
 import { groupPostsForHomepage } from '../lib/hashtags'
-import FeaturedPost from '../components/FeaturedPost'
+import HeroCarousel from '../components/HeroCarousel'
 import NetflixSlider from '../components/NetflixSlider'
 import styles from '../styles/Home.module.css'
 
@@ -19,8 +19,6 @@ interface HomePageProps {
 }
 
 export default function HomePage({ posts, groupedPosts }: HomePageProps) {
-  const featuredPost = posts[0] // Latest post as featured
-  
   return (
     <div style={{ 
       minHeight: '100vh', 
@@ -34,11 +32,11 @@ export default function HomePage({ posts, groupedPosts }: HomePageProps) {
         </div>
       ) : (
         <>
-          {/* Netflix Hero Section */}
-          <FeaturedPost post={featuredPost} />
+          {/* Netflix Hero Carousel */}
+          <HeroCarousel posts={posts} autoAdvanceInterval={6000} />
           
           {/* Netflix Content Sliders */}
-          <div style={{ padding: '0 0 2rem 0' }}>
+          <div style={{ padding: '2rem 0 2rem 0', position: 'relative', zIndex: 2 }}>
             <NetflixSlider 
               title="Latest Posts" 
               posts={groupedPosts.latest} 
