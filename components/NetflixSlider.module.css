@@ -1,17 +1,19 @@
 /* Netflix Slider Container */
 .sliderContainer {
-  margin: 2rem 0; /* Normal margin */
+  margin: 2rem 0; /* Back to normal margin */
   position: relative;
-  padding: 0; /* Remove excessive padding */
-  overflow: visible; /* Allow cards to break out */
+  padding: 0;
+  overflow: visible;
 }
 
 .sliderHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1rem; /* Back to normal spacing */
   padding: 0 3rem;
+  position: relative;
+  z-index: 100; /* HIGH z-index to stay above everything */
 }
 
 .sliderTitle {
@@ -50,22 +52,18 @@
   border: none;
   color: white;
   width: 50px;
-  height: 100%;
+  height: calc(100% - 2rem);
   border-radius: 0.5rem;
   display: flex;
-  align-items: center !important; /* Force center icon vertically */
-  justify-content: center !important; /* Force center icon horizontally */
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   font-size: 2.5rem;
   font-weight: normal;
   transition: all 0.3s ease;
   z-index: 1000;
-  flex-grow: 0;
-  flex-shrink: 0;
-  align-self: stretch; /* Make button stretch to full slider height */
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: 1rem;
 }
 
 .sliderButton:hover {
@@ -97,29 +95,25 @@
   position: relative;
   display: flex;
   align-items: stretch;
-  min-height: 220px; /* Just enough for cards + scaling */
-  overflow-x: auto; /* Handle horizontal scrolling at wrapper level */
-  overflow-y: visible; /* Allow vertical overflow for scaling */
-  padding: 2rem 0; /* Minimal padding */
+  min-height: 220px;
+  overflow-x: auto; /* Handle horizontal scrolling */
+  overflow-y: visible; /* Allow cards to scale outside bounds */
+  padding: 2rem 0;
+  scroll-behavior: smooth;
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+.sliderWrapper::-webkit-scrollbar {
+  display: none;
 }
 
 .slider {
   display: flex;
   gap: 1rem;
   overflow: visible; /* Allow full overflow for scaling */
-  scroll-behavior: smooth;
   padding: 1rem;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
   flex: 1;
-  width: 100%;
-}
-
-.slider::-webkit-scrollbar,
-.sliderWrapper::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
 }
 
 /* Netflix Card Styling */
@@ -135,12 +129,13 @@
 }
 
 .cardLink:hover {
-  z-index: 1000;
+  z-index: 50; /* LOWER than headers (100) so cards go behind */
   transform: scale(1.5) translateY(-20%) translateX(15%);
   position: relative;
 }
 
 .cardLink.lastCard:hover {
+  z-index: 50;
   transform: scale(1.5) translateY(-20%) translateX(-15%);
   position: relative;
 }
