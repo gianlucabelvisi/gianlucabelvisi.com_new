@@ -12,7 +12,7 @@ interface NetflixSliderProps {
 }
 
 export default function NetflixSlider({ title, posts, imagePath }: NetflixSliderProps) {
-  const sliderRef = useRef<HTMLDivElement>(null)
+  const sliderRef = useRef<HTMLDivElement>(null) // This now refers to the wrapper
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(true)
   const [currentPage, setCurrentPage] = useState(0)
@@ -94,7 +94,7 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
         )}
       </div>
       
-      <div className={styles.sliderWrapper}>
+      <div className={styles.sliderWrapper} ref={sliderRef}>
         {canScrollLeft && (
           <button 
             className={`${styles.sliderButton} ${styles.leftButton}`} 
@@ -105,7 +105,7 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
           </button>
         )}
         
-        <div className={styles.slider} ref={sliderRef}>
+        <div className={styles.slider}>
           {posts.map((post, index) => {
             // Determine if this is one of the last few cards (for hover positioning)
             const isLast = index >= posts.length - 2
