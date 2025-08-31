@@ -23,7 +23,8 @@ export default function HomePage({ posts, groupedPosts }: HomePageProps) {
     <div style={{ 
       minHeight: '100vh', 
       background: 'var(--color-background-main)',
-      color: 'var(--color-text-primary)'
+      color: 'var(--color-text-primary)',
+      overflow: 'visible'
     }}>
       {posts.length === 0 ? (
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
@@ -36,7 +37,7 @@ export default function HomePage({ posts, groupedPosts }: HomePageProps) {
           <HeroCarousel posts={posts} autoAdvanceInterval={6000} />
           
           {/* Netflix Content Sliders */}
-          <div style={{ padding: '2rem 0 2rem 0', position: 'relative', zIndex: 2 }}>
+          <div style={{ padding: '2rem 0 2rem 0', position: 'relative', zIndex: 2, overflow: 'visible' }}>
             <NetflixSlider 
               title="Latest Posts" 
               posts={groupedPosts.latest} 

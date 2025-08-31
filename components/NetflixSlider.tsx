@@ -106,11 +106,14 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
         )}
         
         <div className={styles.slider} ref={sliderRef}>
-          {posts.map((post) => (
+          {posts.map((post, index) => {
+            // Determine if this is one of the last few cards (for hover positioning)
+            const isLast = index >= posts.length - 2
+            return (
             <Link 
               key={post.slug} 
               href={`/${post.slug}`}
-              className={styles.cardLink}
+              className={`${styles.cardLink} ${isLast ? styles.lastCard : ''}`}
             >
               <div className={styles.card}>
                 <div className={styles.cardImageWrapper}>
@@ -120,12 +123,18 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
                     className={styles.cardImage}
                     loading="lazy"
                   />
+                  
+                  {/* Header that slides down from top */}
+                  <div className={styles.cardHeader}>
+                    <div className={styles.cardHeaderDate}>{formatDateShort(post.frontmatter.date)}</div>
+                  </div>
+                  
+                  {/* Content that slides up from bottom */}
                   <div className={styles.cardOverlay}>
                     <div className={styles.cardContent}>
                       <h3 className={styles.cardTitle}>{post.frontmatter.title}</h3>
                       <p className={styles.cardSubtitle}>{post.frontmatter.subTitle}</p>
                       <div className={styles.cardMeta}>
-                        <span className={styles.cardDate}>{formatDateShort(post.frontmatter.date)}</span>
                         {post.frontmatter.onHover && (
                           <span className={styles.cardEmoji}>{post.frontmatter.onHover}</span>
                         )}
@@ -135,7 +144,7 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
                 </div>
               </div>
             </Link>
-          ))}
+          )})}
         </div>
         
         {canScrollRight && (
