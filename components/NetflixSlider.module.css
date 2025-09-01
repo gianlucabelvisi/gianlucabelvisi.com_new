@@ -1,8 +1,8 @@
 /* Netflix Slider Container */
 .sliderContainer {
-  margin: 1rem 0;
+  margin: 0.5rem 0; /* Reduced from 1rem */
   position: relative;
-  padding: 2rem 0; /* Add padding to give space for scaled cards */
+  padding: 1rem 0; /* Reduced from 2rem */
   overflow: visible; /* Allow cards to overflow the entire container */
   z-index: 1;
 }
@@ -11,7 +11,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem; /* Back to normal spacing */
+  margin-bottom: 0.75rem; /* Reduced spacing */
   padding: 0 3rem;
   position: relative;
   z-index: 10; /* Lower z-index so cards can scale above */
