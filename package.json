@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "node scripts/copy-post-images.js && next build",
+    "dev": "npm run copy-images && next dev",
+    "build": "npm run copy-images && next build",
     "start": "next start",
     "lint": "next lint",
-    "copy-images": "node scripts/copy-post-images.js"
+    "copy-images": "node scripts/copy-post-images.js",
+    "prebuild": "npm run copy-images",
+    "predev": "npm run copy-images",
+    "clean": "rm -rf .next && rm -rf public/images/posts",
+    "fresh-build": "npm run clean && npm run build"
   },
   "dependencies": {
     "@fontsource/irish-grover": "^5.2.5",
