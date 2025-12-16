@@ -15,25 +15,25 @@
   },
   "dependencies": {
     "@fontsource/irish-grover": "^5.2.5",
-    "firebase": "^11.9.0",
+    "firebase": "^12.7.0",
     "gray-matter": "^4.0.3",
-    "next": "15.3.3",
+    "next": "^16.0.10",
     "next-mdx-remote": "^5.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "react-icons": "^5.5.0",
     "react-mailchimp-subscribe": "^2.1.3",
-    "react-minimal-pie-chart": "^9.1.0",
-    "react-player": "^2.16.0",
+    "react-minimal-pie-chart": "^9.1.2",
+    "react-player": "^3.4.0",
     "react-share": "^5.2.2",
     "remark-gfm": "^4.0.1",
-    "shiki": "^3.6.0"
+    "shiki": "^3.20.0"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@types/node": "^25.0.2",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "@types/react-mailchimp-subscribe": "^2.1.4",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   }
 }

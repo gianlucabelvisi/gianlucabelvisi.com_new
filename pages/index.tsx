@@ -1,20 +1,20 @@
 import { GetStaticProps } from 'next'
-import { getAllPosts, PostData } from '../lib/posts'
+import { getAllPostsSummary, PostSummary } from '../lib/posts'
 import { groupPostsForHomepage } from '../lib/hashtags'
 import HeroCarousel from '../components/HeroCarousel'
 import NetflixSlider from '../components/NetflixSlider'
 import styles from '../styles/Home.module.css'
 
 interface HomePageProps {
-  posts: PostData[]
+  posts: PostSummary[]
   groupedPosts: {
-    latest: PostData[]
-    caterina: PostData[]
-    food: PostData[]
-    mindfulness: PostData[]
-    books: PostData[]
-    randomized: PostData[]
-    chronological: PostData[]
+    latest: PostSummary[]
+    caterina: PostSummary[]
+    food: PostSummary[]
+    mindfulness: PostSummary[]
+    books: PostSummary[]
+    randomized: PostSummary[]
+    chronological: PostSummary[]
   }
 }
 
@@ -88,7 +88,8 @@ export default function HomePage({ posts, groupedPosts }: HomePageProps) {
 }
 
 export const getStaticProps: GetStaticProps = async () => {
-  const allPosts = getAllPosts()
+  // Use lightweight version without content to reduce page data size
+  const allPosts = getAllPostsSummary()
   
   // Limit to first 20 posts for homepage performance
   const posts = allPosts.slice(0, 20)

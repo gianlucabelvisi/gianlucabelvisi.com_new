@@ -24,6 +24,9 @@ export interface PostData {
   content: string
 }
 
+// Lightweight version without content for homepage performance
+export type PostSummary = Omit<PostData, 'content'>
+
 // Rewrite relative image paths to absolute paths
 function rewriteImagePaths(content: string, fileName: string): string {
   // Get the directory path for this post
@@ -212,6 +215,11 @@ export function getAllPosts(): PostData[] {
   // Get all posts including hidden ones, then filter out hidden posts
   return getAllPostsIncludingHidden()
     .filter(post => !post.frontmatter.hidden)
+}
+
+// Lightweight version for homepage - excludes content to reduce page data size
+export function getAllPostsSummary(): PostSummary[] {
+  return getAllPosts().map(({ content, ...rest }) => rest)
 }
 
 // Export this function for generating static paths (includes hidden posts)

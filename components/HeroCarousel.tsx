@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { PostData } from '../lib/posts'
+import { PostData, PostSummary } from '../lib/posts'
 import { formatDate } from '../lib/dateUtils'
 import styles from './HeroCarousel.module.css'
 
 interface HeroCarouselProps {
-  posts: PostData[]
+  posts: (PostData | PostSummary)[]
   autoAdvanceInterval?: number
 }
 

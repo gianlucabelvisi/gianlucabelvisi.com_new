@@ -1,10 +1,13 @@
-import { PostData } from './posts'
+import { PostData, PostSummary } from './posts'
+
+// Type that works with both PostData and PostSummary (since hashtags only use frontmatter)
+type PostWithHashtags = PostData | PostSummary
 
 /**
  * Check if a post contains any of the specified hashtags
  * Matches the functionality from the old Gatsby blog
  */
-export function containsHashtags(post: PostData, ...tags: string[]): boolean {
+export function containsHashtags(post: PostWithHashtags, ...tags: string[]): boolean {
   if (!post.frontmatter.hashtags) return false
   
   const postHashtags = post.frontmatter.hashtags
@@ -22,14 +25,14 @@ export function containsHashtags(post: PostData, ...tags: string[]): boolean {
 /**
  * Filter posts by hashtags
  */
-export function filterPostsByHashtags(posts: PostData[], ...tags: string[]): PostData[] {
+export function filterPostsByHashtags<T extends PostWithHashtags>(posts: T[], ...tags: string[]): T[] {
   return posts.filter(post => containsHashtags(post, ...tags))
 }
 
 /**
  * Get all unique hashtags from posts
  */
-export function getAllHashtags(posts: PostData[]): string[] {
+export function getAllHashtags(posts: PostWithHashtags[]): string[] {
   const allTags = new Set<string>()
   
   posts.forEach(post => {
@@ -47,7 +50,7 @@ export function getAllHashtags(posts: PostData[]): string[] {
 /**
  * Group posts by content categories for Netflix-style sliders
  */
-export function groupPostsForHomepage(posts: PostData[]) {
+export function groupPostsForHomepage<T extends PostWithHashtags>(posts: T[]) {
   const latest = posts.slice(1, 14) // Skip featured post, get next 13
   const featured = posts[0] // Latest post as hero
   
