@@ -285,31 +285,7 @@
 
 /* Removed conflicting image transform - using card transform instead */
 
-/* Header that slides down from top on hover */
-.cardHeader {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 0.75rem 1rem;
-  transform: translateY(-100%);
-  transition: transform 500ms ease;
-  transition-delay: 300ms;
-  z-index: 3;
-}
-
-.card:hover .cardHeader {
-  transform: translateY(0);
-  transition-delay: 300ms;
-}
-
-.cardHeaderDate {
-  color: white;
-  font-size: 0.8rem;
-  font-weight: 500;
-  margin: 0;
-}
+/* Removed cardHeader - date no longer displayed */
 
 /* Netflix-style overlay - shows only first line of title, reveals full content on hover */
 .cardOverlay {

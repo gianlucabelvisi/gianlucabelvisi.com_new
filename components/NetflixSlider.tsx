@@ -2,7 +2,6 @@ import React, { useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { BsChevronCompactLeft, BsChevronCompactRight } from 'react-icons/bs'
 import { PostData } from '../lib/posts'
-import { formatDateShort } from '../lib/dateUtils'
 import styles from './NetflixSlider.module.css'
 
 interface NetflixSliderProps {
@@ -241,11 +240,6 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
                     className={styles.cardImage}
                     loading="lazy"
                   />
-                  
-                  {/* Header that slides down from top */}
-                  <div className={styles.cardHeader}>
-                    <div className={styles.cardHeaderDate}>{formatDateShort(post.frontmatter.date)}</div>
-                  </div>
                   
                   {/* Content that slides up from bottom */}
                   <div className={styles.cardOverlay}>
