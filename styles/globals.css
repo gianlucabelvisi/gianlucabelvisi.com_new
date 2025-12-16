@@ -164,14 +164,23 @@ iframe {
 }
 
 /* Theme Transitions - Apple-style smooth color switching */
-.theme-transition,
-.theme-transition *,
-.theme-transition *:before,
-.theme-transition *:after {
+/* Only applied when theme-transition class is present (manual toggle) */
+/* Exclude toggle elements to preserve their own transitions */
+html.theme-transition,
+html.theme-transition body {
+  transition: background-color var(--theme-transition-duration) cubic-bezier(0.4, 0, 0.2, 1),
+              color var(--theme-transition-duration) cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+html.theme-transition *:not([class*="toggle"]):not([class*="Toggle"]),
+html.theme-transition *:not([class*="toggle"]):not([class*="Toggle"])::before,
+html.theme-transition *:not([class*="toggle"]):not([class*="Toggle"])::after {
   transition: background-color var(--theme-transition-duration) cubic-bezier(0.4, 0, 0.2, 1),
               color var(--theme-transition-duration) cubic-bezier(0.4, 0, 0.2, 1),
               border-color var(--theme-transition-duration) cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow var(--theme-transition-duration) cubic-bezier(0.4, 0, 0.2, 1) !important;
+              box-shadow var(--theme-transition-duration) cubic-bezier(0.4, 0, 0.2, 1),
+              fill var(--theme-transition-duration) cubic-bezier(0.4, 0, 0.2, 1),
+              stroke var(--theme-transition-duration) cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* Color scheme based on theme */

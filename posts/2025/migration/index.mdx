@@ -505,23 +505,33 @@ Otherwise you'll get "Expected component to be defined" errors!
 
 ## Phase 3: Layout & Design System 🎨
 
-### 3.1 Dark Mode
+### 3.1 Dark Mode ✅
 
-- [ ] Create a toggle component similar to an iOS toggle, with sun on one side and moon on the other.
-- [ ] For the time being, place the toggle on the top right
-- [ ] Define styles and colors for the dark mode
-- [ ] Bind dark and light mode the the toggle
+- ✅ Create a toggle component similar to an iOS toggle, with sun on one side and moon on the other.
+- ✅ For the time being, place the toggle on the top right
+- ✅ Define styles and colors for the dark mode
+- ✅ Bind dark and light mode the the toggle
+- ✅ **Smooth theme transitions**: Added Apple-style smooth transitions when manually switching themes
+- ✅ **No transition on initial load**: Theme applies instantly on page load to prevent flash
+- ✅ **Default themes**: Index page defaults to dark mode, blog posts default to light mode
+- ✅ **Theme persistence**: User preferences saved to localStorage
 
-### 3.2 Homepage Sliders (Netflix-style)
+### 3.2 Homepage Sliders (Netflix-style) ✅
 
-- [ ] Create `NetflixSlider` component
-- [ ] Implement post grouping logic:
-  - [ ] Latest posts
-  - [ ] Posts by hashtags (Caterina Sforza, food, mindfulness)
-  - [ ] Random posts
-  - [ ] Chronological order
-- [ ] Featured post component for hero section
-- [ ] Responsive slider with touch/swipe support
+- ✅ Create `NetflixSlider` component
+- ✅ Implement post grouping logic:
+  - ✅ Latest posts
+  - ✅ Posts by hashtags (Caterina Sforza, food, mindfulness)
+  - ✅ Random posts
+  - ✅ Chronological order
+- ✅ Featured post component for hero section (`HeroCarousel`)
+- ✅ Responsive slider with touch/swipe support
+- ✅ **Card hover improvements**:
+  - ✅ Slider title fades out smoothly when card is hovered
+  - ✅ Card shows only first line of title when not hovered (with ellipsis)
+  - ✅ Full title and subtitle revealed on hover
+  - ✅ Removed emoji from card overlay to reduce clutter
+  - ✅ Removed date header from cards for cleaner design
 
 ### 2.4 Image Optimization
 
