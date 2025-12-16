@@ -1,14 +1,14 @@
 import React, { useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { BsChevronCompactLeft, BsChevronCompactRight } from 'react-icons/bs'
-import { PostData, PostSummary } from '../lib/posts'
+import { PostData } from '../lib/posts'
 import { formatDateShort } from '../lib/dateUtils'
 import styles from './NetflixSlider.module.css'
 
 interface NetflixSliderProps {
   title: string
-  posts: (PostData | PostSummary)[]
-  imagePath?: (post: PostData | PostSummary) => string
+  posts: PostData[]
+  imagePath?: (post: PostData) => string
 }
 
 export default function NetflixSlider({ title, posts, imagePath }: NetflixSliderProps) {
@@ -252,11 +252,6 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
                     <div className={styles.cardContent}>
                       <h3 className={styles.cardTitle}>{post.frontmatter.title}</h3>
                       <p className={styles.cardSubtitle}>{post.frontmatter.subTitle}</p>
-                      <div className={styles.cardMeta}>
-                        {post.frontmatter.onHover && (
-                          <span className={styles.cardEmoji}>{post.frontmatter.onHover}</span>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </div>
