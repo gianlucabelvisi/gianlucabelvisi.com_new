@@ -1,13 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { BsChevronCompactLeft, BsChevronCompactRight } from 'react-icons/bs'
-import { PostData } from '../lib/posts'
+import { PostData, PostSummary } from '../lib/posts'
 import styles from './NetflixSlider.module.css'
 
 interface NetflixSliderProps {
   title: string
-  posts: PostData[]
-  imagePath?: (post: PostData) => string
+  posts: (PostData | PostSummary)[]
+  imagePath?: (post: PostData | PostSummary) => string
 }
 
 export default function NetflixSlider({ title, posts, imagePath }: NetflixSliderProps) {
@@ -153,7 +153,7 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
   }
 
   // Helper function to get card image path
-  const getCardImagePath = (post: PostData) => {
+  const getCardImagePath = (post: PostData | PostSummary) => {
     if (imagePath) {
       return imagePath(post)
     }
