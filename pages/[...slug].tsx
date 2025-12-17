@@ -167,14 +167,13 @@ export default function PostPage({ source, frontmatter, slug, imagePath }: PostP
         </div>
       )}
 
+      {/* Sidebar - Social Share */}
+      <div className={styles.sidebar}>
+        <SocialShare path={frontmatter.path || `/posts/${slug}`} />
+      </div>
+
       {/* Main Content */}
       <div className={styles.mainContent}>
-        
-        {/* Sidebar */}
-        <div className={styles.sidebar}>
-          <SocialShare path={frontmatter.path || `/posts/${slug}`} />
-        </div>
-
         {/* Post */}
         <div className={styles.post}>
           <h1 className={styles.postTitle}>

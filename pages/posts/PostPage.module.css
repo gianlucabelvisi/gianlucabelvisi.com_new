@@ -101,8 +101,15 @@
 }
 
 .sidebar {
+  grid-column: 3;
+  grid-row: 3 / span 5;
+  position: relative;
+  z-index: 2;
+}
+
+.sidebar > div {
   position: sticky;
-  top: 0;
+  top: 2rem;
 }
 
 @media screen and (max-width: 768px) {
