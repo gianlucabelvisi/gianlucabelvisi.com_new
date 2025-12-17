@@ -42,3 +42,5 @@ next-env.d.ts
 
 # Generated images (copied from posts during build)
 /public/images/posts/
+
+.idea

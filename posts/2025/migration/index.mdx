@@ -16,19 +16,15 @@ hidden: false
 
 Migrate the existing Gatsby blog to Next.js while maintaining all functionality and improving the development experience by removing GraphQL, which is cringe.
 
----
-
-## Phase 1: Proof of Concept (PoC) 🚀
+## Phase 1: Proof of Concept 🚀
 
 ### 1.1 Baby Steps - MDX Understanding ✅
 
 - ✅ Initialize Next.js project in `new_blog/` folder
 - ✅ Install MDX dependencies:
-
   ```bash
   npm install gray-matter next-mdx-remote
   ```
-
 - ✅ Create a simple custom component (e.g., `Highlight` component)
 - ✅ Create one test MDX post using the custom component
 - ✅ Set up basic dynamic post rendering to understand how MDX works
@@ -76,12 +72,10 @@ Otherwise you'll get "Expected component to be defined" errors!
 - Always test for hydration errors after migrating posts
 
 **Step 3: Test Each Component**
-
 - ✅ Create test MDX files for each component as we build them
 - ✅ Verify each component renders correctly before moving to next
 
 **Step 4: Build Proper Blog Post Layout** ✅
-
 - ✅ Create sophisticated blog post template matching Gatsby design:
   - ✅ CSS Grid layout (12-column responsive grid)
   - ✅ Feature image with overlay positioning
@@ -95,14 +89,12 @@ Otherwise you'll get "Expected component to be defined" errors!
 - ✅ Test with existing test post
 
 **Step 5: Copy the Real Post**
-
 - ✅ Copy chess post content to new_blog
 - ✅ Import all required components
 - ✅ Test full post rendering with proper layout
 - ✅ Fix any remaining issues
 
 **Step 6: Enhanced Features**
-
 - ✅ Social sharing sidebar with sticky positioning
 - ✅ Firebase reactions system (👍🏽 😂 🥰 😬 🦄)
 - ✅ Firebase view counter
@@ -113,7 +105,6 @@ Otherwise you'll get "Expected component to be defined" errors!
 - ✅ Fixed hydration errors and nested tag issues
 
 ### 1.3 Content Discovery System
-
 - ✅ Create `lib/posts.js` with:
   - ✅ `getAllPosts()` function to recursively scan `/posts` directory
   - ✅ Frontmatter parsing with gray-matter
@@ -124,7 +115,6 @@ Otherwise you'll get "Expected component to be defined" errors!
 - ✅ Co-located image support with automatic copying
 
 ### 1.4 Dynamic Post Pages
-
 - ✅ Create `pages/posts/[...slug].js` for dynamic routing
 - ✅ Implement `getStaticPaths()` to generate all post routes
 - ✅ Implement `getStaticProps()` to fetch individual post data
@@ -132,7 +122,6 @@ Otherwise you'll get "Expected component to be defined" errors!
 - ✅ Test with nested URL paths (e.g., `/posts/2024/my-post`)
 
 ### 1.5 Homepage with Post Listing
-
 - ✅ Create basic homepage (`pages/index.js`)
 - ✅ Use `getStaticProps()` to fetch all posts
 - ✅ Simple post list layout (title, date, excerpt)
@@ -140,7 +129,6 @@ Otherwise you'll get "Expected component to be defined" errors!
 - ✅ Test: Add new MDX file and confirm it appears automatically
 
 ### 1.6 Basic Styling Setup
-
 - ✅ Install and configure styled-components
 - ✅ Create basic global styles
 - ✅ Simple responsive layout structure
@@ -177,7 +165,6 @@ Otherwise you'll get "Expected component to be defined" errors!
   - ✅ Animated transitions and vote counting
 
 **Step 2: Component Enhancements**
-
 - ✅ `TextBox` component - Add `closeable` prop functionality
   - ✅ Collapsible content areas
   - ✅ Toggle show/hide behavior
@@ -186,7 +173,6 @@ Otherwise you'll get "Expected component to be defined" errors!
   - ✅ Supports nested components
 
 **Step 3: Content Migration Strategy (Based on Chess Post Learnings)**
-
 - ✅ **Image Optimization**: 25 images successfully migrated (including missing ginger.jpg)
 - ✅ **Co-location Strategy**: All diabetes images copied to `posts/2024/diabetes/` structure
 - ✅ **Large File Handling**: 11MB cover image works perfectly
@@ -195,7 +181,6 @@ Otherwise you'll get "Expected component to be defined" errors!
 - ✅ **Content Cleanup**: Removed old Gatsby imports and fixed hydration issues
 
 **Step 4: Content Complexity Assessment**
-
 - ✅ **High Complexity**: Personal/emotional content about health diagnosis and friend's death - BEAUTIFULLY RENDERED
 - ✅ **Technical Elements**: Medical terminology, Swedish healthcare system - All working
 - ✅ **Interactive Elements**: Poll component integration - Firebase voting functional
@@ -228,7 +213,6 @@ Otherwise you'll get "Expected component to be defined" errors!
 **Required Components for Books 2022 Post:**
 
 **Step 1: Advanced Animation Component**
-
 - ✅ `Books2022` component - High-performance animated photo stack
   - ✅ 3D CSS transforms with perspective and translateZ
   - ✅ Individual book hover effects with scaling and z-index
@@ -236,7 +220,6 @@ Otherwise you'll get "Expected component to be defined" errors!
   - ✅ Background patterns and center glow effects
   - ✅ Mobile responsive design and reduced motion support
   - ✅ GPU-accelerated animations replacing heavy old performance
-
 - ✅ `Spoiler` component - Interactive spoiler revealer
   - ✅ Blur/unblur content hiding with backdrop filter
   - ✅ Click to reveal with smooth transitions
@@ -244,7 +227,6 @@ Otherwise you'll get "Expected component to be defined" errors!
   - ✅ Accessibility support and mobile optimization
 
 **Step 2: Content Migration Strategy**
-
 - ✅ **Gaming Content Excellence**: Elden Ring sections with Malenia boss fights - PERFECTION
 - ✅ **Book Reviews**: Detailed reviews of sci-fi, fiction, and non-fiction - All preserved
 - ✅ **Personal Growth**: "Am I getting smarter?" self-reflection - Beautiful storytelling
@@ -280,20 +262,18 @@ Otherwise you'll get "Expected component to be defined" errors!
 - ✅ `FigureLabel` - Already have
 - ✅ `Dialogue, Pony` - Already have
 - ✅ `ResponsiveEmbed` - Already have
-- [ ] `ShakyTitle` - **NEW** - Title component with emoji and special styling
-- [ ] `UnicornButton` - **NEW** - Complex Firebase button with click counting and tooltips
+- ✅ `ShakyTitle` - **NEW** - Title component with emoji and special styling
+- ✅ `UnicornButton` - **NEW** - Complex Firebase button with click counting and tooltips
 
 **Required Components for Doggo Post:**
 
 **Step 1: New Components**
-
 - ✅ `ShakyTitle` component - Special title styling with emoji integration
   - ✅ Support for emoji parameter
   - ✅ Special typography/animation effects (pulsing emoji + shaking text)
   - ✅ Consistent with existing design system
   - ✅ CSS modules approach for clean styling
   - ✅ Added to both mdx-components.tsx and [...slug].tsx
-
 - ✅ `UnicornButton` component - Advanced interactive button system
   - ✅ Firebase integration for click counting
   - ✅ Tooltip support with custom messages
@@ -303,7 +283,6 @@ Otherwise you'll get "Expected component to be defined" errors!
   - ✅ Added to both mdx-components.tsx and [...slug].tsx
 
 **Step 2: Content Migration Strategy**
-
 - ✅ **Sensitive Content Handling**: Post contains controversial humor about animals - All preserved with content warnings
 - ✅ **Content Warnings**: Maintain author's content warnings and disclaimers - Perfect opening section
 - ✅ **Interactive Progression**: 12 UnicornButtons throughout narrative - All working with Firebase tracking
@@ -345,17 +324,14 @@ Otherwise you'll get "Expected component to be defined" errors!
 - ✅ `Quote` - **COMPLETED** - Bouncy Sean Carroll quote is PERFECT!
 
 **Step 1: New Utility Components - COMPLETED**
-
 - ✅ `MarginBottom` component - Simple spacing utility
   - ✅ Takes size prop for different spacing amounts
   - ✅ Clean utility for consistent margins  
   - ✅ Reusable across multiple posts
-
 - ✅ `BlogSubTitle` component - Styled subtitle
   - ✅ Orange color styling
   - ✅ Left-aligned layout
   - ✅ Clean typography
-
 - ✅ `Quote` component - Animated quote display  
   - ✅ Support for author attribution (`from` prop)
   - ✅ Bouncy animation (`bouncy={true}`)
