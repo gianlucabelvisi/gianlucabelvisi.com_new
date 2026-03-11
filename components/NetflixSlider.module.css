@@ -32,6 +32,11 @@
     padding: 0 1rem;
     margin-bottom: 0.5rem;
   }
+
+  .sliderContainer {
+    padding: 0.25rem 0;
+    margin: 0.25rem 0;
+  }
 }
 
 @media screen and (max-width: 480px) {
@@ -117,12 +122,30 @@
 
 .sliderWrapper {
   position: relative;
-  display: block; /* Change to block to contain the scrolling slider */
+  display: block;
   min-height: 180px;
-  overflow: visible; /* No clipping at wrapper level */
+  overflow: visible;
   padding: 0;
-  touch-action: pan-x; /* Enable horizontal panning only */
-  user-select: none; /* Prevent text selection during drag */
+  touch-action: pan-x;
+  user-select: none;
+}
+
+@media screen and (max-width: 768px) {
+  .sliderWrapper {
+    min-height: 120px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .sliderWrapper {
+    min-height: 100px;
+  }
+}
+
+@media screen and (max-width: 360px) {
+  .sliderWrapper {
+    min-height: 95px;
+  }
 }
 
 .sliderWrapper::-webkit-scrollbar {
@@ -239,8 +262,8 @@
 
 @media screen and (max-width: 480px) {
   .card {
-    width: 160px;
-    height: 70px; /* Shorter for mobile */
+    width: 175px;
+    height: 99px;
   }
 }
 
@@ -390,27 +413,39 @@
   .sliderHeader {
     padding: 0 0.5rem;
   }
-  
+
   .slider {
-    padding: 0 0.5rem 1rem 0.5rem;
+    padding: 0 0.5rem 0.5rem 0.5rem;
     gap: 0.5rem;
   }
-  
+
   .card {
-    width: 200px;
-    height: 113px;
+    width: 175px;
+    height: 99px;
   }
-  
+
   .cardOverlay {
-    padding: 0.75rem;
+    padding: 0.5rem;
+    transform: translateY(calc(100% - 2.2rem));
   }
-  
+
   .cardTitle {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
-  
+
   .cardSubtitle {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .slider {
+    padding: 0 0.25rem 0.5rem 0.25rem;
+  }
+
+  .card {
+    width: 160px;
+    height: 90px;
   }
 }
 

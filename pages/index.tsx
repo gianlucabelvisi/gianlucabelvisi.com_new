@@ -37,7 +37,7 @@ export default function HomePage({ posts, groupedPosts }: HomePageProps) {
           <HeroCarousel posts={posts} autoAdvanceInterval={6000} />
           
           {/* Netflix Content Sliders */}
-          <div style={{ padding: '2rem 0 2rem 0', position: 'relative', zIndex: 2, overflow: 'visible' }}>
+          <div className={styles.slidersContainer}>
             <NetflixSlider 
               title="Latest Posts" 
               posts={groupedPosts.latest} 

@@ -243,3 +243,16 @@ a.secondary {
 .postTitleLink:hover {
   color: var(--color-primary);
 }
+
+.slidersContainer {
+  padding: 2rem 0;
+  position: relative;
+  z-index: 2;
+  overflow: visible;
+}
+
+@media (max-width: 768px) {
+  .slidersContainer {
+    padding: 0.5rem 0;
+  }
+}

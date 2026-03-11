@@ -48,10 +48,30 @@
   .container {
     grid-template-columns: 1rem repeat(6, 1fr) 1rem;
   }
-  
+
   .themeToggleContainer {
     top: 1rem;
     right: 1rem;
+  }
+
+  .mainContent {
+    padding: 0 0.5rem;
+  }
+
+  .postTitle {
+    font-size: 1.6rem;
+  }
+
+  .postSubtitle {
+    font-size: 1rem;
+  }
+
+  .postSubtitle .quoteStart {
+    left: -0.75rem;
+  }
+
+  .postSubtitle .quoteEnd {
+    right: -0.75rem;
   }
 }
 
@@ -193,6 +213,8 @@
 
 .mdxContent {
   line-height: 1.6;
+  /* Prevent code blocks and wide content from causing horizontal scroll */
+  overflow-x: hidden;
 }
 
 .mdxContent p {
@@ -267,6 +289,12 @@
   border-radius: var(--border-radius-md);
   margin: var(--spacing-xl) 0 var(--spacing-lg) 0;
   display: block;
+}
+
+/* Code blocks scroll horizontally rather than overflowing */
+.mdxContent pre {
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 .mdxContent del {

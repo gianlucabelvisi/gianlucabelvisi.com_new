@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { PostData, PostSummary } from '../lib/posts'
 import { formatDate } from '../lib/dateUtils'
@@ -13,6 +13,11 @@ export default function HeroCarousel({ posts, autoAdvanceInterval = 6000 }: Hero
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
+
+  // Touch swipe support using refs to avoid stale state
+  const touchStartXRef = useRef(0)
+  const touchStartYRef = useRef(0)
+  const isTouchSwipeRef = useRef(false)
 
   // Take only the first 6 posts
   const carouselPosts = posts.slice(0, 6)
@@ -49,15 +54,49 @@ export default function HeroCarousel({ posts, autoAdvanceInterval = 6000 }: Hero
 
   const goToSlide = (index: number) => {
     if (isTransitioning || index === currentIndex) return
-    
+
     setIsTransitioning(true)
     setCurrentIndex(index)
-    
+
     setTimeout(() => setIsTransitioning(false), 600)
   }
 
+  const prevSlide = () => {
+    if (isTransitioning) return
+    setIsTransitioning(true)
+    setCurrentIndex((prev) => (prev - 1 + carouselPosts.length) % carouselPosts.length)
+    setTimeout(() => setIsTransitioning(false), 600)
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX
+    touchStartYRef.current = e.touches[0].clientY
+    isTouchSwipeRef.current = false
+    setIsPaused(true)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const dx = Math.abs(e.touches[0].clientX - touchStartXRef.current)
+    const dy = Math.abs(e.touches[0].clientY - touchStartYRef.current)
+    if (dx > dy && dx > 10) isTouchSwipeRef.current = true
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isTouchSwipeRef.current) {
+      setIsPaused(false)
+      return
+    }
+    const dx = e.changedTouches[0].clientX - touchStartXRef.current
+    if (dx < -40) {
+      nextSlide()
+    } else if (dx > 40) {
+      prevSlide()
+    }
+    setIsPaused(false)
+  }
+
   // Helper function to get feature image path
-  const getFeatureImagePath = (post: PostData) => {
+  const getFeatureImagePath = (post: PostData | PostSummary) => {
     const featureImage = post.frontmatter.featureImage || post.frontmatter.cardImage
     if (!featureImage) return '/images/placeholder-feature.jpg'
     
@@ -73,10 +112,13 @@ export default function HeroCarousel({ posts, autoAdvanceInterval = 6000 }: Hero
   if (!carouselPosts.length) return null
 
   return (
-    <div 
+    <div
       className={styles.carousel}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
       <div className={styles.carouselContainer}>
         <div 
