@@ -5,10 +5,11 @@ import type { AppProps } from "next/app";
 import React from "react";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import { useRouter } from "next/router";
+import Header from "../components/Header";
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
-  
+
   // Homepage should always be dark, posts should default to light
   const isHomepage = router.pathname === '/';
   const forceTheme = isHomepage ? 'dark' : undefined;
@@ -28,6 +29,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <ThemeProvider forceTheme={forceTheme} defaultTheme={defaultTheme}>
+      <Header />
       <Component {...pageProps} />
     </ThemeProvider>
   );

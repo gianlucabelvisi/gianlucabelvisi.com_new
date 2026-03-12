@@ -12,79 +12,10 @@
   position: relative;
 }
 
-/* Theme Toggle Container - Top Right */
-.themeToggleContainer {
-  position: fixed;
-  top: 2rem;
-  right: 2rem;
-  z-index: 1000;
-  background: var(--color-background-card);
-  border-radius: 20px;
-  padding: 4px;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--color-border);
-  backdrop-filter: blur(10px);
-  transition: all var(--theme-transition-duration) cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.themeToggleContainer:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-1px);
-}
-
-@media screen and (max-width: 768px) {
-  .container {
-    grid-template-columns: 2rem repeat(6, 1fr) 2rem;
-    grid-gap: 0 1rem;
-  }
-  
-  .themeToggleContainer {
-    top: 1.5rem;
-    right: 1.5rem;
-  }
-}
-
-@media screen and (max-width: 500px) {
-  .container {
-    grid-template-columns: 1rem repeat(6, 1fr) 1rem;
-  }
-
-  .themeToggleContainer {
-    top: 1rem;
-    right: 1rem;
-  }
-
-  .mainContent {
-    padding: 0 0.5rem;
-  }
-
-  .postTitle {
-    font-size: 1.6rem;
-  }
-
-  .postSubtitle {
-    font-size: 1rem;
-  }
-
-  .postSubtitle .quoteStart {
-    left: -0.75rem;
-  }
-
-  .postSubtitle .quoteEnd {
-    right: -0.75rem;
-  }
-}
-
 .postHeader {
   grid-column: 3 / span 10;
   grid-row: 1 / 2;
   position: relative;
-}
-
-@media screen and (max-width: 768px) {
-  .postHeader {
-    grid-column: 2 / span 6;
-  }
 }
 
 .dateHeader {
@@ -101,12 +32,6 @@
   grid-row: 2 / 4;
   overflow: hidden;
   position: relative;
-}
-
-@media screen and (max-width: 768px) {
-  .featureImageContainer {
-    grid-column: 2 / span 6;
-  }
 }
 
 .featureImage {
@@ -132,12 +57,6 @@
   top: 2rem;
 }
 
-@media screen and (max-width: 768px) {
-  .sidebar {
-    display: none;
-  }
-}
-
 .post {
   /* Post content styles */
 }
@@ -152,29 +71,10 @@
   margin-bottom: 1rem;
 }
 
-@media screen and (max-width: 768px) {
-  .mainContent {
-    grid-column: 2 / span 6;
-    padding: 2rem 0;
-  }
-}
-
-@media screen and (max-width: 500px) {
-  .mainContent {
-    padding: 0;
-  }
-} 
-
 .postTitle {
   margin-bottom: 2rem;
   font-size: 2.5rem;
   font-weight: bold;
-}
-
-@media screen and (max-width: 768px) {
-  .postTitle {
-    font-size: 2rem;
-  }
 }
 
 .postSubtitle {
@@ -195,20 +95,6 @@
   position: absolute;
   bottom: 0;
   right: -1.5rem;
-}
-
-@media screen and (max-width: 768px) {
-  .postSubtitle {
-    font-size: 1.2rem;
-  }
-  
-  .postSubtitle .quoteStart {
-    left: -1rem;
-  }
-  
-  .postSubtitle .quoteEnd {
-    right: -1rem;
-  }
 }
 
 .mdxContent {
@@ -320,4 +206,79 @@
 .quoteEnd {
   color: #ff9664;
   margin-left: 0.5rem;
-} 
+}
+
+
+/* ── Mobile layout ────────────────────────────────────────────────────────── */
+
+@media screen and (max-width: 900px) {
+  /* Switch from grid to simple vertical flow */
+  .container {
+    display: flex;
+    flex-direction: column;
+    padding-top: 4rem; /* fixed header height */
+  }
+
+  /* Hide social share sidebar */
+  .sidebar {
+    display: none;
+  }
+
+  /* Date sits in normal flow, not absolutely positioned */
+  .postHeader {
+    padding: 0.75rem 1rem 0.5rem;
+    position: static;
+    height: auto;
+  }
+
+  .dateHeader {
+    position: static;
+    font-size: 1.1rem;
+  }
+
+  /* Image: full bleed, natural aspect ratio — no grid-row height cap */
+  .featureImageContainer {
+    position: static;
+    width: 100%;
+    height: auto;
+    overflow: hidden;
+  }
+
+  .featureImage {
+    position: static;
+    width: 100%;
+    height: auto;
+    max-height: 65vw;
+    object-fit: cover;
+    object-position: top;
+    display: block;
+  }
+
+  /* Hide hanging quote marks — they eat into the narrow mobile margin */
+  .postSubtitle .quoteStart,
+  .postSubtitle .quoteEnd {
+    display: none;
+  }
+
+  /* Content: almost full width */
+  .mainContent {
+    width: 100%;
+    padding: 1.5rem 1rem;
+  }
+
+  .postTitle {
+    font-size: 2rem;
+  }
+
+  .postSubtitle {
+    font-size: 1.2rem;
+  }
+
+  .postSubtitle .quoteStart {
+    left: -1rem;
+  }
+
+  .postSubtitle .quoteEnd {
+    right: -1rem;
+  }
+}
