@@ -5,6 +5,7 @@ import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
 import remarkGfm from 'remark-gfm'
 import { getAllPosts, getAllPostsForPaths, getPostBySlug, PostData } from '../lib/posts'
 import { formatDate } from '../lib/dateUtils'
+import SEO from '../components/SEO'
 import styles from './posts/PostPage.module.css'
 import Highlight from '../components/Highlight'
 import BlogSubTitle from '../components/BlogSubTitle'
@@ -142,8 +143,22 @@ export default function PostPage({ source, frontmatter, slug, imagePath }: PostP
   }
   
 
+  const ogImage = frontmatter.featureImage
+    ? `/images/posts/${imagePath}/${frontmatter.featureImage}`
+    : undefined
+
   return (
     <div className={styles.container}>
+      <SEO
+        title={frontmatter.title}
+        description={frontmatter.subTitle}
+        image={ogImage}
+        path={frontmatter.path}
+        type="article"
+        publishedDate={frontmatter.date}
+        author={frontmatter.author}
+      />
+
       {/* Post Header */}
       <div className={styles.postHeader}>
         <h2 className={styles.dateHeader}>

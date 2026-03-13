@@ -3,6 +3,7 @@ import { getAllPostsSummary, PostSummary } from '../lib/posts'
 import { groupPostsForHomepage } from '../lib/hashtags'
 import HeroCarousel from '../components/HeroCarousel'
 import NetflixSlider from '../components/NetflixSlider'
+import SEO from '../components/SEO'
 import styles from '../styles/Home.module.css'
 
 interface HomePageProps {
@@ -20,12 +21,13 @@ interface HomePageProps {
 
 export default function HomePage({ posts, groupedPosts }: HomePageProps) {
   return (
-    <div style={{ 
-      minHeight: '100vh', 
+    <div style={{
+      minHeight: '100vh',
       background: 'var(--color-background-main)',
       color: 'var(--color-text-primary)',
       overflow: 'visible'
     }}>
+      <SEO />
       {posts.length === 0 ? (
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
           <h1 style={{ color: 'var(--color-text-primary)' }}>My Next.js MDX Blog</h1>
