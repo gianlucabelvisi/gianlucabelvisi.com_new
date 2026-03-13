@@ -51,6 +51,9 @@ export default function SEO({
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={imageUrl} />
 
+      {/* RSS feed auto-discovery */}
+      <link rel="alternate" type="application/rss+xml" title={SITE_NAME} href={`${SITE_URL}/feed.xml`} />
+
       {/* Article-specific */}
       {type === 'article' && publishedDate && (
         <meta property="article:published_time" content={publishedDate} />

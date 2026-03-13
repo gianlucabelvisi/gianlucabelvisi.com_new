@@ -53,12 +53,24 @@ import CodeBlock from '../components/mdx/CodeBlock'
 import TvCard from '../components/mdx/TvCard'
 import SpicyTake from '../components/mdx/SpicyTake'
 import LinkButton from '../components/mdx/LinkButton'
+import PostNavigation from '../components/PostNavigation'
+
+interface NavPost {
+  frontmatter: {
+    title: string
+    path: string
+    cardImage?: string
+  }
+  imagePath: string
+}
 
 interface PostPageProps {
   source: MDXRemoteSerializeResult
   frontmatter: PostData['frontmatter']
   slug: string
   imagePath: string
+  prevPost: NavPost | null
+  nextPost: NavPost | null
 }
 
 // Define which components are available in MDX
@@ -127,7 +139,7 @@ const components = {
   LinkButton,
 }
 
-export default function PostPage({ source, frontmatter, slug, imagePath }: PostPageProps) {
+export default function PostPage({ source, frontmatter, slug, imagePath, prevPost, nextPost }: PostPageProps) {
   // Helper function to get image path
   const getImagePath = (imageName: string) => {
     if (!imageName) return ''
@@ -211,6 +223,8 @@ export default function PostPage({ source, frontmatter, slug, imagePath }: PostP
           Tags: {frontmatter.hashtags}
         </p>
         
+        <PostNavigation prev={prevPost} next={nextPost} />
+
         <MailChimpForm />
       </div>
     </div>
@@ -229,11 +243,26 @@ export const getStaticPaths: GetStaticPaths = async () => {
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const slug = (params?.slug as string[])?.join('/')
   const post = getPostBySlug(slug)
-  
+
   if (!post) {
     return { notFound: true }
   }
-  
+
+  // Find prev (older) and next (newer) posts
+  // getAllPosts() returns posts sorted newest-first, so:
+  //   index - 1 = newer post (next)
+  //   index + 1 = older post (prev)
+  const allPosts = getAllPosts()
+  const currentIndex = allPosts.findIndex(p => p.slug === slug)
+
+  const toNavPost = (p: PostData | undefined) => p ? {
+    frontmatter: { title: p.frontmatter.title, path: p.frontmatter.path, cardImage: p.frontmatter.cardImage },
+    imagePath: p.imagePath
+  } : null
+
+  const prevPost = toNavPost(allPosts[currentIndex + 1]) // older
+  const nextPost = toNavPost(allPosts[currentIndex - 1]) // newer
+
   const mdxSource = await serialize(post.content, {
     mdxOptions: {
       remarkPlugins: [
@@ -245,15 +274,17 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     parseFrontmatter: false,
     scope: {}
   })
-  
+
   return {
     props: {
       source: mdxSource,
       frontmatter: post.frontmatter,
       slug: slug,
-      imagePath: post.imagePath
+      imagePath: post.imagePath,
+      prevPost,
+      nextPost,
     },
     // Regenerate the page at most once per hour
     revalidate: 3600
   }
-} 
+}
