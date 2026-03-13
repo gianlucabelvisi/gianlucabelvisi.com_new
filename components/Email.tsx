@@ -1,3 +1,5 @@
+import styles from './Email.module.css'
+
 interface EmailProps {
   from: string
   to: string
@@ -7,41 +9,27 @@ interface EmailProps {
 
 const Email = ({ from, to, subject, children }: EmailProps) => {
   return (
-    <div style={{ 
-      border: '1px solid #ccc',
-      borderRadius: '8px',
-      backgroundColor: '#f9f9f9',
-      margin: '1.5rem 0',
-      fontFamily: 'monospace',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-    }}>
+    <div className={styles.container}>
       {/* Email header */}
-      <div style={{
-        backgroundColor: '#e8e8e8',
-        padding: '12px 16px',
-        borderBottom: '1px solid #ccc',
-        borderRadius: '8px 8px 0 0'
-      }}>
-        <div style={{ marginBottom: '4px' }}>
-          <strong>From:</strong> {from}
+      <div className={styles.header}>
+        <div className={styles.headerRow}>
+          <span className={styles.headerLabel}>From:</span>
+          <span className={styles.headerValue}>{from}</span>
         </div>
-        <div style={{ marginBottom: subject ? '4px' : '0' }}>
-          <strong>To:</strong> {to}
+        <div className={styles.headerRow}>
+          <span className={styles.headerLabel}>To:</span>
+          <span className={styles.headerValue}>{to}</span>
         </div>
         {subject && (
-          <div>
-            <strong>Subject:</strong> {subject}
+          <div className={styles.headerRow}>
+            <span className={styles.headerLabel}>Subject:</span>
+            <span className={styles.headerValue}>{subject}</span>
           </div>
         )}
       </div>
       
       {/* Email body */}
-      <div style={{
-        padding: '16px',
-        lineHeight: '1.6',
-        backgroundColor: '#fff',
-        borderRadius: '0 0 8px 8px'
-      }}>
+      <div className={styles.body}>
         {children}
       </div>
     </div>

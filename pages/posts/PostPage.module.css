@@ -99,8 +99,6 @@
 
 .mdxContent {
   line-height: 1.6;
-  /* Prevent code blocks and wide content from causing horizontal scroll */
-  overflow-x: hidden;
 }
 
 .mdxContent p {
