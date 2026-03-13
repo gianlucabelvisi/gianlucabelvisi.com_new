@@ -8,15 +8,17 @@ interface BlogImageProps {
 }
 
 const BlogImage: React.FC<BlogImageProps> = ({ imageName, alt = "" }) => {
-  // For now, we'll use a simple path resolution
-  // This assumes images are in the same directory as the post
   const imagePath = `/${imageName}`;
-  
+
   return (
     <div className={styles.wrapper}>
-      <img 
+      <Image
         src={imagePath}
         alt={alt}
+        width={0}
+        height={0}
+        sizes="100vw"
+        style={{ width: '100%', height: 'auto' }}
         className={styles.image}
       />
     </div>

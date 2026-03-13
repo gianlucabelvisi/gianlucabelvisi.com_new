@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { PostData, PostSummary } from '../lib/posts'
 import { formatDate } from '../lib/dateUtils'
 import styles from './HeroCarousel.module.css'
@@ -133,10 +134,13 @@ export default function HeroCarousel({ posts, autoAdvanceInterval = 6000 }: Hero
               className={`${styles.slide} ${index === currentIndex ? styles.active : ''}`}
             >
             <div className={styles.heroBackground}>
-              <img
+              <Image
                 src={getFeatureImagePath(post)}
                 alt={post.frontmatter.title}
-                className={styles.heroImage}
+                fill
+                priority={index === 0}
+                sizes="100vw"
+                style={{ objectFit: 'cover', objectPosition: 'center top' }}
               />
               <div className={styles.heroGradient} />
             </div>

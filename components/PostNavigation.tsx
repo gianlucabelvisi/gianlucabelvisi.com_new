@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import styles from './PostNavigation.module.css'
 
 interface NavPost {
@@ -24,9 +25,11 @@ export default function PostNavigation({ prev, next }: PostNavigationProps) {
         {prev ? (
           <Link href={prev.frontmatter.path} className={`${styles.card} ${styles.cardPrev}`}>
             {prev.frontmatter.cardImage && (
-              <img
+              <Image
                 src={`/images/posts/${prev.imagePath}/${prev.frontmatter.cardImage}`}
                 alt=""
+                width={56}
+                height={56}
                 className={styles.thumb}
               />
             )}
@@ -42,9 +45,11 @@ export default function PostNavigation({ prev, next }: PostNavigationProps) {
         {next ? (
           <Link href={next.frontmatter.path} className={`${styles.card} ${styles.cardNext}`}>
             {next.frontmatter.cardImage && (
-              <img
+              <Image
                 src={`/images/posts/${next.imagePath}/${next.frontmatter.cardImage}`}
                 alt=""
+                width={56}
+                height={56}
                 className={styles.thumb}
               />
             )}

@@ -1,5 +1,6 @@
 import { GetStaticPaths, GetStaticProps } from 'next'
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
 import { serialize } from 'next-mdx-remote/serialize'
 import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
 import remarkGfm from 'remark-gfm'
@@ -181,10 +182,13 @@ export default function PostPage({ source, frontmatter, slug, imagePath, prevPos
       {/* Feature Image */}
       {frontmatter.featureImage && (
         <div className={styles.featureImageContainer}>
-          <img 
+          <Image
             src={getImagePath(frontmatter.featureImage || '')}
-            alt="Feature Image"
-            className={styles.featureImage}
+            alt=""
+            fill
+            priority
+            sizes="(max-width: 900px) 100vw, 84vw"
+            style={{ objectFit: 'cover', objectPosition: 'top' }}
           />
         </div>
       )}

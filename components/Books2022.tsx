@@ -58,6 +58,7 @@ const Books2022: React.FC<Books2022Props> = ({ background = "desk4" }) => {
               src={`${imagePath}/${book.src}`}
               alt={book.title}
               className={styles.bookCover}
+              loading="lazy"
             />
           </div>
         ))}

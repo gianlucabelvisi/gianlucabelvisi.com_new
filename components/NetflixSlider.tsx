@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { BsChevronCompactLeft, BsChevronCompactRight } from 'react-icons/bs'
 import { PostData, PostSummary } from '../lib/posts'
 import styles from './NetflixSlider.module.css'
@@ -161,11 +162,12 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
               >
                 <div className={styles.card}>
                   <div className={styles.cardImageWrapper}>
-                    <img
+                    <Image
                       src={getCardImagePath(post)}
                       alt={post.frontmatter.title}
-                      className={styles.cardImage}
-                      loading="lazy"
+                      fill
+                      sizes="(max-width: 360px) 160px, (max-width: 480px) 175px, (max-width: 1200px) 280px, 300px"
+                      style={{ objectFit: 'cover', transition: 'transform 0.3s ease' }}
                     />
                     <div className={styles.cardOverlay}>
                       <div className={styles.cardContent}>

@@ -34,16 +34,6 @@
   position: relative;
 }
 
-.featureImage {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top;
-}
 
 .sidebar {
   grid-column: 3;
@@ -234,22 +224,12 @@
     font-size: 1.1rem;
   }
 
-  /* Image: full bleed, natural aspect ratio — no grid-row height cap */
+  /* Image: full bleed, 16:9 aspect ratio — fill requires explicit height */
   .featureImageContainer {
-    position: static;
+    position: relative;
     width: 100%;
-    height: auto;
+    aspect-ratio: 16 / 9;
     overflow: hidden;
-  }
-
-  .featureImage {
-    position: static;
-    width: 100%;
-    height: auto;
-    max-height: 65vw;
-    object-fit: cover;
-    object-position: top;
-    display: block;
   }
 
   /* Hide hanging quote marks — they eat into the narrow mobile margin */

@@ -1,5 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { PostData } from '../lib/posts'
 import { formatDate } from '../lib/dateUtils'
 import styles from './FeaturedPost.module.css'
@@ -31,10 +32,13 @@ export default function FeaturedPost({ post, imagePath }: FeaturedPostProps) {
   return (
     <div className={styles.hero}>
       <div className={styles.heroBackground}>
-        <img
+        <Image
           src={getFeatureImagePath(post)}
           alt={post.frontmatter.title}
-          className={styles.heroImage}
+          fill
+          priority
+          sizes="100vw"
+          style={{ objectFit: 'cover', objectPosition: 'center' }}
         />
         <div className={styles.heroGradient} />
       </div>

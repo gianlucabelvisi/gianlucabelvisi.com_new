@@ -88,12 +88,7 @@ export default function Header() {
               </nav>
             )}
 
-            {/* Wrapped in a div so CSS can reliably hide it on mobile */}
-            {!isHomepage && (
-              <div className={styles.themeToggleDesktop}>
-                <ThemeToggle />
-              </div>
-            )}
+            <ThemeToggle />
 
             {/* Always in the DOM on mobile — CSS shows/hides it */}
             <button
@@ -116,12 +111,6 @@ export default function Header() {
         aria-label="Mobile navigation"
         aria-hidden={!mobileOpen}
       >
-        {!isHomepage && (
-          <div className={styles.mobileThemeToggle}>
-            <ThemeToggle />
-          </div>
-        )}
-
         {!isHomepage && (
           <Link href="/" className={styles.mobileNavLink} onClick={() => setMobileOpen(false)}>
             Home
