@@ -88,7 +88,7 @@ export default function Header() {
               </nav>
             )}
 
-            <ThemeToggle />
+            {!isHomepage && <ThemeToggle />}
 
             {/* Always in the DOM on mobile — CSS shows/hides it */}
             <button

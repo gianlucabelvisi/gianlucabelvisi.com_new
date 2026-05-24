@@ -4,57 +4,63 @@ import Image from 'next/image'
 import { serialize } from 'next-mdx-remote/serialize'
 import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
 import remarkGfm from 'remark-gfm'
-import { getAllPosts, getAllPostsForPaths, getPostBySlug, PostData } from '../lib/posts'
+import rehypeShiki from '@shikijs/rehype'
+import { getAllPosts, getAllPostsForPaths, findPostInList, PostData } from '../lib/posts'
 import { formatDate } from '../lib/dateUtils'
 import SEO from '../components/SEO'
 import styles from './posts/PostPage.module.css'
+import SocialShare from '../components/SocialShare'
+import PostNavigation from '../components/PostNavigation'
+import CodeBlock from '../components/mdx/CodeBlock'
+
+// ── Always-used lightweight components (static imports) ──
 import Highlight from '../components/Highlight'
 import BlogSubTitle from '../components/BlogSubTitle'
 import Dialogue from '../components/Dialogue'
-import Email from '../components/Email'
+import Quote from '../components/Quote'
+import TextBox from '../components/TextBox'
 import GlyphLeft from '../components/GlyphLeft'
 import GlyphRight from '../components/GlyphRight'
 import FigureLabel from '../components/FigureLabel'
 import MarginBottom from '../components/MarginBottom'
-import Quote from '../components/Quote'
-import TextBox from '../components/TextBox'
-const YouTube = dynamic(() => import('../components/YouTube'), { ssr: false })
-import ResponsiveEmbed from '../components/ResponsiveEmbed'
-import Pony from '../components/Pony'
-const Poll = dynamic(() => import('../components/Poll'), { ssr: false })
-import { ShakyTitle } from '../components/ShakyTitle'
-import UnicornButton from '../components/UnicornButton'
-import ThreeColumns from '../components/ThreeColumns'
-import Col23 from '../components/Col23'
-const YouTubeAudio = dynamic(() => import('../components/YouTubeAudio'), { ssr: false })
-import Richer from '../components/Richer'
-import Greenlights from '../components/Greenlights'
-import Hailmary from '../components/Hailmary'
-import Pride from '../components/Pride'
-import Crime from '../components/Crime'
-import Truth from '../components/Truth'
-import Books2022 from '../components/Books2022'
-import Spoiler from '../components/Spoiler'
-import FilmCard from '../components/mdx/FilmCard'
-import Formula from '../components/mdx/Formula'
-import Indented from '../components/mdx/Indented'
-import Listen from '../components/mdx/Listen'
-import Nsfw from '../components/mdx/Nsfw'
-import Batman from '../components/mdx/Batman'
-import Reddit from '../components/mdx/Reddit'
+import Email from '../components/Email'
 import Break from '../components/mdx/Break'
-import Song from '../components/mdx/Song'
+import Indented from '../components/mdx/Indented'
 import Question from '../components/mdx/Question'
-import ProfitBox from '../components/ProfitBox'
-import SocialShare from '../components/SocialShare'
-const PostFooter = dynamic(() => import('../components/PostFooter'), { ssr: false })
-const MailChimpForm = dynamic(() => import('../components/MailChimpForm'), { ssr: false })
-import CodeBlock from '../components/mdx/CodeBlock'
-// import InlineCode from '../components/mdx/InlineCode'
-import TvCard from '../components/mdx/TvCard'
 import SpicyTake from '../components/mdx/SpicyTake'
 import LinkButton from '../components/mdx/LinkButton'
-import PostNavigation from '../components/PostNavigation'
+import Spoiler from '../components/Spoiler'
+
+// ── Client-only components (no SSR) ──
+const YouTube = dynamic(() => import('../components/YouTube'), { ssr: false })
+const YouTubeAudio = dynamic(() => import('../components/YouTubeAudio'), { ssr: false })
+const Poll = dynamic(() => import('../components/Poll'), { ssr: false })
+const PostFooter = dynamic(() => import('../components/PostFooter'), { ssr: false })
+const MailChimpForm = dynamic(() => import('../components/MailChimpForm'), { ssr: false })
+
+// ── Rarely-used / heavy components (dynamic imports, with SSR) ──
+const ResponsiveEmbed = dynamic(() => import('../components/ResponsiveEmbed'))
+const Pony = dynamic(() => import('../components/Pony'))
+const ShakyTitle = dynamic(() => import('../components/ShakyTitle').then(m => ({ default: m.ShakyTitle })))
+const UnicornButton = dynamic(() => import('../components/UnicornButton'))
+const ThreeColumns = dynamic(() => import('../components/ThreeColumns'))
+const Col23 = dynamic(() => import('../components/Col23'))
+const Richer = dynamic(() => import('../components/Richer'))
+const Greenlights = dynamic(() => import('../components/Greenlights'))
+const Hailmary = dynamic(() => import('../components/Hailmary'))
+const Pride = dynamic(() => import('../components/Pride'))
+const Crime = dynamic(() => import('../components/Crime'))
+const Truth = dynamic(() => import('../components/Truth'))
+const Books2022 = dynamic(() => import('../components/Books2022'))
+const FilmCard = dynamic(() => import('../components/mdx/FilmCard'))
+const Formula = dynamic(() => import('../components/mdx/Formula'))
+const Listen = dynamic(() => import('../components/mdx/Listen'))
+const Nsfw = dynamic(() => import('../components/mdx/Nsfw'))
+const Batman = dynamic(() => import('../components/mdx/Batman'))
+const Reddit = dynamic(() => import('../components/mdx/Reddit'))
+const Song = dynamic(() => import('../components/mdx/Song'))
+const ProfitBox = dynamic(() => import('../components/ProfitBox'))
+const TvCard = dynamic(() => import('../components/mdx/TvCard'))
 
 interface NavPost {
   frontmatter: {
@@ -74,27 +80,52 @@ interface PostPageProps {
   nextPost: NavPost | null
 }
 
+// MDX content image component using next/image for optimization
+const MdxImage = (props: any) => {
+  const { src, alt, ...rest } = props
+  if (!src) return null
+
+  // External images — use regular img
+  if (src.startsWith('http')) {
+    return <img src={src} alt={alt || ''} loading="lazy" style={{ maxWidth: '100%', height: 'auto' }} />
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt || ''}
+      width={800}
+      height={450}
+      loading="lazy"
+      sizes="(max-width: 900px) 100vw, 700px"
+      style={{ width: '100%', height: 'auto' }}
+      {...rest}
+    />
+  )
+}
+
 // Define which components are available in MDX
 const components = {
-  // Code components
-  pre: (props: any) => {
-    return <CodeBlock {...props} />;
-  },
+  // Override native elements
+  pre: (props: any) => <CodeBlock {...props} />,
   code: (props: any) => {
-    // If code has a className (language), it's likely inside a pre block, return as is
+    // If code has a className (language), it's likely inside a pre block — return as-is
     if (props.className && props.className.startsWith('language-')) {
-      return <code {...props} />;
+      return <code {...props} />
     }
-    // Otherwise it's inline code - temporarily using regular code element
-    return <code style={{
-      background: '#f1f5f9',
-      color: '#1e293b',
-      padding: '0.2rem 0.4rem',
-      borderRadius: '4px',
-      fontFamily: 'monospace',
-      fontSize: '0.875em'
-    }} {...props} />;
+    // Inline code
+    return (
+      <code style={{
+        background: '#f1f5f9',
+        color: '#1e293b',
+        padding: '0.2rem 0.4rem',
+        borderRadius: '4px',
+        fontFamily: 'monospace',
+        fontSize: '0.875em'
+      }} {...props} />
+    )
   },
+  img: MdxImage,
   // MDX components
   Highlight,
   BlogSubTitle,
@@ -141,20 +172,11 @@ const components = {
 }
 
 export default function PostPage({ source, frontmatter, slug, imagePath, prevPost, nextPost }: PostPageProps) {
-  // Helper function to get image path
   const getImagePath = (imageName: string) => {
     if (!imageName) return ''
-    
-    // If the imageName is already an absolute path, return it as-is
-    if (imageName.startsWith('/')) {
-      return imageName
-    }
-    
-    // Use imagePath (year-based structure) for co-located images
-    // This keeps images working while URLs are clean
+    if (imageName.startsWith('/')) return imageName
     return `/images/posts/${imagePath}/${imageName}`
   }
-  
 
   const ogImage = frontmatter.featureImage
     ? `/images/posts/${imagePath}/${frontmatter.featureImage}`
@@ -205,28 +227,28 @@ export default function PostPage({ source, frontmatter, slug, imagePath, prevPos
           <h1 className={styles.postTitle}>
             {frontmatter.title}
           </h1>
-          
+
           <div className={styles.postSubtitle}>
             <span className={styles.quoteStart}>❝</span>
             {frontmatter.subTitle}
             <span className={styles.quoteEnd}>❞</span>
           </div>
-          
+
           <div className={`mdx-content ${styles.mdxContent}`}>
             <MDXRemote {...source} components={components} />
           </div>
         </div>
 
         {/* Post Footer */}
-        <PostFooter 
-          path={frontmatter.path || `/posts/${slug}`} 
-          author={frontmatter.author} 
+        <PostFooter
+          path={frontmatter.path || `/posts/${slug}`}
+          author={frontmatter.author}
         />
-        
+
         <p className={styles.postTags}>
           Tags: {frontmatter.hashtags}
         </p>
-        
+
         <PostNavigation prev={prevPost} next={nextPost} />
 
         <MailChimpForm />
@@ -240,24 +262,21 @@ export const getStaticPaths: GetStaticPaths = async () => {
   const paths = posts.map(post => ({
     params: { slug: post.slug.split('/') }
   }))
-  
+
   return { paths, fallback: false }
 }
 
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const slug = (params?.slug as string[])?.join('/')
-  const post = getPostBySlug(slug)
+
+  // Single call to get all posts — used for both the current post and prev/next nav
+  const allPosts = getAllPosts()
+  const currentIndex = allPosts.findIndex(p => p.slug === slug)
+  const post = allPosts[currentIndex] ?? null
 
   if (!post) {
     return { notFound: true }
   }
-
-  // Find prev (older) and next (newer) posts
-  // getAllPosts() returns posts sorted newest-first, so:
-  //   index - 1 = newer post (next)
-  //   index + 1 = older post (prev)
-  const allPosts = getAllPosts()
-  const currentIndex = allPosts.findIndex(p => p.slug === slug)
 
   const toNavPost = (p: PostData | undefined) => p ? {
     frontmatter: { title: p.frontmatter.title, path: p.frontmatter.path, cardImage: p.frontmatter.cardImage },
@@ -269,12 +288,13 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
 
   const mdxSource = await serialize(post.content, {
     mdxOptions: {
-      remarkPlugins: [
-        // Add support for strikethrough and other GitHub flavored markdown
-        remarkGfm
-      ]
+      remarkPlugins: [remarkGfm],
+      rehypePlugins: [
+        [rehypeShiki, {
+          theme: 'github-dark',
+        }],
+      ],
     },
-    // Reduce bundle size by parsing on the server
     parseFrontmatter: false,
     scope: {}
   })
@@ -288,7 +308,6 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       prevPost,
       nextPost,
     },
-    // Regenerate the page at most once per hour
     revalidate: 3600
   }
 }

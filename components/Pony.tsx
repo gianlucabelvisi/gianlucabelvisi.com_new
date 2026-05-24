@@ -1,4 +1,4 @@
-import '@fontsource/irish-grover';
+import '@fontsource/irish-grover/index.css';
 
 interface PonyProps {
   children: React.ReactNode;

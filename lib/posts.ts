@@ -129,10 +129,10 @@ function copyPostImages() {
 // Get all posts including hidden ones (for internal use)
 function getAllPostsIncludingHidden(): PostData[] {
   const fileNames = getAllMdxFiles(postsDirectory)
-  
-  // Copy co-located images to public directory
-  copyPostImages()
-  
+
+  // NOTE: copyPostImages() is handled by the prebuild/predev npm scripts.
+  // Removed from here to avoid redundant filesystem walks on every call.
+
   const allPostsData = fileNames.map((fileName) => {
     const fullPath = path.join(postsDirectory, fileName)
     const fileContents = fs.readFileSync(fullPath, 'utf8')
@@ -230,6 +230,11 @@ export function getAllPostsForPaths(): PostData[] {
 export function getPostBySlug(slug: string): PostData | null {
   // Use the function that includes hidden posts so we can find hidden posts by slug
   const posts = getAllPostsIncludingHidden()
+  return posts.find(post => post.slug === slug) || null
+}
+
+// Efficient version: find a post within a pre-loaded list (avoids re-reading all files)
+export function findPostInList(slug: string, posts: PostData[]): PostData | null {
   return posts.find(post => post.slug === slug) || null
 }
 
