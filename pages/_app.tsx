@@ -27,6 +27,19 @@ export default function App({ Component, pageProps }: AppProps) {
     }
   }, [isHomepage]);
 
+  // Register PWA service worker (production only — avoids stale SW in dev)
+  React.useEffect(() => {
+    if (
+      process.env.NODE_ENV === 'production' &&
+      typeof window !== 'undefined' &&
+      'serviceWorker' in navigator
+    ) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {
+        /* swallow — SW registration is best-effort */
+      });
+    }
+  }, []);
+
   return (
     <ThemeProvider forceTheme={forceTheme} defaultTheme={defaultTheme}>
       <Header />
