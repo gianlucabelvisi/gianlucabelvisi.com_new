@@ -1,17 +1,27 @@
 .dialogue {
-  display: inline-block;
-  margin-bottom: var(--spacing-lg);
+  display: block;
+  margin: 0.5rem 0 var(--spacing-lg);
+  line-height: 1.6;
 }
 
 .quote {
+  display: inline-block;
+  vertical-align: -0.15em;
   font-size: 1.2em;
   font-weight: bold;
   color: var(--color-primary-light);
-  margin: 0 0.2em;
+  margin: 0 0.25em;
 }
 
 .text {
   color: var(--color-text-primary);
   font-size: 1.1rem;
   font-weight: 500;
-} 
+}
+
+/* MDX wraps multi-line content in a paragraph — flatten it so the
+   text sits inline with the surrounding quote icons. */
+.text > p {
+  display: inline;
+  margin: 0;
+}

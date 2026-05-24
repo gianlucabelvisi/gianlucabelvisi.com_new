@@ -1,10 +1,18 @@
 .formula {
   text-align: center;
-  font-size: 1.8em;
+  font-size: 3.6em;
+  line-height: 1.2;
   font-family: 'Courier New', monospace;
   background-color: transparent;
   border: none;
-  padding: 1rem;
-  margin: 1.5rem 0;
+  padding: 1.5rem 1rem;
+  margin: 2rem 0;
   font-weight: bold;
-} 
+}
+
+@media (max-width: 640px) {
+  .formula {
+    font-size: 2.6em;
+    padding: 1rem 0.5rem;
+  }
+}

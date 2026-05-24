@@ -123,19 +123,33 @@
 
 .mdxContent ul,
 .mdxContent ol {
-  list-style-position: inside;
+  list-style-position: outside;
   margin-bottom: var(--spacing-lg);
-  padding-left: var(--spacing-md);
+  padding-left: 1.6rem;
 }
 
 .mdxContent ul li,
 .mdxContent ol li {
   margin-bottom: var(--spacing-sm);
-  text-indent: -1.5rem;
-  padding-left: 1.5rem;
-  line-height: 1.8;
+  line-height: 1.6;
   color: var(--color-text-primary);
   font-size: 1.1rem;
+}
+
+/* MDX wraps loose list-item content in a <p>; keep it flowing inline
+   with the bullet instead of dropping to a new line. */
+.mdxContent ul li > p,
+.mdxContent ol li > p {
+  display: inline;
+  margin: 0;
+}
+
+/* If a list item contains multiple paragraphs, restore block flow on
+   the trailing ones while keeping the first inline with the bullet. */
+.mdxContent ul li > p ~ p,
+.mdxContent ol li > p ~ p {
+  display: block;
+  margin-top: 0.5rem;
 }
 
 .mdxContent blockquote {

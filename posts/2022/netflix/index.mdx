@@ -112,10 +112,10 @@ const posts = data.allMdx.edges
 And, boom, I have all the posts on my thumb, ready to be **grouped** as I please. Let's do some of that:
 
 ```js
-const featured          = posts[0]
-const latest               = [...posts].slice(1, 14)
-const caterina           = [...posts].filter(post => containsHashtags(post, 'caterina sforza')).reverse()
-const food                 = [...posts].filter(post => containsHashtags(post, 'food', 'coffee', 'diet')).reverse()
+const featured      = posts[0]
+const latest        = [...posts].slice(1, 14)
+const caterina      = [...posts].filter(post => containsHashtags(post, 'caterina sforza')).reverse()
+const food          = [...posts].filter(post => containsHashtags(post, 'food', 'coffee', 'diet')).reverse()
 const mindfulness   = [...posts].filter(post => containsHashtags(post, 'mindfulness')).reverse()
 const randomized    = [...posts].sort(() => Math.random() - 0.5).slice(0, 15)
 const chronological = [...posts].reverse()
@@ -291,10 +291,13 @@ Now, if you try this on **Netflix**, you will notice that when the end of conten
 
 If you have ever implemented a 2D side-scrolling game, you know that the way to do this is to lay down the train tracks while on the train, meaning that once a piece of **background** reaches the left side of the screen, and it's no longer visible, you can move it to the right side, ready to enter the screen again. Rinse repeat.
 
-<ResponsiveEmbed
-    src="https://gfycat.com/ifr/BelovedReasonableIcefish"
-    ratio="16:9"
-/>
+<div style={{ maxWidth: '360px', margin: '2rem auto' }}>
+  <ResponsiveEmbed
+    src="https://www.tiktok.com/player/v1/7460117650258054443?controls=1&description=0&music_info=0"
+    ratio="9:16"
+    allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+  />
+</div>
 
 
 So, I have to implement something similar for my slider, except I'm not gonna do any of that! I have no idea how to do it in CSS, and I'm running out of wine! So, in this house, once we reach the end of content, we stop scrolling!

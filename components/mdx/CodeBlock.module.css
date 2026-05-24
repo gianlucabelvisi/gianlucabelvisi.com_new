@@ -26,32 +26,6 @@
   gap: 1rem;
 }
 
-.trafficLights {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.trafficLightRed,
-.trafficLightYellow,
-.trafficLightGreen {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.trafficLightRed {
-  background: #ff5f57;
-}
-
-.trafficLightYellow {
-  background: #ffbd2e;
-}
-
-.trafficLightGreen {
-  background: #28ca42;
-}
-
 .languageBadge {
   background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
   color: white;

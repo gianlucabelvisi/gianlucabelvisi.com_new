@@ -23,28 +23,40 @@ const SocialShare = ({ path }: SocialShareProps) => {
 
   return (
     <div className={styles.socialShare}>
-      <FacebookShareButton url={url} title="BoomerBook">
-        <FacebookIcon size={32} round={true} />
-      </FacebookShareButton>
-      <TwitterShareButton url={url} title="Tweet">
-        <TwitterIcon size={32} round={true} />
-      </TwitterShareButton>
-      <RedditShareButton url={url} title="Reddit it">
-        <RedditIcon size={32} round={true} />
-      </RedditShareButton>
-      <WhatsappShareButton url={url} title="WhatsApp">
-        <WhatsappIcon size={32} round={true} />
-      </WhatsappShareButton>
-      <InstapaperShareButton url={url} title="InstaPaper">
-        <InstapaperIcon size={32} round={true} />
-      </InstapaperShareButton>
-      <PinterestShareButton
-        url={url}
-        title="Pin"
-        media={`https://gianlucabelvisi.com/images/gianluca-1.jpg`}
-      >
-        <PinterestIcon size={32} round={true} />
-      </PinterestShareButton>
+      <div className={styles.shareItem} data-tooltip="Share on Facebook">
+        <FacebookShareButton url={url} title="BoomerBook">
+          <FacebookIcon size={32} round={true} />
+        </FacebookShareButton>
+      </div>
+      <div className={styles.shareItem} data-tooltip="Tweet this">
+        <TwitterShareButton url={url} title="Tweet">
+          <TwitterIcon size={32} round={true} />
+        </TwitterShareButton>
+      </div>
+      <div className={styles.shareItem} data-tooltip="Post to Reddit">
+        <RedditShareButton url={url} title="Reddit it">
+          <RedditIcon size={32} round={true} />
+        </RedditShareButton>
+      </div>
+      <div className={styles.shareItem} data-tooltip="Send on WhatsApp">
+        <WhatsappShareButton url={url} title="WhatsApp">
+          <WhatsappIcon size={32} round={true} />
+        </WhatsappShareButton>
+      </div>
+      <div className={styles.shareItem} data-tooltip="Save to Instapaper">
+        <InstapaperShareButton url={url} title="InstaPaper">
+          <InstapaperIcon size={32} round={true} />
+        </InstapaperShareButton>
+      </div>
+      <div className={styles.shareItem} data-tooltip="Pin on Pinterest">
+        <PinterestShareButton
+          url={url}
+          title="Pin"
+          media={`https://gianlucabelvisi.com/images/gianluca-1.jpg`}
+        >
+          <PinterestIcon size={32} round={true} />
+        </PinterestShareButton>
+      </div>
     </div>
   );
 };

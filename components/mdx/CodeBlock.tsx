@@ -46,14 +46,21 @@ function getLanguageDisplayName(lang: string): string {
 }
 
 interface CodeBlockProps {
-  children: {
-    props: {
-      className?: string;
-      children: string;
-      file?: string;
-      title?: string;
-    };
-  } | any;
+  children: any;
+}
+
+// Walk a React node tree and concatenate its plain text — used to recover
+// the raw source from highlighted JSX so the Copy button still works.
+function extractText(node: React.ReactNode): string {
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string") return node;
+  if (typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(extractText).join("");
+  if (React.isValidElement(node)) {
+    const children = (node.props as any)?.children;
+    return extractText(children);
+  }
+  return "";
 }
 
 const CodeBlock = (props: CodeBlockProps) => {
@@ -65,16 +72,10 @@ const CodeBlock = (props: CodeBlockProps) => {
   }
 
   const className = props.children.props.className || "";
-  const code = typeof props.children.props.children === 'string'
-    ? props.children.props.children.trim()
-    : '';
+  const code = extractText(props.children.props.children).trim();
   const language = className.replace(/language-/, "") || "text";
   const file = props.children.props.file;
   const title = props.children.props.title;
-
-  // Check if the code block contains build-time highlighted HTML from @shikijs/rehype
-  const innerHtml = props.children.props.dangerouslySetInnerHTML?.__html;
-  const isPreHighlighted = !!innerHtml;
 
   const handleCopy = () => {
     copyToClipboard(code);
@@ -89,13 +90,6 @@ const CodeBlock = (props: CodeBlockProps) => {
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          {/* Traffic lights */}
-          <div className={styles.trafficLights}>
-            <div className={styles.trafficLightRed} />
-            <div className={styles.trafficLightYellow} />
-            <div className={styles.trafficLightGreen} />
-          </div>
-
           {/* Language badge */}
           <div className={styles.languageBadge}>
             {getLanguageDisplayName(language)}
@@ -119,20 +113,11 @@ const CodeBlock = (props: CodeBlockProps) => {
         </button>
       </div>
 
-      {/* Code content */}
+      {/* Code content — render the highlighted JSX tree shiki/rehype produced */}
       <div className={styles.codeContainer}>
-        {isPreHighlighted ? (
-          // Build-time highlighted code from @shikijs/rehype — already HTML
-          <div
-            className={styles.codeContent}
-            dangerouslySetInnerHTML={{ __html: innerHtml }}
-          />
-        ) : (
-          // Fallback: plain code (no client-side Shiki needed)
-          <div className={styles.codeContent}>
-            <pre><code>{code}</code></pre>
-          </div>
-        )}
+        <pre className={styles.codeContent}>
+          {props.children}
+        </pre>
       </div>
     </div>
   );

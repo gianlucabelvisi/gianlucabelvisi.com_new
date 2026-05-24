@@ -292,11 +292,14 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       rehypePlugins: [
         [rehypeShiki, {
           theme: 'github-dark',
+          addLanguageClass: true,
         }],
       ],
     },
     parseFrontmatter: false,
-    scope: {}
+    scope: {},
+    blockJS: false,
+    blockDangerousJS: false,
   })
 
   return {

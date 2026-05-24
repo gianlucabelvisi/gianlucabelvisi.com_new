@@ -22,6 +22,10 @@ const ResponsiveEmbed = ({
 
   const paddingBottom = ratioToPercent(ratio)
 
+  // Direct image/gif URLs need to be rendered as <img>; otherwise iframes
+  // display the image at its native size instead of stretching to fill.
+  const isDirectImage = /\.(gif|jpe?g|png|webp|avif)(\?|$)/i.test(src)
+
   return (
     <div style={{
       position: 'relative',
@@ -38,19 +42,34 @@ const ResponsiveEmbed = ({
         marginRight: 'calc(-4.2rem - 2rem)' // Pull right by one column + gap
       })
     }}>
-      <iframe
-        src={src}
-        title={title}
-        frameBorder="0"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%'
-        }}
-        {...iframeProps}
-      />
+      {isDirectImage ? (
+        <img
+          src={src}
+          alt={title}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
+        />
+      ) : (
+        <iframe
+          src={src}
+          title={title}
+          frameBorder="0"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%'
+          }}
+          {...iframeProps}
+        />
+      )}
     </div>
   )
 }

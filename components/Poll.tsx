@@ -107,42 +107,32 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
       </h3>
       
       {!loading && !answered && (
-        <div style={{
-          display: 'grid',
-          gap: '1rem',
-          gridTemplateColumns: answers.length <= 2 ? 'repeat(2, 1fr)' : 
-                              answers.length === 3 ? 'repeat(3, 1fr)' : 
-                              'repeat(2, 1fr)'
-        }}>
+        <div className={`pollOptions cols-${answers.length <= 2 ? 2 : answers.length === 3 ? 3 : 2}`}>
           {answers.map((answer, index) => {
-            const isSelected = selectedOption === index;
             const color = colors[index] || '#ccc';
-            
+
             return (
-              <div 
+              <div
                 key={index}
                 onClick={() => handleVote(index)}
                 style={{
                   padding: '1.5rem',
                   background: 'rgba(255, 255, 255, 0.6)',
-                  border: isSelected 
-                    ? `2px solid ${color}`
-                    : '2px solid rgba(0, 0, 0, 0.1)',
+                  border: `2px solid ${color}`,
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  transform: 'scale(1)',
+                  transition: 'box-shadow 0.3s ease, background-color 0.3s ease',
                   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
                   position: 'relative',
                   overflow: 'hidden'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.02) translateY(-2px)';
-                  e.currentTarget.style.boxShadow = `0 8px 25px ${color}30`;
+                  e.currentTarget.style.boxShadow = `0 4px 16px ${color}40`;
+                  e.currentTarget.style.backgroundColor = `${color}10`;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
                   e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.6)';
                 }}
               >
                 <div style={{
@@ -160,17 +150,12 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
       )}
 
       {/* Results with Pie Chart */}
-      {!loading && answered && totalVotes > 0 && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '3rem',
-          marginTop: '1rem'
-        }}>
+      <div className={`pollResultsWrap ${!loading && answered && totalVotes > 0 ? 'open' : ''}`}>
+       <div className="pollResultsInner">
+        {!loading && answered && totalVotes > 0 && (
+        <div className="pollResults">
           {/* Pie Chart */}
-          <div style={{
-            flex: '0 0 300px',
-            height: '300px',
+          <div className="pollPie" style={{
             opacity: 0,
             animation: 'slideInLeft 0.8s ease-out 0.3s forwards'
           }}>
@@ -244,7 +229,9 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
             ))}
           </div>
         </div>
-      )}
+        )}
+       </div>
+      </div>
 
       {loading && (
         <div style={{
@@ -270,6 +257,67 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
       )}
 
       <style jsx>{`
+        .pollOptions {
+          display: grid;
+          gap: 1rem;
+        }
+        .pollOptions.cols-2 { grid-template-columns: repeat(2, 1fr); }
+        .pollOptions.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+        /* Smooth height transition from options grid to results */
+        .pollResultsWrap {
+          display: grid;
+          grid-template-rows: 0fr;
+          transition: grid-template-rows 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .pollResultsWrap.open {
+          grid-template-rows: 1fr;
+        }
+        .pollResultsInner {
+          overflow: hidden;
+          min-height: 0;
+        }
+
+        .pollResults {
+          display: flex;
+          align-items: center;
+          gap: 3rem;
+          margin-top: 1rem;
+        }
+        .pollPie {
+          flex: 0 0 300px;
+          height: 300px;
+        }
+
+        @media (max-width: 640px) {
+          .pollOptions.cols-2,
+          .pollOptions.cols-3 {
+            grid-template-columns: 1fr;
+          }
+          .pollResults {
+            flex-direction: column;
+            gap: 1.5rem;
+          }
+          .pollPie {
+            flex: 0 0 auto;
+            width: 100%;
+            max-width: 320px;
+            height: auto;
+            aspect-ratio: 1 / 1;
+          }
+          /* Larger legend cards on mobile */
+          .pollResults > div:last-child > div {
+            padding: 1.1rem 1.25rem !important;
+            margin-bottom: 0.85rem !important;
+            font-size: 1.05rem !important;
+          }
+          .pollResults > div:last-child > div > div:first-child {
+            width: 20px !important;
+            height: 20px !important;
+            margin-right: 1.1rem !important;
+          }
+        }
+
         @keyframes slideInLeft {
           from {
             opacity: 0;
@@ -280,7 +328,7 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
             transform: translateX(0);
           }
         }
-        
+
         @keyframes slideInRight {
           from {
             opacity: 0;

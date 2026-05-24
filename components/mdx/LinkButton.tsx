@@ -9,12 +9,30 @@ interface LinkButtonProps {
 }
 
 const LinkButton: React.FC<LinkButtonProps> = ({ to, children, onHover = '' }) => {
+  const style = { '--hover-width': `${onHover.length}ch` } as React.CSSProperties;
+
+  // No destination: render a real <button> that does nothing when pressed,
+  // so we don't hand an empty href to next/link (which throws).
+  if (!to) {
+    return (
+      <button
+        type="button"
+        className={styles.button}
+        style={style}
+        onClick={(e) => e.preventDefault()}
+      >
+        {children}
+        <span className={styles.onHover}>{onHover}</span>
+      </button>
+    );
+  }
+
   return (
-    <Link href={to} className={styles.button} style={{ '--hover-width': `${onHover.length}ch` } as React.CSSProperties}>
+    <Link href={to} className={styles.button} style={style}>
       {children}
       <span className={styles.onHover}>{onHover}</span>
     </Link>
   );
 };
 
-export default LinkButton; 
+export default LinkButton;

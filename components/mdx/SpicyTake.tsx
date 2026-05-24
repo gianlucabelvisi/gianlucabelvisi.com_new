@@ -6,13 +6,18 @@ interface SpicyTakeProps {
 
 export default function SpicyTake({ children }: SpicyTakeProps) {
   return (
-    <div className={styles.container}>
+    <div className={styles.wrapper}>
       <div className={styles.badge}>
-        🌶️ Spicy Take
+        <span className={styles.pepper1} aria-hidden="true">🌶️</span>
+        <span className={styles.pepper2} aria-hidden="true">🌶️</span>
+        <span className={styles.pepper3} aria-hidden="true">🌶️</span>
+        <span className={styles.badgeText}>Spicy Take</span>
       </div>
-      <div className={styles.content}>
-        {children}
+      <div className={styles.container}>
+        <div className={styles.content}>
+          {children}
+        </div>
       </div>
     </div>
   )
-} 
+}
