@@ -18,13 +18,34 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
   const [isMobile, setIsMobile] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
   const [translateX, setTranslateX] = useState(0)
+  const [expandedSlug, setExpandedSlug] = useState<string | null>(null)
 
   // Use refs for drag state to avoid stale closure issues
   const isDraggingRef = useRef(false)
   const startXRef = useRef(0)
+  const startYRef = useRef(0)
+  const directionRef = useRef<'none' | 'horizontal' | 'vertical'>('none')
+  const wasHorizontalDragRef = useRef(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const itemsPerPage = 5
   const totalPages = Math.ceil(posts.length / itemsPerPage)
+
+  // Collapse expanded card when tapping outside the slider
+  useEffect(() => {
+    if (!expandedSlug) return
+    const handler = (e: Event) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setExpandedSlug(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    document.addEventListener('touchstart', handler, { passive: true })
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('touchstart', handler)
+    }
+  }, [expandedSlug])
 
   useEffect(() => {
     const handleResize = () => {
@@ -76,17 +97,38 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
     setCanScrollRight(newTranslateX > maxTranslate)
   }
 
-  // Touch handlers using refs to avoid stale state
+  // Touch handlers: detect direction so vertical swipes scroll the page natively
   const handleTouchStart = (e: React.TouchEvent) => {
     isDraggingRef.current = true
     startXRef.current = e.touches[0].clientX
+    startYRef.current = e.touches[0].clientY
+    directionRef.current = 'none'
+    wasHorizontalDragRef.current = false
     setDragOffset(0)
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDraggingRef.current) return
-    const offset = e.touches[0].clientX - startXRef.current
-    setDragOffset(offset)
+
+    const dx = e.touches[0].clientX - startXRef.current
+    const dy = e.touches[0].clientY - startYRef.current
+
+    if (directionRef.current === 'none') {
+      const adx = Math.abs(dx)
+      const ady = Math.abs(dy)
+      if (adx > 8 || ady > 8) {
+        directionRef.current = adx > ady ? 'horizontal' : 'vertical'
+      }
+    }
+
+    if (directionRef.current === 'horizontal') {
+      wasHorizontalDragRef.current = true
+      setDragOffset(dx)
+    } else if (directionRef.current === 'vertical') {
+      // Let the browser handle vertical scrolling
+      isDraggingRef.current = false
+      setDragOffset(0)
+    }
   }
 
   const handleTouchEnd = () => {
@@ -104,6 +146,23 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
     setDragOffset(0)
   }
 
+  const handleCardClick = (e: React.MouseEvent, slug: string) => {
+    // Suppress navigation if the tap was actually a horizontal drag
+    if (wasHorizontalDragRef.current) {
+      e.preventDefault()
+      wasHorizontalDragRef.current = false
+      return
+    }
+    // Two-tap behavior on touch devices: first tap expands, second tap navigates
+    const isTouchDevice =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(hover: none)').matches
+    if (isTouchDevice && expandedSlug !== slug) {
+      e.preventDefault()
+      setExpandedSlug(slug)
+    }
+  }
+
   const getCardImagePath = (post: PostData | PostSummary) => {
     if (imagePath) return imagePath(post)
     if (!post.frontmatter.cardImage) return '/images/placeholder-card.jpg'
@@ -114,7 +173,7 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
   if (!posts || posts.length === 0) return null
 
   return (
-    <div className={styles.sliderContainer}>
+    <div className={styles.sliderContainer} ref={containerRef}>
       <div className={styles.sliderHeader}>
         <h2 className={styles.sliderTitle}>{title}</h2>
         {totalPages > 1 && (
@@ -154,13 +213,15 @@ export default function NetflixSlider({ title, posts, imagePath }: NetflixSlider
         >
           {posts.map((post, index) => {
             const isLast = index >= posts.length - 2
+            const isExpanded = expandedSlug === post.slug
             return (
               <Link
                 key={post.slug}
                 href={`/${post.slug}`}
-                className={`${styles.cardLink} ${isLast ? styles.lastCard : ''}`}
+                className={`${styles.cardLink} ${isLast ? styles.lastCard : ''} ${isExpanded ? styles.expandedLink : ''}`}
+                onClick={(e) => handleCardClick(e, post.slug)}
               >
-                <div className={styles.card}>
+                <div className={`${styles.card} ${isExpanded ? styles.enlargedCard : ''}`}>
                   <div className={styles.cardImageWrapper}>
                     <Image
                       src={getCardImagePath(post)}

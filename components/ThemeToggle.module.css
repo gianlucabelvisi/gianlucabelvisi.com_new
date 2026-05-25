@@ -17,15 +17,26 @@
   height: 32px;
   border-radius: 16px;
   position: relative;
-  transition: background-color 1.5s ease-in-out;
+  overflow: hidden;
+  transition: background 0.5s ease;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
+/* Day sky: light blue gradient */
 .track.light {
-  background: #e5e7eb;
+  background: linear-gradient(180deg, #7ec8f5 0%, #c2e6ff 100%);
 }
 
+/* Starry night: deep navy gradient with yellow star dots */
 .track.dark {
-  background: #4b5563;
+  background:
+    radial-gradient(circle at 18% 35%, #ffd54a 0 0.9px, transparent 1.1px),
+    radial-gradient(circle at 30% 70%, #ffd54a 0 0.7px, transparent 0.9px),
+    radial-gradient(circle at 45% 25%, #ffd54a 0 0.6px, transparent 0.8px),
+    radial-gradient(circle at 62% 60%, #ffd54a 0 0.9px, transparent 1.1px),
+    radial-gradient(circle at 72% 30%, #ffd54a 0 0.7px, transparent 0.9px),
+    radial-gradient(circle at 88% 70%, #ffd54a 0 0.6px, transparent 0.8px),
+    linear-gradient(180deg, #0b1230 0%, #1a2350 100%);
 }
 
 .thumb {
@@ -36,51 +47,35 @@
   height: 24px;
   border-radius: 12px;
   background: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 1.5s ease-in-out;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateX(0);
+  z-index: 1;
 }
 
 .thumb.thumbRight {
   transform: translateX(24px);
 }
 
-/* Rotation wrapper — sun/moon rotate during transition */
-.iconWrapper {
-  position: relative;
-  width: 14px;
-  height: 14px;
-  transition: transform 2.1s ease-in-out;
-  transform: rotate(0deg);
-}
-
-.iconWrapper.iconWrapperDark {
-  transform: rotate(360deg);
-}
-
 .icon {
   position: absolute;
   inset: 0;
+  margin: auto;
+  transition: opacity 0.3s ease, transform 0.4s ease;
 }
 
-/* Icon crossfade — timed so the swap happens mid-slide (33%–67% of 1.5s = 500ms–1000ms) */
-@keyframes crossfadeIn {
-  0%, 33% { opacity: 0; }
-  67%, 100% { opacity: 1; }
-}
-
-@keyframes crossfadeOut {
-  0%, 33% { opacity: 1; }
-  67%, 100% { opacity: 0; }
+.iconHidden {
+  opacity: 0;
+  transform: scale(0.6);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .track,
   .thumb,
-  .iconWrapper {
+  .icon {
     transition: none;
   }
 }

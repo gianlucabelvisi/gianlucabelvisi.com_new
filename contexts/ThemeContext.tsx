@@ -16,24 +16,33 @@ interface ThemeProviderProps {
   forceTheme?: Theme // For pages that should always be a specific theme
 }
 
+function readPersistedTheme(): Theme | null {
+  if (typeof document === 'undefined') return null
+  // The blocking script in _document.tsx already applied this from localStorage;
+  // trust it so React's initial state matches the DOM and we avoid a flicker.
+  const attr = document.documentElement.getAttribute('data-theme')
+  if (attr === 'light' || attr === 'dark') return attr
+  try {
+    const saved = localStorage.getItem('blog-theme')
+    if (saved === 'light' || saved === 'dark') return saved
+  } catch {}
+  return null
+}
+
 export function ThemeProvider({ children, defaultTheme = 'light', forceTheme }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>(forceTheme || defaultTheme)
-  const [isInitialized, setIsInitialized] = useState(false)
+  const [theme, setThemeState] = useState<Theme>(
+    () => forceTheme || readPersistedTheme() || defaultTheme
+  )
   const [isManualToggle, setIsManualToggle] = useState(false)
 
+  // Re-sync state when navigating between homepage (forced) and posts (persisted).
   useEffect(() => {
     if (forceTheme) {
       setThemeState(forceTheme)
-      setIsInitialized(true)
       return
     }
-
-    // Load theme from localStorage on client side
-    const savedTheme = localStorage.getItem('blog-theme') as Theme
-    if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
-      setThemeState(savedTheme)
-    }
-    setIsInitialized(true)
+    const persisted = readPersistedTheme()
+    if (persisted) setThemeState(persisted)
   }, [forceTheme])
 
   useEffect(() => {

@@ -71,10 +71,10 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
     <div style={{
       margin: '2rem 0',
       padding: '2rem',
-      background: 'linear-gradient(135deg, rgba(255, 150, 100, 0.05) 0%, rgba(255, 255, 255, 0.8) 100%)',
-      border: '2px solid rgba(255, 150, 100, 0.2)',
+      background: 'linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.08) 0%, var(--color-background-card) 100%)',
+      border: '2px solid rgba(var(--color-primary-rgb), 0.25)',
       borderRadius: '12px',
-      boxShadow: '0 4px 20px rgba(255, 150, 100, 0.1)',
+      boxShadow: '0 4px 20px rgba(var(--color-primary-rgb), 0.12)',
       position: 'relative',
       overflow: 'hidden'
     }}>
@@ -85,20 +85,23 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
         left: 0,
         right: 0,
         bottom: 0,
-        opacity: 0.03,
+        opacity: 0.05,
         backgroundImage: `repeating-linear-gradient(
           45deg,
           transparent,
           transparent 10px,
-          rgba(255, 150, 100, 0.1) 10px,
-          rgba(255, 150, 100, 0.1) 20px
+          rgba(var(--color-primary-rgb), 0.1) 10px,
+          rgba(var(--color-primary-rgb), 0.1) 20px
         )`,
         pointerEvents: 'none'
       }} />
 
+      {/* Tilted, bouncy "Poll!" badge */}
+      <div className="pollBadge">Poll!</div>
+
       <h3 style={{
         marginBottom: '1.5rem',
-        color: '#333',
+        color: 'var(--color-text-primary)',
         fontSize: '1.3rem',
         fontWeight: '600',
         textAlign: 'center'
@@ -117,27 +120,27 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
                 onClick={() => handleVote(index)}
                 style={{
                   padding: '1.5rem',
-                  background: 'rgba(255, 255, 255, 0.6)',
+                  background: 'var(--color-background-card)',
                   border: `2px solid ${color}`,
                   borderRadius: '8px',
                   cursor: 'pointer',
                   transition: 'box-shadow 0.3s ease, background-color 0.3s ease',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                  boxShadow: 'var(--shadow-md)',
                   position: 'relative',
                   overflow: 'hidden'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.boxShadow = `0 4px 16px ${color}40`;
-                  e.currentTarget.style.backgroundColor = `${color}10`;
+                  e.currentTarget.style.backgroundColor = `${color}1a`;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.6)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                  e.currentTarget.style.backgroundColor = 'var(--color-background-card)';
                 }}
               >
                 <div style={{
                   fontWeight: '500',
-                  color: '#333',
+                  color: 'var(--color-text-primary)',
                   fontSize: '1rem',
                   textAlign: 'center'
                 }}>
@@ -184,20 +187,20 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
             animation: 'slideInRight 0.8s ease-out 0.6s forwards'
           }}>
             {pieData.map((item, index) => (
-              <div 
+              <div
                 key={item.key}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   marginBottom: '1rem',
                   padding: '0.75rem',
-                  background: selectedOption === item.key 
-                    ? `linear-gradient(135deg, ${item.color}20 0%, ${item.color}10 100%)`
-                    : 'rgba(255, 255, 255, 0.3)',
+                  background: selectedOption === item.key
+                    ? `linear-gradient(135deg, ${item.color}33 0%, ${item.color}1a 100%)`
+                    : 'var(--color-background-card)',
                   borderRadius: '8px',
-                  border: selectedOption === item.key 
-                    ? `2px solid ${item.color}60`
-                    : '1px solid rgba(0, 0, 0, 0.1)',
+                  border: selectedOption === item.key
+                    ? `2px solid ${item.color}80`
+                    : '1px solid var(--color-border)',
                   transform: selectedOption === item.key ? 'scale(1.02)' : 'scale(1)',
                   transition: 'all 0.3s ease'
                 }}
@@ -212,7 +215,7 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
                 }} />
                 <div style={{
                   fontWeight: selectedOption === item.key ? 'bold' : '500',
-                  color: '#333',
+                  color: 'var(--color-text-primary)',
                   fontSize: '1rem'
                 }}>
                   {item.title}
@@ -236,7 +239,7 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
       {loading && (
         <div style={{
           textAlign: 'center',
-          color: '#999',
+          color: 'var(--color-text-light)',
           fontStyle: 'italic',
           padding: '2rem'
         }}>
@@ -247,7 +250,7 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
       {!loading && totalVotes === 0 && !answered && (
         <div style={{
           textAlign: 'center',
-          color: '#999',
+          color: 'var(--color-text-light)',
           fontStyle: 'italic',
           marginTop: '1rem',
           fontSize: '0.9rem'
@@ -257,6 +260,33 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
       )}
 
       <style jsx>{`
+        .pollBadge {
+          position: absolute;
+          top: 0.9rem;
+          left: 0.9rem;
+          padding: 0.5rem 1.15rem;
+          background: var(--color-primary);
+          color: #fff;
+          font-weight: 800;
+          font-size: 1.25rem;
+          letter-spacing: 0.02em;
+          border-radius: 999px;
+          box-shadow: 0 4px 14px rgba(var(--color-primary-rgb), 0.5);
+          animation: pollBadgeBounce 2.4s ease-in-out infinite;
+          z-index: 2;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        @keyframes pollBadgeBounce {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-4px); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .pollBadge { animation: none; }
+        }
+
         .pollOptions {
           display: grid;
           gap: 1rem;

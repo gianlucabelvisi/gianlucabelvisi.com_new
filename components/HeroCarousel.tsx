@@ -152,8 +152,10 @@ export default function HeroCarousel({ posts, autoAdvanceInterval = 6000 }: Hero
                 
                 <div className={styles.heroMeta}>
                   <span className={styles.heroDate}>{formatDate(post.frontmatter.date)}</span>
-                  <span className={styles.heroDivider}>•</span>
-                  <span className={styles.heroAuthor}>by {post.frontmatter.author}</span>
+                  <span className={styles.heroAuthorGroup}>
+                    <span className={styles.heroDivider}>•</span>
+                    <span className={styles.heroAuthor}>by {post.frontmatter.author}</span>
+                  </span>
                   {post.frontmatter.onHover && (
                     <>
                       <span className={styles.heroDivider}>•</span>
@@ -161,11 +163,11 @@ export default function HeroCarousel({ posts, autoAdvanceInterval = 6000 }: Hero
                     </>
                   )}
                 </div>
-                
+
                 <div className={styles.heroActions}>
                   <Link href={`/${post.slug}`} className={styles.heroButton}>
-                    <span className={styles.heroButtonIcon}>▶</span>
-                    Read Post
+                    <span className={styles.heroButtonIcon}>{'▶︎'}</span>
+                    Read<span className={styles.heroButtonPost}> Post</span>
                   </Link>
                   
                   <div className={styles.heroTags}>

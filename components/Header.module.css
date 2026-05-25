@@ -93,8 +93,20 @@
   transition: color 0.2s ease;
 }
 
+.logoIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-text-secondary);
+  stroke-width: 2;
+  transition: color 0.2s ease;
+}
+
 /* On homepage the page bg is always dark, keep text readable */
 .homepage .logoText {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.homepage .logoIcon {
   color: rgba(255, 255, 255, 0.65);
 }
 
@@ -102,7 +114,15 @@
   color: var(--color-text-primary);
 }
 
+.logo:hover .logoIcon {
+  color: var(--color-text-primary);
+}
+
 .homepage .logo:hover .logoText {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.homepage .logo:hover .logoIcon {
   color: rgba(255, 255, 255, 0.95);
 }
 

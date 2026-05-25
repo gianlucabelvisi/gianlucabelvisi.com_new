@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { FiHome } from 'react-icons/fi'
 import ThemeToggle from './ThemeToggle'
 import styles from './Header.module.css'
 
@@ -69,7 +70,7 @@ export default function Header() {
         <div className={styles.inner}>
           {!isHomepage && (
             <Link href="/" className={styles.logo} aria-label="Home">
-              <span className={styles.logoText}>Home</span>
+              <FiHome className={styles.logoIcon} aria-hidden="true" />
             </Link>
           )}
 

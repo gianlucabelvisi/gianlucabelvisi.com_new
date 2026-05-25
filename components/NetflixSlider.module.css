@@ -20,10 +20,12 @@
   transition: opacity 300ms ease, transform 300ms ease;
 }
 
-/* Hide header when any card is hovered */
-.sliderContainer:has(.cardLink:hover) .sliderHeader {
-  opacity: 0;
-  transform: translateY(-10px);
+/* Hide header when any card is hovered (mouse/trackpad only — not touch) */
+@media (hover: hover) and (pointer: fine) {
+  .sliderContainer:has(.cardLink:hover) .sliderHeader {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
 
 /* Responsive header adjustments */
@@ -126,7 +128,7 @@
   min-height: 180px;
   overflow: visible;
   padding: 0;
-  touch-action: pan-x;
+  touch-action: pan-y;
   user-select: none;
 }
 
@@ -212,16 +214,18 @@
   transform-origin: center;
 }
 
-.cardLink:hover {
-  z-index: 1000;
-  transition-delay: 300ms;
-  transform: scale(1.5) translateY(-15%) translateX(15%);
-}
+@media (hover: hover) and (pointer: fine) {
+  .cardLink:hover {
+    z-index: 1000;
+    transition-delay: 300ms;
+    transform: scale(1.5) translateY(-15%) translateX(15%);
+  }
 
-.cardLink.lastCard:hover {
-  z-index: 1000;
-  transition-delay: 300ms;
-  transform: scale(1.5) translateY(-15%) translateX(-15%);
+  .cardLink.lastCard:hover {
+    z-index: 1000;
+    transition-delay: 300ms;
+    transform: scale(1.5) translateY(-15%) translateX(-15%);
+  }
 }
 
 .card {
@@ -268,28 +272,43 @@
 }
 
 /* Enlarged card state for mobile tap */
+.expandedLink {
+  z-index: 1000;
+}
+
 .enlargedCard {
-  transform: scale(1.1);
-  z-index: 100;
+  border-color: var(--color-primary);
   box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8) !important;
   transition: all 0.3s ease !important;
 }
 
+.enlargedCard .cardOverlay {
+  transform: translateY(0);
+}
+
+.enlargedCard .cardTitle {
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  display: block;
+}
+
 @media screen and (max-width: 768px) {
-  .enlargedCard {
+  .expandedLink {
     transform: scale(1.15);
   }
 }
 
 @media screen and (max-width: 480px) {
-  .enlargedCard {
+  .expandedLink {
     transform: scale(1.2);
   }
 }
 
-.card:hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  }
 }
 
 .cardImageWrapper {
@@ -320,9 +339,11 @@
   transition: transform 500ms ease;
 }
 
-/* On hover, slide the entire overlay up to show subtitle */
-.card:hover .cardOverlay {
-  transform: translateY(0);
+/* On hover, slide the entire overlay up to show subtitle (mouse/trackpad only) */
+@media (hover: hover) and (pointer: fine) {
+  .card:hover .cardOverlay {
+    transform: translateY(0);
+  }
 }
 
 .cardContent {
@@ -342,11 +363,13 @@
   transition: padding-top 1s ease;
 }
 
-/* Show full title (all lines) on hover */
-.card:hover .cardTitle {
-  -webkit-line-clamp: unset;
-  line-clamp: unset;
-  display: block;
+/* Show full title (all lines) on hover (mouse/trackpad only) */
+@media (hover: hover) and (pointer: fine) {
+  .card:hover .cardTitle {
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    display: block;
+  }
 }
 
 /* Title styling is consistent now */
