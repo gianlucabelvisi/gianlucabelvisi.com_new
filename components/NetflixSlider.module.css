@@ -47,11 +47,43 @@
   }
 }
 
+.sliderTitleGroup {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
 .sliderTitle {
   color: var(--color-text-primary);
   font-size: 1.4rem;
   font-weight: 700;
   margin: 0;
+}
+
+.moreLink {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+.sliderContainer:hover .moreLink,
+.moreLink:focus-visible,
+.sliderContainer:focus-within .moreLink {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .moreLink {
+    opacity: 1;
+  }
+}
+
+.moreLink:hover,
+.moreLink:focus-visible {
+  color: var(--color-primary);
 }
 
 .sliderControls {
@@ -65,17 +97,63 @@
   align-items: center;
 }
 
+/* Dots are buttons: 24px hit area, 8px visible dot drawn with a box-shadow ring trick */
 .progressDot {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+}
+
+.progressDot::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  transform: translate(-50%, -50%);
   background: rgba(255, 255, 255, 0.3);
   transition: all 0.3s ease;
 }
 
-.progressDot.activeDot {
+.progressDot:hover::before {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.progressDot.activeDot::before {
   background: rgba(255, 255, 255, 0.8);
-  transform: scale(1.2);
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+.progressDot:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 0;
+}
+
+.cardLink:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-radius: var(--border-radius-md);
+}
+
+.sliderButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardLink,
+  .card,
+  .cardOverlay,
+  .slider {
+    transition: none !important;
+  }
 }
 
 .sliderButton {

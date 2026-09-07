@@ -2,30 +2,23 @@ import "@/styles/globals.css";
 import "@/styles/utils.css";
 import "@/styles/blog.css";
 import type { AppProps } from "next/app";
+import Script from "next/script";
 import React from "react";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import { useRouter } from "next/router";
 import Header from "../components/Header";
+import SiteFooter from "../components/SiteFooter";
+import RouteProgress from "../components/RouteProgress";
+import { isDarkOnlyRoute } from "../lib/routes";
+
+// Privacy-friendly, cookie-less analytics. Off unless the domain is configured (see .env.example).
+const PLAUSIBLE_DOMAIN = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
 
-  // Homepage should always be dark, posts should default to light
-  const isHomepage = router.pathname === '/';
-  const forceTheme = isHomepage ? 'dark' : undefined;
-  const defaultTheme = isHomepage ? 'dark' : 'light';
-
-  // Set initial theme immediately to prevent flash
-  React.useEffect(() => {
-    if (isHomepage) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-      // For posts, check localStorage or default to light
-      const savedTheme = localStorage.getItem('blog-theme');
-      const initialTheme = savedTheme || 'light';
-      document.documentElement.setAttribute('data-theme', initialTheme);
-    }
-  }, [isHomepage]);
+  // Browse pages (home, archive, tags, search) are always dark; posts respect the toggle
+  const forceTheme = isDarkOnlyRoute(router.pathname) ? 'dark' : undefined;
 
   // Register PWA service worker (production only — avoids stale SW in dev)
   React.useEffect(() => {
@@ -41,9 +34,22 @@ export default function App({ Component, pageProps }: AppProps) {
   }, []);
 
   return (
-    <ThemeProvider forceTheme={forceTheme} defaultTheme={defaultTheme}>
+    <ThemeProvider forceTheme={forceTheme} defaultTheme="light">
+      {PLAUSIBLE_DOMAIN && process.env.NODE_ENV === 'production' && (
+        <Script
+          defer
+          data-domain={PLAUSIBLE_DOMAIN}
+          src="https://plausible.io/js/script.outbound-links.js"
+          strategy="afterInteractive"
+        />
+      )}
+      <a href="#main-content" className="skip-link">Skip to content</a>
+      <RouteProgress />
       <Header />
-      <Component {...pageProps} />
+      <main id="main-content">
+        <Component {...pageProps} />
+      </main>
+      <SiteFooter />
     </ThemeProvider>
   );
 }

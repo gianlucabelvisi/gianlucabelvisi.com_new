@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useId, useState } from 'react'
 import styles from './TextBox.module.css'
 
 interface TextBoxProps {
@@ -8,28 +8,14 @@ interface TextBoxProps {
   defaultOpen?: boolean
 }
 
+/**
+ * Callout box with optional collapse. The open/close animation is a CSS grid
+ * `1fr` ↔ `0fr` transition, so the content is never clipped to a measured height —
+ * lazy-loaded images that grow the box after mount used to get cut off.
+ */
 const TextBox = ({ children, title, closeable = false, defaultOpen = true }: TextBoxProps) => {
   const [isOpen, setIsOpen] = useState(defaultOpen)
-  const [isAnimating, setIsAnimating] = useState(false)
-  const contentRef = useRef<HTMLDivElement>(null)
-  const [contentHeight, setContentHeight] = useState<number>(0)
-
-  useEffect(() => {
-    if (contentRef.current) {
-      setContentHeight(contentRef.current.scrollHeight)
-    }
-  }, [children, isOpen])
-
-  const handleToggle = () => {
-    if (isAnimating) return
-    
-    setIsAnimating(true)
-    setIsOpen(!isOpen)
-    
-    setTimeout(() => {
-      setIsAnimating(false)
-    }, 300)
-  }
+  const contentId = useId()
 
   return (
     <div className={styles.textbox}>
@@ -41,23 +27,18 @@ const TextBox = ({ children, title, closeable = false, defaultOpen = true }: Tex
         )}
         {closeable && (
           <button
-            onClick={handleToggle}
+            type="button"
+            onClick={() => setIsOpen(o => !o)}
             className={`${styles.toggleButton} ${isOpen ? styles.open : styles.closed}`}
-            disabled={isAnimating}
+            aria-expanded={isOpen}
+            aria-controls={contentId}
           >
             {isOpen ? '▲ Hide' : '▼ Show'}
           </button>
         )}
       </div>
-      
-      <div 
-        ref={contentRef}
-        className={styles.content}
-        style={{
-          maxHeight: isOpen ? `${contentHeight}px` : '0px',
-          opacity: isOpen ? 1 : 0,
-        }}
-      >
+
+      <div id={contentId} className={`${styles.content} ${isOpen ? '' : styles.collapsed}`}>
         <div className={styles.contentInner}>
           {children}
         </div>
@@ -66,4 +47,4 @@ const TextBox = ({ children, title, closeable = false, defaultOpen = true }: Tex
   )
 }
 
-export default TextBox 
+export default TextBox

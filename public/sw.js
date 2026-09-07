@@ -2,11 +2,16 @@
 //
 // BUMP THIS on each deploy that should invalidate old caches.
 // (Old caches will be deleted automatically during the next activate.)
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const PAGES_CACHE  = `pages-${CACHE_VERSION}`;
+const IMAGES_CACHE = `images-${CACHE_VERSION}`;
 const OFFLINE_URL  = '/offline';
+
+// Images are big and plentiful; keep only the most recent N so the cache
+// can't grow to hundreds of MB on a reader's device.
+const IMAGES_MAX_ENTRIES = 80;
 
 // Minimal precache — homepage + offline fallback + manifest.
 // Everything else is cached lazily as users navigate.
@@ -33,7 +38,7 @@ self.addEventListener('activate', (event) => {
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter((k) => k !== STATIC_CACHE && k !== PAGES_CACHE)
+          .filter((k) => k !== STATIC_CACHE && k !== PAGES_CACHE && k !== IMAGES_CACHE)
           .map((k) => caches.delete(k))
       );
       await self.clients.claim();
@@ -52,11 +57,19 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/')) return;
   if (url.pathname.startsWith('/_next/data/')) return;
 
+  // Images (raw and Next-optimized) — cache-first but bounded.
+  if (
+    url.pathname.startsWith('/images/') ||
+    url.pathname.startsWith('/_next/image')
+  ) {
+    event.respondWith(cacheFirstBounded(request, IMAGES_CACHE, IMAGES_MAX_ENTRIES));
+    return;
+  }
+
   // Static assets — cache-first, long-lived (content-hashed by Next.js).
   if (
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/icons/') ||
-    url.pathname.startsWith('/images/') ||
     url.pathname.startsWith('/fonts/') ||
     url.pathname === '/favicon.ico' ||
     url.pathname === '/manifest.webmanifest'
@@ -86,6 +99,31 @@ async function cacheFirst(request, cacheName) {
   } catch (err) {
     return cached || Response.error();
   }
+}
+
+// Cache-first with a simple FIFO cap: once the cache holds more than
+// maxEntries responses, the oldest ones are evicted.
+async function cacheFirstBounded(request, cacheName, maxEntries) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      await cache.put(request, response.clone());
+      trimCache(cache, maxEntries); // fire-and-forget
+    }
+    return response;
+  } catch (err) {
+    return cached || Response.error();
+  }
+}
+
+async function trimCache(cache, maxEntries) {
+  const keys = await cache.keys();
+  if (keys.length <= maxEntries) return;
+  const excess = keys.slice(0, keys.length - maxEntries);
+  await Promise.all(excess.map((k) => cache.delete(k)));
 }
 
 async function staleWhileRevalidate(request, cacheName, withOfflineFallback) {

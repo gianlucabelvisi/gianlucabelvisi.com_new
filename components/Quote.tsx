@@ -4,13 +4,15 @@ import styles from './Quote.module.css'
 interface QuoteProps {
   children: React.ReactNode
   from?: string
+  /** Short label announced to screen readers, e.g. "inspiring quote" */
   title?: string
+  /** Legacy prop from the Gatsby blog; accepted for compatibility, no effect */
   bouncy?: boolean
 }
 
-const Quote = ({ children, from, title, bouncy = false }: QuoteProps) => {
+const Quote = ({ children, from, title }: QuoteProps) => {
   return (
-    <div className={styles.quoteContainer}>
+    <figure className={styles.quoteContainer} aria-label={title}>
       {/* Decorative background elements */}
       <div className={styles.decorativeTopRight} />
       <div className={styles.decorativeBottomLeft} />
@@ -27,11 +29,11 @@ const Quote = ({ children, from, title, bouncy = false }: QuoteProps) => {
       
       {/* Attribution */}
       {from && (
-        <div className={styles.attribution}>
+        <figcaption className={styles.attribution}>
           — {from}
-        </div>
+        </figcaption>
       )}
-    </div>
+    </figure>
   )
 }
 

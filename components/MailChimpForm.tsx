@@ -1,41 +1,38 @@
-import React, { useEffect, useState } from 'react';
-import MailchimpSubscribe from 'react-mailchimp-subscribe';
+import React, { useState } from 'react';
+import MailchimpSubscribe, { EmailFormFields } from 'react-mailchimp-subscribe';
 import InputField from './InputField';
 import TextBox from './TextBox';
+
+// EMAIL is Mailchimp's canonical field (MERGE0 is its alias); MERGE1/2 = first/last name
+interface MailchimpFields extends EmailFormFields {
+  MERGE1: string;
+  MERGE2: string;
+}
 
 interface CustomFormProps {
   status: string | null;
   message: string | Error | null;
-  onValidated: (formData: any) => void;
+  onValidated: (formData: MailchimpFields) => void;
 }
+
+// Helper function to convert message to string
+const getMessageString = (msg: string | Error | null): string => {
+  if (!msg) return '';
+  if (typeof msg === 'string') return msg;
+  return msg.message || 'An error occurred';
+};
 
 const CustomForm = ({ status, message, onValidated }: CustomFormProps) => {
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-
-  // Helper function to convert message to string
-  const getMessageString = (msg: string | Error | null): string => {
-    if (!msg) return '';
-    if (typeof msg === 'string') return msg;
-    return msg.message || 'An error occurred';
-  };
-
-  useEffect(() => {
-    if (status === "success") clearFields();
-  }, [status]);
-
-  const clearFields = () => {
-    setFirstName('');
-    setLastName('');
-    setEmail('');
-  };
+  // No need to clear fields on success: the inputs are unmounted once status === "success".
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email && firstName && lastName && email.indexOf("@") > -1) {
       onValidated({
-        MERGE0: email,
+        EMAIL: email,
         MERGE1: firstName,
         MERGE2: lastName,
       });
@@ -121,9 +118,7 @@ const CustomForm = ({ status, message, onValidated }: CustomFormProps) => {
   );
 };
 
-interface MailChimpFormProps {}
-
-const MailChimpForm = (props: MailChimpFormProps) => {
+const MailChimpForm = () => {
   const postUrl = `https://gianlucabelvisi.us20.list-manage.com/subscribe/post?u=${process.env.NEXT_PUBLIC_MAILCHIMP_U}&id=${process.env.NEXT_PUBLIC_MAILCHIMP_ID}`;
 
   return (

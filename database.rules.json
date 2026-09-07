@@ -1,0 +1,47 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "views": {
+      ".read": true,
+      "$post": {
+        "count": {
+          ".write": "newData.isNumber() && newData.val() >= 0 && (!data.exists() || newData.val() === data.val() + 1)",
+          ".validate": "newData.isNumber()"
+        },
+        "$other": { ".validate": false }
+      }
+    },
+
+    "reactions": {
+      ".read": true,
+      "$post": {
+        "$reaction": {
+          ".write": "newData.isNumber() && newData.val() >= 0 && (!data.exists() || newData.val() === data.val() + 1 || newData.val() === data.val() - 1)",
+          ".validate": "$reaction.matches(/^(like|lol|love|cringe|pony)$/) && newData.isNumber()"
+        }
+      }
+    },
+
+    "polls": {
+      ".read": true,
+      "$poll": {
+        "$answer": {
+          ".write": "newData.isNumber() && newData.val() >= 0 && (!data.exists() || newData.val() === data.val() + 1)",
+          ".validate": "$answer.matches(/^[0-9]$/) && newData.isNumber()"
+        }
+      }
+    },
+
+    "unicorn": {
+      ".read": true,
+      "$page": {
+        "$id": {
+          ".write": "newData.isNumber() && newData.val() >= 0 && (!data.exists() || newData.val() === data.val() + 1)",
+          ".validate": "newData.isNumber()"
+        }
+      }
+    }
+  }
+}

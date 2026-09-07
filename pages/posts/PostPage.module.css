@@ -22,9 +22,21 @@
   position: absolute;
   bottom: 0;
   margin: 0;
-  color: #666;
+  color: var(--color-text-secondary);
   font-size: 1.3rem;
   font-weight: 500;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.metaDivider {
+  color: var(--color-text-light);
+}
+
+/* Share row shown only where the sticky sidebar is hidden */
+.mobileShare {
+  display: none;
 }
 
 .featureImageContainer {
@@ -34,6 +46,27 @@
   position: relative;
 }
 
+
+/* Table of contents rail: the otherwise-empty two columns left of the share sidebar */
+.tocRail {
+  grid-column: 1 / span 2;
+  grid-row: 4 / span 4;
+  position: relative;
+  z-index: 2;
+  justify-self: end;
+  width: min(100%, 16rem);
+  padding-left: 1.5rem;
+}
+
+.tocSticky {
+  position: sticky;
+  top: calc(var(--header-height) + 2rem);
+}
+
+/* Inline variant is for narrow screens only */
+.tocInline {
+  display: none;
+}
 
 .sidebar {
   grid-column: 3;
@@ -162,11 +195,19 @@
 
 /* Only style inline code, not code inside pre blocks */
 .mdxContent code:not(pre code) {
-  background: var(--color-accent-background);
-  padding: 0.2em 0.4em;
+  background: var(--color-background-hover);
+  border: 1px solid var(--color-border);
+  padding: 0.15em 0.4em;
   border-radius: var(--border-radius-sm);
-  font-size: 0.9em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875em;
   color: var(--color-text-primary);
+}
+
+/* Heading anchors from rehype-slug: land below the fixed header */
+.mdxContent h2[id],
+.mdxContent h3[id] {
+  scroll-margin-top: calc(var(--header-height) + 1rem);
 }
 
 /* CodeBlock component handles all pre styling */
@@ -190,16 +231,6 @@
   opacity: 0.7;
 }
 
-.postFooterArea {
-  margin-top: 3rem;
-  padding: 2rem 0;
-}
-
-.postTags {
-  color: #888;
-  margin-top: 1rem;
-}
-
 .quoteStart {
   color: #ff9664;
   margin-right: 0.5rem;
@@ -211,6 +242,18 @@
 }
 
 
+/* ── Medium screens: no room for the rail, fall back to the inline toggle ── */
+
+@media screen and (max-width: 1439px) {
+  .tocRail {
+    display: none;
+  }
+
+  .tocInline {
+    display: block;
+  }
+}
+
 /* ── Mobile layout ────────────────────────────────────────────────────────── */
 
 @media screen and (max-width: 900px) {
@@ -221,9 +264,13 @@
     padding-top: 4rem; /* fixed header height */
   }
 
-  /* Hide social share sidebar */
+  /* Hide social share sidebar; show the inline row at the end instead */
   .sidebar {
     display: none;
+  }
+
+  .mobileShare {
+    display: block;
   }
 
   /* Date sits in normal flow, not absolutely positioned */
@@ -235,7 +282,8 @@
 
   .dateHeader {
     position: static;
-    font-size: 1.1rem;
+    font-size: 1rem;
+    flex-wrap: wrap;
   }
 
   /* Image: full bleed, 16:9 aspect ratio — fill requires explicit height */

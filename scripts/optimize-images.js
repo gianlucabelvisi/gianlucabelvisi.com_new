@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 
 // Re-encode oversized images in posts/<year>/<slug>/ in place so they don't
 // blow up the bundle / CDN bandwidth. MDX references images by filename, so
@@ -24,6 +23,8 @@ const POSTS_DIR = path.join(__dirname, '..', 'posts');
 const MAX_WIDTH = 1600;
 const SIZE_THRESHOLD = 500 * 1024; // 500 KB
 const JPG_QUALITY = 82;
+// Don't re-encode (and lose quality) for a marginal win.
+const MIN_GAIN = 0.10; // 10%
 const DRY_RUN = process.argv.includes('--dry-run');
 
 const PROCESS_EXTS = new Set(['.jpg', '.jpeg', '.png']);
@@ -78,8 +79,10 @@ async function optimize(file) {
     buffer = await p.jpeg({ quality: JPG_QUALITY, mozjpeg: true }).toBuffer();
   }
 
-  // Refuse to write if the "optimized" version is larger.
-  if (buffer.length >= stat.size) {
+  // Never write a larger file. For same-dimension re-encodes also require a
+  // meaningful gain, otherwise we just lose quality for nothing.
+  const minAcceptable = oversized ? stat.size : stat.size * (1 - MIN_GAIN);
+  if (buffer.length >= minAcceptable) {
     return { file, status: 'skip-no-gain', oldSize: stat.size, newSize: buffer.length };
   }
 

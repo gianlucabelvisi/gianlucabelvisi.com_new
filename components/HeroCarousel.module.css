@@ -206,36 +206,45 @@
   z-index: 3;
 }
 
+/* The button is a generous 28px hit area; the visible dot is the inner span. */
 .dot {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.dot:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.dotProgress {
+  display: block;
   width: 12px;
   height: 12px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.4);
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
   overflow: hidden;
+  position: relative;
+  transition: background 0.3s ease, transform 0.3s ease;
 }
 
-.dot:hover {
+.dot:hover .dotProgress {
   background: rgba(255, 255, 255, 0.6);
   transform: scale(1.1);
 }
 
-.activeDot {
+.activeDot .dotProgress {
   background: rgba(255, 255, 255, 0.9);
   transform: scale(1.2);
-}
-
-.dotProgress {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  overflow: hidden;
 }
 
 .dotProgressBar {
@@ -248,6 +257,61 @@
   border-radius: 50%;
   transform: scale(0);
   animation: progressFill linear forwards;
+}
+
+/* Prev / next arrows — visible on hover / focus on desktop, always available to keyboard */
+.navButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 48px;
+  height: 96px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  color: white;
+  font-size: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s ease, background 0.3s ease;
+}
+
+.navPrev { left: 1rem; }
+.navNext { right: 1rem; }
+
+.carousel:hover .navButton,
+.carousel:focus-within .navButton,
+.navButton:focus-visible {
+  opacity: 1;
+}
+
+.navButton:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.navButton:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (hover: none) {
+  .navButton {
+    display: none; /* swipe instead */
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slidesWrapper {
+    transition: none;
+  }
+  .dotProgressBar {
+    animation: none;
+    transform: scale(1);
+  }
 }
 
 @keyframes progressFill {
@@ -358,4 +422,10 @@
 
 .heroText {
   animation: carouselFadeIn 1s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .heroText {
+    animation: none;
+  }
 }

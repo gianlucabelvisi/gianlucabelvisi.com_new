@@ -1,0 +1,80 @@
+.box {
+  margin: 0 0 2rem;
+  padding: 1.1rem 1.25rem 1rem;
+  border-radius: var(--border-radius-md);
+  background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.08) 0%, var(--color-background-card) 100%);
+  border: 1px solid rgba(var(--color-primary-rgb), 0.3);
+}
+
+.kicker {
+  margin: 0 0 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.name {
+  margin: 0 0 0.75rem !important;
+  font-size: 1.15rem !important;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.part {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.list {
+  list-style: none;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0 !important;
+  font-size: 0.95rem !important;
+  line-height: 1.4;
+}
+
+.number {
+  flex: 0 0 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--color-background-hover);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+}
+
+.current .number {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.currentTitle {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.link {
+  color: var(--color-text-secondary) !important;
+  font-weight: 500 !important;
+  text-decoration: none;
+}
+
+.link:hover {
+  color: var(--color-primary) !important;
+}

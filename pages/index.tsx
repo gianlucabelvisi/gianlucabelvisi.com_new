@@ -3,6 +3,7 @@ import { getAllPostsSummary, PostSummary } from '../lib/posts'
 import { groupPostsForHomepage } from '../lib/hashtags'
 import HeroCarousel from '../components/HeroCarousel'
 import NetflixSlider from '../components/NetflixSlider'
+import LazySection from '../components/LazySection'
 import SEO from '../components/SEO'
 import styles from '../styles/Home.module.css'
 
@@ -28,16 +29,11 @@ export default function HomePage({ groupedPosts }: HomePageProps) {
   const hasPosts = carouselPosts.length > 0
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--color-background-main)',
-      color: 'var(--color-text-primary)',
-      overflow: 'visible'
-    }}>
+    <div className={styles.homePage}>
       <SEO />
       {!hasPosts ? (
-        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
-          <h1 style={{ color: 'var(--color-text-primary)' }}>My Next.js MDX Blog</h1>
+        <div className={styles.emptyState}>
+          <h1>My Next.js MDX Blog</h1>
           <p>No posts found. Add some .mdx files to the /posts directory!</p>
         </div>
       ) : (
@@ -45,50 +41,71 @@ export default function HomePage({ groupedPosts }: HomePageProps) {
           {/* Netflix Hero Carousel */}
           <HeroCarousel posts={carouselPosts} autoAdvanceInterval={6000} />
 
-          {/* Netflix Content Sliders */}
+          {/* Netflix Content Sliders — first row renders immediately, the rest as they approach the viewport */}
           <div className={styles.slidersContainer}>
             <NetflixSlider
               title="Latest Posts"
               posts={groupedPosts.latest}
+              moreHref="/archive"
             />
 
             {groupedPosts.caterina.length > 0 && (
-              <NetflixSlider
-                title="Caterina Sforza Chronicles"
-                posts={groupedPosts.caterina}
-              />
+              <LazySection>
+                <NetflixSlider
+                  title="Caterina Sforza Chronicles"
+                  posts={groupedPosts.caterina}
+                  moreHref="/tags/caterina-sforza"
+                />
+              </LazySection>
             )}
 
             {groupedPosts.food.length > 0 && (
-              <NetflixSlider
-                title="Food & Coffee Adventures"
-                posts={groupedPosts.food}
-              />
+              <LazySection>
+                <NetflixSlider
+                  title="Food & Coffee Adventures"
+                  posts={groupedPosts.food}
+                  moreHref="/tags/food"
+                />
+              </LazySection>
             )}
 
             {groupedPosts.mindfulness.length > 0 && (
-              <NetflixSlider
-                title="Mindfulness & Reflection"
-                posts={groupedPosts.mindfulness}
-              />
+              <LazySection>
+                <NetflixSlider
+                  title="Mindfulness & Reflection"
+                  posts={groupedPosts.mindfulness}
+                  moreHref="/tags/mindfulness"
+                />
+              </LazySection>
             )}
 
             {groupedPosts.books.length > 0 && (
-              <NetflixSlider
-                title="Books & Reading"
-                posts={groupedPosts.books}
-              />
+              <LazySection>
+                <NetflixSlider
+                  title="Books & Reading"
+                  posts={groupedPosts.books}
+                  moreHref="/tags/books"
+                />
+              </LazySection>
             )}
 
-            <NetflixSlider
-              title="Random Discovery"
-              posts={groupedPosts.randomized}
-            />
+            <LazySection>
+              <NetflixSlider
+                title="Random Discovery"
+                posts={groupedPosts.randomized}
+                moreHref="/tags"
+                moreLabel="Browse by tag"
+              />
+            </LazySection>
 
-            <NetflixSlider
-              title="All Posts (Chronological)"
-              posts={groupedPosts.chronological}
-            />
+            <LazySection>
+              <NetflixSlider
+                title="From the Archive"
+                posts={groupedPosts.chronological}
+                moreHref="/archive"
+                moreLabel="All posts"
+              />
+            </LazySection>
           </div>
         </>
       )}

@@ -82,16 +82,38 @@
   box-shadow: 0 2px 6px rgba(255, 150, 100, 0.4);
 }
 
+/* Collapse via grid rows: 1fr <-> 0fr animates to the content's real height,
+   whatever it becomes (lazy images, embeds), so nothing is ever clipped when open */
 .content {
   position: relative;
   z-index: 1;
   line-height: 1.6;
-  overflow: hidden;
-  transition: max-height 0.3s ease, opacity 0.3s ease;
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition: grid-template-rows 0.3s ease, opacity 0.3s ease;
+}
+
+.collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
 }
 
 .contentInner {
-  padding-bottom: 0;
+  min-height: 0;
+  overflow: clip;
+  overflow-clip-margin: 8px; /* let image shadows breathe; still collapses to 0 */
+}
+
+/* Inside a post the last paragraph's margin would otherwise double up with the box padding */
+.contentInner > :last-child {
+  margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content {
+    transition: none;
+  }
 }
 
 /* Images within TextBox */

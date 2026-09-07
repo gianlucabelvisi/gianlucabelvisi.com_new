@@ -15,16 +15,14 @@ interface PostFooterProps {
 
 const PostFooter = ({ path, author }: PostFooterProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  // Browsers without IntersectionObserver (none in practice since 2019) mount immediately.
+  const [visible, setVisible] = useState(
+    () => typeof window !== 'undefined' && typeof IntersectionObserver === 'undefined'
+  );
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
-    if (typeof IntersectionObserver === 'undefined') {
-      // Old browsers — just mount immediately.
-      setVisible(true);
-      return;
-    }
+    if (!el || visible) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -37,7 +35,7 @@ const PostFooter = ({ path, author }: PostFooterProps) => {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [visible]);
 
   return (
     <div ref={containerRef} className={styles.container}>

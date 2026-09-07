@@ -4,39 +4,47 @@ import matter from 'gray-matter'
 
 const postsDirectory = path.join(process.cwd(), 'posts')
 
+export interface PostFrontmatter {
+  path: string
+  date: string
+  title: string
+  subTitle: string
+  author: string
+  hashtags: string
+  hidden: boolean
+  cardImage?: string
+  featureImage?: string
+  featureImagePhone?: string
+  onHover?: string
+  /** Optional series name; posts sharing it get a Series box (e.g. "Caterina Sforza") */
+  series?: string
+  [key: string]: unknown
+}
+
 export interface PostData {
   slug: string
   imagePath: string // Original file path for image resolution
-  frontmatter: {
-    path: string
-    date: string
-    title: string
-    subTitle: string
-    author: string
-    hashtags: string
-    hidden: boolean
-    cardImage?: string
-    featureImage?: string
-    featureImagePhone?: string
-    onHover?: string
-    [key: string]: any
-  }
+  frontmatter: PostFrontmatter
   content: string
+  /** Estimated reading time in minutes (rounded up, minimum 1) */
+  readingTime: number
+  /** Word count of the MDX body (prose only, code/JSX stripped) */
+  wordCount: number
 }
 
 // Lightweight version without content for homepage performance
 export type PostSummary = Omit<PostData, 'content'>
 
+const WORDS_PER_MINUTE = 220
+
 // Rewrite relative image paths to absolute paths
 function rewriteImagePaths(content: string, fileName: string): string {
-  // Get the directory path for this post
   const postDir = path.dirname(fileName)
-  
+
   // Replace markdown image syntax: ![alt](relative-image.jpg) -> ![alt](/images/posts/path/relative-image.jpg)
   return content.replace(
     /!\[([^\]]*)\]\(([^)]+\.(jpg|jpeg|png|gif|webp|svg))\)/gi,
     (match, alt, imagePath) => {
-      // Only rewrite if it's a relative path (no protocol or leading /)
       if (!imagePath.startsWith('http') && !imagePath.startsWith('/')) {
         const absolutePath = `/images/posts/${postDir}/${imagePath}`
         return `![${alt}](${absolutePath})`
@@ -46,191 +54,156 @@ function rewriteImagePaths(content: string, fileName: string): string {
   )
 }
 
-// Get all image files in a directory
-function getImagesInDirectory(dir: string): string[] {
-  if (!fs.existsSync(dir)) {
-    return []
-  }
-  
-  const files = fs.readdirSync(dir)
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg']
-  
-  return files.filter(file => {
-    const ext = path.extname(file).toLowerCase()
-    return imageExtensions.includes(ext)
-  })
+// Rough word count: strip code fences, JSX tags, import/export lines, markdown syntax
+export function countWords(content: string): number {
+  const prose = content
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/^(import|export)\s.*$/gm, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[#>*_`~|-]+/g, ' ')
+  const words = prose.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w))
+  return words.length
 }
 
-// Get all directories that contain MDX files
-function getAllPostDirectories(dir: string, dirList: string[] = []): string[] {
-  if (!fs.existsSync(dir)) {
-    return dirList
+function toIsoDate(raw: unknown): string | null {
+  if (typeof raw === 'string' && raw.trim()) {
+    const d = new Date(raw)
+    return isNaN(d.getTime()) ? null : d.toISOString()
   }
-  
-  const files = fs.readdirSync(dir)
-  
-  files.forEach(file => {
-    const filePath = path.join(dir, file)
-    if (fs.statSync(filePath).isDirectory()) {
-      const relativePath = path.relative(postsDirectory, filePath)
-      
-      // Check if this directory contains MDX files
-      const mdxFiles = fs.readdirSync(filePath).filter(f => f.endsWith('.mdx'))
-      if (mdxFiles.length > 0) {
-        dirList.push(relativePath)
-      }
-      
-      // Continue recursively
-      getAllPostDirectories(filePath, dirList)
-    }
-  })
-  
-  return dirList
+  if (raw instanceof Date && !isNaN(raw.getTime())) {
+    return raw.toISOString()
+  }
+  return null
 }
 
-// Copy images from post directories to public/images/posts
-function copyPostImages() {
-  const publicImagesDir = path.join(process.cwd(), 'public', 'images', 'posts')
-  
-  // Ensure the public images directory exists
-  if (!fs.existsSync(publicImagesDir)) {
-    fs.mkdirSync(publicImagesDir, { recursive: true })
+function deriveSlug(fileName: string, data: Record<string, unknown>): string {
+  if (data.path && typeof data.path === 'string') {
+    return data.path.startsWith('/') ? data.path.slice(1) : data.path
   }
-  
-  // Get all post directories
-  const postDirs = getAllPostDirectories(postsDirectory)
-  
-  postDirs.forEach((postDir: string) => {
-    const fullPostPath = path.join(postsDirectory, postDir)
-    const images = getImagesInDirectory(fullPostPath)
-    
-    if (images.length > 0) {
-      // Create the corresponding directory in public
-      const publicPostDir = path.join(publicImagesDir, postDir)
-      if (!fs.existsSync(publicPostDir)) {
-        fs.mkdirSync(publicPostDir, { recursive: true })
-      }
-      
-      // Copy each image
-      images.forEach((image: string) => {
-        const srcPath = path.join(fullPostPath, image)
-        const destPath = path.join(publicPostDir, image)
-        
-        // Only copy if source is newer than destination or destination doesn't exist
-        if (!fs.existsSync(destPath) || 
-            fs.statSync(srcPath).mtime > fs.statSync(destPath).mtime) {
-          fs.copyFileSync(srcPath, destPath)
-        }
-      })
-    }
-  })
+
+  let slug = fileName.replace(/\.mdx$/, '')
+  const parts = slug.split('/')
+
+  // test-mdx/test-mdx.mdx -> test-mdx
+  if (parts.length >= 2 && parts[parts.length - 1] === parts[parts.length - 2]) {
+    parts.pop()
+    slug = parts.join('/')
+  }
+  // loggo/index.mdx -> loggo
+  if (parts.length >= 1 && parts[parts.length - 1] === 'index') {
+    parts.pop()
+    slug = parts.join('/')
+  }
+  // 2024/chess -> chess
+  const slugParts = slug.split('/')
+  if (slugParts.length > 1 && /^\d{4}$/.test(slugParts[0])) {
+    slug = slugParts.slice(1).join('/')
+  }
+  return slug
 }
 
-// Get all posts including hidden ones (for internal use)
-function getAllPostsIncludingHidden(): PostData[] {
+function deriveImagePath(fileName: string): string {
+  let imagePath = fileName.replace(/\.mdx$/, '')
+  const pathParts = imagePath.split('/')
+  if (pathParts.length >= 2 && pathParts[pathParts.length - 1] === pathParts[pathParts.length - 2]) {
+    pathParts.pop()
+    imagePath = pathParts.join('/')
+  }
+  if (pathParts.length >= 1 && pathParts[pathParts.length - 1] === 'index') {
+    pathParts.pop()
+    imagePath = pathParts.join('/')
+  }
+  return imagePath
+}
+
+function parsePost(fileName: string): PostData | null {
+  const fullPath = path.join(postsDirectory, fileName)
+  const fileContents = fs.readFileSync(fullPath, 'utf8')
+  const { data, content } = matter(fileContents)
+
+  const isoDate = toIsoDate(data.date)
+  if (!isoDate) {
+    console.warn(`[posts] Skipping ${fileName}: missing or invalid frontmatter date`)
+    return null
+  }
+
+  const processedContent = rewriteImagePaths(content, fileName)
+  const wordCount = countWords(content)
+
+  return {
+    slug: deriveSlug(fileName, data),
+    imagePath: deriveImagePath(fileName),
+    frontmatter: { ...data, date: isoDate } as PostFrontmatter,
+    content: processedContent,
+    wordCount,
+    readingTime: Math.max(1, Math.ceil(wordCount / WORDS_PER_MINUTE)),
+  }
+}
+
+function loadAllPosts(): PostData[] {
   const fileNames = getAllMdxFiles(postsDirectory)
-
-  // NOTE: copyPostImages() is handled by the prebuild/predev npm scripts.
-  // Removed from here to avoid redundant filesystem walks on every call.
-
-  const allPostsData = fileNames.map((fileName) => {
-    const fullPath = path.join(postsDirectory, fileName)
-    const fileContents = fs.readFileSync(fullPath, 'utf8')
-    const { data, content } = matter(fileContents)
-    
-    // Rewrite relative image paths to absolute paths
-    const processedContent = rewriteImagePaths(content, fileName)
-    
-    // Create slug - prefer frontmatter.path, fallback to file-based slug
-    let slug: string
-    
-    if (data.path && typeof data.path === 'string') {
-      // Use frontmatter path, removing leading slash to create clean slug
-      slug = data.path.startsWith('/') ? data.path.slice(1) : data.path
-    } else {
-      // Fallback: create slug from file path, but remove year prefix for clean URLs
-      slug = fileName.replace(/\.mdx$/, '')
-      
-      // If the filename matches the folder name (e.g., test-mdx/test-mdx.mdx), 
-      // remove the duplicate part to get cleaner URLs (e.g., 2024/test-mdx instead of 2024/test-mdx/test-mdx)
-      const parts = slug.split('/')
-      if (parts.length >= 2 && parts[parts.length - 1] === parts[parts.length - 2]) {
-        parts.pop() // Remove the duplicate filename part
-        slug = parts.join('/')
-      }
-      
-      // If the filename is 'index', remove it to get cleaner URLs (e.g., 2023/loggo instead of 2023/loggo/index)
-      if (parts.length >= 1 && parts[parts.length - 1] === 'index') {
-        parts.pop() // Remove the 'index' part
-        slug = parts.join('/')
-      }
-      
-      // Remove year prefix (e.g., "2024/chess" becomes "chess")
-      const slugParts = slug.split('/')
-      if (slugParts.length > 1 && /^\d{4}$/.test(slugParts[0])) {
-        slug = slugParts.slice(1).join('/')
-      }
-    }
-    
-    // Ensure date is a string for JSON serialization
-    const frontmatter = {
-      ...data,
-      date: typeof data.date === 'string' 
-        ? data.date 
-        : data.date?.toISOString?.() 
-        || (data.date ? String(data.date) : '1900-01-01') // Fallback date for posts without dates
-    }
-    
-    // Create image path from original file structure (keep year folder)
-    let imagePath = fileName.replace(/\.mdx$/, '')
-    
-    // Clean up imagePath similar to old slug logic (for consistency with existing image structure)
-    const pathParts = imagePath.split('/')
-    if (pathParts.length >= 2 && pathParts[pathParts.length - 1] === pathParts[pathParts.length - 2]) {
-      pathParts.pop() // Remove duplicate filename part
-      imagePath = pathParts.join('/')
-    }
-    
-    if (pathParts.length >= 1 && pathParts[pathParts.length - 1] === 'index') {
-      pathParts.pop() // Remove 'index' part
-      imagePath = pathParts.join('/')
-    }
-
-    return {
-      slug,
-      imagePath, // Keep year-based path for images
-      frontmatter: frontmatter as PostData['frontmatter'],
-      content: processedContent,
-    }
-  })
-
-  // Return all posts including hidden ones, sorted by date (newest first)
-  // Filter out posts with invalid dates
-  return allPostsData
-    .filter(post => post.frontmatter.date && post.frontmatter.date !== '1900-01-01')
+  const posts = fileNames
+    .map(parsePost)
+    .filter((p): p is PostData => p !== null)
     .sort((a, b) => (a.frontmatter.date < b.frontmatter.date ? 1 : -1))
+
+  // Duplicate slugs would silently shadow each other — fail loudly at build time
+  const seen = new Map<string, string>()
+  for (const post of posts) {
+    const existing = seen.get(post.slug)
+    if (existing) {
+      throw new Error(
+        `[posts] Duplicate slug "${post.slug}" in "${post.imagePath}" and "${existing}". ` +
+        `Set a unique "path" in one of the frontmatters.`
+      )
+    }
+    seen.set(post.slug, post.imagePath)
+  }
+
+  return posts
 }
 
+// Module-level cache. In production (build / ISR) the posts directory is immutable,
+// so every getStaticProps call can share one parse. In development we always re-read so
+// new or edited posts show up without restarting the dev server.
+let postsCache: PostData[] | null = null
+
+function getAllPostsIncludingHidden(): PostData[] {
+  if (process.env.NODE_ENV !== 'production') {
+    return loadAllPosts()
+  }
+  if (!postsCache) {
+    postsCache = loadAllPosts()
+  }
+  return postsCache
+}
+
+/** Scheduled posts: a date in the future keeps a post out of listings until it arrives. */
+function isPublished(post: PostData, now = Date.now()): boolean {
+  return new Date(post.frontmatter.date).getTime() <= now
+}
+
+/** Public, listed posts: not hidden, not scheduled in the future. Newest first. */
 export function getAllPosts(): PostData[] {
-  // Get all posts including hidden ones, then filter out hidden posts
+  const now = Date.now()
   return getAllPostsIncludingHidden()
-    .filter(post => !post.frontmatter.hidden)
+    .filter(post => !post.frontmatter.hidden && isPublished(post, now))
 }
 
 // Lightweight version for homepage - excludes content to reduce page data size
 export function getAllPostsSummary(): PostSummary[] {
-  return getAllPosts().map(({ content, ...rest }) => rest)
+  return getAllPosts().map(({ content: _content, ...rest }) => rest)
 }
 
-// Export this function for generating static paths (includes hidden posts)
+/** All posts, including hidden and scheduled ones — used only for generating static paths. */
 export function getAllPostsForPaths(): PostData[] {
   return getAllPostsIncludingHidden()
 }
 
 export function getPostBySlug(slug: string): PostData | null {
-  // Use the function that includes hidden posts so we can find hidden posts by slug
-  const posts = getAllPostsIncludingHidden()
-  return posts.find(post => post.slug === slug) || null
+  return getAllPostsIncludingHidden().find(post => post.slug === slug) || null
 }
 
 // Efficient version: find a post within a pre-loaded list (avoids re-reading all files)
@@ -240,13 +213,11 @@ export function findPostInList(slug: string, posts: PostData[]): PostData | null
 
 function getAllMdxFiles(dir: string, fileList: string[] = []): string[] {
   if (!fs.existsSync(dir)) {
-      return fileList
-}
+    return fileList
+  }
 
-
-  
   const files = fs.readdirSync(dir)
-  
+
   files.forEach(file => {
     const filePath = path.join(dir, file)
     if (fs.statSync(filePath).isDirectory()) {
@@ -255,6 +226,6 @@ function getAllMdxFiles(dir: string, fileList: string[] = []): string[] {
       fileList.push(path.relative(postsDirectory, filePath))
     }
   })
-  
+
   return fileList
-} 
+}

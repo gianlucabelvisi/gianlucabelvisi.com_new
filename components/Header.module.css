@@ -201,6 +201,48 @@
 }
 
 
+/* ── Icon button (search) ─────────────────────────────────────────────────── */
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  color: var(--color-text-secondary);
+  font-size: 1.15rem;
+  text-decoration: none;
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.iconButton:hover,
+.iconButton.active {
+  color: var(--color-text-primary);
+  background-color: var(--color-background-hover);
+  transform: scale(1.08);
+}
+
+.homepage .iconButton {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.homepage .iconButton:hover,
+.homepage .iconButton.active {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.iconButton:focus-visible,
+.navLink:focus-visible,
+.logo:focus-visible,
+.hamburger:focus-visible,
+.mobileNavLink:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+
 /* ── Hamburger button ─────────────────────────────────────────────────────── */
 
 .hamburger {
@@ -209,8 +251,8 @@
   justify-content: center;
   align-items: center;
   gap: 5px;
-  width: 2rem;
-  height: 2rem;
+  width: 2.75rem;  /* 44px touch target */
+  height: 2.75rem;
   background: none;
   border: none;
   cursor: pointer;

@@ -6,8 +6,6 @@ const copyToClipboard = (str: string) => {
     navigator.clipboard.writeText(str).catch((err) => {
       console.error("Could not copy text: ", err);
     });
-  } else if ((window as any).clipboardData) {
-    (window as any).clipboardData.setData("Text", str);
   }
 };
 
@@ -46,7 +44,15 @@ function getLanguageDisplayName(lang: string): string {
 }
 
 interface CodeBlockProps {
-  children: any;
+  children?: React.ReactNode;
+}
+
+// Props of the <code> element that rehype/shiki nests inside <pre>
+interface InnerCodeProps {
+  className?: string;
+  children?: React.ReactNode;
+  file?: string;
+  title?: string;
 }
 
 // Walk a React node tree and concatenate its plain text — used to recover
@@ -56,9 +62,8 @@ function extractText(node: React.ReactNode): string {
   if (typeof node === "string") return node;
   if (typeof node === "number") return String(node);
   if (Array.isArray(node)) return node.map(extractText).join("");
-  if (React.isValidElement(node)) {
-    const children = (node.props as any)?.children;
-    return extractText(children);
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+    return extractText(node.props.children);
   }
   return "";
 }
@@ -67,15 +72,16 @@ const CodeBlock = (props: CodeBlockProps) => {
   const [isCopied, setIsCopied] = useState(false);
 
   // Handle different prop structures
-  if (!props.children || !props.children.props) {
-    return <pre style={{ fontFamily: 'monospace', padding: '1rem' }}>{String(props.children)}</pre>;
+  if (!React.isValidElement<InnerCodeProps>(props.children)) {
+    return <pre style={{ fontFamily: 'monospace', padding: '1rem' }}>{props.children}</pre>;
   }
 
-  const className = props.children.props.className || "";
-  const code = extractText(props.children.props.children).trim();
+  const inner = props.children.props;
+  const className = inner.className || "";
+  const code = extractText(inner.children).trim();
   const language = className.replace(/language-/, "") || "text";
-  const file = props.children.props.file;
-  const title = props.children.props.title;
+  const file = inner.file;
+  const title = inner.title;
 
   const handleCopy = () => {
     copyToClipboard(code);
@@ -104,11 +110,17 @@ const CodeBlock = (props: CodeBlockProps) => {
         </div>
 
         {/* Copy button */}
-        <button onClick={handleCopy} className={copyBtnClass}>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className={copyBtnClass}
+          aria-label={isCopied ? 'Copied to clipboard' : 'Copy code to clipboard'}
+          aria-live="polite"
+        >
           {isCopied ? (
-            <><span>✓</span><span>Copied!</span></>
+            <><span aria-hidden="true">✓</span><span>Copied!</span></>
           ) : (
-            <><span>📋</span><span>Copy</span></>
+            <><span aria-hidden="true">📋</span><span>Copy</span></>
           )}
         </button>
       </div>

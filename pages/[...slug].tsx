@@ -4,14 +4,26 @@ import Image from 'next/image'
 import { serialize } from 'next-mdx-remote/serialize'
 import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
 import remarkGfm from 'remark-gfm'
+import rehypeSlug from 'rehype-slug'
 import rehypeShiki from '@shikijs/rehype'
-import { getAllPosts, getAllPostsForPaths, findPostInList, PostData } from '../lib/posts'
-import { formatDate } from '../lib/dateUtils'
+import { getAllPosts, getAllPostsForPaths, PostData, PostFrontmatter } from '../lib/posts'
+import { getRelatedPosts, getSeriesPosts } from '../lib/hashtags'
+import { extractHeadings, Heading } from '../lib/headings'
+import { formatDate, formatReadingTime } from '../lib/dateUtils'
 import SEO from '../components/SEO'
 import styles from './posts/PostPage.module.css'
-import SocialShare from '../components/SocialShare'
 import PostNavigation from '../components/PostNavigation'
+import PostTags from '../components/PostTags'
+import TableOfContents from '../components/TableOfContents'
+import RelatedPosts from '../components/RelatedPosts'
+import { CardPost, toCardPost } from '../components/PostCard'
+import SeriesBox, { SeriesEntry } from '../components/SeriesBox'
 import CodeBlock from '../components/mdx/CodeBlock'
+
+// Below-the-fold / interactive chrome (react-share is ~30KB; load it lazily)
+const SocialShare = dynamic(() => import('../components/SocialShare'), { ssr: false })
+const ReadingProgress = dynamic(() => import('../components/ReadingProgress'), { ssr: false })
+const Comments = dynamic(() => import('../components/Comments'), { ssr: false })
 
 // ── Always-used lightweight components (static imports) ──
 import Highlight from '../components/Highlight'
@@ -73,21 +85,28 @@ interface NavPost {
 
 interface PostPageProps {
   source: MDXRemoteSerializeResult
-  frontmatter: PostData['frontmatter']
+  frontmatter: PostFrontmatter
   slug: string
   imagePath: string
+  readingTime: number
+  wordCount: number
+  headings: Heading[]
   prevPost: NavPost | null
   nextPost: NavPost | null
+  relatedPosts: CardPost[]
+  series: { name: string; posts: SeriesEntry[] } | null
 }
 
-// MDX content image component using next/image for optimization
-const MdxImage = (props: any) => {
-  const { src, alt, ...rest } = props
-  if (!src) return null
+type MdxImageProps = React.ImgHTMLAttributes<HTMLImageElement>
 
-  // External images — use regular img
+// MDX content image component using next/image for optimization
+const MdxImage = ({ src, alt, width: _w, height: _h, ...rest }: MdxImageProps) => {
+  if (!src || typeof src !== 'string') return null
+
+  // External images — next/image can't optimize arbitrary remote hosts
   if (src.startsWith('http')) {
-    return <img src={src} alt={alt || ''} loading="lazy" style={{ maxWidth: '100%', height: 'auto' }} />
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={alt || ''} loading="lazy" decoding="async" style={{ maxWidth: '100%', height: 'auto' }} />
   }
 
   return (
@@ -104,26 +123,19 @@ const MdxImage = (props: any) => {
   )
 }
 
+type CodeProps = React.HTMLAttributes<HTMLElement>
+
 // Define which components are available in MDX
 const components = {
   // Override native elements
-  pre: (props: any) => <CodeBlock {...props} />,
-  code: (props: any) => {
+  pre: (props: React.HTMLAttributes<HTMLPreElement>) => <CodeBlock {...props} />,
+  code: (props: CodeProps) => {
     // If code has a className (language), it's likely inside a pre block — return as-is
     if (props.className && props.className.startsWith('language-')) {
       return <code {...props} />
     }
-    // Inline code
-    return (
-      <code style={{
-        background: '#f1f5f9',
-        color: '#1e293b',
-        padding: '0.2rem 0.4rem',
-        borderRadius: '4px',
-        fontFamily: 'monospace',
-        fontSize: '0.875em'
-      }} {...props} />
-    )
+    // Inline code — styled via .mdxContent code:not(pre code)
+    return <code {...props} />
   },
   img: MdxImage,
   // MDX components
@@ -171,7 +183,10 @@ const components = {
   LinkButton,
 }
 
-export default function PostPage({ source, frontmatter, slug, imagePath, prevPost, nextPost }: PostPageProps) {
+export default function PostPage({
+  source, frontmatter, slug, imagePath, readingTime, wordCount, headings,
+  prevPost, nextPost, relatedPosts, series,
+}: PostPageProps) {
   const getImagePath = (imageName: string) => {
     if (!imageName) return ''
     if (imageName.startsWith('/')) return imageName
@@ -180,25 +195,36 @@ export default function PostPage({ source, frontmatter, slug, imagePath, prevPos
 
   const ogImage = frontmatter.featureImage
     ? `/images/posts/${imagePath}/${frontmatter.featureImage}`
-    : undefined
+    : frontmatter.cardImage
+      ? `/images/posts/${imagePath}/${frontmatter.cardImage}`
+      : undefined
+
+  const postPath = frontmatter.path || `/${slug}`
 
   return (
-    <div className={styles.container}>
+    <article className={styles.container}>
       <SEO
         title={frontmatter.title}
         description={frontmatter.subTitle}
         image={ogImage}
-        path={frontmatter.path}
+        path={postPath}
         type="article"
         publishedDate={frontmatter.date}
         author={frontmatter.author}
+        tags={frontmatter.hashtags}
+        readingTime={readingTime}
+        wordCount={wordCount}
       />
+
+      <ReadingProgress />
 
       {/* Post Header */}
       <div className={styles.postHeader}>
-        <h2 className={styles.dateHeader}>
-           {formatDate(frontmatter.date)}
-         </h2>
+        <p className={styles.dateHeader}>
+          <time dateTime={frontmatter.date}>{formatDate(frontmatter.date)}</time>
+          <span className={styles.metaDivider} aria-hidden="true">·</span>
+          <span>{formatReadingTime(readingTime)}</span>
+        </p>
       </div>
 
       {/* Feature Image */}
@@ -206,7 +232,7 @@ export default function PostPage({ source, frontmatter, slug, imagePath, prevPos
         <div className={styles.featureImageContainer}>
           <Image
             src={getImagePath(frontmatter.featureImage || '')}
-            alt=""
+            alt={frontmatter.title}
             fill
             priority
             sizes="(max-width: 900px) 100vw, 84vw"
@@ -215,10 +241,17 @@ export default function PostPage({ source, frontmatter, slug, imagePath, prevPos
         </div>
       )}
 
+      {/* Left rail - table of contents (wide screens only; the inline variant takes over below 1440px) */}
+      <aside className={styles.tocRail}>
+        <div className={styles.tocSticky}>
+          <TableOfContents headings={headings} variant="sidebar" />
+        </div>
+      </aside>
+
       {/* Sidebar - Social Share */}
-      <div className={styles.sidebar}>
-        <SocialShare path={frontmatter.path || `/posts/${slug}`} />
-      </div>
+      <aside className={styles.sidebar}>
+        <SocialShare path={postPath} title={frontmatter.title} description={frontmatter.subTitle} image={ogImage} />
+      </aside>
 
       {/* Main Content */}
       <div className={styles.mainContent}>
@@ -228,10 +261,16 @@ export default function PostPage({ source, frontmatter, slug, imagePath, prevPos
             {frontmatter.title}
           </h1>
 
-          <div className={styles.postSubtitle}>
-            <span className={styles.quoteStart}>❝</span>
+          <p className={styles.postSubtitle}>
+            <span className={styles.quoteStart} aria-hidden="true">❝</span>
             {frontmatter.subTitle}
-            <span className={styles.quoteEnd}>❞</span>
+            <span className={styles.quoteEnd} aria-hidden="true">❞</span>
+          </p>
+
+          {series && <SeriesBox name={series.name} posts={series.posts} currentSlug={slug} />}
+
+          <div className={styles.tocInline}>
+            <TableOfContents headings={headings} variant="inline" />
           </div>
 
           <div className={`mdx-content ${styles.mdxContent}`}>
@@ -241,19 +280,26 @@ export default function PostPage({ source, frontmatter, slug, imagePath, prevPos
 
         {/* Post Footer */}
         <PostFooter
-          path={frontmatter.path || `/posts/${slug}`}
+          path={postPath}
           author={frontmatter.author}
         />
 
-        <p className={styles.postTags}>
-          Tags: {frontmatter.hashtags}
-        </p>
+        <PostTags hashtags={frontmatter.hashtags} />
+
+        {/* Share row for narrow screens where the sticky sidebar is hidden */}
+        <div className={styles.mobileShare}>
+          <SocialShare path={postPath} title={frontmatter.title} description={frontmatter.subTitle} image={ogImage} layout="horizontal" />
+        </div>
 
         <PostNavigation prev={prevPost} next={nextPost} />
 
+        <Comments term={postPath} />
+
+        <RelatedPosts posts={relatedPosts} />
+
         <MailChimpForm />
       </div>
-    </div>
+    </article>
   )
 }
 
@@ -266,33 +312,61 @@ export const getStaticPaths: GetStaticPaths = async () => {
   return { paths, fallback: false }
 }
 
-export const getStaticProps: GetStaticProps = async ({ params }) => {
+
+
+const SHIKI_LANGS = [
+  'javascript', 'jsx', 'typescript', 'tsx', 'json', 'css', 'html', 'markdown',
+  'bash', 'shell', 'python', 'csharp', 'yaml', 'sql', 'diff',
+]
+
+export const getStaticProps: GetStaticProps<PostPageProps> = async ({ params }) => {
   const slug = (params?.slug as string[])?.join('/')
 
-  // Single call to get all posts — used for both the current post and prev/next nav
+  // Listed posts drive prev/next + related; hidden/scheduled posts are still reachable by URL
   const allPosts = getAllPosts()
+  const allForPaths = getAllPostsForPaths()
   const currentIndex = allPosts.findIndex(p => p.slug === slug)
-  const post = allPosts[currentIndex] ?? null
+  const post = allPosts[currentIndex] ?? allForPaths.find(p => p.slug === slug) ?? null
 
   if (!post) {
     return { notFound: true }
   }
 
-  const toNavPost = (p: PostData | undefined) => p ? {
+  const toNavPost = (p: PostData | undefined): NavPost | null => p ? {
     frontmatter: { title: p.frontmatter.title, path: p.frontmatter.path, cardImage: p.frontmatter.cardImage },
     imagePath: p.imagePath
   } : null
 
-  const prevPost = toNavPost(allPosts[currentIndex + 1]) // older
-  const nextPost = toNavPost(allPosts[currentIndex - 1]) // newer
+  const prevPost = currentIndex >= 0 ? toNavPost(allPosts[currentIndex + 1]) : null // older
+  const nextPost = currentIndex >= 0 ? toNavPost(allPosts[currentIndex - 1]) : null // newer
+
+  const relatedPosts = getRelatedPosts(post, allPosts, 4).map(toCardPost)
+
+  const seriesName = typeof post.frontmatter.series === 'string' ? post.frontmatter.series : null
+  let series: PostPageProps['series'] = null
+  if (seriesName) {
+    // Listed posts only, but a hidden/scheduled current post still sees itself in its own series
+    const members = getSeriesPosts(seriesName, allPosts)
+    if (!members.some(p => p.slug === post.slug)) {
+      members.push(post)
+      members.sort((a, b) => a.frontmatter.date.localeCompare(b.frontmatter.date))
+    }
+    series = { name: seriesName, posts: members.map(p => ({ slug: p.slug, title: p.frontmatter.title })) }
+  }
 
   const mdxSource = await serialize(post.content, {
     mdxOptions: {
       remarkPlugins: [remarkGfm],
       rehypePlugins: [
+        rehypeSlug,
         [rehypeShiki, {
           theme: 'github-dark',
           addLanguageClass: true,
+          // Preload only the grammars posts actually use; shiki's default is all ~220,
+          // which costs ~3s on a cold start (every dev-server compile). Anything else
+          // is loaded on demand thanks to `lazy`.
+          langs: SHIKI_LANGS,
+          lazy: true,
         }],
       ],
     },
@@ -306,10 +380,15 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     props: {
       source: mdxSource,
       frontmatter: post.frontmatter,
-      slug: slug,
+      slug,
       imagePath: post.imagePath,
+      readingTime: post.readingTime,
+      wordCount: post.wordCount,
+      headings: extractHeadings(post.content),
       prevPost,
       nextPost,
+      relatedPosts,
+      series,
     },
     revalidate: 3600
   }

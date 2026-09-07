@@ -1,0 +1,187 @@
+/* ── Shared list items ──────────────────────────────────────────────────── */
+
+.link {
+  display: block;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-weight: 500 !important;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.link:hover {
+  color: var(--color-primary);
+  background: var(--color-background-hover);
+  text-decoration: none !important;
+}
+
+.active {
+  color: var(--color-primary);
+  font-weight: 700 !important;
+}
+
+/* Hierarchy: top level is bolder and larger; each nested level steps in and quietens */
+.level0 .link {
+  font-weight: 600 !important;
+}
+
+.level1 {
+  padding-left: 0.9rem !important;
+}
+
+.level1 .link {
+  font-size: 0.94em;
+}
+
+.level2 {
+  padding-left: 1.8rem !important;
+}
+
+.level2 .link {
+  font-size: 0.9em;
+  color: var(--color-text-light);
+}
+
+.level1 .active,
+.level2 .active {
+  color: var(--color-primary);
+}
+
+/* ── Sidebar variant (wide screens): docs-style rail beside the post ────── */
+
+.sidebar {
+  font-size: 0.85rem;
+}
+
+.sidebarLabel {
+  margin: 0 0 0.6rem;
+  padding-left: 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+}
+
+.sidebarList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 2px solid var(--color-border);
+  max-height: calc(100vh - var(--header-height) - 6rem);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.sidebarList li {
+  margin: 0;
+  padding: 0 !important; /* indent lives on the link so the active marker stays on the rail */
+  line-height: 1.45;
+}
+
+.sidebarList .link {
+  position: relative;
+  margin-left: -2px; /* sit on top of the rail so the active marker covers it */
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+  padding-left: 0.8rem;
+}
+
+.sidebarList .level1 .link {
+  padding-left: 1.7rem;
+}
+
+.sidebarList .level2 .link {
+  padding-left: 2.6rem;
+}
+
+.sidebarList .active {
+  border-left-color: var(--color-primary);
+}
+
+/* ── Inline variant (narrow screens): quiet collapsible toggle ──────────── */
+
+.inline {
+  margin: 0 0 1.75rem;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.3rem 0.6rem 0.3rem 0.3rem;
+  background: none;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: var(--color-primary);
+  background: var(--color-background-hover);
+}
+
+.chevron {
+  display: inline-block;
+  width: 1.2rem;
+  text-align: center;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--color-primary);
+  transition: transform 0.25s ease;
+}
+
+.chevronOpen {
+  transform: rotate(90deg);
+}
+
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--color-background-hover);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-light);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 0.9rem;
+  max-height: 0;
+  overflow: hidden;
+  border-left: 2px solid var(--color-border);
+  margin-left: 0.85rem;
+  transition: max-height 0.3s ease, margin 0.3s ease;
+}
+
+.listOpen {
+  max-height: 60vh;
+  overflow-y: auto;
+  margin-top: 0.4rem;
+}
+
+.list li {
+  margin: 0;
+  padding: 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron,
+  .list {
+    transition: none;
+  }
+}

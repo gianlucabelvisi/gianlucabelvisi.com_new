@@ -32,10 +32,7 @@ const UnicornButton: React.FC<UnicornButtonProps> = ({ page, id, tooltip }) => {
 
   // Re-measure once the tooltip is shown and clamp it inside the viewport.
   useEffect(() => {
-    if (!showTooltip) {
-      setTooltipShift(0);
-      return;
-    }
+    if (!showTooltip) return;
     // Wait one frame for the tooltip to mount + animate so we measure final size.
     const id = requestAnimationFrame(() => {
       const el = tooltipRef.current;
@@ -130,6 +127,12 @@ const UnicornButton: React.FC<UnicornButtonProps> = ({ page, id, tooltip }) => {
         onMouseLeave={() => {
           setShowTooltip(false);
           setIsHovered(false);
+          setTooltipShift(0);
+        }}
+        onFocus={() => setShowTooltip(true)}
+        onBlur={() => {
+          setShowTooltip(false);
+          setTooltipShift(0);
         }}
         aria-label={tooltip}
       >

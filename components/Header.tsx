@@ -1,19 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { FiHome } from 'react-icons/fi'
+import { FiHome, FiSearch } from 'react-icons/fi'
 import ThemeToggle from './ThemeToggle'
+import { isDarkOnlyRoute } from '../lib/routes'
 import styles from './Header.module.css'
 
 interface NavItem {
   label: string
   href: string
+  /** Also highlight for nested routes, e.g. /tags/food */
+  match?: (pathname: string) => boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
-  // Add navigation items as pages are created:
-  // { label: 'About', href: '/about' },
-  // { label: 'Books', href: '/books' },
+  { label: 'Archive', href: '/archive' },
+  { label: 'Tags', href: '/tags', match: p => p.startsWith('/tags') },
 ]
 
 export default function Header() {
@@ -23,6 +25,7 @@ export default function Header() {
   const lastScrollY = useRef(0)
   const router = useRouter()
   const isHomepage = router.pathname === '/'
+  const isDarkRoute = isDarkOnlyRoute(router.pathname)
 
   useEffect(() => {
     lastScrollY.current = window.scrollY
@@ -48,19 +51,33 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  // Close the mobile menu whenever a navigation starts
   useEffect(() => {
-    setMobileOpen(false)
-  }, [router.pathname])
+    const close = () => setMobileOpen(false)
+    router.events.on('routeChangeStart', close)
+    return () => router.events.off('routeChangeStart', close)
+  }, [router.events])
 
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
 
+  // Escape closes the mobile menu
+  useEffect(() => {
+    if (!mobileOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mobileOpen])
+
+  const isActive = (item: NavItem) =>
+    item.match ? item.match(router.pathname) : router.pathname === item.href
+
   const headerClass = [
     styles.header,
     visible ? styles.visible : styles.hidden,
-    isHomepage ? styles.homepage : styles.page,
+    isDarkRoute ? styles.homepage : styles.page,
     scrolled || !isHomepage ? styles.scrolled : '',
   ].filter(Boolean).join(' ')
 
@@ -75,21 +92,29 @@ export default function Header() {
           )}
 
           <div className={styles.controls}>
-            {NAV_ITEMS.length > 0 && (
-              <nav className={styles.desktopNav} aria-label="Main navigation">
-                {NAV_ITEMS.map(item => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`${styles.navLink} ${router.pathname === item.href ? styles.active : ''}`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-            )}
+            <nav className={styles.desktopNav} aria-label="Main navigation">
+              {NAV_ITEMS.map(item => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`${styles.navLink} ${isActive(item) ? styles.active : ''}`}
+                  aria-current={isActive(item) ? 'page' : undefined}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
 
-            {!isHomepage && <ThemeToggle />}
+            <Link
+              href="/search"
+              className={`${styles.iconButton} ${router.pathname === '/search' ? styles.active : ''}`}
+              aria-label="Search posts"
+              title="Search"
+            >
+              <FiSearch aria-hidden="true" />
+            </Link>
+
+            {!isDarkRoute && <ThemeToggle />}
 
             {/* Always in the DOM on mobile — CSS shows/hides it */}
             <button
@@ -97,6 +122,7 @@ export default function Header() {
               onClick={() => setMobileOpen(prev => !prev)}
               aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileOpen}
+              aria-controls="mobile-nav"
             >
               <span />
               <span />
@@ -108,15 +134,19 @@ export default function Header() {
 
       {/* Full-screen mobile menu — always in DOM, animated in/out */}
       <nav
+        id="mobile-nav"
         className={`${styles.mobileNav} ${mobileOpen ? styles.mobileNavOpen : ''}`}
         aria-label="Mobile navigation"
         aria-hidden={!mobileOpen}
       >
-        {!isHomepage && (
-          <Link href="/" className={styles.mobileNavLink} onClick={() => setMobileOpen(false)}>
-            Home
-          </Link>
-        )}
+        <Link
+          href="/"
+          className={styles.mobileNavLink}
+          onClick={() => setMobileOpen(false)}
+          tabIndex={mobileOpen ? 0 : -1}
+        >
+          Home
+        </Link>
 
         {NAV_ITEMS.map(item => (
           <Link
@@ -124,10 +154,20 @@ export default function Header() {
             href={item.href}
             className={styles.mobileNavLink}
             onClick={() => setMobileOpen(false)}
+            tabIndex={mobileOpen ? 0 : -1}
           >
             {item.label}
           </Link>
         ))}
+
+        <Link
+          href="/search"
+          className={styles.mobileNavLink}
+          onClick={() => setMobileOpen(false)}
+          tabIndex={mobileOpen ? 0 : -1}
+        >
+          Search
+        </Link>
       </nav>
     </>
   )

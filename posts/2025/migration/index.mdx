@@ -528,18 +528,19 @@ Otherwise you'll get "Expected component to be defined" errors!
 ## Phase 4: Advanced Features ⚡
 
 ### 4.1 SEO & Meta
-- [ ] Migrate SEO component functionality
-- [ ] Open Graph meta tags
-- [ ] JSON-LD structured data
-- [ ] Sitemap generation
-- [ ] RSS feed generation
+- ❓ Migrate SEO component functionality
+- ❓ Open Graph meta tags (+ default OG image `public/images/og-default.jpg`)
+- ❓ JSON-LD structured data (`BlogPosting` on posts, `WebSite` + `SearchAction` elsewhere)
+- ❓ Sitemap generation (`/sitemap.xml` — posts, archive, tags)
+- ❓ RSS feed generation (`/feed.xml` — now with categories + `dc:creator`)
+- ❓ `robots.txt`
 
 ### 4.2 Interactive Features
-- [ ] Comment system (Disqus integration)
-- [ ] Social sharing buttons
+- ❓ Comment system (Giscus / GitHub Discussions — opt-in via `NEXT_PUBLIC_GISCUS_*`)
+- ❓ Social sharing buttons (correct URL + title, copy-link, native share sheet, mobile row)
 - [ ] Newsletter signup (MailChimp integration)
-- [ ] View counter system
-- [ ] Reaction system (emoji reactions)
+- ❓ View counter system (12h per-post throttle so refreshes don't inflate)
+- ❓ Reaction system (emoji reactions, remembers your pick, toggle to undo)
 
 ### 4.3 UI/UX Improvements
 - [ ] **Migrate to react-tooltip** - Replace all custom tooltips with react-tooltip for better positioning and consistency
@@ -550,7 +551,7 @@ Otherwise you'll get "Expected component to be defined" errors!
   - [ ] Test tooltip positioning on all devices
 
 ### 4.4 Analytics & Tracking
-- [ ] Firebase/Analytics integration
+- ❓ Plausible analytics (cookie-less, opt-in via `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`, production only)
 - [ ] Performance monitoring
 - [ ] Error tracking
 
@@ -559,10 +560,10 @@ Otherwise you'll get "Expected component to be defined" errors!
 ## Phase 5: Performance & Production 🚀
 
 ### 5.1 Optimization
-- [ ] Implement ISR (Incremental Static Regeneration)
-- [ ] Bundle size optimization
-- [ ] Image optimization and lazy loading
-- [ ] Code splitting for components
+- ❓ Implement ISR (Incremental Static Regeneration) — 1h revalidate on all pages
+- ❓ Bundle size optimization (react-share, ReadingProgress, Comments, Firebase all lazy)
+- ❓ Image optimization and lazy loading (>500 KB images re-encoded, copy script warns)
+- ❓ Code splitting for components (below-the-fold sliders render on scroll)
 
 ### 5.2 PWA Features
 - [ ] Service worker setup
@@ -597,6 +598,65 @@ Otherwise you'll get "Expected component to be defined" errors!
 - [ ] DNS/domain migration plan
 - [ ] Backup and rollback strategy
 - [ ] Launch checklist
+
+---
+
+## Phase 7: The Big Review 🔍
+
+Outcome of a full performance / UX / features audit. Everything below is built and awaiting a test run (`npm run dev`).
+
+### 7.1 Performance
+- ❓ Post discovery cached per build (was re-reading every `.mdx` for every page)
+- ❓ Homepage: "From the Archive" capped at 12, off-screen sliders render lazily, hero pauses when tab hidden / reduced motion
+- ❓ Images >500 KB re-encoded; `copy-post-images` is incremental and warns on oversized files
+- ❓ Service worker: image cache capped at 80 entries (v2)
+- ❓ `formatDate` uses UTC — no more off-by-one dates depending on the reader's timezone
+- ❓ Future-dated posts stay hidden until their date; duplicate slugs fail the build with a clear error
+- ❓ Post pages open in ~150ms instead of ~3s: shiki only preloads the 15 grammars we use (was all ~220), others load lazily
+- ❓ Route progress bar under the header while a navigation is in flight (skipped when the page arrives in <120ms)
+
+### 7.2 Reading aids (post page)
+- ❓ Reading time next to the date (also in `twitter:label1`)
+- ❓ Thin reading-progress bar + back-to-top button (appears after ~1 screen)
+- ❓ Table of contents — sticky rail in the empty left column on ≥1440px screens, quiet "In this post ›" toggle below that. Keeps `#`/`##`/`###` hierarchy (indent + weight), highlights the section you're in as you scroll; hidden if < 3 headings
+- ❓ `ResponsiveEmbed` with a direct image/GIF URL now shows the whole image at its real aspect ratio (`ratio` is only a loading placeholder) — `object-fit: cover` was cropping GIF subtitles in 6 posts
+- ❓ `TextBox` no longer clips content below lazy-loaded images (was animating `max-height` to a height measured before the image arrived; now a CSS grid `1fr`/`0fr` transition)
+- ❓ `overflow-x: hidden` on `body` replaced with `clip` — it was silently disabling *every* `position: sticky` on the site (share sidebar included)
+- ❓ Heading anchors via `rehype-slug` (offset for the fixed header)
+- ❓ Clickable hashtag chips → `/tags/<tag>`
+- ❓ Related posts (shared hashtags, tie-break by date) at the bottom
+- ❓ **Series** box: add `series: "Name"` to frontmatter and every post in that series gets a numbered list
+- ❓ Share row on mobile (sidebar is hidden there)
+
+### 7.3 New pages
+- ❓ `/archive` — every post grouped by year, with a year jump-nav
+- ❓ `/tags` — tag cloud sized by frequency
+- ❓ `/tags/[tag]` — all posts for one tag
+- ❓ `/search` — client-side ranked search (title > tags > subtitle > body), `?q=` is shareable
+- ❓ Custom `404` with recent posts
+- ❓ Header nav: Archive, Tags, Search (+ mobile menu); global footer with RSS link
+- ❓ Slider titles link to "See all →" (archive / tag page)
+
+### 7.4 Accessibility
+- ❓ Keyboard: arrows move hero + sliders, dots are real buttons, Escape closes mobile menu
+- ❓ `:focus-visible` outlines everywhere, skip-to-content link
+- ❓ Poll options and reactions are `<button>`s with `aria-pressed`
+- ❓ 44px touch targets (hamburger, dots, reactions, chips)
+- ❓ `prefers-reduced-motion` disables carousel autoplay and card animations
+- ❓ Feature image `alt` = post title; decorative quotes/emoji are `aria-hidden`
+
+### 7.5 Tooling
+- ❓ `npm run lint` works again on Next 16 (flat `eslint.config.mjs`, 0 errors / 0 warnings)
+- ❓ `npm run typecheck`
+- ❓ `.env.example` documents every variable
+- ❓ `database.rules.json` — Firebase rules that only allow +1 increments and known shapes
+- ❓ `engines.node >= 20`
+
+### 7.6 Not done (needs your input)
+- [ ] Deploy `database.rules.json` to Firebase (`firebase deploy --only database`)
+- [ ] Create a GitHub Discussions category and fill `NEXT_PUBLIC_GISCUS_*` to turn on comments
+- [ ] Set `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` (and a Plausible account) to turn on analytics
+- [ ] Decide which posts (Caterina Sforza?) get `series:` frontmatter
 
 ---
 

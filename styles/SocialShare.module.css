@@ -5,6 +5,15 @@
   margin-top: calc(7.8rem + 1rem);
 }
 
+/* Inline row variant — used under the post on mobile */
+.horizontal {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 2rem 0 0;
+}
+
 .shareItem {
   position: relative;
   width: 32px;
@@ -13,8 +22,51 @@
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.shareItem:hover {
+/* Bigger tap targets in the inline row */
+.horizontal .shareItem {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shareItem:hover,
+.shareItem:focus-within {
   transform: scale(1.08);
+}
+
+.shareItem button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+/* Copy-link / native share buttons match the react-share round icons */
+.iconButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* The native share sheet only exists on touch devices; desktop has copy-link */
+.nativeOnly {
+  display: none;
+}
+
+@media (hover: none) {
+  .nativeOnly {
+    display: flex;
+  }
 }
 
 /* Tooltip bubble */
@@ -59,14 +111,41 @@
   z-index: 10;
 }
 
-.shareItem:hover::after {
+.shareItem:hover::after,
+.shareItem:focus-within::after {
   opacity: 1;
   transform: translateY(-50%) translateX(0);
 }
 
-.shareItem:hover::before {
+.shareItem:hover::before,
+.shareItem:focus-within::before {
   opacity: 1;
   transform: translateY(-50%) translateX(0) rotate(45deg);
+}
+
+/* In the row layout tooltips go above the icon instead of beside it */
+.horizontal .shareItem::after {
+  left: 50%;
+  top: auto;
+  bottom: calc(100% + 10px);
+  transform: translateX(-50%) translateY(6px);
+}
+
+.horizontal .shareItem::before {
+  left: 50%;
+  top: auto;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%) translateY(6px) rotate(45deg);
+}
+
+.horizontal .shareItem:hover::after,
+.horizontal .shareItem:focus-within::after {
+  transform: translateX(-50%) translateY(0);
+}
+
+.horizontal .shareItem:hover::before,
+.horizontal .shareItem:focus-within::before {
+  transform: translateX(-50%) translateY(0) rotate(45deg);
 }
 
 [data-theme="dark"] .shareItem::after,
@@ -74,10 +153,4 @@
   background: rgba(243, 244, 246, 0.95);
   color: #111827;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
-}
-
-@media (max-width: 768px) {
-  .socialShare {
-    display: none;
-  }
 }

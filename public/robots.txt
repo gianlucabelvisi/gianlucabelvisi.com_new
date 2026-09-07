@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /search
+Disallow: /offline
+Disallow: /_next/
+
+Sitemap: https://gianlucabelvisi.com/sitemap.xml

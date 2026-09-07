@@ -1,0 +1,42 @@
+.bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  z-index: 202; /* above header (200) and reading progress (201) */
+  pointer-events: none;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+  box-shadow: 0 0 8px rgba(var(--color-primary-rgb), 0.7);
+  transform-origin: left;
+  /* Rush to ~80% then crawl, like browsers do, so it never looks stuck */
+  animation: routeProgress 8s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+
+.done {
+  animation: routeDone 0.4s ease-out forwards;
+}
+
+@keyframes routeProgress {
+  0% { transform: scaleX(0); }
+  15% { transform: scaleX(0.6); }
+  100% { transform: scaleX(0.92); }
+}
+
+@keyframes routeDone {
+  0% { opacity: 1; }
+  40% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+    transform: scaleX(0.9);
+  }
+  .done {
+    animation: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+}

@@ -4,8 +4,7 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {/* PWA */}
+        {/* PWA (viewport meta is injected by Next automatically) */}
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="theme-color" content="#131313" />
         <meta name="application-name" content="Gianluca Belvisi's Blog" />
@@ -18,14 +17,18 @@ export default function Document() {
         <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png" />
       </Head>
       <body>
-        {/* Blocking script: reads localStorage and sets data-theme before first paint.
-            Prevents flash of wrong theme on post pages. */}
+        {/* Blocking script: sets data-theme before first paint to prevent a flash.
+            Browse pages (/, /archive, /tags, /search) are always dark; everything else
+            uses the saved choice, then the OS preference. Mirrors lib/routes.ts. */}
         <script dangerouslySetInnerHTML={{ __html: `
           try {
-            var t = localStorage.getItem('blog-theme');
-            if (t === 'dark' || t === 'light') {
-              document.documentElement.setAttribute('data-theme', t);
+            var p = location.pathname.replace(/\\/+$/, '') || '/';
+            var forced = p === '/' || p === '/archive' || p === '/search' || p === '/tags' || p.indexOf('/tags/') === 0;
+            var t = forced ? 'dark' : localStorage.getItem('blog-theme');
+            if (t !== 'dark' && t !== 'light') {
+              t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             }
+            document.documentElement.setAttribute('data-theme', t);
           } catch(e) {}
         `}} />
         <Main />

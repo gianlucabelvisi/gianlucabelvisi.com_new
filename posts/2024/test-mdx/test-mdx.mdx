@@ -8,6 +8,7 @@ hashtags: "test, mdx, tech, components"
 featureImage: "travel-1.jpg"
 cardImage: "travel-1.jpg"
 onHover: "🧪"
+series: "Test Suite"
 hidden: true
 ---
 
@@ -645,3 +646,33 @@ All colors transition together in perfect harmony over 1 second with Apple's cub
 </Quote>
 
 **Perfect for testing the complete theme system!** 🎨✨
+
+## 🔍 Post Page Chrome (The Big Review)
+
+None of these need markup — they come from frontmatter and headings, so this page doubles as their showcase.
+
+<TextBox title="What to look for on this page" closeable={true}>
+
+- **Reading time** next to the date at the top (`readingTime` is computed from the body at build time).
+- **Progress bar** — a thin orange line under the header that fills as you scroll; a **back-to-top** button appears bottom-right after one screen.
+- **Table of contents**: on wide screens (≥1440px) it's a sticky rail in the empty column left of the post; narrower than that it becomes a small "In this post ›" toggle under the subtitle. Shows H2/H3, highlights the section you're reading, only renders with 3+ headings.
+- **Heading anchors** — every `##`/`###` gets an `id`; click a TOC entry and the URL updates (`#code-block-testing`). The heading lands *below* the fixed header, not underneath it.
+- **Series box** above the TOC — this post has `series: "Test Suite"` in its frontmatter. The box lists every post sharing that value with the current one marked, but only renders once a series has 2+ posts, so add `series: "Test Suite"` to another post to see it.
+- **Tag chips** after the reactions: `#test`, `#mdx`, `#tech`, `#components` — each links to `/tags/<tag>`.
+- **Share row** at the end on narrow screens (the sticky sidebar is hidden below 900px). The last button opens the native share sheet on mobile, or copies the link on desktop.
+- **Related posts** grid before the newsletter form, ranked by shared hashtags.
+- **Comments** (Giscus) appear between navigation and related posts *only if* `NEXT_PUBLIC_GISCUS_*` is set.
+
+</TextBox>
+
+### Inline code in both themes
+
+Inline code like `npm run dev` and `const x = 1` now uses theme variables instead of a hard-coded light background — toggle the theme and check it stays readable.
+
+### Keyboard test
+
+<Dialogue>Tab to the TOC toggle and press Enter to collapse it.</Dialogue>
+
+<Dialogue>Tab through the tag chips — each should show an orange focus ring.</Dialogue>
+
+<Dialogue>On the homepage, focus a slider and press ← / → to page through cards.</Dialogue>

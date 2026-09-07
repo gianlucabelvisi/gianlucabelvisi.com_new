@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { PieChart } from 'react-minimal-pie-chart';
 import { database } from '../lib/firebase';
 import { ref, runTransaction, get } from 'firebase/database';
+import { getVote, rememberVote } from '../lib/voter';
 
 interface PollProps {
   id: string;
@@ -10,55 +11,58 @@ interface PollProps {
   labels?: string[];
 }
 
-const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
-  const [results, setResults] = useState<{ [key: string]: number }>({});
-  const [answered, setAnswered] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+const colors = ['#ff9664', '#667afa', '#edc67e', '#f57684', '#ffb5f5'];
 
-  const colors = ['#ff9664', '#667afa', '#edc67e', '#f57684', '#ffb5f5'];
+type PollResults = { [answerIndex: string]: number };
+
+async function loadResults(id: string): Promise<PollResults> {
+  try {
+    const snapshot = await get(ref(database, `polls/${id}`));
+    return snapshot.val() || {};
+  } catch (error) {
+    console.error('Error fetching poll results:', error);
+    return {};
+  }
+}
+
+const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
+  const [results, setResults] = useState<PollResults>({});
+  // Poll is rendered client-only (ssr: false), so we can restore a previous vote
+  // from this browser up front — reloading doesn't allow re-voting.
+  const [selectedOption, setSelectedOption] = useState<number | null>(() => getVote(`poll:${id}`));
+  const [answered, setAnswered] = useState(() => getVote(`poll:${id}`) !== null);
+  const [loading, setLoading] = useState(true);
 
   const handleVote = async (answerIndex: number) => {
     if (answered) return;
-    
+
     setSelectedOption(answerIndex);
-    
+
     try {
       const pollRef = ref(database, `polls/${id}/${answerIndex}`);
       await runTransaction(pollRef, (current) => {
         return (current || 0) + 1;
       });
       setAnswered(true);
+      rememberVote(`poll:${id}`, answerIndex);
       // Refresh results after voting
-      fetchResults();
+      setResults(await loadResults(id));
     } catch (error) {
       console.error('Error voting:', error);
     }
   };
 
-  const fetchResults = async () => {
-    try {
-      const pollRef = ref(database, `polls/${id}`);
-      const snapshot = await get(pollRef);
-      const data = snapshot.val() || {};
+  useEffect(() => {
+    let cancelled = false;
+    loadResults(id).then(data => {
+      if (cancelled) return;
       setResults(data);
       setLoading(false);
-    } catch (error) {
-      console.error('Error fetching poll results:', error);
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchResults();
+    });
+    return () => { cancelled = true; };
   }, [id]);
 
   const totalVotes = Object.values(results).reduce((sum, count) => sum + count, 0);
-  
-  const getPercentage = (optionIndex: number) => {
-    if (totalVotes === 0) return 0;
-    return Math.round(((results[optionIndex] || 0) / totalVotes) * 100);
-  };
 
   const pieData = answers.map((answer, index) => ({
     title: labels?.[index] || answer, // Use labels for pie chart if provided
@@ -115,9 +119,11 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
             const color = colors[index] || '#ccc';
 
             return (
-              <div
+              <button
                 key={index}
+                type="button"
                 onClick={() => handleVote(index)}
+                className="pollOption"
                 style={{
                   padding: '1.5rem',
                   background: 'var(--color-background-card)',
@@ -127,26 +133,17 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
                   transition: 'box-shadow 0.3s ease, background-color 0.3s ease',
                   boxShadow: 'var(--shadow-md)',
                   position: 'relative',
-                  overflow: 'hidden'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = `0 4px 16px ${color}40`;
-                  e.currentTarget.style.backgroundColor = `${color}1a`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-                  e.currentTarget.style.backgroundColor = 'var(--color-background-card)';
-                }}
-              >
-                <div style={{
+                  overflow: 'hidden',
+                  font: 'inherit',
                   fontWeight: '500',
                   color: 'var(--color-text-primary)',
                   fontSize: '1rem',
-                  textAlign: 'center'
-                }}>
-                  {answer}
-                </div>
-              </div>
+                  textAlign: 'center',
+                  ['--poll-color' as string]: color,
+                }}
+              >
+                {answer}
+              </button>
             );
           })}
         </div>
@@ -186,7 +183,7 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
             opacity: 0,
             animation: 'slideInRight 0.8s ease-out 0.6s forwards'
           }}>
-            {pieData.map((item, index) => (
+            {pieData.map((item) => (
               <div
                 key={item.key}
                 style={{
@@ -293,6 +290,12 @@ const Poll: React.FC<PollProps> = ({ id, question, answers, labels }) => {
         }
         .pollOptions.cols-2 { grid-template-columns: repeat(2, 1fr); }
         .pollOptions.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+        .pollOption:hover,
+        .pollOption:focus-visible {
+          box-shadow: 0 4px 16px color-mix(in srgb, var(--poll-color) 25%, transparent) !important;
+          background-color: color-mix(in srgb, var(--poll-color) 10%, var(--color-background-card)) !important;
+        }
 
         /* Smooth height transition from options grid to results */
         .pollResultsWrap {

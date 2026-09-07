@@ -12,7 +12,7 @@ const FigureLabel = ({ children }: FigureLabelProps) => {
       marginTop: '0.5rem',
       paddingLeft: '4rem',
       paddingRight: '4rem',
-      textWrap: 'balance' as any // TypeScript doesn't know about this CSS property yet
+      textWrap: 'balance'
     }}>
       <em>{children}</em>
     </span>

@@ -15,7 +15,8 @@ All active work happens in `new_blog/`.
 ```bash
 npm run dev          # Start dev server (also copies post images first)
 npm run build        # Production build (also copies post images first)
-npm run lint         # ESLint via Next.js
+npm run lint         # ESLint (flat config in eslint.config.mjs; `next lint` is gone in Next 16)
+npm run typecheck    # tsc --noEmit
 npm run clean        # Remove .next/ and public/images/posts/
 npm run fresh-build  # clean + build
 npm run copy-images  # Manually copy post images to public/
