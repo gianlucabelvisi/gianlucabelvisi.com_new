@@ -613,12 +613,12 @@ Outcome of a full performance / UX / features audit. Everything below is built a
 - ❓ `formatDate` uses UTC — no more off-by-one dates depending on the reader's timezone
 - ❓ Future-dated posts stay hidden until their date; duplicate slugs fail the build with a clear error
 - ❓ Post pages open in ~150ms instead of ~3s: shiki only preloads the 15 grammars we use (was all ~220), others load lazily
-- ❓ Route progress bar under the header while a navigation is in flight (skipped when the page arrives in <120ms)
+- ❓ Route progress bar under the header while a navigation is in flight (skipped when the page arrives in under 120ms)
 
 ### 7.2 Reading aids (post page)
 - ❓ Reading time next to the date (also in `twitter:label1`)
 - ❓ Thin reading-progress bar + back-to-top button (appears after ~1 screen)
-- ❓ Table of contents — sticky rail in the empty left column on ≥1440px screens, quiet "In this post ›" toggle below that. Keeps `#`/`##`/`###` hierarchy (indent + weight), highlights the section you're in as you scroll; hidden if < 3 headings
+- ❓ Table of contents — sticky rail in the empty left column on ≥1440px screens, quiet "In this post ›" toggle below that. Keeps `#`/`##`/`###` hierarchy (indent + weight), highlights the section you're in as you scroll; hidden with fewer than 3 headings
 - ❓ `ResponsiveEmbed` with a direct image/GIF URL now shows the whole image at its real aspect ratio (`ratio` is only a loading placeholder) — `object-fit: cover` was cropping GIF subtitles in 6 posts
 - ❓ `TextBox` no longer clips content below lazy-loaded images (was animating `max-height` to a height measured before the image arrived; now a CSS grid `1fr`/`0fr` transition)
 - ❓ `overflow-x: hidden` on `body` replaced with `clip` — it was silently disabling *every* `position: sticky` on the site (share sidebar included)
