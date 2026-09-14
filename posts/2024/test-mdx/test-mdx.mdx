@@ -289,9 +289,21 @@ Testing the animated book stack:
 ## Audio & Media Components
 
 ### YouTubeAudio Component
-Testing YouTube audio-only player:
+Audio-only pill: a play button and a caption, no video. Block-level (own paragraph), driven by the YouTube IFrame API with the player parked off-screen:
 
-Here's some text with an inline YouTube audio player <YouTubeAudio url="https://www.youtube.com/watch?v=dQw4w9WgXcQ" /> that plays just the audio without the video.
+<YouTubeAudio url="https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=43" />
+
+Things to check:
+- The orange button plays/pauses; the kicker flips to "Now playing" with animated bars.
+- If a browser blocks scripted playback (iOS Safari may), the real player appears inside the pill ~2.5s after the click with a hint to tap it; once it's playing it tucks itself away again.
+- `start`/`t` in the URL is honoured (this one starts at 0:43). The title is fetched from YouTube's oEmbed; pass `title="..."` to override.
+- Any URL shape works: `watch?v=`, `youtu.be/`, `/embed/`.
+
+<YouTubeAudio url="https://youtu.be/dQw4w9WgXcQ" title="Custom caption instead of the fetched title" />
+
+Compact variant with `showTitle={false}` — just the button and kicker, no title (and no oEmbed request). This is what the Caterina Sforza posts use so the song stays a surprise:
+
+<YouTubeAudio url="https://youtu.be/dQw4w9WgXcQ" showTitle={false} />
 
 ## Typography Components
 
