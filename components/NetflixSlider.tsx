@@ -43,7 +43,9 @@ export default function NetflixSlider({ title, posts, imagePath, moreHref, moreL
   const startYRef = useRef(0)
   const directionRef = useRef<'none' | 'horizontal' | 'vertical'>('none')
   const wasHorizontalDragRef = useRef(false)
+  const dragOffsetRef = useRef(0)
   const containerRef = useRef<HTMLElement>(null)
+  const sliderWrapperRef = useRef<HTMLDivElement>(null)
 
   const itemsPerPage = ITEMS_PER_PAGE
   const totalPages = Math.ceil(posts.length / itemsPerPage)
@@ -85,6 +87,19 @@ export default function NetflixSlider({ title, posts, imagePath, moreHref, moreL
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [posts.length, itemsPerPage])
+
+  // React registers touchmove as passive; preventDefault needs a native listener
+  useEffect(() => {
+    const el = sliderWrapperRef.current
+    if (!el) return
+    const blockHorizontalBrowserScroll = (e: TouchEvent) => {
+      if (isDraggingRef.current && directionRef.current === 'horizontal') {
+        e.preventDefault()
+      }
+    }
+    el.addEventListener('touchmove', blockHorizontalBrowserScroll, { passive: false })
+    return () => el.removeEventListener('touchmove', blockHorizontalBrowserScroll)
+  }, [])
 
   const scrollLeft = () => {
     const cardWidth = getCardWidth()
@@ -148,6 +163,7 @@ export default function NetflixSlider({ title, posts, imagePath, moreHref, moreL
     startYRef.current = e.touches[0].clientY
     directionRef.current = 'none'
     wasHorizontalDragRef.current = false
+    dragOffsetRef.current = 0
     setDragOffset(0)
   }
 
@@ -167,29 +183,43 @@ export default function NetflixSlider({ title, posts, imagePath, moreHref, moreL
 
     if (directionRef.current === 'horizontal') {
       wasHorizontalDragRef.current = true
+      dragOffsetRef.current = dx
       setDragOffset(dx)
     } else if (directionRef.current === 'vertical') {
       // Let the browser handle vertical scrolling
       isDraggingRef.current = false
       setIsDragging(false)
+      dragOffsetRef.current = 0
       setDragOffset(0)
     }
   }
 
-  const handleTouchEnd = () => {
-    if (!isDraggingRef.current) return
+  const finishHorizontalDrag = () => {
+    const offset = dragOffsetRef.current
     isDraggingRef.current = false
     setIsDragging(false)
-
-    const threshold = 30
-    if (Math.abs(dragOffset) > threshold) {
-      if (dragOffset > 0 && canScrollLeft) {
-        scrollLeft()
-      } else if (dragOffset < 0 && canScrollRight) {
-        scrollRight()
-      }
-    }
+    dragOffsetRef.current = 0
     setDragOffset(0)
+
+    if (!wasHorizontalDragRef.current || offset === 0) return
+
+    const cardWidth = getCardWidth()
+    const maxTranslate = -(Math.max(0, posts.length - itemsPerPage)) * cardWidth
+
+    setTranslateX((prev) => {
+      const raw = prev + offset
+      // Snap to the nearest card column so the row settles cleanly
+      const snapped = Math.round(raw / cardWidth) * cardWidth
+      const clamped = Math.max(Math.min(snapped, 0), maxTranslate)
+      setCanScrollLeft(clamped < 0)
+      setCanScrollRight(clamped > maxTranslate)
+      return clamped
+    })
+  }
+
+  const handleTouchEnd = () => {
+    if (!isDraggingRef.current && dragOffsetRef.current === 0) return
+    finishHorizontalDrag()
   }
 
   const handleCardClick = (e: React.MouseEvent, slug: string) => {
@@ -247,10 +277,12 @@ export default function NetflixSlider({ title, posts, imagePath, moreHref, moreL
       </div>
 
       <div
+        ref={sliderWrapperRef}
         className={styles.sliderWrapper}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
         onKeyDown={handleKeyDown}
       >
         {!isMobile && canScrollLeft && (

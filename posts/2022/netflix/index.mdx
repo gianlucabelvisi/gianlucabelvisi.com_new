@@ -18,9 +18,9 @@ import Poll from "../../../components/mdx/Poll";
 import {FigureLabel, Pony} from "../../../components/mdx/Text";
 import ResponsiveEmbed from "../../../components/mdx/ResponsiveEmbed";
 
-I've been let know that my blog is -- and I quote -- esthetically challenging, unpleasant to look at, and uncanny valley-y. Don't get me wrong, it's ok for an **amateurish** work, but it's kinda frustrating, because it could have been good with just a little more effort.
+I've been told that my blog is -- and I quote -- esthetically challenging, unpleasant to look at, and uncanny valley-y. Don't get me wrong, it's ok for an **amateurish** work, but it's kinda frustrating, because it could have been good with just a little more effort.
 
-Now, in front of such **harsh** but well worded feedback -- so rare these days! -- my only thought was:
+Now, faced with such **harsh** but well worded feedback -- so rare these days! -- my only thought was:
 
 <Pony>I need to cut ties with this person. 🦄</Pony>
 
@@ -30,7 +30,7 @@ Then, I took a long look at my homepage...
 
 <Pony>Oh my god, she's right! 🙀</Pony>
 
-So, after cutting ties with her, I set myself to work at a **radical** design overhaul, wielding a glass of wine and unafraid of using it. 🍷
+So, after cutting ties with her, I set myself to work on a **radical** design overhaul, wielding a glass of wine and unafraid of using it. 🍷
 
 ## First Things First
 
@@ -38,9 +38,9 @@ When **change** is warranted, one must understand why that is, otherwise stuff w
 
 What is *not* working with my homepage?
 
-For starters, it seems to be coming directly from **2003**, what with that huge six seconds holiday video on repeat that doesn't even work on mobile, I suspect for battery reasons.
+For starters, it seems to be coming directly from **2003**, what with that huge six-second holiday video on repeat that doesn't even work on mobile, I suspect for battery reasons.
 
-It has cool micro-animations, and it does the job of giving you a glimpse on the most recent content, but are you feeling **compelled** to read a post?
+It has cool micro-animations, and it does the job of giving you a glimpse of the most recent content, but are you feeling **compelled** to read a post?
 
 ...
 
@@ -56,7 +56,7 @@ With this in mind, what should the focus be? Why do people come here? Why would 
 
 The witty posts uncovering stories from [remote internet corners](/r/place), the accounts of (in)famous [Renaissance heroes](/caterina-sforza-1), the invaluable [investing advice](https://www.youtube.com/watch?v=dQw4w9WgXcQ). All well curated and written, with a self-deprecating sense of humor that comes across as cute, albeit tiresome at times.
 
-And I'm not saying this, I'm just **quoting** your dms, or at least the parts that I can repeating without blushing, you silly pervs. 🙈
+And I'm not saying this, I'm just **quoting** your dms, or at least the parts that I can repeat without blushing, you silly pervs. 🙈
 
 Ok, cool. Content. Looking at online venues where content is king 👑, my conclusion is that I need to turn my blog into **Netflix**. Only, you know, with good content!
 
@@ -84,7 +84,7 @@ Let's start with a **blueprint**. Please click on the Miro board...
 
 <p></p>
 
-This is what needs be done:
+This is what needs to be done:
 
 * A simple way of fetching posts, together with all their metadata, so that I can easily create groups for the content rich homepage
 
@@ -109,7 +109,7 @@ Long story short, in my code all I need is:
 const posts = data.allMdx.edges
 ```
 
-And, boom, I have all the posts on my thumb, ready to be **grouped** as I please. Let's do some of that:
+And, boom, I have all the posts at my fingertips, ready to be **grouped** as I please. Let's do some of that:
 
 ```js
 const featured      = posts[0]
@@ -123,7 +123,7 @@ const chronological = [...posts].reverse()
 
 This only took me a glass of wine to complete, but that's because when I created my blog I was forward-looking enough to implement **hashtag** support even if not needed at the time. Amateurish my ass.
 
-Now that we have the **CoNtEnT**, let's put it to use on an actual page. Based on the blueprint above, this is all there is to be...
+Now that we have the **CoNtEnT**, let's put it to use on an actual page. Based on the blueprint above, this is all there is to it...
 
 ```jsx
 <Layout isDark={true}>
@@ -148,7 +148,7 @@ It's not much, but it's honest work. You can see the featured post and then a li
 
 ## The Featured Post
 
-Let's start with the *pièce de résistance*, the most recent post displayed at the top of the screen for maximum consumption. Here's where's at:
+Let's start with the *pièce de résistance*, the most recent post displayed at the top of the screen for maximum consumption. Here's where it's at:
 
 ```jsx
 
@@ -167,13 +167,13 @@ Let's start with the *pièce de résistance*, the most recent post displayed at 
 
 The wrapper is a *position: relative*, while the overlay is a *position: absolute* that tries to be on the bottom half of the image, based on screen size.
 
-I used to have **emojis** that appear when you rest the cursor over a button. I want to move away from that, but retain the emojis, so I put them to the bottom right. They really tie the room together.
+I used to have **emojis** that appear when you rest the cursor over a button. I want to move away from that, but retain the emojis, so I put them in the bottom right. They really tie the room together.
 
 Speaking of which, we need to talk about the button.
 
 ### We need to talk about the button
 
-The button I created for version 1.0 simply won't do with the new style. It's too noisy, too unnecessary in the way it expands when hovering it. What was I thinking? Why didn't you say anything? And why did I cut ties with those that did?
+The button I created for version 1.0 simply won't do with the new style. It's too noisy, too unnecessary in the way it expands when hovering over it. What was I thinking? Why didn't you say anything? And why did I cut ties with those that did?
 
 <p></p>
 
@@ -193,7 +193,7 @@ Each row of content is an instance of the slider component. There, we want to **
 
 ![not a hamburger](slider.jpg)
 
-When you hover or tap on a post, more information will be displayed, so that you have no other choice but **read it**, unless you want ties to be cut.
+When you hover or tap on a post, more information will be displayed, so that you have no other choice but **to read it**, unless you want ties to be cut.
 
 Here's the final layout. It's a bit of a **doozy**, but trust me, it's gonna be fine. You are going to be fine. Despite what your mother, your fiancé, and Society are telling you, you are not dumb. Now please commit the following code to memory...
 
@@ -259,7 +259,7 @@ Here's the final layout. It's a bit of a **doozy**, but trust me, it's gonna be 
 </Container>
 ```
 
-Was it exciting to read as much as it was for me to write? Yes!
+Was it as exciting to read as it was for me to write? Yes!
 
 Let's tackle it bit by bit.
 
@@ -267,7 +267,7 @@ Let's tackle it bit by bit.
 
 ![](slider_header.jpg)
 
-I have a title on the left, and a subtitle that I choose to render as **tooltip** in order to reduce visual overload. On the right, a progress bar reports the number of pages and the one you are currently sitting on.
+I have a title on the left, and a subtitle that I choose to render as a **tooltip** in order to reduce visual overload. On the right, a progress bar reports the number of pages and the one you are currently sitting on.
 
 In order to render the progress bar, I need to know the number of pages. How to calculate it? **Easy-peasy**:
 
@@ -285,7 +285,7 @@ This is the meat of the matter. The posts are all *display: flex*, where the one
 
 ![](slider_footer.jpg)
 
-When you press either ◀ or ▶ the content will be shifted for ±100% of the screen width. Some easing is applied, as we are not savages.
+When you press either ◀ or ▶ the content will be shifted by ±100% of the screen width. Some easing is applied, as we are not savages.
 
 Now, if you try this on **Netflix**, you will notice that when the end of content is reached, you loop around to the beginning.
 
@@ -302,12 +302,12 @@ If you have ever implemented a 2D side-scrolling game, you know that the way to 
 
 So, I have to implement something similar for my slider, except I'm not gonna do any of that! I have no idea how to do it in CSS, and I'm running out of wine! So, in this house, once we reach the end of content, we stop scrolling!
 
-Here is the **final result**. Notice how smooth is the sliding effect! Notice how the items get bigger when you hover on them!
+Here is the **final result**. Notice how smooth the sliding effect is! Notice how the items get bigger when you hover on them!
 
 <YouTube source="KpkUzVVvosk"/>
 
 For the whole experience, you can visit the [new index page](/), unless you are coming from there, in which case you got the ending spoiled, and I feel sorry for you. 😞
 
-I'm sure different browsers and devices will experience bugs. Please report them in the comments, and I will **Paypal** you a reward. <small>(Might be a bold faced lie.)</small>
+I'm sure different browsers and devices will experience bugs. Please report them in the comments, and I will **Paypal** you a reward. <small>(Might be a bald-faced lie.)</small>
 
-In case you prefer the old page, it's still there at [index-cringe](/), but know that I'll be monitoring ip-addresses and cut ties with whoever visits it.
+In case you prefer the old page, it's still there at [index-cringe](/), but know that I'll be monitoring ip-addresses and cutting ties with whoever visits it.
