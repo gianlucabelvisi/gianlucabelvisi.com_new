@@ -562,3 +562,45 @@
     background-position: -200% 0;
   }
 }
+
+/* ── Touch devices: image-first cards, fewer words ─────────────────────────
+   No hover to reveal the subtitle, so show only the title (up to two lines)
+   on a bottom gradient. The subtitle appears once a card is tapped/expanded. */
+@media (hover: none) {
+  .cardOverlay {
+    transform: none;
+    padding: 1.5rem 0.5rem 0.45rem;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.45) 65%, transparent 100%);
+  }
+
+  .cardTitle {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    margin: 0;
+  }
+
+  .cardSubtitle {
+    display: none;
+  }
+
+  .enlargedCard .cardSubtitle {
+    display: block;
+    margin: 0.2rem 0 0;
+  }
+}
+
+/* Phones: swiping replaces the page dots, so drop them from the row header */
+@media screen and (max-width: 768px) {
+  .progressBar {
+    display: none;
+  }
+
+  .sliderTitle {
+    font-size: 1.1rem;
+  }
+
+  .moreLink {
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+}

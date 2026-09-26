@@ -1,94 +1,156 @@
-.container {
+/* An email open in a mail client: subject bar → sender row → body */
+
+.email {
+  margin: 2rem 0;
   border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-md);
-  background-color: var(--color-background-card);
-  margin: 1.5rem 0;
-  box-shadow: var(--shadow-md);
+  border-radius: 14px;
+  background: var(--color-background-card);
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.25), var(--shadow-sm);
   overflow: hidden;
 }
 
-.header {
-  background: linear-gradient(135deg, rgba(232, 124, 72, 0.15) 0%, rgba(232, 124, 72, 0.08) 100%);
-  padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.9rem;
-}
+/* ── Subject bar ─────────────────────────────────────────────────────────── */
 
-.headerRow {
+.toolbar {
   display: flex;
-  margin-bottom: 0.35rem;
-  line-height: 1.4;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1.1rem;
+  background: var(--color-background-hover);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.headerRow:last-child {
-  margin-bottom: 0;
-}
-
-.headerLabel {
-  font-weight: 600;
-  color: var(--color-primary-dark);
-  min-width: 70px;
+.toolbarIcon {
   flex-shrink: 0;
+  color: var(--color-primary);
+  font-size: 1.05rem;
 }
 
-.headerValue {
+.subject {
+  flex: 1;
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.35;
+}
+
+.toolbarActions {
+  display: inline-flex;
+  gap: 0.8rem;
+  flex-shrink: 0;
+  color: var(--color-text-light);
+  font-size: 0.95rem;
+}
+
+/* ── Sender / recipient ──────────────────────────────────────────────────── */
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem 1.25rem 0;
+}
+
+.avatar {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary-dark));
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.metaText {
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.sender {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.4rem;
+}
+
+.senderName {
+  font-weight: 700;
   color: var(--color-text-primary);
 }
+
+.address,
+.recipient {
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+  overflow-wrap: anywhere;
+}
+
+.recipientName {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+/* ── Body ────────────────────────────────────────────────────────────────── */
 
 .body {
-  padding: 1.25rem 1.5rem;
-  line-height: 1.7;
-  background-color: var(--color-background-card);
-  font-style: italic;
+  padding: 1rem 1.25rem 1.4rem 4.55rem; /* body text lines up with the sender name */
   color: var(--color-text-primary);
 }
 
-.body p {
-  margin: 0 0 1rem 0;
+/* Beat the post's `.mdxContent p` rules */
+.email .body p {
+  margin: 0 0 0.9rem;
+  font-size: 1.05rem;
+  line-height: 1.7;
 }
 
-.body p:last-child {
+.email .body p:last-child {
   margin-bottom: 0;
 }
 
-/* Signature styling */
+/* Old-school plain-text signature: "-- " on its own line, then the name */
 .signature {
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px dashed var(--color-border);
-  font-style: normal;
-  font-weight: 500;
-  color: var(--color-primary-dark);
+  margin-top: 1.1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  white-space: pre-line;
 }
 
-/* Small accent line on the left */
-.container::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  background: var(--color-primary);
+.sigDelimiter {
+  display: block;
+  white-space: pre;
 }
 
-/* Make container relative for the pseudo-element */
-.container {
-  position: relative;
-  padding-left: 4px;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .header {
-    padding: 0.875rem 1rem;
+@media (max-width: 600px) {
+  .email {
+    border-radius: 12px;
   }
-  
+
+  .toolbar {
+    padding: 0.65rem 0.9rem;
+  }
+
+  .toolbarActions {
+    display: none;
+  }
+
+  .meta {
+    padding: 0.9rem 0.9rem 0;
+  }
+
   .body {
-    padding: 1rem 1.25rem;
+    padding: 0.9rem 0.9rem 1.1rem;
   }
-  
-  .headerLabel {
-    min-width: 60px;
+
+  .email .body p {
+    font-size: 1rem;
   }
 }

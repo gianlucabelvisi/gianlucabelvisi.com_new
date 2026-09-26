@@ -47,15 +47,16 @@
 }
 
 
-/* Table of contents rail: the otherwise-empty two columns left of the share sidebar */
+/* Table of contents rail: the otherwise-empty columns right of the post,
+   balancing the share sidebar on the left */
 .tocRail {
-  grid-column: 1 / span 2;
+  grid-column: 12 / span 3;
   grid-row: 4 / span 4;
   position: relative;
   z-index: 2;
-  justify-self: end;
+  justify-self: start;
   width: min(100%, 16rem);
-  padding-left: 1.5rem;
+  padding-right: 1.5rem;
 }
 
 .tocSticky {
@@ -266,6 +267,11 @@
 
   /* Hide social share sidebar; show the inline row at the end instead */
   .sidebar {
+    display: none;
+  }
+
+  /* No table of contents on phones */
+  .tocInline {
     display: none;
   }
 

@@ -7,18 +7,6 @@ import styles from './NetflixSlider.module.css'
 
 const ITEMS_PER_PAGE = 5
 
-// Card width + gap at the current viewport, matching the CSS breakpoints
-function getCardWidth(): number {
-  if (typeof window === 'undefined') return 308
-  const width = window.innerWidth
-  if (width <= 360) return 168  // 160px + 8px gap (0.5rem)
-  if (width <= 480) return 183  // 175px + 8px gap (0.5rem)
-  if (width <= 768) return 258  // 250px + 8px gap (0.5rem)
-  if (width <= 900) return 258  // 250px + 8px gap
-  if (width <= 1200) return 288 // 280px + 8px gap
-  return 308                    // 300px + 8px gap
-}
-
 interface NetflixSliderProps {
   title: string
   posts: (PostData | PostSummary)[]
@@ -35,6 +23,7 @@ export default function NetflixSlider({ title, posts, imagePath, moreHref, moreL
   const [dragOffset, setDragOffset] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const [translateX, setTranslateX] = useState(0)
+  const [maxTranslate, setMaxTranslate] = useState(0)
   const [expandedSlug, setExpandedSlug] = useState<string | null>(null)
 
   // Use refs for drag state to avoid stale closure issues
@@ -47,18 +36,36 @@ export default function NetflixSlider({ title, posts, imagePath, moreHref, moreL
   const containerRef = useRef<HTMLElement>(null)
   const sliderWrapperRef = useRef<HTMLDivElement>(null)
 
+  const sliderRef = useRef<HTMLDivElement>(null)
+
   const itemsPerPage = ITEMS_PER_PAGE
   const totalPages = Math.ceil(posts.length / itemsPerPage)
 
+  // Card width + gap, measured from the DOM so it always matches the CSS breakpoints
+  const getCardWidth = (): number => {
+    const cards = sliderRef.current?.children
+    if (cards && cards.length > 1) {
+      return (cards[1] as HTMLElement).offsetLeft - (cards[0] as HTMLElement).offsetLeft
+    }
+    return (cards?.[0] as HTMLElement | undefined)?.offsetWidth ?? 308
+  }
+
+  // Furthest (negative) translate: the row's real overflow beyond the visible width.
+  // Measured rather than derived from a fixed cards-per-page count, so a row that
+  // overflows (e.g. 5 cards on a phone that shows 2) can always be scrolled to its end.
+  const getMaxTranslate = (): number => {
+    const slider = sliderRef.current
+    const wrapper = sliderWrapperRef.current
+    if (!slider || !wrapper) return 0
+    return Math.min(0, wrapper.clientWidth - slider.scrollWidth)
+  }
+
   // Progress dot derived from the current translate position
   const currentPage = useMemo(() => {
-    if (posts.length <= itemsPerPage || totalPages <= 1) return 0
-    const cardWidth = getCardWidth()
-    const maxTranslate = (posts.length - itemsPerPage) * cardWidth
-    const scrollPercentage = Math.abs(translateX) / maxTranslate
-    const page = Math.round(scrollPercentage * (totalPages - 1))
+    if (totalPages <= 1 || maxTranslate === 0) return 0
+    const page = Math.round((translateX / maxTranslate) * (totalPages - 1))
     return Math.max(0, Math.min(page, totalPages - 1))
-  }, [translateX, posts.length, totalPages, itemsPerPage])
+  }, [translateX, maxTranslate, totalPages])
 
   // Collapse expanded card when tapping outside the slider
   useEffect(() => {
@@ -79,14 +86,16 @@ export default function NetflixSlider({ title, posts, imagePath, moreHref, moreL
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768)
+      const max = getMaxTranslate()
+      setMaxTranslate(max)
       setTranslateX(0)
       setCanScrollLeft(false)
-      setCanScrollRight(posts.length > itemsPerPage)
+      setCanScrollRight(max < 0)
     }
     handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [posts.length, itemsPerPage])
+  }, [posts.length])
 
   // React registers touchmove as passive; preventDefault needs a native listener
   useEffect(() => {
@@ -101,31 +110,17 @@ export default function NetflixSlider({ title, posts, imagePath, moreHref, moreL
     return () => el.removeEventListener('touchmove', blockHorizontalBrowserScroll)
   }, [])
 
-  const scrollLeft = () => {
-    const cardWidth = getCardWidth()
-    const newTranslateX = Math.min(translateX + cardWidth, 0)
-    setTranslateX(newTranslateX)
-    setCanScrollLeft(newTranslateX < 0)
-    setCanScrollRight(newTranslateX > -(posts.length - itemsPerPage) * cardWidth)
-  }
-
-  const scrollRight = () => {
-    const cardWidth = getCardWidth()
-    const maxTranslate = -(posts.length - itemsPerPage) * cardWidth
-    const newTranslateX = Math.max(translateX - cardWidth, maxTranslate)
-    setTranslateX(newTranslateX)
-    setCanScrollLeft(newTranslateX < 0)
-    setCanScrollRight(newTranslateX > maxTranslate)
-  }
-
   const applyTranslate = (value: number) => {
-    const cardWidth = getCardWidth()
-    const maxTranslate = -(Math.max(0, posts.length - itemsPerPage)) * cardWidth
-    const clamped = Math.max(Math.min(value, 0), maxTranslate)
+    const max = getMaxTranslate()
+    const clamped = Math.max(Math.min(value, 0), max)
+    setMaxTranslate(max)
     setTranslateX(clamped)
     setCanScrollLeft(clamped < 0)
-    setCanScrollRight(clamped > maxTranslate)
+    setCanScrollRight(clamped > max)
   }
+
+  const scrollLeft = () => applyTranslate(translateX + getCardWidth())
+  const scrollRight = () => applyTranslate(translateX - getCardWidth())
 
   // Jump to a page from the progress dots
   const goToPage = (page: number) => {
@@ -134,14 +129,15 @@ export default function NetflixSlider({ title, posts, imagePath, moreHref, moreL
 
   // Keep a keyboard-focused card inside the visible window
   const ensureCardVisible = (index: number) => {
-    if (posts.length <= itemsPerPage) return
+    if (getMaxTranslate() === 0) return
     const cardWidth = getCardWidth()
+    const visibleCount = Math.max(1, Math.floor((sliderWrapperRef.current?.clientWidth ?? 0) / cardWidth))
     const firstVisible = Math.round(-translateX / cardWidth)
-    const lastVisible = firstVisible + itemsPerPage - 1
+    const lastVisible = firstVisible + visibleCount - 1
     if (index < firstVisible) {
       applyTranslate(-index * cardWidth)
     } else if (index > lastVisible) {
-      applyTranslate(-(index - itemsPerPage + 1) * cardWidth)
+      applyTranslate(-(index - visibleCount + 1) * cardWidth)
     }
   }
 
@@ -204,17 +200,10 @@ export default function NetflixSlider({ title, posts, imagePath, moreHref, moreL
     if (!wasHorizontalDragRef.current || offset === 0) return
 
     const cardWidth = getCardWidth()
-    const maxTranslate = -(Math.max(0, posts.length - itemsPerPage)) * cardWidth
-
-    setTranslateX((prev) => {
-      const raw = prev + offset
-      // Snap to the nearest card column so the row settles cleanly
-      const snapped = Math.round(raw / cardWidth) * cardWidth
-      const clamped = Math.max(Math.min(snapped, 0), maxTranslate)
-      setCanScrollLeft(clamped < 0)
-      setCanScrollRight(clamped > maxTranslate)
-      return clamped
-    })
+    // Snap to the nearest card column so the row settles cleanly; clamping keeps the
+    // last card flush with the right edge instead of snapping past it
+    const snapped = Math.round((translateX + offset) / cardWidth) * cardWidth
+    applyTranslate(snapped)
   }
 
   const handleTouchEnd = () => {
@@ -296,6 +285,7 @@ export default function NetflixSlider({ title, posts, imagePath, moreHref, moreL
         )}
 
         <div
+          ref={sliderRef}
           className={styles.slider}
           style={{
             transform: `translateX(${translateX + (isDragging ? dragOffset : 0)}px)`,

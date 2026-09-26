@@ -241,7 +241,7 @@ export default function PostPage({
         </div>
       )}
 
-      {/* Left rail - table of contents (wide screens only; the inline variant takes over below 1440px) */}
+      {/* Right rail - table of contents (wide screens only; the inline variant takes over below 1440px) */}
       <aside className={styles.tocRail}>
         <div className={styles.tocSticky}>
           <TableOfContents headings={headings} variant="sidebar" />

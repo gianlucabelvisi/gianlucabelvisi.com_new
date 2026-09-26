@@ -372,18 +372,25 @@
     padding: 0 1rem 1.5rem 1rem;
   }
   
+  /* Phones: title + a quiet meta line + the button. The subtitle is on the post itself. */
   .heroTitle {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
+    line-height: 1.15;
+    margin-bottom: 0.6rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
-  
+
   .heroSubtitle {
-    font-size: 0.9rem;
-    margin-bottom: 1rem;
+    display: none;
   }
-  
+
   .heroMeta {
     font-size: 0.8rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     flex-wrap: wrap;
   }
   

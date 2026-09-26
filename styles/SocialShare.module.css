@@ -76,7 +76,7 @@
   left: calc(100% + 14px);
   top: 50%;
   transform: translateY(-50%) translateX(-6px);
-  background: rgba(17, 24, 39, 0.92);
+  background: var(--color-primary);
   color: #fff;
   font-family: inherit;
   font-size: 0.75rem;
@@ -88,9 +88,7 @@
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 6px 18px rgba(var(--color-primary-rgb), 0.3);
   transition: opacity 0.18s ease, transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 10;
 }
@@ -103,7 +101,7 @@
   top: 50%;
   width: 8px;
   height: 8px;
-  background: rgba(17, 24, 39, 0.92);
+  background: var(--color-primary);
   transform: translateY(-50%) translateX(-6px) rotate(45deg);
   pointer-events: none;
   opacity: 0;
@@ -146,11 +144,4 @@
 .horizontal .shareItem:hover::before,
 .horizontal .shareItem:focus-within::before {
   transform: translateX(-50%) translateY(0) rotate(45deg);
-}
-
-[data-theme="dark"] .shareItem::after,
-[data-theme="dark"] .shareItem::before {
-  background: rgba(243, 244, 246, 0.95);
-  color: #111827;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
