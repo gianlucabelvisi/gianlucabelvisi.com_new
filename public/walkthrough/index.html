@@ -8,7 +8,7 @@
   :root {
     color-scheme: dark;
     --ground: #0f0e0c;
-    --panel: rgba(22, 20, 16, 0.78);
+    --panel: rgba(22, 20, 16, 0.80);
     --panel-solid: #1a1814;
     --ink: #f2ede4;
     --muted: #a89f91;
@@ -19,129 +19,138 @@
     --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
     --safe-t: env(safe-area-inset-top, 0px);
     --safe-b: env(safe-area-inset-bottom, 0px);
+    --gut: 16px;
   }
   [hidden] { display: none !important; }
   html, body { height: 100%; }
-  body { background: var(--ground); color: var(--ink); font-family: var(--ui); overflow: hidden; }
+  body { background: var(--ground); color: var(--ink); font-family: var(--ui); overflow: hidden;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  button { font-family: var(--ui); -webkit-tap-highlight-color: transparent; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
   #stage { position: fixed; inset: 0; }
   #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
   .panel { background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--line); border-radius: 10px; }
+    border: 1px solid var(--line); border-radius: 12px; }
+  .eyebrow { font: 500 10.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 
-  /* room readout */
-  #room { position: fixed; left: 16px; top: calc(16px + var(--safe-t)); padding: 12px 16px 13px; min-width: 190px;
-    display: grid; gap: 2px; pointer-events: none; }
-  #room .eyebrow { font: 500 10.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-  #room .da { font: 700 22px/1.15 var(--ui); letter-spacing: -.01em; margin-top: 6px; }
-  #room .en { font-size: 13px; color: var(--muted); display: flex; gap: 10px; }
+  /* ---- always-visible HUD: room, menu button, map ---- */
+  #room { position: fixed; left: var(--gut); top: calc(var(--gut) + var(--safe-t)); padding: 10px 14px 11px;
+    display: grid; gap: 3px; pointer-events: none; max-width: calc(100% - 100px); }
+  #room .da { font: 700 20px/1.15 var(--ui); letter-spacing: -.01em; }
+  #room .en { font-size: 12.5px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
   #room .dim { font-family: var(--mono); font-size: 12px; color: var(--oak); }
-
-  /* mode switch */
-  #modes { position: fixed; right: 16px; top: calc(16px + var(--safe-t)); display: flex; padding: 3px; gap: 2px; }
-  #modes button { font: 500 13px/1 var(--ui); color: var(--muted); background: transparent; border: 0;
-    padding: 9px 14px; border-radius: 7px; cursor: pointer; }
-  #modes button[aria-pressed="true"] { background: var(--ink); color: var(--panel-solid); }
-  #tools { position: fixed; right: 16px; top: calc(66px + var(--safe-t)); display: flex; flex-direction: column; padding: 3px; gap: 2px; }
-  #tools button { font: 500 13px/1 var(--ui); color: var(--ink); background: transparent; border: 0; text-align: left;
-    padding: 9px 12px 9px 28px; border-radius: 7px; cursor: pointer; position: relative; }
-  #tools button::before { content: ""; position: absolute; left: 10px; top: 50%; width: 9px; height: 9px; margin-top: -5px;
-    border-radius: 3px; border: 1.5px solid var(--muted); }
-  #tools button[aria-pressed="true"]::before { background: var(--oak); border-color: var(--oak); }
-  #tools button:focus-visible { outline: 2px solid var(--oak); outline-offset: 1px; }
-  #measureOut { position: fixed; left: 16px; top: calc(122px + var(--safe-t)); padding: 10px 14px; display: grid; gap: 3px; max-width: 240px; }
-  #measureOut .eyebrow { font: 500 10.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  #menuBtn { position: fixed; right: var(--gut); top: calc(var(--gut) + var(--safe-t)); width: 48px; height: 48px;
+    display: grid; place-items: center; cursor: pointer; color: var(--ink); z-index: 6; }
+  #menuBtn span, #menuBtn span::before, #menuBtn span::after { display: block; width: 20px; height: 2px; background: currentColor; border-radius: 2px; position: relative; }
+  #menuBtn span::before, #menuBtn span::after { content: ""; position: absolute; left: 0; }
+  #menuBtn span::before { top: -6px; } #menuBtn span::after { top: 6px; }
+  #viewChip { position: fixed; right: calc(var(--gut) + 58px); top: calc(var(--gut) + var(--safe-t)); height: 48px; padding: 0 14px;
+    display: flex; align-items: center; gap: 8px; font: 500 13px/1 var(--ui); color: var(--ink); cursor: pointer; }
+  #mapwrap { position: fixed; left: var(--gut); bottom: calc(var(--gut) + var(--safe-b)); padding: 8px; }
+  #map { display: block; width: 200px; height: 162px; }
+  #compass { position: absolute; left: 12px; top: 10px; font: 500 10px/1 var(--mono); color: var(--muted); letter-spacing: .08em; }
+  #measureOut { position: fixed; left: var(--gut); top: calc(var(--gut) + 86px + var(--safe-t)); padding: 10px 14px; display: grid; gap: 3px; max-width: 250px; }
   #measureOut b { font: 500 20px/1.2 var(--mono); color: var(--oak); font-variant-numeric: tabular-nums; }
   #measureOut small { font-size: 12px; color: var(--muted); line-height: 1.4; }
-  #modes button:focus-visible, .chip:focus-visible, #go:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
-
-  /* bottom bar */
-  #bottom { position: fixed; left: 16px; right: 16px; bottom: calc(16px + var(--safe-b)); display: flex;
-    align-items: flex-end; gap: 12px; pointer-events: none; }
-  #bottom > * { pointer-events: auto; }
-  #mapwrap { padding: 8px; flex: none; position: relative; }
-  #map { display: block; width: 210px; height: 170px; }
-  #compass { position: absolute; left: 12px; top: 10px; font: 500 10px/1 var(--mono); color: var(--muted); letter-spacing: .08em; }
-  #chipsbox { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
-  #chips { display: flex; gap: 6px; overflow-x: auto; max-width: 100%; padding: 6px; scrollbar-width: none; }
-  #chips::-webkit-scrollbar { display: none; }
-  .chip { font: 500 13px/1 var(--ui); color: var(--ink); background: transparent; border: 1px solid var(--line);
-    padding: 8px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
-  .chip:hover { border-color: var(--oak); }
-  .chip.here { background: var(--oak-dim); border-color: var(--oak); }
-  #sun { padding: 10px 14px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; flex: none; width: 260px; }
-  #sun label { font: 500 10.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-  #sun output { font: 500 13px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--oak); min-width: 5ch; text-align: right; }
-  #sunrange { width: 100%; accent-color: var(--oak); }
-  #hint { position: fixed; left: 50%; bottom: calc(210px + var(--safe-b)); transform: translateX(-50%);
-    font-size: 12.5px; color: var(--ink); padding: 8px 14px; pointer-events: none; white-space: nowrap; transition: opacity .3s; }
+  #hint { position: fixed; left: 50%; bottom: calc(var(--gut) + var(--safe-b)); transform: translateX(-50%);
+    font-size: 12.5px; padding: 9px 14px; pointer-events: none; white-space: nowrap; }
   #cross { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%;
     background: rgba(242,237,228,.7); pointer-events: none; }
+  #doorTip { position: fixed; left: 50%; bottom: calc(var(--gut) + 56px + var(--safe-b)); transform: translateX(-50%);
+    font: 500 14px/1 var(--ui); color: var(--ink); padding: 12px 16px; display: flex; gap: 10px; align-items: center; cursor: pointer; z-index: 5; }
+  #doorTip kbd { font: 500 11px/1 var(--mono); border: 1px solid var(--oak); color: var(--oak); border-radius: 4px; padding: 3px 5px; }
+  #pinTip { position: fixed; left: 50%; top: calc(50% + 18px); transform: translateX(-50%); font-size: 12.5px; padding: 6px 10px; pointer-events: none; }
 
-  /* intro */
-  #intro { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(10,9,8,.45); padding: 16px; }
-  #intro .card { max-width: 420px; padding: 24px 24px 22px; display: grid; gap: 14px; }
-  #intro h1 { font: 700 26px/1.1 var(--ui); letter-spacing: -.015em; margin: 0; text-wrap: balance; }
+  /* ---- menu drawer ---- */
+  #scrim { position: fixed; inset: 0; background: rgba(8,7,6,.35); z-index: 9; }
+  #drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(360px, 100%); z-index: 10; background: var(--panel-solid);
+    border-left: 1px solid var(--line); display: flex; flex-direction: column; box-shadow: -12px 0 40px rgba(0,0,0,.4); }
+  #drawer header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: calc(14px + var(--safe-t)) 16px 12px 20px; border-bottom: 1px solid var(--line); }
+  #drawer header h2 { margin: 0; font: 700 17px/1.2 var(--ui); }
+  #drawerClose { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: transparent;
+    color: var(--ink); font-size: 20px; line-height: 1; cursor: pointer; }
+  #drawer .body { overflow-y: auto; padding: 8px 20px calc(24px + var(--safe-b)); display: grid; gap: 20px; -webkit-overflow-scrolling: touch; }
+  #drawer section { display: grid; gap: 10px; }
+  #drawer section > h3 { margin: 12px 0 0; font: 500 10.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; padding: 3px; gap: 3px; border: 1px solid var(--line); border-radius: 10px; }
+  .seg button { font: 500 14px/1 var(--ui); color: var(--muted); background: transparent; border: 0; padding: 12px; border-radius: 8px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--panel-solid); }
+  #chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+  .chip { font: 500 13.5px/1 var(--ui); color: var(--ink); background: transparent; border: 1px solid var(--line);
+    padding: 11px 10px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .chip:hover { border-color: var(--oak); }
+  .chip.here { background: var(--oak-dim); border-color: var(--oak); }
+  #sun { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; }
+  #sun output { font: 500 15px/1 var(--mono); font-variant-numeric: tabular-nums; color: var(--oak); min-width: 5ch; text-align: right; }
+  #sunrange { width: 100%; accent-color: var(--oak); height: 28px; }
+  .sunmarks { display: flex; justify-content: space-between; font: 500 10px/1 var(--mono); color: var(--muted); margin-top: -4px; }
+  .toggles { display: grid; gap: 2px; }
+  .toggles button { font: 500 14px/1.2 var(--ui); color: var(--ink); background: transparent; border: 0; text-align: left;
+    padding: 11px 10px 11px 36px; border-radius: 8px; cursor: pointer; position: relative; display: grid; gap: 2px; }
+  .toggles button small { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .toggles button:hover { background: rgba(242,237,228,.05); }
+  .toggles button::before { content: ""; position: absolute; left: 10px; top: 13px; width: 14px; height: 14px;
+    border-radius: 4px; border: 1.5px solid var(--muted); }
+  .toggles button[aria-pressed="true"]::before { background: var(--oak); border-color: var(--oak); }
+  .gal { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .gal button { position: relative; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+    background: #000; cursor: pointer; aspect-ratio: 3 / 2; }
+  .gal button img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .gal button span { position: absolute; left: 4px; bottom: 4px; font: 500 9.5px/1 var(--mono); letter-spacing: .06em;
+    text-transform: uppercase; padding: 3px 5px; border-radius: 3px; background: var(--oak); color: #1a1208; }
+  .help { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; font-size: 13.5px; }
+  .help dt { font-family: var(--mono); font-size: 12px; color: var(--oak); padding-top: 1px; }
+  .help dd { margin: 0; color: var(--ink); }
+
+  /* ---- intro ---- */
+  #intro { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(10,9,8,.5); padding: 16px; z-index: 12; }
+  #intro .card { max-width: 420px; width: 100%; padding: 24px 22px 20px; display: grid; gap: 14px; }
+  #intro h1 { font: 700 25px/1.1 var(--ui); letter-spacing: -.015em; margin: 0; text-wrap: balance; }
   #intro p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
-  #intro dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 7px 14px; font-size: 13.5px; }
-  #intro dt { font-family: var(--mono); font-size: 12px; color: var(--oak); padding-top: 1px; }
-  #intro dd { margin: 0; }
-  #go { font: 700 15px/1 var(--ui); background: var(--oak); color: #1a1208; border: 0; border-radius: 8px; padding: 13px 16px; cursor: pointer; }
+  #go { font: 700 16px/1 var(--ui); background: var(--oak); color: #1a1208; border: 0; border-radius: 10px; padding: 15px 16px; cursor: pointer; }
   #go:disabled { opacity: .5; cursor: progress; }
-  #intro dl.touch-only { display: none; }
-  @media (pointer: coarse) { #intro dl.touch-only { display: grid; } #intro dl.mouse-only { display: none; } }
+  .touch-only { display: none !important; }
+  @media (pointer: coarse) { .touch-only { display: grid !important; } .mouse-only { display: none !important; } }
 
-  /* touch joystick */
-  #joy { position: fixed; width: 110px; height: 110px; margin: -55px 0 0 -55px; border-radius: 50%;
-    border: 1.5px solid rgba(242,237,228,.45); pointer-events: none; }
-  #joy i { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: rgba(242,237,228,.55); }
+  /* ---- touch joystick (always visible on touch screens) ---- */
+  #joyBase { position: fixed; left: calc(var(--gut) + 8px); bottom: calc(var(--gut) + 8px + var(--safe-b)); width: 128px; height: 128px;
+    border-radius: 50%; border: 1.5px solid rgba(242,237,228,.35); background: rgba(22,20,16,.28); touch-action: none; z-index: 4; }
+  #joyBase i { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%;
+    background: rgba(242,237,228,.6); box-shadow: 0 2px 10px rgba(0,0,0,.35); }
+  #joyBase b { position: absolute; left: 0; right: 0; bottom: -20px; text-align: center; font: 500 10px/1 var(--mono);
+    letter-spacing: .12em; text-transform: uppercase; color: rgba(242,237,228,.7); text-shadow: 0 1px 3px rgba(0,0,0,.6); }
 
-
-  /* photo pins: gallery + lightbox */
-  #gallery { position: fixed; right: 16px; top: calc(252px + var(--safe-t)); width: 272px; max-height: calc(100% - 380px);
-    overflow-y: auto; padding: 10px; display: grid; gap: 10px; }
-  #gallery h2 { margin: 0; font: 500 10.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-  #gallery .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  #gallery button { position: relative; padding: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
-    background: #000; cursor: pointer; aspect-ratio: 4 / 3; }
-  #gallery button img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  #gallery button span { position: absolute; left: 4px; bottom: 4px; font: 500 9.5px/1 var(--mono); letter-spacing: .06em;
-    text-transform: uppercase; padding: 3px 5px; border-radius: 3px; background: rgba(22,20,16,.8); color: var(--ink); }
-  #gallery button span.r { background: var(--oak); color: #1a1208; }
-  #gallery button:focus-visible { outline: 2px solid var(--oak); outline-offset: 1px; }
-  #lightbox { position: fixed; inset: 0; background: rgba(8,7,6,.92); display: grid; grid-template-rows: 1fr auto;
+  /* ---- lightbox ---- */
+  #lightbox { position: fixed; inset: 0; background: rgba(8,7,6,.94); display: grid; grid-template-rows: 1fr auto;
     padding: calc(16px + var(--safe-t)) 16px calc(16px + var(--safe-b)); gap: 12px; z-index: 20; }
   #lightbox figure { margin: 0; min-height: 0; display: grid; place-items: center; position: relative; }
   #lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
-  #lightbox .bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; max-width: 1100px; width: 100%; justify-self: center; }
+  #lightbox .bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; max-width: 1100px; width: 100%; justify-self: center; }
   #lightbox .meta { flex: 1; min-width: 200px; display: grid; gap: 3px; }
   #lightbox .kind { font: 500 10.5px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--oak); }
   #lightbox .title { font: 700 18px/1.2 var(--ui); }
   #lightbox .room { font-size: 13px; color: var(--muted); }
-  #lightbox button { font: 500 13px/1 var(--ui); color: var(--ink); background: transparent; border: 1px solid var(--line);
-    border-radius: 999px; padding: 10px 14px; cursor: pointer; }
+  #lightbox button { font: 500 14px/1 var(--ui); color: var(--ink); background: transparent; border: 1px solid var(--line);
+    border-radius: 999px; padding: 12px 16px; cursor: pointer; }
   #lightbox button.primary { background: var(--oak); border-color: var(--oak); color: #1a1208; font-weight: 700; }
-  #lightbox button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
-  #lightbox .nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 50%;
-    padding: 0; font-size: 20px; background: rgba(22,20,16,.7); }
+  #lightbox .nav { position: absolute; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 50%;
+    padding: 0; font-size: 22px; background: rgba(22,20,16,.75); }
   #lightbox .prev { left: 4px; } #lightbox .next { right: 4px; }
-  #doorTip { position: fixed; left: 50%; bottom: calc(96px + var(--safe-b)); transform: translateX(-50%); font-size: 13px; padding: 8px 12px; display: flex; gap: 8px; align-items: center; cursor: pointer; z-index: 5; }
-  #doorTip kbd { font: 500 11px/1 var(--mono); border: 1px solid var(--oak); color: var(--oak); border-radius: 4px; padding: 3px 5px; }
-  #pinTip { position: fixed; left: 50%; top: calc(50% + 18px); transform: translateX(-50%); font-size: 12.5px; padding: 6px 10px; pointer-events: none; }
-  @media (max-width: 720px) {
-    #gallery { top: auto; bottom: calc(190px + var(--safe-b)); right: 16px; left: 16px; width: auto; max-height: 38%; }
-    #gallery .grid { grid-template-columns: repeat(3, 1fr); }
-  }
-  @media (max-width: 720px) {
-    #bottom { flex-wrap: wrap; }
-    #map { width: 136px; height: 110px; }
-    #sun { width: auto; flex: 1; min-width: 0; padding: 10px 12px; gap: 8px; }
-    #sun label { display: none; }
-    #chipsbox { order: -1; flex-basis: 100%; }
-    #room { min-width: 0; }
-    #room .da { font-size: 19px; }
+
+  /* ---- phones ---- */
+  @media (max-width: 720px), (pointer: coarse) {
+    :root { --gut: 12px; }
+    #room { padding: 8px 12px 9px; }
+    #room .eyebrow { display: none; }
+    #room .da { font-size: 17px; }
+    #map { width: 132px; height: 108px; }
+    #mapwrap { left: auto; right: var(--gut); }
+    #viewChip { display: none; }
     #hint { display: none; }
+    #doorTip { bottom: calc(var(--gut) + 150px + var(--safe-b)); font-size: 15px; padding: 14px 18px; }
+    #lightbox .bar button { flex: 1; }
   }
-  @media (prefers-reduced-motion: reduce) { #hint { transition: none; } }
 </style>
 
 <div id="stage" data-media="/walkthrough/media/"></div>
@@ -149,47 +158,85 @@
 
 <div id="room" class="panel" aria-live="polite">
   <span class="eyebrow">Copenhagen · you are in</span>
-  <span class="da" id="roomDa">Køkken-alrum</span>
-  <span class="en"><span id="roomEn">Kitchen &amp; living</span><span class="dim" id="roomDim">4 × 8 m</span></span>
+  <span class="da" id="roomDa">Entré</span>
+  <span class="en"><span id="roomEn">Hallway</span><span class="dim" id="roomDim"></span></span>
 </div>
 
-<div id="modes" class="panel" role="group" aria-label="View mode">
-  <button id="mWalk" aria-pressed="true">Walk</button>
-  <button id="mOver" aria-pressed="false">Overview</button>
-</div>
+<button id="viewChip" class="panel" title="Switch between walking and the view from above"><span id="viewChipText">Overview</span></button>
+<button id="menuBtn" class="panel" aria-label="Open menu" aria-controls="drawer" aria-expanded="false"><span></span></button>
 
-<div id="tools" class="panel" role="group" aria-label="Overlays">
-  <button id="tDims" aria-pressed="false">Dimensions</button>
-  <button id="tPlugs" aria-pressed="false">Sockets</button>
-  <button id="tMeasure" aria-pressed="false">Measure</button>
-  <button id="tPhotos" aria-pressed="true">Renders</button>
-  <button id="tGallery" aria-pressed="false">Gallery</button>
-</div>
 <div id="measureOut" class="panel" hidden><span class="eyebrow">Tape measure</span><b id="measureVal">Click a first point</b><small id="measureSub">Each click drops a point; the next click measures from it.</small></div>
-
 <div id="hint" class="panel" hidden></div>
+<div id="mapwrap" class="panel"><canvas id="map" aria-label="Floor plan with your position"></canvas><span id="compass">N ←</span></div>
 
-<div id="bottom">
-  <div id="mapwrap" class="panel"><canvas id="map" aria-label="Floor plan with your position"></canvas><span id="compass">N ←</span></div>
-  <div id="chipsbox"><div id="chips" class="panel" role="toolbar" aria-label="Jump to room"></div></div>
-  <div id="sun" class="panel">
-    <label for="sunrange" id="sunlabel">Sun</label>
-    <input id="sunrange" type="range" min="0" max="23.75" step="0.25" value="9">
-    <output id="sunout" for="sunrange">09:00</output>
-  </div>
-</div>
-
+<div id="joyBase" hidden aria-hidden="true"><i></i><b>Move</b></div>
 <div id="joy" hidden><i></i></div>
 <div id="pinTip" class="panel" hidden>Click to open this render</div>
-<div id="doorTip" class="panel" hidden><kbd>E</kbd> <span id="doorTipText">Open door</span></div>
-<aside id="gallery" class="panel" hidden aria-label="Photos and renders">
-  <h2>Blender renders · rooms</h2><div class="grid" id="gRenders"></div>
-  <h2>Blender renders · overview</h2><div class="grid" id="gOverview"></div>
+<button id="doorTip" class="panel" hidden><kbd class="mouse-only" style="display:inline">E</kbd> <span id="doorTipText">Open door</span></button>
+
+<div id="scrim" hidden></div>
+<aside id="drawer" hidden aria-label="Menu">
+  <header><h2>Apartment</h2><button id="drawerClose" aria-label="Close menu">×</button></header>
+  <div class="body">
+    <section>
+      <h3>View</h3>
+      <div class="seg" role="group" aria-label="View mode">
+        <button id="mWalk" aria-pressed="true">Walk</button>
+        <button id="mOver" aria-pressed="false">From above</button>
+      </div>
+    </section>
+    <section>
+      <h3>Go to</h3>
+      <div id="chips" role="group" aria-label="Jump to room"></div>
+    </section>
+    <section>
+      <h3>Time of day</h3>
+      <div id="sun">
+        <input id="sunrange" type="range" min="0" max="23.75" step="0.25" value="9" aria-label="Time of day">
+        <output id="sunout" for="sunrange">09:00</output>
+      </div>
+      <div class="sunmarks"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+      <small id="sunlabel" class="eyebrow">Sun</small>
+    </section>
+    <section>
+      <h3>Show</h3>
+      <div class="toggles">
+        <button id="tPhotos" aria-pressed="true">Render pins<small>Camera icons that open the Blender renders</small></button>
+        <button id="tDims" aria-pressed="false">Dimensions<small>Room sizes from the floor plan</small></button>
+        <button id="tPlugs" aria-pressed="false">Sockets and switches<small>With their height from the floor</small></button>
+        <button id="tMeasure" aria-pressed="false">Tape measure<small>Tap or click two points</small></button>
+        <button id="tMap" aria-pressed="true">Mini map</button>
+      </div>
+    </section>
+    <section>
+      <h3>Blender renders · rooms</h3>
+      <div class="gal" id="gRenders"></div>
+      <h3>Blender renders · from above</h3>
+      <div class="gal" id="gOverview"></div>
+    </section>
+    <section>
+      <h3>Controls</h3>
+      <dl class="help mouse-only">
+        <dt>W A S D</dt><dd>Walk (arrow keys work too), Shift to go faster</dd>
+        <dt>Mouse</dt><dd>Click the view, then move the mouse to look</dd>
+        <dt>E / Space</dt><dd>Open or close the door in front of you</dd>
+        <dt>M</dt><dd>Open or close this menu</dd>
+        <dt>Esc</dt><dd>Release the mouse</dd>
+      </dl>
+      <dl class="help touch-only">
+        <dt>Joystick</dt><dd>Bottom left: push to walk</dd>
+        <dt>Drag</dt><dd>Anywhere else to look around</dd>
+        <dt>Tap floor</dt><dd>Walk to that spot</dd>
+        <dt>Door button</dt><dd>Appears when you stand at a door, fridge or balcony door</dd>
+      </dl>
+    </section>
+  </div>
 </aside>
+
 <div id="lightbox" hidden role="dialog" aria-modal="true" aria-labelledby="lbTitle">
   <figure><img id="lbImg" alt=""><button class="nav prev" id="lbPrev" aria-label="Previous">‹</button><button class="nav next" id="lbNext" aria-label="Next">›</button></figure>
   <div class="bar">
-    <div class="meta"><span class="kind" id="lbKind">Photo</span><span class="title" id="lbTitle"></span><span class="room" id="lbRoom"></span></div>
+    <div class="meta"><span class="kind" id="lbKind">Render</span><span class="title" id="lbTitle"></span><span class="room" id="lbRoom"></span></div>
     <button class="primary" id="lbGo">Stand here</button>
     <button id="lbClose">Close</button>
   </div>
@@ -198,18 +245,17 @@
 <div id="intro">
   <div class="card panel">
     <h1>Walk through the apartment</h1>
-    <p>Built from the floor plan in Blender. Empty rooms, oak floors and the kitchen as delivered. Camera pins open the Blender render taken from that spot. The balcony faces east, so drag the sun slider to see the morning light move.</p>
-    <dl class="mouse-only">
-      <dt>W A S D</dt><dd>Move (arrow keys work too)</dd>
-      <dt>Mouse</dt><dd>Look around after clicking the view</dd>
-      <dt>Shift</dt><dd>Walk faster</dd>
-      <dt>E / Space</dt><dd>Open or close the door in front of you</dd>
-      <dt>Esc</dt><dd>Release the mouse</dd>
+    <p>Built from the floor plan in Blender, with oak floors and the kitchen as delivered. Camera pins open the Blender render taken from that spot. Everything else (rooms, time of day, measurements) is in the menu.</p>
+    <dl class="help mouse-only">
+      <dt>W A S D</dt><dd>Walk, with the mouse to look around</dd>
+      <dt>E / Space</dt><dd>Open doors, the fridge and the balcony door</dd>
+      <dt>M or ☰</dt><dd>Menu</dd>
     </dl>
-    <dl class="touch-only">
-      <dt>Left thumb</dt><dd>Drag to walk</dd>
-      <dt>Right thumb</dt><dd>Drag to look around</dd>
-      <dt>Door button</dt><dd>Appears when you stand at a door</dd>
+    <dl class="help touch-only">
+      <dt>Joystick</dt><dd>Bottom left: push to walk</dd>
+      <dt>Drag</dt><dd>Anywhere else to look around</dd>
+      <dt>Tap floor</dt><dd>Walk to that spot</dd>
+      <dt>☰</dt><dd>Rooms, time of day, measurements</dd>
     </dl>
     <button id="go" disabled>Loading model…</button>
   </div>
@@ -636,10 +682,8 @@ const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 };
 const look = { id: null, x: 0, y: 0 };
 canvas.addEventListener('pointerdown', (e) => {
   if (mode !== 'walk' || !started) return;
-  if (e.pointerType === 'touch' && e.clientX < innerWidth * 0.45 && joy.id === null) {
-    Object.assign(joy, { id: e.pointerId, ox: e.clientX, oy: e.clientY, x: 0, y: 0 });
-    const j = $('joy'); j.style.left = e.clientX + 'px'; j.style.top = e.clientY + 'px'; j.hidden = false;
-  } else if ((e.pointerType === 'touch' || !locked) && look.id === null) {
+  autoTarget = null;
+  if ((e.pointerType === 'touch' || !locked) && look.id === null) {
     Object.assign(look, { id: e.pointerId, x: e.clientX, y: e.clientY });
   }
   try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* capture is optional */ }
@@ -694,8 +738,8 @@ function setMode(m) {
   $('cross').hidden = true;
   showHint();
 }
-$('mWalk').addEventListener('click', () => setMode('walk'));
-$('mOver').addEventListener('click', () => setMode('over'));
+$('mWalk').addEventListener('click', () => { setMode('walk'); closeMenu(); });
+$('mOver').addEventListener('click', () => { setMode('over'); closeMenu(); });
 // overview: double-click / double-tap the floor to walk there
 let lastTap = 0;
 canvas.addEventListener('pointerup', (e) => {
@@ -716,12 +760,90 @@ canvas.addEventListener('pointerup', (e) => {
   lastTap = now;
 });
 
+// ------------------------------------------------------------ on-screen joystick (touch)
+const joyBase = $('joyBase'), joyKnob = joyBase.querySelector('i');
+joyBase.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  const r = joyBase.getBoundingClientRect();
+  Object.assign(joy, { id: e.pointerId, ox: r.left + r.width / 2, oy: r.top + r.height / 2, x: 0, y: 0 });
+  autoTarget = null;
+  try { joyBase.setPointerCapture(e.pointerId); } catch (_) { /* optional */ }
+  moveJoy(e);
+});
+function moveJoy(e) {
+  if (e.pointerId !== joy.id) return;
+  const dx = e.clientX - joy.ox, dy = e.clientY - joy.oy, m = Math.hypot(dx, dy), k = Math.min(1, m / 48) / (m || 1);
+  joy.x = dx * k; joy.y = dy * k;
+  joyKnob.style.transform = `translate(${joy.x * 38}px, ${joy.y * 38}px)`;
+}
+joyBase.addEventListener('pointermove', moveJoy);
+const endJoy = (e) => { if (e.pointerId === joy.id) { joy.id = null; joy.x = joy.y = 0; joyKnob.style.transform = ''; } };
+joyBase.addEventListener('pointerup', endJoy);
+joyBase.addEventListener('pointercancel', endJoy);
+
+// ------------------------------------------------------------ tap the floor to walk there (touch)
+let autoTarget = null;
+const tapRing = new THREE.Mesh(new THREE.RingGeometry(0.16, 0.22, 32), new THREE.MeshBasicMaterial({ color: 0xcf9152, transparent: true, opacity: 0.9, depthTest: false, toneMapped: false }));
+tapRing.rotation.x = -Math.PI / 2; tapRing.visible = false; tapRing.renderOrder = 33; scene.add(tapRing);
+canvas.addEventListener('click', (e) => {
+  if (!coarse || !started || mode !== 'walk' || measuring) return;
+  const ndc = new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.far = 25; ray.setFromCamera(ndc, camera);
+  const all = ray.intersectObject(modelRoot, true).filter((h) => h.object.material !== MATS.glass);
+  const hit = all[0];
+  if (!hit || !pickables.includes(hit.object)) return;
+  autoTarget = new THREE.Vector3(hit.point.x, EYE, hit.point.z);
+  tapRing.position.set(hit.point.x, hit.point.y + 0.02, hit.point.z); tapRing.visible = true;
+});
+function stepAuto(dt) {
+  if (!autoTarget) { tapRing.visible = false; return; }
+  const to = new THREE.Vector3(autoTarget.x - player.pos.x, 0, autoTarget.z - player.pos.z);
+  const d = to.length();
+  if (d < 0.12) { autoTarget = null; tapRing.visible = false; return; }
+  // turn towards the target, then walk
+  const want = Math.atan2(-to.x, -to.z);
+  let dy = want - player.yaw; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI;
+  player.yaw += dy * Math.min(1, dt * 5);
+  const before = player.pos.clone();
+  tryMove(to.normalize().multiplyScalar(Math.min(d, 1.4 * dt)));
+  if (player.pos.distanceTo(before) < 1e-4) { autoTarget = null; tapRing.visible = false; }   // blocked
+}
+
+// ------------------------------------------------------------ menu drawer
+function openMenu() {
+  if (document.pointerLockElement) document.exitPointerLock();
+  $('drawer').hidden = false; $('scrim').hidden = false;
+  $('menuBtn').setAttribute('aria-expanded', 'true');
+  $('drawerClose').focus();
+}
+function closeMenu() {
+  $('drawer').hidden = true; $('scrim').hidden = true;
+  $('menuBtn').setAttribute('aria-expanded', 'false');
+  canvas.focus();
+}
+$('menuBtn').addEventListener('click', () => ($('drawer').hidden ? openMenu() : closeMenu()));
+$('drawerClose').addEventListener('click', closeMenu);
+$('scrim').addEventListener('click', closeMenu);
+addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || !$('lightbox').hidden) return;
+  if (e.code === 'KeyM') { $('drawer').hidden ? openMenu() : closeMenu(); }
+  else if (e.code === 'Escape' && !$('drawer').hidden) closeMenu();
+});
+$('viewChip').addEventListener('click', () => setMode(mode === 'walk' ? 'over' : 'walk'));
+toggle($('tMap'), null, (on) => { $('mapwrap').hidden = !on; });
+if (coarse) { $('tMap').setAttribute('aria-pressed', 'false'); $('mapwrap').hidden = true; }
+function updateHud() {
+  $('joyBase').hidden = !(coarse && started && mode === 'walk');
+  $('viewChipText').textContent = mode === 'walk' ? 'From above' : 'Walk';
+}
+
 function showHint() {
+  updateHud();
   const h = $('hint');
   if (!started || coarse) { h.hidden = true; return; }
   if (measuring) { h.textContent = locked ? 'Aim the dot and click to drop a point · Esc to use the pointer' : 'Click two points to measure between them'; h.hidden = false; }
   else if (mode === 'over') { h.textContent = 'Drag to orbit · scroll to zoom · double-click a floor to walk there'; h.hidden = false; }
-  else if (!locked) { h.textContent = 'Click the view to look around · W A S D to move'; h.hidden = false; }
+  else if (!locked) { h.textContent = 'Click the view to look around · W A S D to move · M for the menu'; h.hidden = false; }
   else h.hidden = true;
 }
 
@@ -741,7 +863,7 @@ const chipDefs = [['living', 'Living'], ['kitchen', 'Kitchen'], ['hall', 'Entré
 for (const [id, label] of chipDefs) {
   const b = document.createElement('button');
   b.className = 'chip'; b.textContent = label; b.dataset.room = id === 'kitchen' ? 'living' : id;
-  b.addEventListener('click', () => { spawn(id); setMode('walk'); });
+  b.addEventListener('click', () => { spawn(id); setMode('walk'); closeMenu(); });
   $('chips').appendChild(b);
 }
 function inPoly(x, y, poly) {
@@ -973,7 +1095,7 @@ $('lbGo').addEventListener('click', () => {
   player.pos.copy(b2t(sh.p[0], sh.p[1], EYE));
   const d = b2t(sh.t[0], sh.t[1]).sub(b2t(sh.p[0], sh.p[1]));
   player.yaw = Math.atan2(-d.x, -d.z); player.pitch = 0;
-  closeShot(); setMode('walk');
+  closeShot(); closeMenu(); setMode('walk');
 });
 $('lightbox').addEventListener('click', (e) => { if (e.target === $('lightbox') || e.target.tagName === 'FIGURE') closeShot(); });
 addEventListener('keydown', (e) => {
@@ -996,7 +1118,6 @@ for (const [i, sh] of shots.entries()) {
   (sh.p ? $('gRenders') : $('gOverview')).appendChild(b);
 }
 toggle($('tPhotos'), pinsGroup);
-toggle($('tGallery'), null, (on) => { $('gallery').hidden = !on; });
 // click routing: pins win over pointer-lock / measuring
 canvas.addEventListener('click', (e) => {
   if (!started) return;
@@ -1195,7 +1316,8 @@ function frame() {
       step.set(0, 0, 0).addScaledVector(fwd, f).addScaledVector(right, s);
       if (step.lengthSq() > 1) step.normalize();
       tryMove(step.multiplyScalar(speed));
-    }
+      autoTarget = null;
+    } else stepAuto(dt);
     camera.position.copy(player.pos);
     camera.rotation.set(player.pitch, player.yaw, 0);
   } else {
