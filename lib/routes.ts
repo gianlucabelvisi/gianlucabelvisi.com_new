@@ -4,7 +4,7 @@
  *
  * Keep the regex in pages/_document.tsx (blocking theme script) in sync.
  */
-const DARK_ONLY_ROUTES = new Set(['/', '/archive', '/tags', '/tags/[tag]', '/search', '/404'])
+const DARK_ONLY_ROUTES = new Set(['/', '/archive', '/tags', '/tags/[tag]', '/search', '/404', '/apartment'])
 
 export function isDarkOnlyRoute(pathname: string): boolean {
   return DARK_ONLY_ROUTES.has(pathname)

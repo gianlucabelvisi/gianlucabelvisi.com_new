@@ -18,12 +18,12 @@ export default function Document() {
       </Head>
       <body>
         {/* Blocking script: sets data-theme before first paint to prevent a flash.
-            Browse pages (/, /archive, /tags, /search) are always dark; everything else
+            Browse pages (/, /archive, /tags, /search) and /apartment are always dark; everything else
             uses the saved choice, then the OS preference. Mirrors lib/routes.ts. */}
         <script dangerouslySetInnerHTML={{ __html: `
           try {
             var p = location.pathname.replace(/\\/+$/, '') || '/';
-            var forced = p === '/' || p === '/archive' || p === '/search' || p === '/tags' || p.indexOf('/tags/') === 0;
+            var forced = p === '/' || p === '/archive' || p === '/search' || p === '/apartment' || p === '/tags' || p.indexOf('/tags/') === 0;
             var t = forced ? 'dark' : localStorage.getItem('blog-theme');
             if (t !== 'dark' && t !== 'light') {
               t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';

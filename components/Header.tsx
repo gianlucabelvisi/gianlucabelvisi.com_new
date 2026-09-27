@@ -16,6 +16,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Archive', href: '/archive' },
   { label: 'Tags', href: '/tags', match: p => p.startsWith('/tags') },
+  { label: 'Apartment', href: '/apartment' },
 ]
 
 export default function Header() {
