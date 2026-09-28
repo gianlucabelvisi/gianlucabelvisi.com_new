@@ -74,8 +74,9 @@
   #mover b { font: 700 14px/1 var(--ui); }
   #mover .mvrow { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; }
   #mover button { font: 600 14px/1 var(--ui); color: var(--ink); background: rgba(242,237,228,.06); border: 1px solid var(--line); border-radius: 999px; padding: 11px 12px; cursor: pointer; }
-  #mover #mvLeft, #mover #mvRight { background: var(--oak); color: #1a1208; border-color: var(--oak); }
+  #mover #mvLeft, #mover #mvRight, #mover #mvUp, #mover #mvDown { background: var(--oak); color: #1a1208; border-color: var(--oak); }
   #mover #mvDone { padding: 6px 10px; font-size: 12.5px; }
+  #mover [hidden] { display: none !important; }
   #mover small { font: 500 11.5px/1.3 var(--mono); color: var(--oak); font-variant-numeric: tabular-nums; }
   #toast { position: fixed; left: 50%; top: calc(var(--gut) + 70px + var(--safe-t)); transform: translateX(-50%); font: 700 15px/1 var(--ui); color: var(--oak); padding: 12px 16px; z-index: 7; pointer-events: none; }
   #pinTip { position: fixed; left: 50%; top: calc(50% + 18px); transform: translateX(-50%); font-size: 12.5px; padding: 6px 10px; pointer-events: none; }
@@ -203,6 +204,7 @@
 <div id="mover" class="panel" hidden role="group" aria-label="Move furniture">
   <div class="mvtop"><b id="mvName">Bed</b><button id="mvDone" aria-label="Done">Done</button></div>
   <div class="mvrow"><button id="mvLeft" aria-label="Move 5 cm left">◀ 5 cm</button><button id="mvVar">Try 180 cm</button><button id="mvRight" aria-label="Move 5 cm right">5 cm ▶</button></div>
+  <div class="mvrow" id="mvRow2" hidden><button id="mvUp" aria-label="Move 5 cm up on screen">▲ 5 cm</button><button id="mvVar2">Flip</button><button id="mvDown" aria-label="Move 5 cm down on screen">5 cm ▼</button></div>
   <small id="mvInfo"></small>
 </div>
 <div id="pinTip" class="panel" hidden>Click to open this render</div>
@@ -1349,7 +1351,7 @@ function buildLeaf(d, pivot) {
     lid.scale.set(d.w / 2, 1, d.len / 2);
   } else if (d.shape === 'closet') {             // wardrobe door: flat panel + slim vertical bar handle on both faces
     add(new THREE.BoxGeometry(d.len, d.h, d.thick), MATS.closet, d.len / 2, d.z0 + d.h / 2);
-    for (const zz of [-1, 1]) add(new THREE.BoxGeometry(0.014, 0.32, 0.022), MATS.steel, d.len - 0.05, d.z0 + d.h * 0.45, zz * (d.thick / 2 + 0.012));
+    if (d.handle !== false) for (const zz of [-1, 1]) add(new THREE.BoxGeometry(0.014, Math.min(0.32, d.h * 0.5), 0.022), MATS.steel, d.len - 0.05, d.z0 + d.h * 0.45, zz * (d.thick / 2 + 0.012));
   } else {                                        // door or fridge front
     add(new THREE.BoxGeometry(d.len, d.h, d.thick), d.mat === 'oak' ? MATS.oak : MATS.door, d.len / 2, d.z0 + d.h / 2);
     if (d.handle) add(new THREE.BoxGeometry(0.13, 0.022, 0.12), MATS.steel, d.len - 0.08, 1.0);
@@ -1559,21 +1561,43 @@ const bedMover = {
 function selectFurniture(m) {
   selected = m;
   $('mover').hidden = !m;
-  if (m) { if (document.pointerLockElement) document.exitPointerLock(); $('mvName').textContent = m.name; $('mvVar').hidden = !m.variant; updateMoverInfo(); }
+  if (m) {
+    if (document.pointerLockElement) document.exitPointerLock();
+    $('mvName').textContent = m.name; $('mvVar').hidden = !m.variant;
+    $('mvRow2').hidden = !m.axis2 && !m.variant2; $('mvUp').style.visibility = $('mvDown').style.visibility = m.axis2 ? 'visible' : 'hidden';
+    $('mvVar2').hidden = !m.variant2;
+    updateMoverInfo();
+  }
 }
-function updateMoverInfo() { if (!selected) return; $('mvInfo').textContent = selected.info(); if (selected.variant) $('mvVar').textContent = selected.variant.label(); }
-function screenRightSign(axis3, at) {                      // +1 if moving along axis3 goes right on screen
-  const a = at.clone().project(camera), b = at.clone().add(axis3).project(camera);
-  return b.x >= a.x ? 1 : -1;
+function updateMoverInfo() { if (!selected) return; $('mvInfo').textContent = selected.info(); if (selected.variant) $('mvVar').textContent = selected.variant.label(); if (selected.variant2) $('mvVar2').textContent = selected.variant2.label(); }
+function moverMap(m) {
+  // which of the mover's axes (and which sign) goes right / up on screen from where you look now
+  const at = m.anchor(); const p0 = at.clone().project(camera);
+  const scr = (ax) => { const p = at.clone().add(ax).project(camera); return [p.x - p0.x, p.y - p0.y]; };
+  const A = scr(m.axis());
+  if (!m.axis2) return { h: [m.shift, A[0] >= 0 ? 1 : -1], v: null };
+  const B = scr(m.axis2());
+  if (Math.abs(A[0]) >= Math.abs(B[0])) return { h: [m.shift, A[0] >= 0 ? 1 : -1], v: [m.shift2, B[1] >= 0 ? 1 : -1] };
+  return { h: [m.shift2, B[0] >= 0 ? 1 : -1], v: [m.shift, A[1] >= 0 ? 1 : -1] };
 }
-$('mvLeft').addEventListener('click', () => { if (!selected) return; const at = selected.anchor(); selected.shift(-screenRightSign(selected.axis(), at)); updateMoverInfo(); });
-$('mvRight').addEventListener('click', () => { if (!selected) return; const at = selected.anchor(); selected.shift(screenRightSign(selected.axis(), at)); updateMoverInfo(); });
+function moveSel(kind, sign) {
+  if (!selected || !selected.anchor()) return;
+  const mm = moverMap(selected)[kind]; if (!mm) return;
+  mm[0](sign * mm[1]); updateMoverInfo();
+}
+$('mvLeft').addEventListener('click', () => moveSel('h', -1));
+$('mvRight').addEventListener('click', () => moveSel('h', 1));
+$('mvUp').addEventListener('click', () => moveSel('v', 1));
+$('mvDown').addEventListener('click', () => moveSel('v', -1));
 $('mvVar').addEventListener('click', () => { if (selected && selected.variant) { selected.variant.run(); updateMoverInfo(); } });
+$('mvVar2').addEventListener('click', () => { if (selected && selected.variant2) { selected.variant2.run(); updateMoverInfo(); } });
 $('mvDone').addEventListener('click', () => selectFurniture(null));
 addEventListener('keydown', (e) => {
   if (!selected || e.target.tagName === 'INPUT') return;
   if (e.code === 'Comma' || e.code === 'BracketLeft') $('mvLeft').click();
   else if (e.code === 'Period' || e.code === 'BracketRight') $('mvRight').click();
+  else if (e.code === 'Equal') $('mvUp').click();
+  else if (e.code === 'Minus') $('mvDown').click();
   else if (e.code === 'Escape') selectFurniture(null);
 });
 function placeMover() {
@@ -1784,15 +1808,16 @@ function buildClosets() {
   furnitureDims();
 }
 let lastGapHit = null;
-function gapTo(from, dir, maxD = 4) {
+function gapTo(from, dir, maxD = 4, glass = false) {
   const r = new THREE.Raycaster(from, dir, 0, maxD);
-  const h = r.intersectObjects(collidables.filter((x) => x.material !== MATS.glass), false)[0];
+  const h = r.intersectObjects(glass ? collidables : collidables.filter((x) => x.material !== MATS.glass), false)[0];
   lastGapHit = h ? h.object : null;
   return h ? h.distance : null;
 }
 function hitName() {
   const o = lastGapHit; if (!o) return '';
   if (bed.parts && bed.parts.includes(o)) return ' to bed';
+  const lb = o.userData.door && o.userData.door.label; if (lb === 'TV wall' || lb === 'TV unit') return ' to TV unit'; if (lb === 'Sofa') return ' to sofa';
   const dn = o.userData.door && o.userData.door.name; if (dn) return ` to ${dn}`;
   if (o.userData.furniture) return ' to closet';
   return ' to wall';
@@ -1949,7 +1974,311 @@ const tvMover = {
     return `32" · ${tv.portrait ? 'portrait' : 'landscape'} · ${Math.abs(mis) < 0.025 ? 'centred on the bed' : `${Math.abs(mis * 100).toFixed(0)} cm off the bed centre`} · ${(rel.dot(w.n3) - 0.3).toFixed(1)} m from the pillows`; },
   variant: { label: () => (tv.portrait ? 'Landscape' : 'Portrait'), run: () => { tv.portrait = !tv.portrait; buildTV(); showToast(tv.portrait ? 'TV in portrait' : 'TV in landscape'); } },
 };
-function furnish() { buildBed(); buildClosets(); buildTV(); }
+// ------------------------------------------------------------ living room: 65" TV wall (TV + Sonos Arc Ultra + wall-hung media unit) and the L sofa
+// Samsung 65" QN90F: 1445 × 828 × 28 mm (spec sheet). Sonos Arc Ultra: 1178 × 75 × 110.6 mm. Media unit: 180 × 38 × 40 cm, wall-hung.
+MATS.tvScreen = std({ color: 0x08090b, roughness: 0.12, metalness: 0.4 });
+MATS.tvFrame = std({ color: 0x1b1c1f, roughness: 0.4, metalness: 0.5 });
+MATS.sonos = std({ color: 0x161616, roughness: 0.85 });
+MATS.sofa = std({ color: 0x8f8577, roughness: 1 });           // ILVA "Austin 3 Antelope", greyish brown
+MATS.sofaCush = std({ color: 0x998f82, roughness: 1 });
+MATS.blackMetal = std({ color: 0x1a1a1a, roughness: 0.45, metalness: 0.6 });
+MATS.ps5 = std({ color: 0xf2f2f0, roughness: 0.5 });
+const liv = { media: null, sofa: null };
+const livDims = new THREE.Group(); dimsGroup.add(livDims);
+const TVW = { W: 1.445, H: 0.828, D: 0.028, bottom: 0.74, off: 0.03 }, UNIT = { W: 1.8, H: 0.38, D: 0.40, bottom: 0.20 }, ARC = { W: 1.178, H: 0.075, D: 0.1106, bottom: 0.62 };
+function wallRun(C0, n, a, maxS = 6) {
+  // how far the wall face runs from C0 along a: stop at a corner or where the wall steps back (an opening)
+  const along = gapTo(C0.clone().addScaledVector(n, 0.05).setY(1.2), a, maxS) ?? maxS;
+  for (let s = 0.02; s < along; s += 0.02) {
+    const d = gapTo(C0.clone().addScaledVector(a, s).addScaledVector(n, 0.3).setY(1.2), n.clone().negate(), 0.6);
+    if (d === null || d > 0.36) return s - 0.01;
+  }
+  return along;
+}
+function removeHingedDoor(d) {
+  let top = d.pivot; while (top.parent && top.parent !== scene) top = top.parent;
+  scene.remove(top);
+  for (const p of d.parts) { const i = collidables.indexOf(p); if (i >= 0) collidables.splice(i, 1); }
+  const i = doors.indexOf(d); if (i >= 0) doors.splice(i, 1);
+}
+function dropParts(list) { for (const p of list || []) { const i = collidables.indexOf(p); if (i >= 0) collidables.splice(i, 1); } }
+function buildMedia() {
+  let M = liv.media;
+  if (!M) {
+    const Wl = wallLine([3.0, 5.6], [3.0, 7.2], [1, 0]); if (!Wl) return;
+    const n = Wl.n, a = new THREE.Vector3().crossVectors(UP, n).normalize();
+    const probe = b2t(4.3, 6.4, 0); const C0 = Wl.p.clone().addScaledVector(a, probe.clone().sub(Wl.p).dot(a)).setY(0);
+    const eP = wallRun(C0, n, a), eN = wallRun(C0, n, a.clone().negate());
+    const mid = (eP - eN) / 2;
+    M = liv.media = { n, a, base: C0.clone().addScaledVector(a, mid), half: (eP + eN) / 2, offset: 0, group: null, parts: [], doors: [] };
+    // which way along a is the balcony? (for the info text)
+    M.aToBalcony = toBl(a)[1] > 0;
+  }
+  if (M.group) { scene.remove(M.group); dropParts(M.parts); for (const d of M.doors) removeHingedDoor(d); M.doors = []; }
+  M.offset = Math.max(-(M.half - UNIT.W / 2 - 0.02), Math.min(M.half - UNIT.W / 2 - 0.02, M.offset));
+  const { n, a } = M, O = M.base.clone().addScaledVector(a, M.offset);
+  const g = new THREE.Group(); g.position.copy(O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a, UP, n));
+  const parts = [];
+  const add = (geo, mat, x, y, z, solid = true) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); if (solid) parts.push(m); return m; };
+  // TV: thin slab, near-black glass front, 3 cm off the wall on a slim mount
+  const ty = TVW.bottom + TVW.H / 2, tz = TVW.off + TVW.D / 2;
+  add(new THREE.BoxGeometry(TVW.W, TVW.H, TVW.D), MATS.tvFrame, 0, ty, tz);
+  add(new THREE.PlaneGeometry(TVW.W - 0.012, TVW.H - 0.012), MATS.tvScreen, 0, ty, TVW.off + TVW.D + 0.0006, false);
+  add(new THREE.BoxGeometry(0.4, 0.3, 0.02), MATS.blackMetal, 0, ty, 0.012, false);                 // wall plate (VESA 400 × 300)
+  // Sonos Arc Ultra right below, on its own wall mount
+  const sy = ARC.bottom + ARC.H / 2, sz = 0.02 + ARC.D / 2;
+  const bar = add(new THREE.CapsuleGeometry(ARC.H / 2, ARC.W - ARC.H, 6, 16), MATS.sonos, 0, sy, sz); bar.rotation.z = Math.PI / 2; bar.scale.set(1, 1, ARC.D / ARC.H);
+  add(new THREE.BoxGeometry(ARC.W - 0.1, 0.004, ARC.D * 0.7), MATS.tvFrame, 0, ARC.bottom + ARC.H - 0.001, sz, false);
+  // wall-hung media unit, two push-to-open doors; inside a PS5 and an Apple TV
+  const ub = UNIT.bottom, uh = UNIT.H, uw = UNIT.W, ud = UNIT.D, T2 = 0.018;
+  add(new THREE.BoxGeometry(uw, T2, ud), MATS.closet, 0, ub + uh - T2 / 2, ud / 2);
+  add(new THREE.BoxGeometry(uw, T2, ud), MATS.closet, 0, ub + T2 / 2, ud / 2);
+  add(new THREE.BoxGeometry(uw, uh, T2), MATS.closetIn, 0, ub + uh / 2, T2 / 2);
+  for (const x of [-uw / 2 + T2 / 2, 0, uw / 2 - T2 / 2]) add(new THREE.BoxGeometry(T2, uh - 2 * T2, ud - 0.02), x === 0 ? MATS.closetIn : MATS.closet, x, ub + uh / 2, (ud - 0.02) / 2);
+  const inY = ub + T2;
+  add(new THREE.BoxGeometry(0.39, 0.104, 0.26), MATS.ps5, -0.45, inY + 0.052, 0.19, false);            // PS5 lying flat
+  add(new THREE.BoxGeometry(0.33, 0.106, 0.2), MATS.tvFrame, -0.45, inY + 0.052, 0.19, false);
+  add(new THREE.BoxGeometry(0.093, 0.031, 0.093), MATS.tvFrame, 0.3, inY + 0.016, 0.2, false);          // Apple TV
+  add(new THREE.BoxGeometry(0.16, 0.06, 0.1), MATS.ps5, 0.55, inY + 0.03, 0.2, false);                  // controller
+  const toBlL = (lx, lz) => { const v = new THREE.Vector3(lx, 0, lz).applyQuaternion(g.quaternion).add(O); return [v.x, -v.z]; };
+  const aBl = toBl(a), nBl = toBl(n);
+  const dl = uw / 2 - 0.004;
+  for (const [hx, cl] of [[-uw / 2 + 0.002, aBl], [uw / 2 - 0.002, [-aBl[0], -aBl[1]]]]) {
+    const d = addHinged({ id: `tvunit_${hx > 0 ? 'r' : 'l'}`, label: 'TV unit', name: 'TV unit', shape: 'closet', handle: false,
+      hinge: toBlL(hx, ud + 0.011), closed: cl, open: nBl, len: dl, h: uh - 0.006, z0: ub + 0.003, thick: 0.02 });
+    for (const p of d.parts) p.userData.furniture = true;
+    d.pivot.updateMatrixWorld(true); M.doors.push(d);
+  }
+  const door = { kind: 'swap', label: 'TV wall', parts, center: O.clone().setY(ty).addScaledVector(n, 0.1),
+    swap: () => selectFurniture(selected === mediaMover ? null : mediaMover),
+    prompt: () => (selected === mediaMover ? 'Done moving the TV' : 'Move the TV wall') };
+  for (const p of parts) { p.userData.door = door; p.userData.furniture = true; collidables.push(p); }
+  const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'TV wall'); if (di >= 0) doors.splice(di, 1);
+  doors.push(door);
+  scene.add(g); g.updateMatrixWorld(true);
+  M.group = g; M.parts = parts;
+}
+const mediaMover = {
+  name: '65" TV + Arc + unit', anchor: () => (liv.media && liv.media.group ? liv.media.group.position.clone().addScaledVector(liv.media.n, 0.5).setY(0.6) : null),
+  axis: () => liv.media.a,
+  shift: (dir) => { const M = liv.media, before = M.offset; M.offset += dir * 0.05; buildMedia(); livingDims(); if (Math.abs(M.offset - before) < 1e-6) showToast('Can’t go further: end of the wall'); },
+  info: () => { const M = liv.media; const c = Math.abs(M.offset) < 0.025 ? 'centred on the wall' : `${Math.round(Math.abs(M.offset) * 100)} cm towards the ${(M.offset > 0) === M.aToBalcony ? 'balcony' : 'hallway'}`;
+    return `${c} · TV centre ${(TVW.bottom + TVW.H / 2).toFixed(2)} m up · wall ${(M.half * 2).toFixed(2)} m`; },
+};
+// ---- ILVA Nyland family (ilva.dk): all 93 cm deep, 82 cm high, seat 47 cm
+const SOFAS = [
+  { name: 'Nyland corner sofa', L: 2.63, R: 1.92, kind: 'corner' },                   // the linked one, left-facing, 4 seats
+  { name: 'Nyland chaiselong sofa', L: 3.11, R: 1.52, kind: 'chaise' },
+  { name: 'Nyland corner sofa + chaiselong', L: 3.94, R: 2.22, kind: 'corner' },
+  { name: 'Nyland 3-seater', L: 2.20, R: 0.93, kind: 'straight' },
+];
+const SD = 0.93;
+function sofaFrame() { const M = liv.media; const f = M.n.clone().negate(); return { f, x: new THREE.Vector3().crossVectors(UP, f).normalize() }; }
+function sofaClear(O, cfg, side) {
+  // free space around the sofa's footprint, measured from inside it (sofa's own parts excluded)
+  const { f, x } = sofaFrame(), R = Math.max(SD, cfg.R), L = cfg.L;
+  const P = (lx, lz) => O.clone().addScaledVector(x, lx).addScaledVector(f, lz).setY(0.3);
+  let worst = 9;
+  for (const lz of [0.1, SD / 2, SD - 0.1]) { worst = Math.min(worst, (gapTo(P(0, lz), x.clone(), 6) ?? 6) - L / 2, (gapTo(P(0, lz), x.clone().negate(), 6) ?? 6) - L / 2); }
+  const rx = side * (L / 2 - SD / 2);
+  for (const lz of [SD + 0.1, R - 0.1]) if (R > SD + 0.2) { worst = Math.min(worst, (gapTo(P(rx, lz), x.clone().multiplyScalar(side), 6) ?? 6) - SD / 2, (gapTo(P(rx, lz), x.clone().multiplyScalar(-side), 6) ?? 6) - SD / 2); }
+  for (const lx of [-L / 2 + 0.1, 0, L / 2 - 0.1]) { worst = Math.min(worst, (gapTo(P(lx, SD / 2), f.clone().negate(), 6) ?? 6) - SD / 2, (gapTo(P(lx, SD / 2), f.clone(), 6) ?? 6) - SD / 2); }
+  if (R > SD + 0.2) worst = Math.min(worst, (gapTo(P(rx, R / 2), f.clone(), 6) ?? 6) - R / 2);
+  return worst;
+}
+function buildSofa(tryMove) {
+  // tryMove: optional (O) => candidate origin; the sofa only moves if the new spot is free
+  let S = liv.sofa; const M = liv.media; if (!M) return false;
+  const { f, x } = sofaFrame();
+  if (!S) {
+    // back of the sofa 90 cm off the window wall (a proper walkway), centred on the TV
+    const WW = wallLine([2.5, 7.6], [2.5, 4.9], [-1, 0]);
+    const depth = WW ? M.base.clone().sub(WW.p).dot(WW.n) : 4.0;
+    S = liv.sofa = { cfg: 0, flip: false, O: M.base.clone().addScaledVector(M.n, depth - 0.92), group: null, parts: [] };
+  }
+  if (S.group) { scene.remove(S.group); dropParts(S.parts); }
+  const cfg = SOFAS[S.cfg], side = S.flip ? 1 : -1;     // left-facing: the corner is on your left standing in front of the sofa
+  let moved = true;
+  if (tryMove) { const cand = tryMove(S.O.clone()); if (sofaClear(cand, cfg, side) > 0.015) S.O = cand; else moved = false; }
+  else if (sofaClear(S.O, cfg, side) <= 0.015) {
+    // new size doesn't fit where it is: slide along the wall / towards the TV to the nearest free spot
+    let best = null;
+    for (let k = 1; k <= 60 && !best; k++) for (const [dx, dz] of [[k, 0], [-k, 0], [0, k], [0, -k], [k, k], [-k, k]]) {
+      const c = S.O.clone().addScaledVector(x, dx * 0.05).addScaledVector(f, dz * 0.05); if (sofaClear(c, cfg, side) > 0.015) { best = c; break; }
+    }
+    if (best) S.O = best;
+  }
+  const O = S.O, L = cfg.L, R = cfg.R;
+  const g = new THREE.Group(); g.position.copy(O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, UP, f));
+  const parts = [];
+  const box = (x0, x1, y0, y1, z0, z1, mat, rotX = 0) => {
+    const xa = Math.min(x0, x1), xb = Math.max(x0, x1), za = Math.min(z0, z1), zb = Math.max(z0, z1);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(xb - xa, y1 - y0, zb - za), mat); m.position.set((xa + xb) / 2, (y0 + y1) / 2, (za + zb) / 2); m.rotation.x = rotX;
+    m.castShadow = m.receiveShadow = true; g.add(m); parts.push(m); return m;
+  };
+  const cushRow = (xa, xb, y0, y1, z0, z1, mat, rotX = 0, seg = 0.8) => {    // cushions split along x
+    const a0 = Math.min(xa, xb), a1 = Math.max(xa, xb), k = Math.max(1, Math.round((a1 - a0) / seg)), w = (a1 - a0) / k;
+    for (let i = 0; i < k; i++) box(a0 + i * w + 0.006, a0 + (i + 1) * w - 0.006, y0, y1, z0, z1, mat, rotX);
+  };
+  const cushCol = (x0, x1, y0, y1, za, zb, mat, seg = 0.75) => {             // cushions split along z
+    const k = Math.max(1, Math.round((zb - za) / seg)), w = (zb - za) / k;
+    for (let i = 0; i < k; i++) box(x0, x1, y0, y1, za + i * w + 0.006, za + (i + 1) * w - 0.006, mat);
+  };
+  const LEG = 0.14, BASE = 0.30, SEAT = 0.47, ARMH = 0.60, BACKH = 0.82, AW = 0.12, BT2 = 0.16;
+  const e = side * L / 2, inner = side * (L / 2 - SD), far = -side * L / 2;
+  const legs = [];
+  // main run
+  box(-L / 2, L / 2, LEG, BASE, 0, SD, MATS.sofa);
+  box(-L / 2, L / 2, BASE, 0.62, 0, BT2, MATS.sofa);
+  box(far, far + side * AW, BASE, ARMH, 0, SD, MATS.sofa);                               // arm at the far end
+  legs.push([far + side * 0.05, 0.05], [far + side * 0.05, SD - 0.05]);
+  if (cfg.kind === 'straight') {
+    box(e, e - side * AW, BASE, ARMH, 0, SD, MATS.sofa);
+    cushRow(far + side * AW, e - side * AW, BASE, SEAT, BT2, SD, MATS.sofaCush);
+    cushRow(far + side * AW, e - side * AW, SEAT - 0.02, BACKH, BT2, BT2 + 0.2, MATS.sofaCush, -0.12);
+    legs.push([e - side * 0.05, 0.05], [e - side * 0.05, SD - 0.05]);
+  } else {
+    box(inner, e, LEG, BASE, SD, R, MATS.sofa);                                          // the return / chaise
+    const outer = cfg.kind === 'corner' ? BT2 : AW;                                      // corner: backrest along the outside; chaise: an arm
+    box(e, e - side * outer, BASE, cfg.kind === 'corner' ? 0.62 : ARMH, 0, R, MATS.sofa);
+    if (cfg.kind === 'corner') box(inner, e - side * outer, BASE, ARMH, R - AW, R, MATS.sofa);   // arm at the end of the return
+    const retEnd = cfg.kind === 'corner' ? R - AW : R;
+    cushRow(far + side * AW, e - side * outer, BASE, SEAT, BT2, SD, MATS.sofaCush);
+    cushCol(inner + side * 0.006, e - side * outer, BASE, SEAT, SD, retEnd, MATS.sofaCush, cfg.kind === 'chaise' ? 2 : 0.75);
+    cushRow(far + side * AW, e - side * outer, SEAT - 0.02, BACKH, BT2, BT2 + 0.2, MATS.sofaCush, -0.12);
+    if (cfg.kind === 'corner') cushCol(e - side * outer, e - side * (outer + 0.2), SEAT - 0.02, BACKH, BT2 + 0.2, retEnd, MATS.sofaCush);
+    legs.push([e - side * 0.05, 0.05], [e - side * 0.05, R - 0.05], [inner + side * 0.05, R - 0.05]);
+  }
+  for (const [lx, lz] of legs) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.01, LEG, 8), MATS.blackMetal); m.position.set(lx, LEG / 2, lz); g.add(m); }
+  const door = { kind: 'swap', label: 'Sofa', parts, center: O.clone().addScaledVector(f, SD / 2).setY(0.5),
+    swap: () => selectFurniture(selected === sofaMover ? null : sofaMover),
+    prompt: () => (selected === sofaMover ? 'Done moving the sofa' : 'Move or change the sofa') };
+  for (const p of parts) { p.userData.door = door; p.userData.furniture = true; collidables.push(p); }
+  const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Sofa'); if (di >= 0) doors.splice(di, 1);
+  doors.push(door);
+  scene.add(g); g.updateMatrixWorld(true);
+  S.group = g; S.parts = parts;
+  return moved;
+}
+function sofaGaps() {
+  const S = liv.sofa, M = liv.media; if (!S || !S.group) return null;
+  const cfg = SOFAS[S.cfg], side = S.flip ? 1 : -1, { f, x } = sofaFrame(), L = cfg.L, R = cfg.R;
+  const P = (lx, lz, y = 0.35) => S.O.clone().addScaledVector(x, lx).addScaledVector(f, lz).setY(y);
+  const mainX = cfg.kind === 'straight' ? 0 : -side * SD / 2;
+  const out = {};
+  out.back = { from: P(mainX, -0.005), dir: f.clone().negate() }; out.back.d = gapTo(out.back.from, out.back.dir, 5);
+  out.front = { from: P(mainX, SD + 0.005), dir: f.clone() }; out.front.d = gapTo(out.front.from, out.front.dir, 5); out.front.name = hitName();
+  if (cfg.kind !== 'straight') { out.ret = { from: P(side * (L / 2 - SD / 2), R + 0.005), dir: f.clone() }; out.ret.d = gapTo(out.ret.from, out.ret.dir, 5); out.ret.name = hitName(); }
+  for (const s of [1, -1]) { const k = s > 0 ? 'endP' : 'endN'; out[k] = { from: P(s * (L / 2 + 0.005), SD / 2), dir: x.clone().multiplyScalar(s) }; out[k].d = gapTo(out[k].from, out[k].dir, 5, true); out[k].name = lastGapHit && lastGapHit.material === MATS.glass ? ' to glass door' : hitName(); }
+  // eyes (seated, ~45 cm in front of the back) to the screen
+  const eye = P(mainX, 0.45, 1.1), screenOff = TVW.off + TVW.D;
+  out.view = eye.clone().sub(M.group.position).dot(M.n) - screenOff; out.eye = eye;
+  return out;
+}
+function livingDims() {
+  livDims.clear();
+  const M = liv.media;
+  if (M && M.group) {
+    const O = M.group.position, n = M.n, a = M.a;
+    for (const sgn of [1, -1]) {
+      const ed = O.clone().addScaledVector(a, sgn * UNIT.W / 2).addScaledVector(n, 0.25);
+      const d = sgn > 0 ? M.half - M.offset - UNIT.W / 2 : M.half + M.offset - UNIT.W / 2;
+      if (d > 0.02) livDims.add(dimLine(toBl(ed), toBl(ed.clone().addScaledVector(a, sgn * d)), `${d.toFixed(2)} m to wall end`, 0.04));
+    }
+    const hl = labelSprite(`TV centre ${(TVW.bottom + TVW.H / 2).toFixed(2)} m · unit ${UNIT.bottom.toFixed(2)}–${(UNIT.bottom + UNIT.H).toFixed(2)} m`, { h: 0.03 });
+    hl.position.copy(O).addScaledVector(n, 0.25).setY(TVW.bottom + TVW.H + 0.14); livDims.add(hl);
+  }
+  const G = sofaGaps();
+  if (G) {
+    const Y = 0.04;
+    const line = (o, lbl) => { if (o && o.d !== null && o.d !== undefined) livDims.add(dimLine(toBl(o.from), toBl(o.from.clone().addScaledVector(o.dir, o.d)), lbl(o.d, o.name || ''), Y)); };
+    line(G.back, (d) => `${d.toFixed(2)} m walkway behind${d < 0.8 ? ' (tight)' : ''}`);
+    line(G.front, (d, nm) => `${d.toFixed(2)} m${nm}`);
+    line(G.ret, (d, nm) => `${d.toFixed(2)} m${nm}${nm === ' to TV unit' && d < 0.6 ? ' (tight)' : ''}`);
+    line(G.endP, (d, nm) => `${d.toFixed(2)} m${nm}`); line(G.endN, (d, nm) => `${d.toFixed(2)} m${nm}`);
+    const cfg = SOFAS[liv.sofa.cfg];
+    const tag = labelSprite(`${cfg.name} ${Math.round(cfg.L * 100)} × ${Math.round(Math.max(cfg.R, SD) * 100)} cm · ${G.view.toFixed(1)} m to screen`, { h: 0.03 });
+    tag.position.copy(G.eye).setY(1.25); livDims.add(tag);
+  }
+}
+const sofaMover = {
+  name: 'Sofa', anchor: () => (liv.sofa && liv.sofa.group ? liv.sofa.O.clone().addScaledVector(sofaFrame().f, SD / 2).setY(1.1) : null),
+  axis: () => sofaFrame().x, axis2: () => sofaFrame().f,
+  shift: (dir) => { if (!buildSofa((O) => O.addScaledVector(sofaFrame().x, dir * 0.05))) showToast('Can’t go further: wall or furniture'); livingDims(); },
+  shift2: (dir) => { if (!buildSofa((O) => O.addScaledVector(sofaFrame().f, dir * 0.05))) showToast('Can’t go further: wall or furniture'); livingDims(); },
+  info: () => { const G = sofaGaps(); const cfg = SOFAS[liv.sofa.cfg];
+    return `${Math.round(cfg.L * 100)} × ${Math.round(Math.max(cfg.R, SD) * 100)} cm · ${G && G.back.d !== null ? G.back.d.toFixed(2) : '–'} m behind · ${G && G.front.d !== null ? G.front.d.toFixed(2) : '–'} m to TV unit · ${G ? G.view.toFixed(1) : '–'} m to screen`; },
+  variant: { label: () => `Try ${SOFAS[(liv.sofa.cfg + 1) % SOFAS.length].name.replace('Nyland ', '')}`,
+    run: () => { liv.sofa.cfg = (liv.sofa.cfg + 1) % SOFAS.length; buildSofa(); livingDims(); const c = SOFAS[liv.sofa.cfg]; showToast(`${c.name} ${Math.round(c.L * 100)} × ${Math.round(Math.max(c.R, SD) * 100)} cm`); } },
+  variant2: { label: () => (SOFAS[liv.sofa.cfg].kind === 'straight' ? '—' : liv.sofa.flip ? 'Corner on the left' : 'Corner on the right'),
+    run: () => { if (SOFAS[liv.sofa.cfg].kind === 'straight') return; liv.sofa.flip = !liv.sofa.flip; buildSofa(); livingDims(); } },
+};
+
+// ------------------------------------------------------------ kitchen: coffee corner next to the fridge + Thermomix in the corner
+// Fellow Espresso Series 1: 315 W × 438 D × 279 H mm (546 D with portafilter). Niche Zero: 122 × 211 × 311 mm. Thermomix TM7: 253 W × 405 D × 336 H mm.
+MATS.espresso = std({ color: 0x141414, roughness: 0.55 });
+MATS.chromeK = std({ color: 0xd9dadc, roughness: 0.12, metalness: 1 });
+MATS.nicheBlack = std({ color: 0x0e0e0f, roughness: 0.18, metalness: 0.2 });
+MATS.nicheOak = std({ color: 0xa4643a, roughness: 0.45 });
+MATS.clearLid = new THREE.MeshStandardMaterial({ color: 0xe8eef2, roughness: 0.05, transparent: true, opacity: 0.35 });
+MATS.tmWhite = std({ color: 0xf4f4f2, roughness: 0.35 });
+MATS.canister = std({ color: 0x3b3d40, roughness: 0.4, metalness: 0.5 });
+const kitDims = new THREE.Group(); dimsGroup.add(kitDims);
+function buildCoffee() {
+  const top = 0.90;                                      // worktop height
+  const wallY = 0.476, tallEnd = 0.476 + 0.62;          // south wall face, end of the tall fridge column (Blender coords)
+  const kit = (bx, by, rotY) => { const g = new THREE.Group(); g.position.copy(b2t(bx, by, top)); g.rotation.y = rotY; scene.add(g); return g; };
+  const put = (g, geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
+  const cyl = (rt, rb, h, seg = 28) => new THREE.CylinderGeometry(rt, rb, h, seg);
+  // local frame for things on the long counter: +z = towards the room, +x = towards the fridge
+  const E = kit(tallEnd + 0.04 + 0.1575, wallY + 0.03 + 0.219, Math.PI);
+  put(E, new THREE.BoxGeometry(0.315, 0.035, 0.438), MATS.espresso, 0, 0.0175, 0);                 // base + drip tray
+  put(E, new THREE.BoxGeometry(0.29, 0.006, 0.13), MATS.chromeK, 0, 0.037, 0.14);                   // tray grate
+  put(E, new THREE.BoxGeometry(0.315, 0.244, 0.3), MATS.espresso, 0, 0.035 + 0.122, -0.069);       // body
+  put(E, new THREE.BoxGeometry(0.3, 0.008, 0.29), MATS.tvFrame, 0, 0.283, -0.069);                 // top / tank lid
+  put(E, cyl(0.072, 0.072, 0.07), MATS.chromeK, -0.03, 0.2, 0.1);                                   // group head dome
+  put(E, cyl(0.036, 0.034, 0.035), MATS.chromeK, -0.03, 0.148, 0.1);                                // portafilter
+  const handle = put(E, new THREE.BoxGeometry(0.025, 0.025, 0.14), MATS.espresso, -0.03, 0.145, 0.2); handle.rotation.x = 0.12;
+  put(E, cyl(0.005, 0.005, 0.2, 10), MATS.chromeK, 0.115, 0.17, 0.1);                               // steam wand
+  put(E, cyl(0.007, 0.007, 0.03, 10), std({ color: 0xff5a1f, roughness: 0.5 }), 0.115, 0.075, 0.1);
+  const scr = put(E, new THREE.CircleGeometry(0.03, 24), new THREE.MeshStandardMaterial({ color: 0x2f6fe0, emissive: 0x2f6fe0, emissiveIntensity: 0.8 }), 0.12, 0.2, 0.0815); scr.rotation.y = 0;
+  put(E, cyl(0.02, 0.02, 0.025), MATS.espresso, 0.12, 0.1, 0.09).rotation.x = Math.PI / 2;          // dial
+  // on the top: milk jug, distribution tool, dosing funnel, puck-screen tin
+  put(E, cyl(0.045, 0.038, 0.1), MATS.chromeK, 0.09, 0.337, -0.17);
+  put(E, cyl(0.018, 0.018, 0.12, 16), MATS.espresso, 0.01, 0.347, -0.17);
+  put(E, cyl(0.04, 0.042, 0.03), MATS.espresso, 0.09, 0.302, -0.07);
+  put(E, cyl(0.035, 0.035, 0.016), MATS.chromeK, -0.07, 0.295, -0.16);
+  // Niche Zero on its oak base, then the tamping mat, bean canister, knock box (to the left of the machine)
+  const N = kit(tallEnd + 0.04 + 0.315 + 0.05 + 0.07, wallY + 0.03 + 0.105, Math.PI);
+  put(N, new THREE.BoxGeometry(0.14, 0.03, 0.21), MATS.nicheOak, 0, 0.015, 0);
+  put(N, cyl(0.058, 0.05, 0.2), MATS.nicheBlack, 0, 0.14, -0.02);
+  put(N, cyl(0.06, 0.058, 0.03), MATS.nicheBlack, 0, 0.255, -0.02);
+  put(N, new THREE.SphereGeometry(0.06, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), MATS.clearLid, 0, 0.27, -0.02).scale.y = 0.6;
+  put(N, cyl(0.03, 0.03, 0.05), MATS.chromeK, 0, 0.055, 0.06);                                      // dosing cup
+  const K = kit(tallEnd + 0.04 + 0.315 + 0.04, wallY + 0.03 + 0.34, Math.PI);                       // mat + tamper in front
+  put(K, new THREE.BoxGeometry(0.28, 0.01, 0.2), MATS.espresso, -0.1, 0.005, 0);
+  put(K, cyl(0.029, 0.029, 0.02), MATS.espresso, -0.02, 0.02, 0);
+  put(K, cyl(0.012, 0.016, 0.08, 14), MATS.espresso, -0.02, 0.07, 0);
+  put(K, new THREE.SphereGeometry(0.02, 14, 10), MATS.espresso, -0.02, 0.115, 0);
+  const C = kit(tallEnd + 0.04 + 0.315 + 0.24, wallY + 0.1, Math.PI);
+  put(C, cyl(0.06, 0.06, 0.19), MATS.canister, 0, 0.095, 0);
+  put(C, cyl(0.062, 0.062, 0.02), MATS.espresso, 0, 0.2, 0);
+  put(C, cyl(0.07, 0.07, 0.13), MATS.espresso, -0.06, 0.065, 0.2);                                  // knock box
+  put(C, cyl(0.006, 0.006, 0.12, 8), MATS.espresso, -0.06, 0.1, 0.2).rotation.z = Math.PI / 2;
+  // Thermomix TM7 in the corner of the L, angled towards the room
+  const T = kit(4.49 - 0.33, wallY + 0.33, -3 * Math.PI / 4);
+  put(T, new THREE.BoxGeometry(0.253, 0.12, 0.405), MATS.tmWhite, 0, 0.06, 0);
+  const pnl = put(T, new THREE.BoxGeometry(0.2, 0.1, 0.02), MATS.nicheBlack, 0, 0.09, 0.2); pnl.rotation.x = -0.35;
+  put(T, new THREE.BoxGeometry(0.2, 0.06, 0.18), MATS.tmWhite, 0, 0.15, -0.08);
+  put(T, cyl(0.1, 0.085, 0.17), MATS.chromeK, 0, 0.265, -0.07);
+  put(T, cyl(0.106, 0.106, 0.035), MATS.nicheBlack, 0, 0.365, -0.07);
+  put(T, new THREE.BoxGeometry(0.03, 0.12, 0.05), MATS.nicheBlack, 0.115, 0.27, -0.07);
+  // labels (with Sizes)
+  for (const [txt, bx, by, h] of [['Fellow Espresso Series 1 · 32 × 44 cm', tallEnd + 0.2, 0.75, 1.3], ['Niche Zero · 12 × 21 cm', tallEnd + 0.47, 0.72, 1.22], ['Thermomix TM7 · 25 × 41 cm', 4.16, 0.8, 1.3], ['0.56 m clear under the wall cabinets', tallEnd + 0.35, 0.9, 1.14]]) {
+    const t = labelSprite(txt, { h: 0.028 }); t.position.copy(b2t(bx, by, h)); kitDims.add(t);
+  }
+}
+function furnish() { buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); }
 if (modelRoot) furnish(); else window.__afterModel = furnish;
 
 // ------------------------------------------------------------ clouds
@@ -2055,7 +2384,7 @@ function frame() {
 window.__overlays = [pinsGroup, dimsGroup, plugsGroup, measureGroup, tapRing];
 updateRoom();
 requestAnimationFrame(frame);
-window.__apt = { player, doors, b2t, bed, tv, tvMover, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
+window.__apt = { player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFAS, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
 </script>
 
 </body></html>
