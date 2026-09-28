@@ -1528,7 +1528,7 @@ function buildBed() {
     swap: () => selectFurniture(selected === bedMover ? null : bedMover),
     prompt: () => (selected === bedMover ? 'Done moving the bed' : 'Move or resize the bed') };
   for (const p of parts) { p.userData.door = door; p.userData.furniture = true; collidables.push(p); }
-  const di = doors.findIndex((d) => d.kind === 'swap'); if (di >= 0) doors.splice(di, 1);
+  const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Bed'); if (di >= 0) doors.splice(di, 1);
   doors.push(door);
   scene.add(g); g.updateMatrixWorld(true);
   bed.group = g; bed.parts = parts;
@@ -1799,6 +1799,7 @@ function hitName() {
 }
 function furnitureDims() {
   closetDims.clear();
+  if (typeof tvDimsUpdate === 'function' && tv.group) tvDimsUpdate();
   const Y = 0.04;
   const G = furn.gianluca;
   if (G) {
@@ -1836,7 +1837,119 @@ function furnitureDims() {
     const tag = labelSprite("Svetlana's closet · L, 3 doors", { h: 0.032 }); tag.position.copy(S.C2).addScaledVector(furn.svetlana.n, 0.6).addScaledVector(S.tB, 0.5 * Math.sign(S.sTip)).setY(2.5); closetDims.add(tag);
   }
 }
-function furnish() { buildBed(); buildClosets(); }
+
+// ------------------------------------------------------------ furniture: 32" Samsung The Frame on the outside wall, facing the bed
+// set without stand 728.9 × 419.4 × 24.7 mm (2022 spec sheet), slim-fit mount ≈ 6 mm off the wall, art mode with a mat
+const tv = { offset: 0, portrait: false, group: null, base: null, E: null, a: null, yC: 1.15, room: null };
+const tvDims = new THREE.Group(); dimsGroup.add(tvDims);
+MATS.tvBezel = std({ color: 0xa87a4f, roughness: 0.55 });          // teak-look bezel
+MATS.tvBody = std({ color: 0x151515, roughness: 0.6 });
+function tvArt(portrait) {
+  // an original, quiet abstract (harbour at dusk) on a white mat, like art mode
+  const W = portrait ? 540 : 960, H = portrait ? 960 : 540;
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  g.fillStyle = '#f3f0ea'; g.fillRect(0, 0, W, H);
+  const m = Math.round(Math.min(W, H) * 0.13), iw = W - 2 * m, ih = H - 2 * m;
+  g.save(); g.translate(m, m); g.beginPath(); g.rect(0, 0, iw, ih); g.clip();
+  const sky = g.createLinearGradient(0, 0, 0, ih * 0.62); sky.addColorStop(0, '#c9d3d8'); sky.addColorStop(0.6, '#e9d7bf'); sky.addColorStop(1, '#e4b995');
+  g.fillStyle = sky; g.fillRect(0, 0, iw, ih);
+  const r = rng(portrait ? 71 : 37);
+  g.fillStyle = 'rgba(214,150,108,0.9)'; g.beginPath(); g.arc(iw * (portrait ? 0.62 : 0.7), ih * 0.44, Math.min(iw, ih) * 0.09, 0, Math.PI * 2); g.fill();
+  const bands = [['#6f7f86', 0.58], ['#56666e', 0.66], ['#43525a', 0.76], ['#34414a', 0.88]];
+  for (const [col, y0] of bands) {
+    g.fillStyle = col; g.beginPath(); g.moveTo(0, ih);
+    for (let x = 0; x <= iw; x += iw / 12) g.lineTo(x, ih * y0 + (r() - 0.5) * ih * 0.03);
+    g.lineTo(iw, ih); g.closePath(); g.fill();
+  }
+  g.globalAlpha = 0.35; g.strokeStyle = '#f2dcc2'; g.lineWidth = 2;
+  for (let i = 0; i < 18; i++) { const y = ih * (0.6 + r() * 0.35), x = r() * iw; g.beginPath(); g.moveTo(x, y); g.lineTo(x + iw * (0.04 + r() * 0.08), y); g.stroke(); }
+  g.globalAlpha = 1; g.fillStyle = '#2c2a28';
+  const bx = iw * (portrait ? 0.18 : 0.12); g.fillRect(bx, ih * 0.48, iw * 0.012, ih * 0.14); g.fillRect(bx + iw * 0.03, ih * 0.52, iw * 0.012, ih * 0.1);
+  g.restore();
+  g.strokeStyle = 'rgba(0,0,0,0.12)'; g.lineWidth = 3; g.strokeRect(m, m, iw, ih);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+const tvTex = { land: null, port: null };
+function tvSize() { return tv.portrait ? [0.4194, 0.7289] : [0.7289, 0.4194]; }
+function buildTV() {
+  if (!tv.E) {
+    const E = wallLine([8.8, 7.4], [8.8, 6.2], [1, 0]); if (!E || !bed.wall) return;
+    tv.E = E; tv.a = new THREE.Vector3().crossVectors(UP, E.n).normalize();
+    // the bed's centre line hits the outside wall here
+    const w = bed.wall, sC = (w.sDoor + w.sEnd) / 2 + bed.offset;
+    const P = w.W.clone().addScaledVector(w.u3, sC);
+    const t = E.p.clone().sub(P).dot(E.n) / w.n3.dot(E.n);
+    tv.base = P.addScaledVector(w.n3, t).setY(0);
+  }
+  if (tv.group) { scene.remove(tv.group); for (const p of tv.parts) { const i = collidables.indexOf(p); if (i >= 0) collidables.splice(i, 1); } }
+  const [W, H] = tvSize(), D = 0.0247, gap = 0.006, bz = 0.02;
+  // free stretch of wall either side (closets, corners), measured at TV height 10 cm off the wall
+  const from = tv.base.clone().addScaledVector(tv.E.n, 0.1).setY(tv.yC);
+  const dPos = gapTo(from, tv.a.clone(), 4) ?? 4, dNeg = gapTo(from, tv.a.clone().negate(), 4) ?? 4;
+  tv.room = { dPos, dNeg };
+  tv.offset = Math.max(-dNeg + W / 2 + 0.05, Math.min(dPos - W / 2 - 0.05, tv.offset));
+  const O = tv.base.clone().addScaledVector(tv.a, tv.offset);
+  const g = new THREE.Group(); g.position.copy(O);
+  g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(tv.a, UP, tv.E.n));
+  const parts = [];
+  const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); parts.push(m); return m; };
+  const zc = gap + D / 2;
+  add(new THREE.BoxGeometry(W - 0.01, H - 0.01, D - 0.004), MATS.tvBody, 0, tv.yC, zc - 0.002);
+  add(new THREE.BoxGeometry(W, bz, D), MATS.tvBezel, 0, tv.yC + H / 2 - bz / 2, zc);
+  add(new THREE.BoxGeometry(W, bz, D), MATS.tvBezel, 0, tv.yC - H / 2 + bz / 2, zc);
+  add(new THREE.BoxGeometry(bz, H - 2 * bz, D), MATS.tvBezel, -W / 2 + bz / 2, tv.yC, zc);
+  add(new THREE.BoxGeometry(bz, H - 2 * bz, D), MATS.tvBezel, W / 2 - bz / 2, tv.yC, zc);
+  const key = tv.portrait ? 'port' : 'land'; tvTex[key] ||= tvArt(tv.portrait);
+  const scr = add(new THREE.PlaneGeometry(W - 2 * bz, H - 2 * bz), new THREE.MeshStandardMaterial({ map: tvTex[key], emissiveMap: tvTex[key], emissive: 0xffffff, emissiveIntensity: 0.22, roughness: 0.9 }), 0, tv.yC, gap + D + 0.0005);
+  scr.castShadow = false;
+  // thin clear cable to the socket below
+  add(new THREE.CylinderGeometry(0.0018, 0.0018, tv.yC - H / 2 - 0.3, 6), std({ color: 0xdedbd5, roughness: 0.6 }), W * 0.3, (tv.yC - H / 2 + 0.3) / 2, 0.003).castShadow = false;
+  const door = { kind: 'swap', label: 'TV', parts, center: O.clone().setY(tv.yC).addScaledVector(tv.E.n, 0.05),
+    swap: () => selectFurniture(selected === tvMover ? null : tvMover),
+    prompt: () => (selected === tvMover ? 'Done moving the TV' : 'Move or rotate the TV') };
+  for (const p of parts) { p.userData.door = door; p.userData.furniture = true; collidables.push(p); }
+  const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'TV'); if (di >= 0) doors.splice(di, 1);
+  doors.push(door);
+  scene.add(g); g.updateMatrixWorld(true);
+  tv.group = g; tv.parts = parts;
+  tvDimsUpdate();
+}
+function tvDimsUpdate() {
+  tvDims.clear(); if (!tv.group) return;
+  const [W, H] = tvSize(), n = tv.E.n, a = tv.a, O = tv.group.position;
+  // along the wall: TV edge → next thing on each side
+  const off = 0.35, Y = 1.15 + 0.3;
+  for (const s of [1, -1]) {
+    const edge = O.clone().addScaledVector(a, s * W / 2).addScaledVector(n, off);
+    const d = s > 0 ? tv.room.dPos - tv.offset - W / 2 : tv.room.dNeg + tv.offset - W / 2;
+    const end = edge.clone().addScaledVector(a, s * d);
+    const lbl = d.toFixed(2) + ' m';
+    tvDims.add(dimLine(toBl(edge), toBl(end), lbl, 0.04));
+  }
+  // height of the bottom edge above the floor
+  const bot = tv.yC - H / 2, P = O.clone().addScaledVector(a, -W / 2 - 0.08).addScaledVector(n, 0.03);
+  const v = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints([P.clone().setY(0), P.clone().setY(bot), P.clone().setY(bot).addScaledVector(a, 0.06), P.clone().setY(bot).addScaledVector(a, -0.06)]), lineMat); v.renderOrder = 29; tvDims.add(v);
+  const hl = labelSprite(`${bot.toFixed(2)} m to floor`); hl.position.copy(P).setY(bot / 2); tvDims.add(hl);
+  // viewing distance from the foot of the bed
+  if (bed.group) {
+    const w = bed.wall, sC = (w.sDoor + w.sEnd) / 2 + bed.offset;
+    const foot = w.W.clone().addScaledVector(w.u3, sC).addScaledVector(w.n3, 0.08 + 2.0 + 0.02);
+    const d = O.clone().sub(foot).dot(w.n3);
+    const A = foot.clone().addScaledVector(w.u3, 0), B = foot.clone().addScaledVector(w.n3, d);
+    tvDims.add(dimLine(toBl(A), toBl(B), `${d.toFixed(2)} m bed foot → TV`, 0.62));
+  }
+  const tag = labelSprite('32" The Frame · 73 × 42 cm', { h: 0.032 }); tag.position.copy(O).addScaledVector(n, 0.2).setY(tv.yC + H / 2 + 0.12); tvDims.add(tag);
+}
+const tvMover = {
+  name: 'TV', anchor: () => (tv.group ? tv.group.position.clone().addScaledVector(tv.E.n, 0.3).setY(tv.yC - 0.35) : null),
+  axis: () => tv.a,
+  shift: (dir) => { const before = tv.offset; tv.offset += dir * 0.05; buildTV(); if (Math.abs(tv.offset - before) < 1e-6) showToast('Can’t go further: closet or wall'); },
+  info: () => { const [W, H] = tvSize(); const w = bed.wall, sC = (w.sDoor + w.sEnd) / 2 + bed.offset;
+    const head = w.W.clone().addScaledVector(w.u3, sC); const rel = tv.group.position.clone().sub(head); const mis = rel.dot(w.u3);
+    return `32" · ${tv.portrait ? 'portrait' : 'landscape'} · ${Math.abs(mis) < 0.025 ? 'centred on the bed' : `${Math.abs(mis * 100).toFixed(0)} cm off the bed centre`} · ${(rel.dot(w.n3) - 0.3).toFixed(1)} m from the pillows`; },
+  variant: { label: () => (tv.portrait ? 'Landscape' : 'Portrait'), run: () => { tv.portrait = !tv.portrait; buildTV(); showToast(tv.portrait ? 'TV in portrait' : 'TV in landscape'); } },
+};
+function furnish() { buildBed(); buildClosets(); buildTV(); }
 if (modelRoot) furnish(); else window.__afterModel = furnish;
 
 // ------------------------------------------------------------ clouds
@@ -1942,7 +2055,7 @@ function frame() {
 window.__overlays = [pinsGroup, dimsGroup, plugsGroup, measureGroup, tapRing];
 updateRoom();
 requestAnimationFrame(frame);
-window.__apt = { player, doors, b2t, bed, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
+window.__apt = { player, doors, b2t, bed, tv, tvMover, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
 </script>
 
 </body></html>
