@@ -69,7 +69,9 @@
   #doorTip { position: fixed; left: 50%; bottom: calc(var(--gut) + 56px + var(--safe-b)); transform: translateX(-50%);
     font: 500 14px/1 var(--ui); color: var(--ink); padding: 12px 16px; display: flex; gap: 10px; align-items: center; cursor: pointer; z-index: 5; }
   #doorTip kbd { font: 500 11px/1 var(--mono); border: 1px solid var(--oak); color: var(--oak); border-radius: 4px; padding: 3px 5px; }
-  #mover { position: fixed; transform: translate(-50%, -100%); padding: 10px 12px; display: grid; gap: 8px; z-index: 8; min-width: 300px; }
+  #mover { position: fixed; transform: translate(-50%, -100%); padding: 10px 12px; display: grid; gap: 8px; z-index: 8; width: min(360px, calc(100vw - 24px)); box-sizing: border-box; }
+  #mover * { box-sizing: border-box; min-width: 0; }
+  #mover .mvrow button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 8px; padding-right: 8px; }
   #mover .mvtop { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
   #mover b { font: 700 14px/1 var(--ui); }
   #mover .mvrow { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; }
@@ -77,6 +79,11 @@
   #mover #mvLeft, #mover #mvRight, #mover #mvUp, #mover #mvDown { background: var(--oak); color: #1a1208; border-color: var(--oak); }
   #mover #mvDone { padding: 6px 10px; font-size: 12.5px; }
   #mover [hidden] { display: none !important; }
+  #mvSelects { display: grid; gap: 6px; }
+  #mvSelects label { display: grid; gap: 3px; font: 600 11px/1 var(--ui); color: var(--ink); opacity: .8; letter-spacing: .02em; }
+  #mvSelects select { font: 500 13px/1.2 var(--ui); color: var(--ink); background: rgba(242,237,228,.06); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; width: 100%; }
+  #mvSelects select option, #mvSelects select optgroup { color: #1a1208; background: #f2ede4; }
+  #mvSelects .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; border: 1px solid var(--line); }
   #mover small { font: 500 11.5px/1.3 var(--mono); color: var(--oak); font-variant-numeric: tabular-nums; }
   #toast { position: fixed; left: 50%; top: calc(var(--gut) + 70px + var(--safe-t)); transform: translateX(-50%); font: 700 15px/1 var(--ui); color: var(--oak); padding: 12px 16px; z-index: 7; pointer-events: none; }
   #pinTip { position: fixed; left: 50%; top: calc(50% + 18px); transform: translateX(-50%); font-size: 12.5px; padding: 6px 10px; pointer-events: none; }
@@ -205,6 +212,7 @@
   <div class="mvtop"><b id="mvName">Bed</b><button id="mvDone" aria-label="Done">Done</button></div>
   <div class="mvrow"><button id="mvLeft" aria-label="Move 5 cm left">◀ 5 cm</button><button id="mvVar">Try 180 cm</button><button id="mvRight" aria-label="Move 5 cm right">5 cm ▶</button></div>
   <div class="mvrow" id="mvRow2" hidden><button id="mvUp" aria-label="Move 5 cm up on screen">▲ 5 cm</button><button id="mvVar2">Flip</button><button id="mvDown" aria-label="Move 5 cm down on screen">5 cm ▼</button></div>
+  <div id="mvSelects" hidden></div>
   <small id="mvInfo"></small>
 </div>
 <div id="pinTip" class="panel" hidden>Click to open this render</div>
@@ -1566,10 +1574,28 @@ function selectFurniture(m) {
     $('mvName').textContent = m.name; $('mvVar').hidden = !m.variant;
     $('mvRow2').hidden = !m.axis2 && !m.variant2; $('mvUp').style.visibility = $('mvDown').style.visibility = m.axis2 ? 'visible' : 'hidden';
     $('mvVar2').hidden = !m.variant2;
+    buildMoverSelects(m);
     updateMoverInfo();
   }
 }
-function updateMoverInfo() { if (!selected) return; $('mvInfo').textContent = selected.info(); if (selected.variant) $('mvVar').textContent = selected.variant.label(); if (selected.variant2) $('mvVar2').textContent = selected.variant2.label(); }
+function buildMoverSelects(m) {
+  const box = $('mvSelects'); box.innerHTML = ''; box.hidden = !m.selects;
+  for (const sel of m.selects || []) {
+    const lab = document.createElement('label'); const head = document.createElement('span'); head.textContent = sel.label; lab.appendChild(head);
+    const el = document.createElement('select'); el.dataset.id = sel.id; let grp = null, cur = null;
+    sel.options().forEach((o, i) => {
+      if (o.group && o.group !== cur) { grp = document.createElement('optgroup'); grp.label = o.group; el.appendChild(grp); cur = o.group; }
+      const op = document.createElement('option'); op.value = i; op.textContent = o.label; (o.group ? grp : el).appendChild(op);
+    });
+    el.value = sel.get();
+    el.addEventListener('change', () => { sel.set(+el.value); updateMoverInfo(); });
+    el.addEventListener('keydown', (e) => e.stopPropagation());
+    lab.appendChild(el); box.appendChild(lab);
+  }
+}
+function updateMoverInfo() { if (!selected) return; if (selected.title) $('mvName').textContent = selected.title(); $('mvInfo').textContent = selected.info();
+  for (const sel of selected.selects || []) { const el = $('mvSelects').querySelector(`select[data-id="${sel.id}"]`); if (el && +el.value !== sel.get()) el.value = sel.get(); }
+  if (selected.variant2) $('mvVar2').disabled = selected.variant2.label() === '—'; if (selected.variant) $('mvVar').textContent = selected.variant.label(); if (selected.variant2) $('mvVar2').textContent = selected.variant2.label(); }
 function moverMap(m) {
   // which of the mover's axes (and which sign) goes right / up on screen from where you look now
   const at = m.anchor(); const p0 = at.clone().project(camera);
@@ -1608,8 +1634,8 @@ function placeMover() {
   if (v.z > 1) { el.style.opacity = '0.0'; return; }
   el.style.opacity = '1';
   const x = (v.x * 0.5 + 0.5) * innerWidth, y = (-v.y * 0.5 + 0.5) * innerHeight;
-  el.style.left = Math.max(170, Math.min(innerWidth - 170, x)) + 'px';
-  el.style.top = Math.max(120, Math.min(innerHeight - 160, y)) + 'px';
+  const hw = el.offsetWidth / 2 + 8; el.style.left = Math.max(hw, Math.min(innerWidth - hw, x)) + 'px';
+  el.style.top = Math.max(el.offsetHeight + 12, Math.min(innerHeight - 20, y)) + 'px';
 }
 function showToast(text) {
   const t = $('toast'); t.textContent = text; t.hidden = false;
@@ -2065,50 +2091,78 @@ const mediaMover = {
   info: () => { const M = liv.media; const c = Math.abs(M.offset) < 0.025 ? 'centred on the wall' : `${Math.round(Math.abs(M.offset) * 100)} cm towards the ${(M.offset > 0) === M.aToBalcony ? 'balcony' : 'hallway'}`;
     return `${c} · TV centre ${(TVW.bottom + TVW.H / 2).toFixed(2)} m up · wall ${(M.half * 2).toFixed(2)} m`; },
 };
-// ---- ILVA Nyland family (ilva.dk): all 93 cm deep, 82 cm high, seat 47 cm
+// ---- ILVA Nyland: every "Sofatype" on ilva.dk (each corner/chaise type comes højre- or venstrevendt), all 93 cm deep, 82 cm high, seat 47 cm
+// højrevendt = the corner / chaise sits on your right when you stand in front of the sofa (as in ILVA's drawings)
 const SOFAS = [
-  { name: 'Nyland corner sofa', L: 2.63, R: 1.92, kind: 'corner' },                   // the linked one, left-facing, 4 seats
-  { name: 'Nyland chaiselong sofa', L: 3.11, R: 1.52, kind: 'chaise' },
-  { name: 'Nyland corner sofa + chaiselong', L: 3.94, R: 2.22, kind: 'corner' },
-  { name: 'Nyland 3-seater', L: 2.20, R: 0.93, kind: 'straight' },
+  { name: '2 Personer', L: 1.80, R: 0.93, ends: ['arm', 'arm'] },
+  { name: '3 Personer', L: 2.20, R: 0.93, ends: ['arm', 'arm'] },
+  { name: 'Hjørnesofa', L: 2.63, R: 1.92, sided: true, main: { t: 'corner', R: 1.92 } },
+  { name: 'Hjørnesofa - Ekstra Længde', L: 3.03, R: 2.12, sided: true, main: { t: 'corner', R: 2.12 } },
+  { name: 'Hjørnesofa Med Chaiselong', L: 3.54, R: 2.22, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, other: { t: 'corner', R: 2.22 } },
+  { name: 'Hjørnesofa Med Chaiselong - Ekstra Længde', L: 3.94, R: 2.22, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, other: { t: 'corner', R: 2.22 } },
+  { name: 'Hjørnesofa Med Pufafslutning', L: 2.63, R: 2.22, sided: true, main: { t: 'pouf', R: 2.22 } },
+  { name: 'Hjørnesofa Med Pufafslutning - Ekstra Længde', L: 3.03, R: 2.22, sided: true, main: { t: 'pouf', R: 2.22 } },
+  { name: 'Sofa Med Chaiselong', L: 2.71, R: 1.52, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 } },
+  { name: 'Sofa Med Chaiselong - Ekstra Længde', L: 3.11, R: 1.52, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 } },
 ];
+// fabrics ("Betræk og farve"), colours sampled from ILVA's swatches
+const FABRICS = [
+  ['Austin', 'fladvævet', [['Antelope', 0x958777], ['Anthracite', 0x6f7173], ['Deep Blue', 0x28324a], ['Grey', 0xb4b4b6], ['Winter Moss', 0x676d5f]], 1],
+  ['Crush', 'bouclé', [['Cappuccino', 0x4f3727], ['Choco', 0x2c2420], ['Forest', 0x2f3b34], ['Off White', 0xdcd6cb], ['Taupe', 0x4d4239]], 1],
+  ['Kentucky', 'regenereret læder', [['Cognac', 0x7d4024]], 0.5],
+  ['Linde', 'lærredsvævning', [['Off White', 0xd0cbc1]], 1],
+  ['Verdon', 'chenille', [['Grey', 0x9c9e9c], ['Natural', 0xb3ac9c], ['Sand', 0x9d8f7b], ['Taupe', 0x514437]], 0.95],
+  ['Wave', 'fløjl', [['Moss Green', 0x6e6b47], ['Sand', 0xcbc0b2], ['Taupe', 0x7a7366]], 0.75],
+].flatMap(([g, kind, cols, rough]) => cols.map(([c, hex]) => ({ g, kind, c, hex, rough })));
+const LEGS = [['Sort Metal', () => MATS.blackMetal], ['Eg (lakeret)', () => MATS.legwood]];
 const SD = 0.93;
+function sofaName(S) { const c = SOFAS[S.cfg]; return c.sided ? `${S.flip ? 'Højrevendt' : 'Venstrevendt'} ${c.name}` : c.name; }
+function applyFabric(S) {
+  const fb = FABRICS[S.fabric];
+  MATS.sofa.color.setHex(fb.hex); MATS.sofa.roughness = fb.rough;
+  MATS.sofaCush.color.setHex(fb.hex).offsetHSL(0, 0, 0.03); MATS.sofaCush.roughness = fb.rough;
+}
 function sofaFrame() { const M = liv.media; const f = M.n.clone().negate(); return { f, x: new THREE.Vector3().crossVectors(UP, f).normalize() }; }
+function sofaEnds(cfg, side) {
+  // [{s, t, R, W}] for the two ends; s = +1 is your right standing in front
+  if (!cfg.sided) return [{ s: 1, t: 'arm' }, { s: -1, t: 'arm' }];
+  return [{ s: side, ...cfg.main, W: cfg.main.W || SD }, { s: -side, ...(cfg.other ? { ...cfg.other, W: cfg.other.W || SD } : { t: 'arm' }) }];
+}
 function sofaClear(O, cfg, side) {
-  // free space around the sofa's footprint, measured from inside it (sofa's own parts excluded)
-  const { f, x } = sofaFrame(), R = Math.max(SD, cfg.R), L = cfg.L;
+  const { f, x } = sofaFrame(), L = cfg.L;
   const P = (lx, lz) => O.clone().addScaledVector(x, lx).addScaledVector(f, lz).setY(0.3);
+  const g = (p, d) => gapTo(p, d, 6) ?? 6;
   let worst = 9;
-  for (const lz of [0.1, SD / 2, SD - 0.1]) { worst = Math.min(worst, (gapTo(P(0, lz), x.clone(), 6) ?? 6) - L / 2, (gapTo(P(0, lz), x.clone().negate(), 6) ?? 6) - L / 2); }
-  const rx = side * (L / 2 - SD / 2);
-  for (const lz of [SD + 0.1, R - 0.1]) if (R > SD + 0.2) { worst = Math.min(worst, (gapTo(P(rx, lz), x.clone().multiplyScalar(side), 6) ?? 6) - SD / 2, (gapTo(P(rx, lz), x.clone().multiplyScalar(-side), 6) ?? 6) - SD / 2); }
-  for (const lx of [-L / 2 + 0.1, 0, L / 2 - 0.1]) { worst = Math.min(worst, (gapTo(P(lx, SD / 2), f.clone().negate(), 6) ?? 6) - SD / 2, (gapTo(P(lx, SD / 2), f.clone(), 6) ?? 6) - SD / 2); }
-  if (R > SD + 0.2) worst = Math.min(worst, (gapTo(P(rx, R / 2), f.clone(), 6) ?? 6) - R / 2);
+  for (const lz of [0.1, SD / 2, SD - 0.1]) worst = Math.min(worst, g(P(0, lz), x) - L / 2, g(P(0, lz), x.clone().negate()) - L / 2);
+  for (const lx of [-L / 2 + 0.1, 0, L / 2 - 0.1]) worst = Math.min(worst, g(P(lx, SD / 2), f.clone().negate()) - SD / 2, g(P(lx, SD / 2), f) - SD / 2);
+  for (const e of sofaEnds(cfg, side)) if (e.t !== 'arm') {
+    const cx = e.s * (L / 2 - e.W / 2), cz = (SD + e.R) / 2;
+    worst = Math.min(worst, g(P(cx, cz), f) - (e.R - SD) / 2, g(P(cx, cz), x) - e.W / 2, g(P(cx, cz), x.clone().negate()) - e.W / 2);
+  }
   return worst;
 }
 function buildSofa(tryMove) {
-  // tryMove: optional (O) => candidate origin; the sofa only moves if the new spot is free
   let S = liv.sofa; const M = liv.media; if (!M) return false;
   const { f, x } = sofaFrame();
   if (!S) {
     // back of the sofa 90 cm off the window wall (a proper walkway), centred on the TV
     const WW = wallLine([2.5, 7.6], [2.5, 4.9], [-1, 0]);
     const depth = WW ? M.base.clone().sub(WW.p).dot(WW.n) : 4.0;
-    S = liv.sofa = { cfg: 0, flip: false, O: M.base.clone().addScaledVector(M.n, depth - 0.92), group: null, parts: [] };
+    S = liv.sofa = { cfg: 2, flip: false, fabric: 0, legs: 0, O: M.base.clone().addScaledVector(M.n, depth - 0.92), group: null, parts: [] };
   }
   if (S.group) { scene.remove(S.group); dropParts(S.parts); }
-  const cfg = SOFAS[S.cfg], side = S.flip ? 1 : -1;     // left-facing: the corner is on your left standing in front of the sofa
+  applyFabric(S);
+  const cfg = SOFAS[S.cfg], side = S.flip ? 1 : -1;
   let moved = true;
   if (tryMove) { const cand = tryMove(S.O.clone()); if (sofaClear(cand, cfg, side) > 0.015) S.O = cand; else moved = false; }
   else if (sofaClear(S.O, cfg, side) <= 0.015) {
-    // new size doesn't fit where it is: slide along the wall / towards the TV to the nearest free spot
-    let best = null;
+    let best = null;                                   // doesn't fit here: nearest free spot
     for (let k = 1; k <= 60 && !best; k++) for (const [dx, dz] of [[k, 0], [-k, 0], [0, k], [0, -k], [k, k], [-k, k]]) {
       const c = S.O.clone().addScaledVector(x, dx * 0.05).addScaledVector(f, dz * 0.05); if (sofaClear(c, cfg, side) > 0.015) { best = c; break; }
     }
     if (best) S.O = best;
   }
-  const O = S.O, L = cfg.L, R = cfg.R;
+  const O = S.O, L = cfg.L;
   const g = new THREE.Group(); g.position.copy(O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, UP, f));
   const parts = [];
   const box = (x0, x1, y0, y1, z0, z1, mat, rotX = 0) => {
@@ -2116,63 +2170,69 @@ function buildSofa(tryMove) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(xb - xa, y1 - y0, zb - za), mat); m.position.set((xa + xb) / 2, (y0 + y1) / 2, (za + zb) / 2); m.rotation.x = rotX;
     m.castShadow = m.receiveShadow = true; g.add(m); parts.push(m); return m;
   };
-  const cushRow = (xa, xb, y0, y1, z0, z1, mat, rotX = 0, seg = 0.8) => {    // cushions split along x
+  const cushRow = (xa, xb, y0, y1, z0, z1, mat, rotX = 0, seg = 0.8) => {
     const a0 = Math.min(xa, xb), a1 = Math.max(xa, xb), k = Math.max(1, Math.round((a1 - a0) / seg)), w = (a1 - a0) / k;
     for (let i = 0; i < k; i++) box(a0 + i * w + 0.006, a0 + (i + 1) * w - 0.006, y0, y1, z0, z1, mat, rotX);
   };
-  const cushCol = (x0, x1, y0, y1, za, zb, mat, seg = 0.75) => {             // cushions split along z
+  const cushCol = (x0, x1, y0, y1, za, zb, mat, seg = 0.75) => {
+    if (zb - za < 0.1) return;
     const k = Math.max(1, Math.round((zb - za) / seg)), w = (zb - za) / k;
     for (let i = 0; i < k; i++) box(x0, x1, y0, y1, za + i * w + 0.006, za + (i + 1) * w - 0.006, mat);
   };
-  const LEG = 0.14, BASE = 0.30, SEAT = 0.47, ARMH = 0.60, BACKH = 0.82, AW = 0.12, BT2 = 0.16;
-  const e = side * L / 2, inner = side * (L / 2 - SD), far = -side * L / 2;
-  const legs = [];
-  // main run
-  box(-L / 2, L / 2, LEG, BASE, 0, SD, MATS.sofa);
+  const LEG = 0.14, BASE = 0.30, SEAT = 0.47, ARMH = 0.60, BACKH = 0.82, AW = 0.12, BT2 = 0.16, POUF = 0.37;
+  const legs = [], seatIn = {};
+  box(-L / 2, L / 2, LEG, BASE, 0, SD, MATS.sofa);                                   // main base + back frame
   box(-L / 2, L / 2, BASE, 0.62, 0, BT2, MATS.sofa);
-  box(far, far + side * AW, BASE, ARMH, 0, SD, MATS.sofa);                               // arm at the far end
-  legs.push([far + side * 0.05, 0.05], [far + side * 0.05, SD - 0.05]);
-  if (cfg.kind === 'straight') {
-    box(e, e - side * AW, BASE, ARMH, 0, SD, MATS.sofa);
-    cushRow(far + side * AW, e - side * AW, BASE, SEAT, BT2, SD, MATS.sofaCush);
-    cushRow(far + side * AW, e - side * AW, SEAT - 0.02, BACKH, BT2, BT2 + 0.2, MATS.sofaCush, -0.12);
-    legs.push([e - side * 0.05, 0.05], [e - side * 0.05, SD - 0.05]);
-  } else {
-    box(inner, e, LEG, BASE, SD, R, MATS.sofa);                                          // the return / chaise
-    const outer = cfg.kind === 'corner' ? BT2 : AW;                                      // corner: backrest along the outside; chaise: an arm
-    box(e, e - side * outer, BASE, cfg.kind === 'corner' ? 0.62 : ARMH, 0, R, MATS.sofa);
-    if (cfg.kind === 'corner') box(inner, e - side * outer, BASE, ARMH, R - AW, R, MATS.sofa);   // arm at the end of the return
-    const retEnd = cfg.kind === 'corner' ? R - AW : R;
-    cushRow(far + side * AW, e - side * outer, BASE, SEAT, BT2, SD, MATS.sofaCush);
-    cushCol(inner + side * 0.006, e - side * outer, BASE, SEAT, SD, retEnd, MATS.sofaCush, cfg.kind === 'chaise' ? 2 : 0.75);
-    cushRow(far + side * AW, e - side * outer, SEAT - 0.02, BACKH, BT2, BT2 + 0.2, MATS.sofaCush, -0.12);
-    if (cfg.kind === 'corner') cushCol(e - side * outer, e - side * (outer + 0.2), SEAT - 0.02, BACKH, BT2 + 0.2, retEnd, MATS.sofaCush);
-    legs.push([e - side * 0.05, 0.05], [e - side * 0.05, R - 0.05], [inner + side * 0.05, R - 0.05]);
+  for (const e of sofaEnds(cfg, side)) {
+    const s = e.s, ex = s * L / 2, inX = (d) => ex - s * d;
+    legs.push([inX(0.05), 0.05]);
+    if (e.t === 'arm') {
+      box(ex, inX(AW), BASE, ARMH, 0, SD, MATS.sofa); seatIn[s] = inX(AW); legs.push([inX(0.05), SD - 0.05]); continue;
+    }
+    box(ex, inX(e.W), LEG, BASE, SD, e.R, MATS.sofa);                                   // the return's base
+    legs.push([inX(0.05), e.R - 0.05], [inX(e.W - 0.05), e.R - 0.05]);
+    if (e.t === 'chaise') {                                                            // arm along the outside, open end
+      box(ex, inX(AW), BASE, ARMH, 0, e.R, MATS.sofa); seatIn[s] = inX(AW);
+      box(inX(AW) - s * 0.006, inX(e.W), BASE, SEAT, SD + 0.006, e.R - 0.006, MATS.sofaCush);
+    } else {                                                                            // corner / pouf end: backrest along the outside
+      const backEnd = e.t === 'pouf' ? e.R - POUF : e.R;
+      box(ex, inX(BT2), BASE, 0.62, 0, backEnd, MATS.sofa); seatIn[s] = inX(BT2);
+      const seatEnd = e.t === 'corner' ? e.R - AW : e.R;
+      if (e.t === 'corner') box(ex, inX(e.W), BASE, ARMH, e.R - AW, e.R, MATS.sofa);  // arm cap at the end of the return
+      cushCol(inX(BT2), inX(e.W), BASE, SEAT, SD, seatEnd, MATS.sofaCush);
+      cushCol(inX(BT2), inX(BT2 + 0.2), SEAT - 0.02, BACKH, BT2 + 0.2, e.t === 'pouf' ? backEnd : seatEnd, MATS.sofaCush);
+    }
   }
-  for (const [lx, lz] of legs) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.01, LEG, 8), MATS.blackMetal); m.position.set(lx, LEG / 2, lz); g.add(m); }
+  cushRow(seatIn[-1], seatIn[1], BASE, SEAT, BT2, SD, MATS.sofaCush);
+  cushRow(seatIn[-1], seatIn[1], SEAT - 0.02, BACKH, BT2, BT2 + 0.2, MATS.sofaCush, -0.12);
+  const legMat = LEGS[S.legs][1]();
+  for (const [lx, lz] of legs) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.011, LEG, 10), legMat); m.position.set(lx, LEG / 2, lz); m.castShadow = true; g.add(m); }
   const door = { kind: 'swap', label: 'Sofa', parts, center: O.clone().addScaledVector(f, SD / 2).setY(0.5),
     swap: () => selectFurniture(selected === sofaMover ? null : sofaMover),
-    prompt: () => (selected === sofaMover ? 'Done moving the sofa' : 'Move or change the sofa') };
+    prompt: () => (selected === sofaMover ? 'Done with the sofa' : 'Move or change the sofa') };
   for (const p of parts) { p.userData.door = door; p.userData.furniture = true; collidables.push(p); }
   const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Sofa'); if (di >= 0) doors.splice(di, 1);
   doors.push(door);
   scene.add(g); g.updateMatrixWorld(true);
-  S.group = g; S.parts = parts;
+  S.group = g; S.parts = parts; S.seatIn = seatIn;
   return moved;
 }
 function sofaGaps() {
   const S = liv.sofa, M = liv.media; if (!S || !S.group) return null;
-  const cfg = SOFAS[S.cfg], side = S.flip ? 1 : -1, { f, x } = sofaFrame(), L = cfg.L, R = cfg.R;
+  const cfg = SOFAS[S.cfg], side = S.flip ? 1 : -1, { f, x } = sofaFrame(), L = cfg.L;
   const P = (lx, lz, y = 0.35) => S.O.clone().addScaledVector(x, lx).addScaledVector(f, lz).setY(y);
-  const mainX = cfg.kind === 'straight' ? 0 : -side * SD / 2;
-  const out = {};
+  const ends = sofaEnds(cfg, side);
+  // middle of the open seating (between the returns)
+  const lim = ends.map((e) => (e.t === 'arm' ? e.s * L / 2 : e.s * (L / 2 - e.W)));
+  const mainX = (lim[0] + lim[1]) / 2;
+  const out = { rets: [] };
   out.back = { from: P(mainX, -0.005), dir: f.clone().negate() }; out.back.d = gapTo(out.back.from, out.back.dir, 5);
   out.front = { from: P(mainX, SD + 0.005), dir: f.clone() }; out.front.d = gapTo(out.front.from, out.front.dir, 5); out.front.name = hitName();
-  if (cfg.kind !== 'straight') { out.ret = { from: P(side * (L / 2 - SD / 2), R + 0.005), dir: f.clone() }; out.ret.d = gapTo(out.ret.from, out.ret.dir, 5); out.ret.name = hitName(); }
+  for (const e of ends) if (e.t !== 'arm') { const r = { from: P(e.s * (L / 2 - e.W / 2), e.R + 0.005), dir: f.clone() }; r.d = gapTo(r.from, r.dir, 5); r.name = hitName(); out.rets.push(r); }
   for (const s of [1, -1]) { const k = s > 0 ? 'endP' : 'endN'; out[k] = { from: P(s * (L / 2 + 0.005), SD / 2), dir: x.clone().multiplyScalar(s) }; out[k].d = gapTo(out[k].from, out[k].dir, 5, true); out[k].name = lastGapHit && lastGapHit.material === MATS.glass ? ' to glass door' : hitName(); }
-  // eyes (seated, ~45 cm in front of the back) to the screen
   const eye = P(mainX, 0.45, 1.1), screenOff = TVW.off + TVW.D;
   out.view = eye.clone().sub(M.group.position).dot(M.n) - screenOff; out.eye = eye;
+  out.ret = out.rets[0];
   return out;
 }
 function livingDims() {
@@ -2194,24 +2254,30 @@ function livingDims() {
     const line = (o, lbl) => { if (o && o.d !== null && o.d !== undefined) livDims.add(dimLine(toBl(o.from), toBl(o.from.clone().addScaledVector(o.dir, o.d)), lbl(o.d, o.name || ''), Y)); };
     line(G.back, (d) => `${d.toFixed(2)} m walkway behind${d < 0.8 ? ' (tight)' : ''}`);
     line(G.front, (d, nm) => `${d.toFixed(2)} m${nm}`);
-    line(G.ret, (d, nm) => `${d.toFixed(2)} m${nm}${nm === ' to TV unit' && d < 0.6 ? ' (tight)' : ''}`);
+    for (const r of G.rets) line(r, (d, nm) => `${d.toFixed(2)} m${nm}${nm === ' to TV unit' && d < 0.6 ? ' (tight)' : ''}`);
     line(G.endP, (d, nm) => `${d.toFixed(2)} m${nm}`); line(G.endN, (d, nm) => `${d.toFixed(2)} m${nm}`);
-    const cfg = SOFAS[liv.sofa.cfg];
-    const tag = labelSprite(`${cfg.name} ${Math.round(cfg.L * 100)} × ${Math.round(Math.max(cfg.R, SD) * 100)} cm · ${G.view.toFixed(1)} m to screen`, { h: 0.03 });
+    const S = liv.sofa, cfg = SOFAS[S.cfg], fb = FABRICS[S.fabric];
+    const tag = labelSprite(`Nyland ${sofaName(S)} ${Math.round(cfg.L * 100)} × ${Math.round(cfg.R * 100)} cm · ${fb.g} ${fb.c} · ${G.view.toFixed(1)} m to screen`, { h: 0.03 });
     tag.position.copy(G.eye).setY(1.25); livDims.add(tag);
   }
 }
 const sofaMover = {
   name: 'Sofa', anchor: () => (liv.sofa && liv.sofa.group ? liv.sofa.O.clone().addScaledVector(sofaFrame().f, SD / 2).setY(1.1) : null),
   axis: () => sofaFrame().x, axis2: () => sofaFrame().f,
+  title: () => `Nyland ${sofaName(liv.sofa)}`,
   shift: (dir) => { if (!buildSofa((O) => O.addScaledVector(sofaFrame().x, dir * 0.05))) showToast('Can’t go further: wall or furniture'); livingDims(); },
   shift2: (dir) => { if (!buildSofa((O) => O.addScaledVector(sofaFrame().f, dir * 0.05))) showToast('Can’t go further: wall or furniture'); livingDims(); },
   info: () => { const G = sofaGaps(); const cfg = SOFAS[liv.sofa.cfg];
-    return `${Math.round(cfg.L * 100)} × ${Math.round(Math.max(cfg.R, SD) * 100)} cm · ${G && G.back.d !== null ? G.back.d.toFixed(2) : '–'} m behind · ${G && G.front.d !== null ? G.front.d.toFixed(2) : '–'} m to TV unit · ${G ? G.view.toFixed(1) : '–'} m to screen`; },
-  variant: { label: () => `Try ${SOFAS[(liv.sofa.cfg + 1) % SOFAS.length].name.replace('Nyland ', '')}`,
-    run: () => { liv.sofa.cfg = (liv.sofa.cfg + 1) % SOFAS.length; buildSofa(); livingDims(); const c = SOFAS[liv.sofa.cfg]; showToast(`${c.name} ${Math.round(c.L * 100)} × ${Math.round(Math.max(c.R, SD) * 100)} cm`); } },
-  variant2: { label: () => (SOFAS[liv.sofa.cfg].kind === 'straight' ? '—' : liv.sofa.flip ? 'Corner on the left' : 'Corner on the right'),
-    run: () => { if (SOFAS[liv.sofa.cfg].kind === 'straight') return; liv.sofa.flip = !liv.sofa.flip; buildSofa(); livingDims(); } },
+    return `L ${Math.round(cfg.L * 100)} × D ${Math.round(cfg.R * 100)} cm · ${G && G.back.d !== null ? G.back.d.toFixed(2) : '–'} m behind · ${G && G.front.d !== null ? G.front.d.toFixed(2) : '–'} m to TV unit · ${G ? G.view.toFixed(1) : '–'} m to screen`; },
+  selects: [
+    { id: 'type', label: 'Sofatype', options: () => SOFAS.map((c) => ({ label: `${c.name} · ${Math.round(c.L * 100)} × ${Math.round(c.R * 100)}` })), get: () => liv.sofa.cfg,
+      set: (i) => { liv.sofa.cfg = i; buildSofa(); livingDims(); const c = SOFAS[i]; showToast(`${sofaName(liv.sofa)} · L ${Math.round(c.L * 100)} × D ${Math.round(c.R * 100)} cm`); } },
+    { id: 'fabric', label: 'Betræk og farve', options: () => FABRICS.map((fb) => ({ label: fb.c, group: `${fb.g} – ${fb.kind}`, hex: fb.hex })), get: () => liv.sofa.fabric,
+      set: (i) => { liv.sofa.fabric = i; applyFabric(liv.sofa); livingDims(); } },
+  ],
+  variant: { label: () => `Ben: ${LEGS[liv.sofa.legs][0]}`, run: () => { liv.sofa.legs = (liv.sofa.legs + 1) % LEGS.length; buildSofa(); livingDims(); } },
+  variant2: { label: () => (SOFAS[liv.sofa.cfg].sided ? `⇄ ${liv.sofa.flip ? 'Venstrevendt' : 'Højrevendt'}` : '—'),
+    run: () => { if (!SOFAS[liv.sofa.cfg].sided) return; liv.sofa.flip = !liv.sofa.flip; buildSofa(); livingDims(); showToast(sofaName(liv.sofa)); } },
 };
 
 // ------------------------------------------------------------ kitchen: coffee corner next to the fridge + Thermomix in the corner
@@ -2384,7 +2450,7 @@ function frame() {
 window.__overlays = [pinsGroup, dimsGroup, plugsGroup, measureGroup, tapRing];
 updateRoom();
 requestAnimationFrame(frame);
-window.__apt = { player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFAS, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
+window.__apt = { player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFAS, FABRICS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
 </script>
 
 </body></html>
