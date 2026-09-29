@@ -82,11 +82,13 @@
   #mover b { font: 700 14px/1 var(--ui); }
   #mover .mvrow { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; }
   #mover button { font: 600 14px/1 var(--ui); color: var(--ink); background: rgba(242,237,228,.06); border: 1px solid var(--line); border-radius: 999px; padding: 11px 12px; cursor: pointer; }
-  #mover #mvLeft, #mover #mvRight, #mover #mvUp, #mover #mvDown { background: var(--oak); color: #1a1208; border-color: var(--oak); }
+  #mover #mvLeft, #mover #mvRight, #mover #mvUp, #mover #mvDown, #mover #mvRotL, #mover #mvRotR { background: var(--oak); color: #1a1208; border-color: var(--oak); }
   #mover #mvDone { padding: 6px 10px; font-size: 12.5px; }
   #mover [hidden] { display: none !important; }
   #mvSelects { display: grid; gap: 6px; }
-  #mvLink { font: 600 12.5px/1.2 var(--ui); color: var(--oak); text-decoration: underline; text-underline-offset: 3px; }
+  #mover .mvlinks { display: flex; gap: 14px; flex-wrap: wrap; }
+  #mvAng { align-self: center; text-align: center; font: 600 12px/1 var(--mono); color: var(--oak); }
+  #mvLink, #mvLink2 { font: 600 12.5px/1.2 var(--ui); color: var(--oak); text-decoration: underline; text-underline-offset: 3px; }
   #mvSelects label { display: grid; gap: 3px; font: 600 11px/1 var(--ui); color: var(--ink); opacity: .8; letter-spacing: .02em; }
   #mvSelects select { font: 500 13px/1.2 var(--ui); color: var(--ink); background: rgba(242,237,228,.06); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; width: 100%; }
   #mvSelects select option, #mvSelects select optgroup { color: #1a1208; background: #f2ede4; }
@@ -217,10 +219,11 @@
 <div id="toast" class="panel" hidden></div>
 <div id="mover" class="panel" hidden role="group" aria-label="Move furniture">
   <div class="mvtop"><span id="mvGrip" class="mouse-grip" title="Drag to move this panel · double-click to let it follow the furniture again" aria-hidden="true">⠿</span><b id="mvName">Bed</b><button id="mvDone" aria-label="Done">Done</button></div>
-  <div class="mvrow"><button id="mvLeft" aria-label="Move 5 cm left">◀ 5 cm</button><button id="mvVar">Try 180 cm</button><button id="mvRight" aria-label="Move 5 cm right">5 cm ▶</button></div>
+  <div class="mvrow" id="mvRow1"><button id="mvLeft" aria-label="Move 5 cm left">◀ 5 cm</button><button id="mvVar">Try 180 cm</button><button id="mvRight" aria-label="Move 5 cm right">5 cm ▶</button></div>
   <div class="mvrow" id="mvRow2" hidden><button id="mvUp" aria-label="Move 5 cm up on screen">▲ 5 cm</button><button id="mvVar2">Flip</button><button id="mvDown" aria-label="Move 5 cm down on screen">5 cm ▼</button></div>
+  <div class="mvrow" id="mvRow3" hidden><button id="mvRotL" aria-label="Rotate 15 degrees anticlockwise">⟲ 15°</button><span id="mvAng"></span><button id="mvRotR" aria-label="Rotate 15 degrees clockwise">15° ⟳</button></div>
   <div id="mvSelects" hidden></div>
-  <a id="mvLink" target="_blank" rel="noopener" hidden></a>
+  <div class="mvlinks"><a id="mvLink" target="_blank" rel="noopener" hidden></a><a id="mvLink2" target="_blank" rel="noopener" hidden></a></div>
   <small id="mvInfo"></small>
 </div>
 <div id="pinTip" class="panel" hidden>Click to open this render</div>
@@ -1379,7 +1382,7 @@ function buildLeaf(d, pivot) {
     const lid = add(new THREE.CylinderGeometry(1, 1, d.thick, 32), MATS.porcelain, 0, d.thick / 2, d.len / 2);
     lid.scale.set(d.w / 2, 1, d.len / 2);
   } else if (d.shape === 'closet') {             // wardrobe door: flat panel + slim vertical bar handle on both faces
-    add(new THREE.BoxGeometry(d.len, d.h, d.thick), MATS.closet, d.len / 2, d.z0 + d.h / 2);
+    add(new THREE.BoxGeometry(d.len, d.h, d.thick), d.doorMat || MATS.closet, d.len / 2, d.z0 + d.h / 2);
     if (d.handle !== false) for (const zz of [-1, 1]) add(new THREE.BoxGeometry(0.014, Math.min(0.32, d.h * 0.5), 0.022), MATS.steel, d.len - 0.05, d.z0 + d.h * 0.45, zz * (d.thick / 2 + 0.012));
   } else {                                        // door or fridge front
     add(new THREE.BoxGeometry(d.len, d.h, d.thick), d.mat === 'oak' ? MATS.oak : MATS.door, d.len / 2, d.z0 + d.h / 2);
@@ -1623,6 +1626,8 @@ function selectFurniture(m) {
     $('mvName').textContent = m.name; $('mvVar').hidden = !m.variant;
     $('mvRow2').hidden = !m.axis2 && !m.variant2; $('mvUp').style.visibility = $('mvDown').style.visibility = m.axis2 ? 'visible' : 'hidden';
     $('mvVar2').hidden = !m.variant2;
+    $('mvRow3').hidden = !m.rotate;
+    $('mvRow1').hidden = !m.axis && !m.variant;
     buildMoverSelects(m);
     updateMoverInfo();
   }
@@ -1643,7 +1648,9 @@ function buildMoverSelects(m) {
   }
 }
 function updateMoverInfo() { if (!selected) return; if (selected.title) $('mvName').textContent = selected.title();
-  const lk = $('mvLink'); lk.hidden = !selected.link; if (selected.link) { const L = selected.link(); lk.href = L.href; lk.textContent = L.text; } $('mvInfo').textContent = selected.info();
+  const lk = $('mvLink'), lk2 = $('mvLink2'); lk.hidden = !selected.link; lk2.hidden = true;
+  if (selected.link) { const L = selected.link(); lk.href = L.href; lk.textContent = L.text; if (L.href2) { lk2.hidden = false; lk2.href = L.href2; lk2.textContent = L.text2; } }
+  if (selected.rotate) $('mvAng').textContent = `${Math.round(((dining.angle * 180 / Math.PI) % 360 + 360) % 360)}°`; $('mvInfo').textContent = selected.info();
   for (const sel of selected.selects || []) { const el = $('mvSelects').querySelector(`select[data-id="${sel.id}"]`); if (el && +el.value !== sel.get()) el.value = sel.get(); }
   if (selected.variant2) $('mvVar2').disabled = selected.variant2.label() === '—'; if (selected.variant) $('mvVar').textContent = selected.variant.label(); if (selected.variant2) $('mvVar2').textContent = selected.variant2.label(); }
 function moverMap(m) {
@@ -1668,12 +1675,16 @@ $('mvDown').addEventListener('click', () => moveSel('v', -1));
 $('mvVar').addEventListener('click', () => { if (selected && selected.variant) { selected.variant.run(); updateMoverInfo(); } });
 $('mvVar2').addEventListener('click', () => { if (selected && selected.variant2) { selected.variant2.run(); updateMoverInfo(); } });
 $('mvDone').addEventListener('click', () => selectFurniture(null));
+$('mvRotL').addEventListener('click', () => { if (selected && selected.rotate) { selected.rotate(1); updateMoverInfo(); } });
+$('mvRotR').addEventListener('click', () => { if (selected && selected.rotate) { selected.rotate(-1); updateMoverInfo(); } });
 addEventListener('keydown', (e) => {
   if (!selected || e.target.tagName === 'INPUT') return;
   if (e.code === 'Comma' || e.code === 'BracketLeft') $('mvLeft').click();
   else if (e.code === 'Period' || e.code === 'BracketRight') $('mvRight').click();
   else if (e.code === 'Equal') $('mvUp').click();
   else if (e.code === 'Minus') $('mvDown').click();
+  else if (e.code === 'KeyQ' && selected.rotate) $('mvRotL').click();
+  else if (e.code === 'KeyR' && selected.rotate) $('mvRotR').click();
   else if (e.code === 'Escape') selectFurniture(null);
 });
 // desktop: grab the panel by its title bar and park it anywhere; it stays there (also for the next piece of furniture)
@@ -1734,6 +1745,9 @@ function showToast(text) {
 MATS.closet = std({ color: 0x5c3e2b, roughness: 0.55 });
 MATS.closetIn = std({ color: 0x7d5b42, roughness: 0.6 });
 MATS.rail = std({ color: 0xc7c9cc, roughness: 0.25, metalness: 0.9 });
+MATS.paxFrame = std({ color: 0xf1f0ec, roughness: 0.6 });            // PAX white
+MATS.paxIn = std({ color: 0xe9e7e2, roughness: 0.7 });
+MATS.paxDoor = std({ color: 0xd9cdb6, roughness: 0.65 });           // FLISBERGET light beige
 const clothMat = {};
 const cloth = (hex) => (clothMat[hex] ||= std({ color: hex, roughness: 0.95 }));
 const UP = new THREE.Vector3(0, 1, 0);
@@ -1761,7 +1775,7 @@ function lineMeet(p1, t1, p2, t2) {        // intersection of two horizontal lin
   const s = ((p2.x - p1.x) * t2.z - (p2.z - p1.z) * t2.x) / den;
   return p1.clone().addScaledVector(t1, s);
 }
-const H_CL = 2.36, D_CL = 0.58, PL = 0.08, T = 0.018;
+let H_CL = 2.364, DOOR_H = 2.294; const D_CL = 0.58, PL = 0.05, T = 0.018;   // IKEA PAX frame 58 cm deep; door front at 60 cm
 function makeRun(O, n, width, name, sections) {
   // one straight wardrobe run. O = back corner on the wall where local x = 0; local x = UP × n, local z = n (towards the room)
   const a = new THREE.Vector3().crossVectors(UP, n).normalize();
@@ -1770,14 +1784,14 @@ function makeRun(O, n, width, name, sections) {
   const parts = [];
   const add = (geo, mat, x, y, z, solid = false) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); if (solid) { m.userData.furniture = true; parts.push(m); } return m; };
   // carcass
-  add(new THREE.BoxGeometry(width, H_CL, T), MATS.closetIn, width / 2, H_CL / 2, T / 2);
-  add(new THREE.BoxGeometry(width, T, D_CL), MATS.closet, width / 2, H_CL - T / 2, D_CL / 2, true);
-  add(new THREE.BoxGeometry(width, PL, D_CL - 0.03), MATS.closet, width / 2, PL / 2, (D_CL - 0.03) / 2, true);
-  add(new THREE.BoxGeometry(width, T, D_CL - 0.02), MATS.closetIn, width / 2, PL + T / 2, (D_CL - 0.02) / 2);
+  add(new THREE.BoxGeometry(width, H_CL, T), MATS.paxIn, width / 2, H_CL / 2, T / 2);
+  add(new THREE.BoxGeometry(width, T, D_CL), MATS.paxFrame, width / 2, H_CL - T / 2, D_CL / 2, true);
+  add(new THREE.BoxGeometry(width, PL, D_CL - 0.03), MATS.paxFrame, width / 2, PL / 2, (D_CL - 0.03) / 2, true);
+  add(new THREE.BoxGeometry(width, T, D_CL - 0.02), MATS.paxIn, width / 2, PL + T / 2, (D_CL - 0.02) / 2);
   let x = 0;
   const edges = [0];
   for (const sec of sections) { x += sec.w; edges.push(x); }
-  for (const ex of edges) add(new THREE.BoxGeometry(T, H_CL, D_CL - 0.02), ex === 0 || ex === width ? MATS.closet : MATS.closetIn, Math.min(Math.max(ex, T / 2), width - T / 2), H_CL / 2, (D_CL - 0.02) / 2, true);
+  for (const ex of edges) add(new THREE.BoxGeometry(T, H_CL, D_CL - 0.02), ex === 0 || ex === width ? MATS.paxFrame : MATS.paxIn, Math.min(Math.max(ex, T / 2), width - T / 2), H_CL / 2, (D_CL - 0.02) / 2, true);
   // interiors + doors
   const toBlXZ = (lx, lz) => { const v = new THREE.Vector3(lx, 0, lz).applyQuaternion(g.quaternion).add(O); return [v.x, -v.z]; };
   const aBl = [a.x, -a.z], nBl = [n.x, -n.z];
@@ -1785,16 +1799,17 @@ function makeRun(O, n, width, name, sections) {
   const made = [];
   for (const sec of sections) {
     const x0 = x, x1 = x + sec.w; x = x1;
-    const ctx = { g, x0, x1, add, w: sec.w };
+    const ky = H_CL / 2.364, addS = (geo, mat, x, y, z, solid) => add(geo, mat, x, PL + (y - PL) * ky, z, solid);
+    const ctx = { g, x0, x1, add: addS, w: sec.w };
     if (sec.fill) sec.fill(ctx);
-    if (sec.blind) { add(new THREE.BoxGeometry(sec.w - T, H_CL - PL - T, T), MATS.closet, (x0 + x1) / 2, (PL + H_CL - T) / 2, D_CL - T / 2, true); continue; }
+    if (sec.blind) { add(new THREE.BoxGeometry(sec.w - T, H_CL - PL - T, T), MATS.paxFrame, (x0 + x1) / 2, (PL + H_CL - T) / 2, D_CL - T / 2, true); continue; }
     const doorsIn = sec.doors || 1, dw = (sec.w - 0.004) / doorsIn;
     for (let k = 0; k < doorsIn; k++) {
       const hingeLeft = doorsIn === 2 ? k === 0 : !!sec.hingeLeft;
       const hx = hingeLeft ? x0 + k * dw + 0.002 : x0 + (k + 1) * dw - 0.002;
       const d = addHinged({ id: `${name}_${made.length}`, label: 'Closet', name, shape: 'closet',
         hinge: toBlXZ(hx, D_CL + 0.012), closed: hingeLeft ? aBl : [-aBl[0], -aBl[1]], open: nBl,
-        len: dw - 0.004, h: H_CL - PL - 0.01, z0: PL + 0.005, thick: 0.02 });
+        len: dw - 0.004, h: DOOR_H, z0: Math.max(0.01, (H_CL - DOOR_H) / 2), thick: 0.02, doorMat: MATS.paxDoor, handle: false });
       for (const p of d.parts) p.userData.furniture = true;
       made.push(d);
     }
@@ -1803,12 +1818,12 @@ function makeRun(O, n, width, name, sections) {
   for (const p of parts) collidables.push(p);
   scene.add(g); g.updateMatrixWorld(true);
   for (const d of made) d.pivot.updateMatrixWorld(true);
-  return { g, a, n, O, width, doors: made };
+  return { g, a, n, O, width, doors: made, parts };
 }
 // ---- interior helpers (local run coordinates)
 const zc = D_CL / 2;
 function rail(c, y) { c.add(new THREE.CylinderGeometry(0.012, 0.012, c.w - 0.04, 12), MATS.rail, (c.x0 + c.x1) / 2, y, zc).rotation.z = Math.PI / 2; }
-function shelf(c, y) { c.add(new THREE.BoxGeometry(c.w - T * 2, T, D_CL - 0.04), MATS.closetIn, (c.x0 + c.x1) / 2, y, (D_CL - 0.04) / 2); }
+function shelf(c, y) { c.add(new THREE.BoxGeometry(c.w - T * 2, T, D_CL - 0.04), MATS.paxIn, (c.x0 + c.x1) / 2, y, (D_CL - 0.04) / 2); }
 function hang(c, y, items) {           // items: [thickness, length, width, colour]
   const span = c.w - 0.1; let tot = items.reduce((s, it) => s + it[0], 0); const gap = Math.max(0.006, (span - tot) / (items.length + 1));
   let x = c.x0 + 0.05 + gap;
@@ -1825,7 +1840,7 @@ function stacks(c, y, cols, per = 5) {  // folded piles on a shelf
 function drawers(c, y0, count, hgt = 0.2) {
   for (let i = 0; i < count; i++) {
     const y = y0 + i * (hgt + 0.01);
-    c.add(new THREE.BoxGeometry(c.w - T * 2 - 0.01, hgt, 0.018), MATS.closetIn, (c.x0 + c.x1) / 2, y + hgt / 2, D_CL - 0.06);
+    c.add(new THREE.BoxGeometry(c.w - T * 2 - 0.01, hgt, 0.018), MATS.paxIn, (c.x0 + c.x1) / 2, y + hgt / 2, D_CL - 0.06);
     c.add(new THREE.BoxGeometry(0.16, 0.012, 0.02), MATS.rail, (c.x0 + c.x1) / 2, y + hgt - 0.04, D_CL - 0.045);
   }
 }
@@ -1849,20 +1864,32 @@ const TEES = [[0x1f2229, 0x3e4f63, 0xf2f2f0, 0x7d8a6a, 0xb8b2a6], [0xf2f2f0, 0x9
 const furn = { gianluca: null, svetlana: null };
 const closetDims = new THREE.Group(); dimsGroup.add(closetDims);
 function buildClosets() {
-  // --- Gianluca: 1 m on the window wall, between the window and the outside-wall corner, doors facing into the room
+  // IKEA PAX / FLISBERGET: white PAX frames 58 cm deep + FLISBERGET doors (light beige, 49.5 cm wide, ~2 cm) = 60 cm overall;
+  // 236.4 cm tall (doors 229.4) or 201.2 cm (doors 194.6). Every 100 cm frame has a pair of doors opening outwards.
+  for (const r of furn.runs || []) { scene.remove(r.g); dropParts(r.parts); for (const d of r.doors) removeHingedDoor(d); const i = doors.indexOf(r.swapDoor); if (i >= 0) doors.splice(i, 1); }
+  furn.runs = [];
+  const PAIR = (fills) => [{ w: 0.5, hinge: 'near', fill: fills[0] }, { w: 0.5, hinge: 'far', fill: fills[1] }];
+  // a run along a wall starting `start` from the corner C, sections listed from the corner outwards
+  const runAlong = (C, n, dir, start, width, name, secs) => {
+    const a = new THREE.Vector3().crossVectors(UP, n).normalize(), fwd = a.dot(dir) > 0;
+    const O = fwd ? C.clone().addScaledVector(dir, start) : C.clone().addScaledVector(dir, start + width);
+    const list = (fwd ? secs : [...secs].reverse()).map((s) => ({ ...s, doors: 1, hingeLeft: fwd ? s.hinge === 'near' : s.hinge === 'far' }));
+    const r = makeRun(O, n, width, name, list); r.dir = dir; r.start = start; r.C = C; furn.runs.push(r); return r;
+  };
+  // --- Gianluca: 1 m (one 100 cm frame, 2 doors) on the window wall, between the window and the outside-wall corner
   const E = wallLine([8.8, 7.4], [8.8, 6.2], [1, 0]), Wn = wallLine([9.45, 6.8], [9.95, 6.8], [0, 1]);
   if (E && Wn) {
     const C = lineMeet(E.p, new THREE.Vector3().crossVectors(UP, E.n), Wn.p, new THREE.Vector3().crossVectors(UP, Wn.n));
-    const a = new THREE.Vector3().crossVectors(UP, Wn.n).normalize();   // local +x (viewer's right when facing the closet)
-    const toCorner = a.dot(E.n) < 0;                                     // E.n points into the room, so -E.n is towards the corner
+    const a = new THREE.Vector3().crossVectors(UP, Wn.n).normalize();
+    const toCorner = a.dot(E.n) < 0;
     const O = toCorner ? C.clone().addScaledVector(a, -1.01) : C.clone().addScaledVector(a, 0.01);
     const freeEnd = toCorner ? O.clone() : O.clone().addScaledVector(a, 1.0), freeDir = toCorner ? a.clone().negate() : a.clone();
     furn.gianluca = makeRun(O, Wn.n, 1.0, "Gianluca's closet", [
-      { w: 0.5, doors: 1, hingeLeft: true, fill: (c) => {       // left: shirts on the top rail, trousers on the bottom rail
+      { w: 0.5, doors: 1, hingeLeft: true, fill: (c) => {
         rail(c, 2.0); hang(c, 2.0, SHIRTS.map((col, i) => [0.035, 0.74, 0.42, col]));
         rail(c, 1.05); hang(c, 1.05, PANTS.map((col) => [0.03, 0.55, 0.36, col]));
       } },
-      { w: 0.5, doors: 1, hingeLeft: false, fill: (c) => {      // right: drawers low, shelves with t-shirts, socks and jumpers above
+      { w: 0.5, doors: 1, hingeLeft: false, fill: (c) => {
         drawers(c, PL + T + 0.01, 3, 0.19);
         for (const [y, cols] of [[0.8, TEES[0].map((x) => [x, x, x, x])], [1.15, [[0x2b2b2b, 0xf2f2f0, 0x3b4d63], [0x9aa3ad, 0x1f2229, 0xc7b89a]]], [1.5, [TEES[1], TEES[0]]], [1.85, [[0x5e4b3c, 0x2f3a4a, 0x8b8b86], [0x333333, 0x726a5e, 0xa99f8e]]]]) {
           shelf(c, y); stacks(c, y, cols.map((p) => (Array.isArray(p) ? p : [p])), 4);
@@ -1870,59 +1897,105 @@ function buildClosets() {
         shelf(c, 2.12); boxes(c, 2.12, [0x3a3a3a]);
       } },
     ]);
-    furn.gianluca.freeEnd = freeEnd; furn.gianluca.freeDir = freeDir;
+    furn.gianluca.freeEnd = freeEnd; furn.gianluca.freeDir = freeDir; furn.runs.push(furn.gianluca);
   }
-  // --- Svetlana: L along the bathroom wall (after the swing of the bedroom door) and round onto the outside wall
+  // --- Svetlana: 2 m of PAX (two 100 cm frames, 4 doors) as an L or an I
   const Bw = wallLine([8.7, 4.6], [9.7, 4.6], [0, -1]), E2 = wallLine([8.8, 3.9], [8.8, 5.2], [1, 0]);
   const bd = PLAN.doors.find((d) => d.id === 'door_bed');
+  furn.svetlana = null; furn.svetlanaB = null; furn.svetlanaInfo = null;
   if (Bw && E2 && bd) {
-    const tB = new THREE.Vector3().crossVectors(UP, Bw.n).normalize();   // along the bathroom wall
+    const tB = new THREE.Vector3().crossVectors(UP, Bw.n).normalize();
     const C2 = lineMeet(Bw.p, tB, E2.p, new THREE.Vector3().crossVectors(UP, E2.n));
     const tip = b2t(bd.hinge[0], bd.hinge[1], 0).add(b2t(bd.open[0], bd.open[1]).multiplyScalar(bd.len));
-    // run A: from 8 cm past the open door leaf to the corner
-    const sTip = tip.clone().sub(C2).dot(tB), sgn = Math.sign(sTip);
-    const startA = C2.clone().addScaledVector(tB, sTip - sgn * 0.08);
-    const lenA = Math.abs(sTip) - 0.08;
-    const aA = new THREE.Vector3().crossVectors(UP, Bw.n).normalize();
-    const OA = aA.dot(C2.clone().sub(startA)) > 0 ? startA : C2;       // x = 0 at whichever end local +x starts from
-    const doorW = Math.min(0.5, (lenA - D_CL) / 2);
-    const blind = lenA - 2 * doorW;
-    const fromDoorSide = OA === startA;
-    const secA = [
-      { w: doorW, doors: 1, hingeLeft: true, fill: (c) => {       // long hanging: dresses and coats
-        rail(c, 1.95); hang(c, 1.95, [[0.05, 1.15, 0.46, 0x1f2d3d], [0.045, 1.05, 0.44, 0xb5a38a], [0.03, 1.1, 0.4, 0x8a2f3a], [0.03, 1.2, 0.4, 0x1a1a1a], [0.03, 1.0, 0.4, 0xd8c7e0], [0.03, 1.05, 0.4, 0x5d7a63]]);
-        shelf(c, 2.12); boxes(c, 2.12, [0xe8dccb]);
-        shelf(c, PL + 0.2); shoes(c, PL + 0.2, [0x1a1a1a, 0xa0522d]); shoes(c, PL + T, [0xe0c9b6, 0x3b3b3b]);
-      } },
-      { w: doorW, doors: 1, hingeLeft: false, fill: (c) => {      // blouses and skirts on two rails
-        rail(c, 2.0); hang(c, 2.0, [0xf6efe9, 0xe8b4b8, 0xc9d6df, 0xffffff, 0xd9c4a9, 0x9fb8a0].map((col) => [0.03, 0.66, 0.4, col]));
-        rail(c, 1.1); hang(c, 1.1, [0x2c2c2c, 0x7a5c61, 0xc8b89f, 0x324a5f, 0xeae3d9].map((col) => [0.03, 0.62, 0.38, col]));
-      } },
-      { w: blind, blind: true },
+    const sTip = tip.clone().sub(C2).dot(tB);
+    const dirA = tB.clone().multiplyScalar(Math.sign(sTip));                         // along the bathroom wall, towards the bedroom door
+    const tE2 = new THREE.Vector3().crossVectors(UP, E2.n).normalize();
+    const dirB = tE2.clone().multiplyScalar(tE2.dot(Bw.n) > 0 ? 1 : -1);             // along the outside wall, away from the bathroom wall
+    const F = [
+      (c) => { rail(c, 1.95); hang(c, 1.95, [[0.05, 1.15, 0.46, 0x1f2d3d], [0.045, 1.05, 0.44, 0xb5a38a], [0.03, 1.1, 0.4, 0x8a2f3a], [0.03, 1.2, 0.4, 0x1a1a1a], [0.03, 1.0, 0.4, 0xd8c7e0]]); shelf(c, 2.12); boxes(c, 2.12, [0xe8dccb]); shelf(c, PL + 0.2); shoes(c, PL + 0.2, [0x1a1a1a, 0xa0522d]); },
+      (c) => { rail(c, 2.0); hang(c, 2.0, [0xf6efe9, 0xe8b4b8, 0xc9d6df, 0xffffff, 0xd9c4a9].map((col) => [0.03, 0.66, 0.4, col])); rail(c, 1.1); hang(c, 1.1, [0x2c2c2c, 0x7a5c61, 0xc8b89f, 0x324a5f].map((col) => [0.03, 0.62, 0.38, col])); },
+      (c) => { drawers(c, PL + T + 0.01, 2, 0.17); shelf(c, 0.85); stacks(c, 0.85, [[0xe9dfd3, 0xcbb8a0, 0x8e8a86, 0xf3ece4]], 4); shelf(c, 1.2); stacks(c, 1.2, [[0xd7a9a4, 0x1f2d3d, 0xf5f0ea, 0xa8b5a2]], 4); shelf(c, 1.55); bags(c, 1.55, [0x7b4a2e, 0x1b1b1b]); shelf(c, 2.12); boxes(c, 2.12, [0xe8dccb]); },
+      (c) => { shelf(c, 0.5); shoes(c, 0.5, [0x1a1a1a, 0xc9a27e]); shoes(c, PL + T, [0xe0c9b6, 0x3b3b3b]); rail(c, 1.9); hang(c, 1.9, [[0.05, 0.95, 0.46, 0x5d4b3a], [0.05, 0.9, 0.46, 0x2b2b2b], [0.04, 0.85, 0.44, 0xc4b59c]]); shelf(c, 2.12); boxes(c, 2.12, [0xd8c3a5]); },
     ];
-    if (!fromDoorSide) secA.reverse();
-    furn.svetlana = makeRun(OA, Bw.n, lenA, "Svetlana's closet", secA);
-    // run B: one door on the outside wall, starting where run A's depth ends
-    const aB = new THREE.Vector3().crossVectors(UP, E2.n).normalize();
-    const tE2 = aB.clone();
-    const awayFromB = tE2.dot(Bw.n) > 0 ? 1 : -1;                       // direction along the outside wall, away from the bathroom wall
-    const startB = C2.clone().addScaledVector(tE2, awayFromB * D_CL);
-    const OB = awayFromB > 0 ? startB : startB.clone().addScaledVector(tE2, -0.5);
-    furn.svetlanaB = makeRun(OB, E2.n, 0.5, "Svetlana's closet", [
-      { w: 0.5, doors: 1, hingeLeft: awayFromB < 0, fill: (c) => {   // shelves with knitwear, handbags, a jewellery drawer, shoes
-        drawers(c, PL + T + 0.01, 2, 0.17);
-        shelf(c, 0.55); shoes(c, 0.55, [0x1a1a1a, 0xc9a27e]);
-        shelf(c, 0.85); stacks(c, 0.85, [[0xe9dfd3, 0xcbb8a0, 0x8e8a86, 0xf3ece4]], 4);
-        shelf(c, 1.2); stacks(c, 1.2, [[0xd7a9a4, 0x1f2d3d, 0xf5f0ea, 0xa8b5a2]], 4);
-        shelf(c, 1.55); bags(c, 1.55, [0x7b4a2e, 0x1b1b1b]);
-        shelf(c, 1.9); bags(c, 1.9, [0xd8c3a5]);
-        shelf(c, 2.12); boxes(c, 2.12, [0xe8dccb]);
-      } },
-    ]);
-    furn.svetlanaInfo = { C2, tB, sTip, tip, startA, lenA, startB, tE2, awayFromB };
+    const lay = SV_LAYOUTS[furn.svLayout].id, gap = 0.62;                             // the second run of an L starts past the first run's doors (60 cm + 2 cm)
+    const nm = "Svetlana's closet";
+    let A = null, B = null;
+    if (lay === 'L-bath') { A = runAlong(C2, Bw.n, dirA, 0, 1.0, nm, PAIR([F[0], F[1]])); B = runAlong(C2, E2.n, dirB, gap, 1.0, nm, PAIR([F[2], F[3]])); }
+    else if (lay === 'L-out') { B = runAlong(C2, E2.n, dirB, 0, 1.0, nm, PAIR([F[2], F[3]])); A = runAlong(C2, Bw.n, dirA, gap, 1.0, nm, PAIR([F[0], F[1]])); }
+    else if (lay === 'I-bath') { A = runAlong(C2, Bw.n, dirA, 0, 1.5, nm, [{ w: 0.5, hinge: 'near', fill: F[2] }, ...PAIR([F[0], F[1]])]); }   // PAX 50 + 100: the single door in the corner, the pair towards the bedroom door
+    else { B = runAlong(C2, E2.n, dirB, 0, 2.0, nm, [...PAIR([F[0], F[1]]), ...PAIR([F[2], F[3]])]); }
+    furn.svetlana = A || B; furn.svetlanaB = B;
+    furn.svetlanaInfo = { C2, tB, sTip, tip, dirA, dirB, A, B, lay };
+  }
+  // click a closet body -> the closet panel
+  for (const r of furn.runs) {
+    const door = { kind: 'swap', label: 'Closet', parts: r.parts, center: r.O.clone().addScaledVector(r.a, r.width / 2).addScaledVector(r.n, 0.3).setY(1.2),
+      swap: () => selectFurniture(selected === closetMover ? null : closetMover), prompt: () => (selected === closetMover ? 'Done with the closets' : 'Closet options') };
+    for (const p of r.parts) p.userData.door = door;
+    r.swapDoor = door; doors.push(door);
   }
   furnitureDims();
 }
+const SV_LAYOUTS = [
+  { id: 'L-out', name: 'L · footprint only (ready-made corner wardrobe, ~100 + 100)' },
+  { id: 'I-bath', name: 'I · 150 cm on the bathroom wall (100 + 50, 3 doors)' },
+];
+furn.svLayout = 1; furn.height = 0;   // default: I on the bathroom wall
+const PAX_H = [{ name: '236.4 cm (doors 229.4)', H: 2.364, door: 2.294 }, { name: '201.2 cm (doors 194.6)', H: 2.012, door: 1.946 }];
+// door swings: sweep each closet door from closed to 90° open, stop where it would hit something (bed, the other run, a wall)
+const swingGroup = new THREE.Group(); dimsGroup.add(swingGroup);
+const swingOK = new THREE.MeshBasicMaterial({ color: 0x3fa36b, transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide });
+const swingBad = new THREE.MeshBasicMaterial({ color: 0xd9534f, transparent: true, opacity: 0.45, depthWrite: false, side: THREE.DoubleSide });
+const swingRay = new THREE.Raycaster();
+function sector(H, c, o, len, a0, a1, mat) {
+  const pts = [H.x, 0.012, H.z], steps = Math.max(2, Math.ceil((a1 - a0) / 0.08));
+  for (let i = 0; i <= steps; i++) { const f = a0 + (a1 - a0) * i / steps, d = c.clone().multiplyScalar(Math.cos(f)).addScaledVector(o, Math.sin(f)); pts.push(H.x + d.x * len, 0.012, H.z + d.z * len); }
+  const idx = []; for (let i = 1; i <= steps; i++) idx.push(0, i, i + 1);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); g.setIndex(idx);
+  const m = new THREE.Mesh(g, mat); m.renderOrder = 28; return m;
+}
+function closetSwings() {
+  swingGroup.clear();
+  const report = [];
+  const leaves = new Set(); for (const r of furn.runs || []) for (const d of r.doors) for (const p of d.parts) leaves.add(p);
+  const targets = collidables.filter((o) => o.material !== MATS.glass && !leaves.has(o));
+  const lOnly = furn.svetlanaInfo && furn.svetlanaInfo.lay === 'L-out';
+  for (const r of furn.runs || []) for (const d of r.doors) {
+    if (lOnly && r !== furn.gianluca) continue;
+    const H = b2t(d.hinge[0], d.hinge[1], 0), c = b2t(d.closed[0], d.closed[1]).normalize(), o = b2t(d.open[0], d.open[1]).normalize(), len = d.len;
+    let block = null, by = '';
+    for (let deg = 8; deg <= 90 && block === null; deg += 2) {
+      const f = deg * Math.PI / 180, dir = c.clone().multiplyScalar(Math.cos(f)).addScaledVector(o, Math.sin(f));
+      for (const y of [0.25, 0.55, 1.0, 1.6]) {
+        swingRay.set(H.clone().setY(y).addScaledVector(dir, 0.03), dir); swingRay.far = len - 0.03;
+        const h = swingRay.intersectObjects(targets, false)[0];
+        if (h) { block = f - 2 * Math.PI / 180; lastGapHit = h.object; by = hitName().replace(' to ', ''); break; }
+      }
+    }
+    const free = block === null ? Math.PI / 2 : Math.max(0, block);
+    swingGroup.add(sector(H, c, o, len, 0, free, swingOK));
+    if (block !== null) {
+      swingGroup.add(sector(H, c, o, len, free, Math.PI / 2, swingBad));
+      const mid = c.clone().multiplyScalar(Math.cos(free / 2 + Math.PI / 4)).addScaledVector(o, Math.sin(free / 2 + Math.PI / 4));
+      const t = labelSprite(`opens only ${Math.round(free * 180 / Math.PI)}° (${by})`, { h: 0.026 }); t.position.copy(H).addScaledVector(mid, len * 0.6).setY(0.3); swingGroup.add(t);
+      report.push({ name: d.name, deg: Math.round(free * 180 / Math.PI), by });
+    }
+  }
+  furn.swingReport = report;
+}
+const closetMover = {
+  name: 'Closets', title: () => 'Closets · IKEA PAX / FLISBERGET',
+  anchor: () => (furn.svetlana ? furn.svetlana.O.clone().addScaledVector(furn.svetlana.a, furn.svetlana.width / 2).addScaledVector(furn.svetlana.n, 0.6).setY(1.6) : null),
+  link: () => ({ href: 'https://www.ikea.com/dk/da/p/pax-flisberget-garderobeskab-hvid-lys-beige-s79480308/', text: 'PAX/FLISBERGET 100 cm ↗', href2: 'https://www.ikea.com/dk/da/p/pax-flisberget-garderobekombination-hvid-lys-beige-s59500680/', text2: 'PAX/FLISBERGET 150 cm (the one you sent) ↗' }),
+  info: () => { const R = furn.swingReport || []; const S = furn.svetlanaInfo; let extra = '';
+    if (S && S.lay === 'L-out') return `L shown as a footprint for a ready-made corner wardrobe (door swings not checked) · ${R.length ? 'Gianluca: ' + R.map((r) => `${r.deg}° (${r.by})`).join(', ') : 'Gianluca\'s doors open 90°'} · Sizes shows the gaps`;
+    if (S && S.A) { const reach = S.A.start + S.A.width, free = Math.abs(S.sTip); extra = reach > free - 0.02 ? ` · bedroom door blocked (${Math.round((reach - free + 0.02) * 100)} cm overlap)` : ` · ${(free - reach).toFixed(2)} m to the open bedroom door`; }
+    return (R.length ? `${R.length} door${R.length > 1 ? 's' : ''} can't open fully: ` + R.map((r) => `${r.deg}° (${r.by})`).join(', ') : 'all doors open 90°') + extra + ' · Sizes shows the swings'; },
+  selects: [
+    { id: 'svl', label: "Svetlana's closet", options: () => SV_LAYOUTS.map((l) => ({ label: l.name })), get: () => furn.svLayout, set: (i) => { furn.svLayout = i; buildClosets(); if (tv.E) buildTV(); } },
+    { id: 'pxh', label: 'Height (both closets)', options: () => PAX_H.map((h) => ({ label: h.name })), get: () => furn.height, set: (i) => { furn.height = i; H_CL = PAX_H[i].H; DOOR_H = PAX_H[i].door; buildClosets(); } },
+  ],
+};
 let lastGapHit = null;
 function gapTo(from, dir, maxD = 4, glass = false) {
   const r = new THREE.Raycaster(from, dir, 0, maxD);
@@ -1950,7 +2023,7 @@ function furnitureDims() {
     let jamb = null;
     for (let s = 0.01; s < 2.5; s += 0.01) { const q = base.clone().addScaledVector(away, s); const d = gapTo(q, back, 0.5); if (d === null || d > 0.09) { jamb = s - 0.005; break; } }
     if (jamb !== null) { const a0 = G.freeEnd.clone().addScaledVector(G.n, 0.3); closetDims.add(dimLine(toBl(a0), toBl(a0.clone().addScaledVector(away, jamb)), `${jamb.toFixed(2)} m to window`, Y)); }
-    const tag = labelSprite("Gianluca's closet 100 × 58 cm", { h: 0.032 }); tag.position.copy(G.O).addScaledVector(G.a, 0.5).addScaledVector(G.n, 0.3).setY(2.5); closetDims.add(tag);
+    const tag = labelSprite("Gianluca's closet · PAX 100 × 60 cm, 2 doors", { h: 0.032 }); tag.position.copy(G.O).addScaledVector(G.a, 0.5).addScaledVector(G.n, 0.3).setY(H_CL + 0.12); closetDims.add(tag);
   }
   if (G && bed.group) {
     // bed → closet front: from the bed's window-side edge (and its foot) towards the closet; under 0.5 m the doors can't swing past the bed
@@ -1966,17 +2039,45 @@ function furnitureDims() {
   }
   const S = furn.svetlanaInfo;
   if (S) {
-    // clearance between the open bedroom door and the closet
-    const tipOnWall = S.C2.clone().addScaledVector(S.tB, S.sTip).addScaledVector(furn.svetlana.n, 0.3);
-    const startOnWall = S.startA.clone().addScaledVector(furn.svetlana.n, 0.3);
-    closetDims.add(dimLine(toBl(tipOnWall), toBl(startOnWall), `${S.tip.clone().sub(S.startA).length().toFixed(2)} m to open door`, Y));
-    // from the end of the L to the bed
-    const endB = S.startB.clone().addScaledVector(S.tE2, S.awayFromB * 0.5).addScaledVector(furn.svetlanaB.n, 0.3).setY(0.35);
-    const dirB = S.tE2.clone().multiplyScalar(S.awayFromB);
-    const d = gapTo(endB, dirB);
-    if (d !== null && !(furn.gianluca && lastGapHit && lastGapHit.parent === furn.gianluca.g)) closetDims.add(dimLine(toBl(endB), toBl(endB.clone().addScaledVector(dirB, d)), `${d.toFixed(2)} m${hitName()}`, Y));
-    const tag = labelSprite("Svetlana's closet · L, 3 doors", { h: 0.032 }); tag.position.copy(S.C2).addScaledVector(furn.svetlana.n, 0.6).addScaledVector(S.tB, 0.5 * Math.sign(S.sTip)).setY(2.5); closetDims.add(tag);
+    if (S.A) {   // bathroom-wall run vs the open bedroom door (its leaf lies along this wall when open)
+      const n = S.A.n, reach = S.A.start + S.A.width, free = Math.abs(S.sTip);
+      const endOnWall = S.C2.clone().addScaledVector(S.dirA, reach).addScaledVector(n, 0.3), tipOnWall = S.C2.clone().addScaledVector(S.dirA, free).addScaledVector(n, 0.3);
+      const g2 = free - reach;
+      closetDims.add(dimLine(toBl(tipOnWall), toBl(endOnWall), g2 >= 0.02 ? `${g2.toFixed(2)} m to open door` : `blocks the bedroom door by ${Math.round((0.02 - g2) * 100)} cm`, Y));
+    }
+    for (const r of [S.A, S.B].filter(Boolean)) {   // from the free end of each run to whatever is next along the wall
+      const end = r.C.clone().addScaledVector(r.dir, r.start + r.width + 0.005).addScaledVector(r.n, 0.3).setY(0.35);
+      if (r === S.A) continue;
+      const d = gapTo(end, r.dir, 4);
+      if (d !== null) closetDims.add(dimLine(toBl(end), toBl(end.clone().addScaledVector(r.dir, d)), `${d.toFixed(2)} m${hitName()}`, Y));
+    }
+    const lab = SV_LAYOUTS[furn.svLayout].name.split(' · ')[0];
+    const R0 = S.A || S.B, tag = labelSprite(S.lay === 'L-out' ? `Svetlana's closet · L footprint ~100 + 100 (ready-made corner model)` : `Svetlana's closet · PAX I · 150 cm, 3 doors`, { h: 0.032 });
+    tag.position.copy(R0.O).addScaledVector(R0.a, R0.width / 2).addScaledVector(R0.n, 0.6).setY(H_CL + 0.12); closetDims.add(tag);
   }
+  // every closet: overall width along the top, each door's width, the free space in front, and the gap at each end
+  for (const r of furn.runs || []) {
+    const fr = (lx, lz = 0.6) => r.O.clone().addScaledVector(r.a, lx).addScaledVector(r.n, lz);
+    closetDims.add(dimLine(toBl(fr(0)), toBl(fr(r.width)), `${Math.round(r.width * 100)} cm wide · 60 deep · ${(H_CL * 100).toFixed(1)} high`, H_CL + 0.06));
+    if (r !== furn.gianluca && furn.svetlanaInfo && furn.svetlanaInfo.lay === 'L-out') continue;   // the L is only a footprint: overall sizes only
+    for (const d of r.doors) {
+      const H = b2t(d.hinge[0], d.hinge[1], 0), c = b2t(d.closed[0], d.closed[1]).normalize();
+      const t = labelSprite(`door 49.5 cm`, { h: 0.022 }); t.position.copy(H).addScaledVector(c, d.len / 2).addScaledVector(r.n, 0.03).setY(1.75); closetDims.add(t);   // FLISBERGET spec width
+    }
+    // walking space in front (at knee height, so the bed counts)
+    const f0 = fr(r.width / 2, 0.605).setY(0.35), df = gapTo(f0, r.n.clone(), 4);
+    if (df !== null) closetDims.add(dimLine(toBl(f0), toBl(f0.clone().addScaledVector(r.n, df)), `${df.toFixed(2)} m in front${hitName()}`, 0.06));
+    // ends: along the wall, a hand's width off it, at 1.2 m (above the bed), so walls, other closets and windows count
+    for (const [lx, dir] of [[0, r.a.clone().negate()], [r.width, r.a.clone()]]) {
+      if (r === furn.gianluca && furn.gianluca.freeDir && dir.dot(furn.gianluca.freeDir) > 0.5) continue;   // window side: measured to the jamb above
+      const e = fr(lx, 0.3).setY(1.2).addScaledVector(dir, 0.004), de = gapTo(e, dir, 4, true);
+      if (de === null) continue;
+      const nm = lastGapHit && lastGapHit.material === MATS.glass ? ' to window' : hitName();
+      if (de < 0.03) { const t = labelSprite(`against the wall`, { h: 0.02 }); t.position.copy(e).setY(0.9); closetDims.add(t); continue; }
+      closetDims.add(dimLine(toBl(e), toBl(e.clone().addScaledVector(dir, de)), `${de.toFixed(2)} m${nm}`, 1.2));
+    }
+  }
+  closetSwings();
 }
 
 // ------------------------------------------------------------ furniture: 32" Samsung The Frame on the outside wall, facing the bed
@@ -2464,6 +2565,204 @@ const sofaMover = {
     run: () => { if (!SOFAS[liv.sofa.cfg].sided) return; liv.sofa.flip = !liv.sofa.flip; buildSofa(); livingDims(); showToast(sofaName(liv.sofa)); } },
 };
 
+// ------------------------------------------------------------ dining: table + chairs, moved and rotated as one group
+// Table and chair candidates are separate lists, so each can be swapped independently (sizes, finishes, colours).
+const ILVA = (p) => `https://ilva.dk/${p}/`;
+const TABLE_MODELS = [
+  { brand: 'ILVA', name: 'Besalu', maker: 'Hammel Furniture', url: ILVA('spisestuen/spiseborde/besalu/top-i-egemelamin/p-1085382-5643266318'),
+    configs: [   // round top that pulls apart for leaves; with leaves it becomes a stadium (round ends)
+      { name: 'Ø105 cm', D: 1.05, L: 1.05, H: 0.75, leaves: 0, seats: 4, url: ILVA('spisestuen/spiseborde/besalu/top-i-egemelamin/p-1085382-5643266318') },
+      { name: 'Ø105 + 1 tillægsplade (165 × 105)', D: 1.05, L: 1.65, H: 0.75, leaves: 1, seats: 6, url: ILVA('spisestuen/tillaegsplader/besalu/top-i-egemelamin/p-1085383-5643267829') },
+      { name: 'Ø130 cm', D: 1.30, L: 1.30, H: 0.76, leaves: 0, seats: 5, url: ILVA('spisestuen/spiseborde/besalu/p-b0036721-5637671826') },
+      { name: 'Ø130 + 1 tillægsplade (179 × 130)', D: 1.30, L: 1.79, H: 0.76, leaves: 1, seats: 7, url: ILVA('spisestuen/spiseborde/besalu/p-b0090924-5637890076') },
+      { name: 'Ø130 + 2 tillægsplader (228 × 130)', D: 1.30, L: 2.28, H: 0.76, leaves: 2, seats: 9, url: ILVA('spisestuen/spiseborde/besalu/p-b0090924-5637890076') },
+    ],
+    finishes: [
+      { name: 'Egemelamin · hvidolieret eg', top: 0xd8c29f, edge: 0xcfb58c, legs: 0xe2d3b8 },
+      { name: 'Hvid melamin · hvidolieret eg', top: 0xf1efe9, edge: 0xcfb58c, legs: 0xe2d3b8 },
+      { name: 'Mørk eg (ILVA\'s 2nd swatch)', top: 0xa98b66, edge: 0x9a7c58, legs: 0x9f8260 },
+    ] },
+];
+const CHAIR_MODELS = [
+  { brand: 'ILVA', name: 'Adler', url: ILVA('spisestuen/spisebordsstole/adler/austin-3-antelope-stof/p-1082027-5643010159'), W: 0.58, D: 0.54, H: 0.77, SH: 0.47,
+    variants: [
+      { name: 'Austin Antelope · olieret eg', seat: 0x958777, rough: 1, legs: 0xc9a473, url: ILVA('spisestuen/spisebordsstole/adler/austin-3-antelope-stof/p-1082027-5643010159') },
+      { name: 'Austin Antelope · røget eg', seat: 0x958777, rough: 1, legs: 0x6b5443, url: ILVA('spisestuen/spisebordsstole/adler/austin-3-antelope-stof/p-1082027-5643395830') },
+      { name: 'Austin Winter Moss · olieret eg', seat: 0x676d5f, rough: 1, legs: 0xc9a473, url: ILVA('spisestuen/spisebordsstole/adler/austin-13-winter-moss-stof/p-1082027-5643395826') },
+      { name: 'Cognac kunstlæder · olieret eg', seat: 0x8a4a28, rough: 0.45, legs: 0xc9a473, url: ILVA('spisestuen/spisebordsstole/adler/cognacfarvet-kunstlaeder/p-1082027-5643010158') },
+      { name: 'Sort kunstlæder · sortlakeret gummitræ', seat: 0x1c1c1c, rough: 0.45, legs: 0x1e1e1e, url: ILVA('spisestuen/spisebordsstole/adler/sort-kunstlaeder/p-1082027-5643010160') },
+    ] },
+];
+MATS.tTop = std({ color: 0xd8c29f, roughness: 0.55 }); MATS.tEdge = std({ color: 0xcfb58c, roughness: 0.6 }); MATS.tLegs = std({ color: 0xe2d3b8, roughness: 0.6 });
+MATS.cSeat = std({ color: 0x958777, roughness: 1 }); MATS.cLegs = std({ color: 0xc9a473, roughness: 0.5 });
+MATS.seam = std({ color: 0x8a7658, roughness: 0.8 });
+const dining = { t: 0, tc: 0, tf: 0, c: 0, cv: 0, n: 4, angle: 0, O: null, group: null, parts: [] };
+const diningDims = new THREE.Group(); dimsGroup.add(diningDims);
+function dFrame() { const a = dining.angle; return { x: new THREE.Vector3(Math.cos(a), 0, -Math.sin(a)), z: new THREE.Vector3(Math.sin(a), 0, Math.cos(a)) }; }
+function chairSpots() {
+  // chair centres (local x along the table's length) and the direction each chair faces
+  const T = TABLE_MODELS[dining.t].configs[dining.tc], C = CHAIR_MODELS[dining.c], r = T.D / 2, s = (T.L - T.D) / 2, n = dining.n;
+  const off = r + C.D / 2 - 0.1;               // chair front tucked ~10 cm under the edge
+  const spots = [];
+  if (s < 0.01) { for (let i = 0; i < n; i++) { const a = (i / n) * Math.PI * 2; spots.push([Math.cos(a) * off, Math.sin(a) * off, a + Math.PI]); } }
+  else {
+    const ends = n >= 2 ? [[s + off, 0, Math.PI], [-(s + off), 0, 0]] : [];
+    const side = Math.max(0, n - 2), perSide = Math.ceil(side / 2);
+    const xs = perSide <= 1 ? [0] : Array.from({ length: perSide }, (_, i) => -s + (2 * s) * (i + 0.5) / perSide);
+    spots.push(...ends);
+    for (let i = 0; i < side; i++) { const sgn = i % 2 ? -1 : 1, x = xs[Math.floor(i / 2)] ?? 0; spots.push([x, sgn * off, sgn > 0 ? -Math.PI / 2 : Math.PI / 2]); }
+  }
+  return spots;
+}
+function diningExtent() {
+  // half-size of the whole set along local x / z (chairs pulled in)
+  const T = TABLE_MODELS[dining.t].configs[dining.tc], C = CHAIR_MODELS[dining.c];
+  let hx = T.L / 2, hz = T.D / 2;
+  for (const [x, z] of chairSpots()) { hx = Math.max(hx, Math.abs(x) + C.D / 2); hz = Math.max(hz, Math.abs(z) + C.D / 2); }
+  return { hx, hz };
+}
+function diningSupport(ct, st) {
+  // how far the set reaches from its centre in local direction (ct, st): the table's stadium outline or a chair box, whichever is further
+  const T = TABLE_MODELS[dining.t].configs[dining.tc], C = CHAIR_MODELS[dining.c];
+  let need = (T.L - T.D) / 2 * Math.abs(ct) + T.D / 2;
+  for (const [cx, cz, face] of chairSpots()) {
+    const fx = Math.cos(face), fz = Math.sin(face);
+    need = Math.max(need, cx * ct + cz * st + (C.D / 2) * Math.abs(fx * ct + fz * st) + (C.W / 2) * Math.abs(-fz * ct + fx * st));
+  }
+  return need;
+}
+function diningClear(O, angle) {
+  const a = angle, fx = new THREE.Vector3(Math.cos(a), 0, -Math.sin(a)), fz = new THREE.Vector3(Math.sin(a), 0, Math.cos(a));
+  let worst = 9;
+  const from = O.clone().setY(0.3);
+  for (let k = 0; k < 24; k++) {
+    const t = (k / 24) * Math.PI * 2, d = fx.clone().multiplyScalar(Math.cos(t)).addScaledVector(fz, Math.sin(t));
+    worst = Math.min(worst, (gapTo(from, d, 6) ?? 6) - diningSupport(Math.cos(t), Math.sin(t)));
+  }
+  return worst;
+}
+function applyDiningMats() {
+  const F = TABLE_MODELS[dining.t].finishes[dining.tf], V = CHAIR_MODELS[dining.c].variants[dining.cv];
+  MATS.tTop.color.setHex(F.top); MATS.tEdge.color.setHex(F.edge); MATS.tLegs.color.setHex(F.legs);
+  MATS.cSeat.color.setHex(V.seat); MATS.cSeat.roughness = V.rough; MATS.cLegs.color.setHex(V.legs);
+}
+function stadiumShape(L, D) {
+  const r = D / 2, s = (L - D) / 2, sh = new THREE.Shape();
+  if (s < 0.001) { sh.absarc(0, 0, r, 0, Math.PI * 2, false); return sh; }
+  sh.moveTo(-s, -r); sh.lineTo(s, -r); sh.absarc(s, 0, r, -Math.PI / 2, Math.PI / 2, false); sh.lineTo(-s, r); sh.absarc(-s, 0, r, Math.PI / 2, Math.PI * 1.5, false);
+  return sh;
+}
+function buildDining(tryPlace) {
+  if (!dining.O) dining.O = b2t(2.0, 2.95, 0);          // in front of the kitchen, by the dining-room window
+  if (dining.group) { scene.remove(dining.group); dropParts(dining.parts); }
+  let moved = true;
+  if (tryPlace) {
+    const c = tryPlace({ O: dining.O.clone(), angle: dining.angle });
+    if (diningClear(c.O, c.angle) > 0.02) { dining.O = c.O; dining.angle = c.angle; } else moved = false;
+  } else if (diningClear(dining.O, dining.angle) <= 0.02) {
+    let best = null;
+    for (let k = 1; k <= 40 && !best; k++) for (const [dx, dz] of [[k, 0], [-k, 0], [0, k], [0, -k], [k, k], [-k, -k], [k, -k], [-k, k]]) {
+      const c = dining.O.clone().add(new THREE.Vector3(dx * 0.05, 0, dz * 0.05)); if (diningClear(c, dining.angle) > 0.02) { best = c; break; }
+    }
+    if (best) dining.O = best;
+  }
+  applyDiningMats();
+  const T = TABLE_MODELS[dining.t].configs[dining.tc], C = CHAIR_MODELS[dining.c];
+  const g = new THREE.Group(); g.position.copy(dining.O); g.rotation.y = dining.angle;
+  const add = (geo, mat, x, y, z, parent = g) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; };
+  // table: 25 mm top with an oak edge band, slim apron, four tapered splayed oak legs
+  const TT = 0.025, sh = stadiumShape(T.L, T.D);
+  const top = add(new THREE.ExtrudeGeometry(sh, { depth: TT - 0.004, bevelEnabled: false, curveSegments: 48 }), MATS.tTop, 0, T.H - 0.002, 0); top.rotation.x = Math.PI / 2;
+  const band = add(new THREE.ExtrudeGeometry(sh, { depth: 0.004, bevelEnabled: false, curveSegments: 48 }), MATS.tEdge, 0, T.H - TT + 0.002, 0); band.rotation.x = Math.PI / 2; band.scale.set(1.004, 1.004, 1);
+  const s = (T.L - T.D) / 2;
+  for (let i = 0; i < T.leaves + (T.leaves ? 1 : 0); i++) {        // seams where the leaves meet
+    const x = T.leaves ? -s + (2 * s) * i / T.leaves : 0; add(new THREE.BoxGeometry(0.003, 0.002, T.D * 0.98), MATS.seam, x, T.H + 0.0005, 0);
+  }
+  const apR = T.D / 2 - 0.12, legH = T.H - TT;
+  add(new THREE.BoxGeometry(T.L - T.D + apR * 1.6, 0.07, apR * 1.6), MATS.tLegs, 0, T.H - TT - 0.035, 0).visible = true;
+  for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+    const lx = sx * (s + apR * 0.62), lz = sz * apR * 0.62;
+    const leg = add(new THREE.CylinderGeometry(0.022, 0.016, legH, 4), MATS.tLegs, lx + sx * 0.04, legH / 2, lz + sz * 0.04);
+    leg.rotation.set(sz * 0.07, Math.PI / 4, -sx * 0.07);
+  }
+  // chairs (Adler-like): upholstered seat, curved upholstered back band, oak legs, rear legs rising into the back
+  for (const [cx, cz, face] of chairSpots()) {
+    const ch = new THREE.Group(); ch.position.set(cx, 0, cz); ch.rotation.y = -face + Math.PI / 2; g.add(ch);
+    const w = C.W - 0.08, d = C.D - 0.08, sh2 = C.SH;
+    add(new THREE.BoxGeometry(w, 0.07, d), MATS.cSeat, 0, sh2 - 0.035, 0, ch);
+    add(new THREE.BoxGeometry(w - 0.04, 0.025, d - 0.06), MATS.cLegs, 0, sh2 - 0.085, 0, ch);
+    for (const [lx, lz] of [[w / 2 - 0.04, d / 2 - 0.04], [-(w / 2 - 0.04), d / 2 - 0.04]]) {       // front legs (toward the table: +z)
+      const l = add(new THREE.CylinderGeometry(0.018, 0.014, sh2 - 0.09, 10), MATS.cLegs, lx, (sh2 - 0.09) / 2, lz, ch); l.rotation.x = 0.05;
+    }
+    for (const lx of [w / 2 - 0.05, -(w / 2 - 0.05)]) {                                              // rear legs up to the back band
+      const l = add(new THREE.CylinderGeometry(0.018, 0.014, C.H - 0.06, 10), MATS.cLegs, lx, (C.H - 0.06) / 2, -(d / 2 - 0.05), ch); l.rotation.x = -0.06;
+    }
+    const band2 = add(new THREE.TorusGeometry(0.27, 0.03, 8, 28, Math.PI * 1.15), MATS.cSeat, 0, C.H - 0.04, 0.02, ch);
+    band2.rotation.set(Math.PI / 2, 0, Math.PI + (Math.PI - Math.PI * 1.15) / 2); band2.scale.set(1, 0.9, 1.6);
+  }
+  // merge each chair and the table into a few meshes, then one invisible block per piece for walking/clicking
+  for (const ch of [...g.children].filter((c) => c.isGroup)) mergeByMaterial(ch);
+  mergeByMaterial(g);
+  const hit = new THREE.MeshBasicMaterial({ visible: false });
+  const parts = [];
+  const tb = add(new THREE.BoxGeometry(T.L, T.H + 0.3, T.D), hit, 0, (T.H + 0.3) / 2, 0); tb.castShadow = tb.receiveShadow = false; parts.push(tb);
+  for (const [cx, cz, face] of chairSpots()) {
+    const b = add(new THREE.BoxGeometry(C.D, C.H + 0.25, C.W), hit, cx, (C.H + 0.25) / 2, cz); b.rotation.y = -face; b.castShadow = b.receiveShadow = false; parts.push(b);
+  }
+  const door = { kind: 'swap', label: 'Dining', parts, center: dining.O.clone().setY(0.8),
+    swap: () => selectFurniture(selected === diningMover ? null : diningMover),
+    prompt: () => (selected === diningMover ? 'Done with the table' : 'Move or change the table & chairs') };
+  for (const p of parts) { p.userData.door = door; p.userData.furniture = true; collidables.push(p); }
+  const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Dining'); if (di >= 0) doors.splice(di, 1);
+  doors.push(door);
+  scene.add(g); g.updateMatrixWorld(true);
+  dining.group = g; dining.parts = parts;
+  diningDimsUpdate();
+  return moved;
+}
+function diningGaps() {
+  const { x, z } = dFrame(), out = [];
+  for (const [dir, need, nm] of [[x, diningSupport(1, 0), '+x'], [x.clone().negate(), diningSupport(-1, 0), '-x'], [z, diningSupport(0, 1), '+z'], [z.clone().negate(), diningSupport(0, -1), '-z']]) {
+    const from = dining.O.clone().addScaledVector(dir, need + 0.005).setY(0.35);
+    const d = gapTo(from, dir, 5, true); out.push({ from, dir, d, name: lastGapHit && lastGapHit.material === MATS.glass ? ' to window' : hitName() });
+  }
+  return out;
+}
+function diningName() {
+  const Tm = TABLE_MODELS[dining.t], T = Tm.configs[dining.tc], Cm = CHAIR_MODELS[dining.c];
+  return `${Tm.brand} ${Tm.name} ${T.name} + ${dining.n} × ${Cm.name}`;
+}
+function diningDimsUpdate() {
+  diningDims.clear(); if (!dining.group) return;
+  for (const G of diningGaps()) if (G.d !== null) diningDims.add(dimLine(toBl(G.from), toBl(G.from.clone().addScaledVector(G.dir, G.d)), `${G.d.toFixed(2)} m${G.name}${G.d < 0.7 ? ' (tight)' : ''}`, 0.04));
+  const tag = labelSprite(`${diningName()} · ${Math.round(((dining.angle * 180 / Math.PI) % 360 + 360) % 360)}°`, { h: 0.03 });
+  tag.position.copy(dining.O).setY(1.35); diningDims.add(tag);
+}
+const diningMover = {
+  name: 'Table & chairs', title: () => diningName(),
+  anchor: () => (dining.group ? dining.O.clone().setY(1.1) : null),
+  axis: () => b2t(1, 0).normalize(), axis2: () => b2t(0, 1).normalize(),
+  shift: (dir) => { if (!buildDining((c) => ({ O: c.O.addScaledVector(b2t(1, 0).normalize(), dir * 0.05), angle: c.angle }))) showToast('Can’t go further: wall or furniture'); },
+  shift2: (dir) => { if (!buildDining((c) => ({ O: c.O.addScaledVector(b2t(0, 1).normalize(), dir * 0.05), angle: c.angle }))) showToast('Can’t go further: wall or furniture'); },
+  rotate: (dir) => { if (!buildDining((c) => ({ O: c.O, angle: c.angle + dir * Math.PI / 12 }))) showToast('No room to turn it here'); },
+  link: () => { const Tm = TABLE_MODELS[dining.t]; return { href: Tm.configs[dining.tc].url || Tm.url, text: `${Tm.brand} ${Tm.name} ↗`, href2: CHAIR_MODELS[dining.c].variants[dining.cv].url || CHAIR_MODELS[dining.c].url, text2: `${CHAIR_MODELS[dining.c].brand} ${CHAIR_MODELS[dining.c].name} ↗` }; },
+  info: () => { const G = diningGaps(); const tight = Math.min(...G.map((g) => g.d ?? 9)); return `${Math.round(((dining.angle * 180 / Math.PI) % 360 + 360) % 360)}° · tightest gap ${tight.toFixed(2)} m · seats ${TABLE_MODELS[dining.t].configs[dining.tc].seats}`; },
+  selects: [
+    { id: 'tmodel', label: 'Table', options: () => TABLE_MODELS.map((m) => ({ label: `${m.brand} ${m.name}` })), get: () => dining.t,
+      set: (i) => { dining.t = i; dining.tc = 0; dining.tf = 0; buildDining(); buildMoverSelects(diningMover); } },
+    { id: 'tsize', label: 'Table size', options: () => TABLE_MODELS[dining.t].configs.map((c) => ({ label: c.name })), get: () => dining.tc,
+      set: (i) => { dining.tc = i; buildDining(); } },
+    { id: 'tfin', label: 'Table finish', options: () => TABLE_MODELS[dining.t].finishes.map((f) => ({ label: f.name })), get: () => dining.tf,
+      set: (i) => { dining.tf = i; applyDiningMats(); } },
+    { id: 'cmodel', label: 'Chair', options: () => CHAIR_MODELS.map((m) => ({ label: `${m.brand} ${m.name}` })), get: () => dining.c,
+      set: (i) => { dining.c = i; dining.cv = 0; buildDining(); buildMoverSelects(diningMover); } },
+    { id: 'cvar', label: 'Chair colour', options: () => CHAIR_MODELS[dining.c].variants.map((v) => ({ label: v.name })), get: () => dining.cv,
+      set: (i) => { dining.cv = i; applyDiningMats(); } },
+    { id: 'cn', label: 'Chairs', options: () => [2, 4, 6, 8].map((k) => ({ label: `${k} chairs` })), get: () => [2, 4, 6, 8].indexOf(dining.n),
+      set: (i) => { dining.n = [2, 4, 6, 8][i]; buildDining(); } },
+  ],
+};
+
 // ------------------------------------------------------------ kitchen: coffee corner next to the fridge + Thermomix in the corner
 // Fellow Espresso Series 1: 315 W × 438 D × 279 H mm (546 D with portafilter). Niche Zero: 122 × 211 × 311 mm. Thermomix TM7: 253 W × 405 D × 336 H mm.
 MATS.espresso = std({ color: 0x141414, roughness: 0.55 });
@@ -2500,18 +2799,18 @@ function buildCoffee() {
   put(E, cyl(0.04, 0.042, 0.03), MATS.espresso, 0.09, 0.302, -0.07);
   put(E, cyl(0.035, 0.035, 0.016), MATS.chromeK, -0.07, 0.295, -0.16);
   // Niche Zero on its oak base, then the tamping mat, bean canister, knock box (to the left of the machine)
-  const N = kit(tallEnd + 0.04 + 0.315 + 0.05 + 0.07, wallY + 0.03 + 0.105, Math.PI);
+  const N = kit(tallEnd + 0.04 + 0.315 + 0.05 + 0.07 + 0.22, wallY + 0.03 + 0.105, Math.PI);
   put(N, new THREE.BoxGeometry(0.14, 0.03, 0.21), MATS.nicheOak, 0, 0.015, 0);
   put(N, cyl(0.058, 0.05, 0.2), MATS.nicheBlack, 0, 0.14, -0.02);
   put(N, cyl(0.06, 0.058, 0.03), MATS.nicheBlack, 0, 0.255, -0.02);
   put(N, new THREE.SphereGeometry(0.06, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), MATS.clearLid, 0, 0.27, -0.02).scale.y = 0.6;
   put(N, cyl(0.03, 0.03, 0.05), MATS.chromeK, 0, 0.055, 0.06);                                      // dosing cup
-  const K = kit(tallEnd + 0.04 + 0.315 + 0.04, wallY + 0.03 + 0.34, Math.PI);                       // mat + tamper in front
+  const K = kit(tallEnd + 0.04 + 0.315 + 0.04 + 0.22, wallY + 0.03 + 0.34, Math.PI);                       // mat + tamper in front
   put(K, new THREE.BoxGeometry(0.28, 0.01, 0.2), MATS.espresso, -0.1, 0.005, 0);
   put(K, cyl(0.029, 0.029, 0.02), MATS.espresso, -0.02, 0.02, 0);
   put(K, cyl(0.012, 0.016, 0.08, 14), MATS.espresso, -0.02, 0.07, 0);
   put(K, new THREE.SphereGeometry(0.02, 14, 10), MATS.espresso, -0.02, 0.115, 0);
-  const C = kit(tallEnd + 0.04 + 0.315 + 0.24, wallY + 0.1, Math.PI);
+  const C = kit(tallEnd + 0.04 + 0.315 + 0.24 + 0.22, wallY + 0.1, Math.PI);
   put(C, cyl(0.06, 0.06, 0.19), MATS.canister, 0, 0.095, 0);
   put(C, cyl(0.062, 0.062, 0.02), MATS.espresso, 0, 0.2, 0);
   put(C, cyl(0.07, 0.07, 0.13), MATS.espresso, -0.06, 0.065, 0.2);                                  // knock box
@@ -2524,13 +2823,92 @@ function buildCoffee() {
   put(T, cyl(0.1, 0.085, 0.17), MATS.chromeK, 0, 0.265, -0.07);
   put(T, cyl(0.106, 0.106, 0.035), MATS.nicheBlack, 0, 0.365, -0.07);
   put(T, new THREE.BoxGeometry(0.03, 0.12, 0.05), MATS.nicheBlack, 0.115, 0.27, -0.07);
+  // Svetlana's picks, between the sink and the corner (backs 3 cm off the wall), local +z = towards the room
+  MATS.kaBlack = MATS.kaBlack || std({ color: 0x121212, roughness: 0.25, metalness: 0.3 });
+  MATS.kaMatte = MATS.kaMatte || std({ color: 0x1b1b1b, roughness: 0.7 });
+  MATS.jarGlass = MATS.jarGlass || new THREE.MeshStandardMaterial({ color: 0xdfe8ea, roughness: 0.05, transparent: true, opacity: 0.28 });
+  // KitchenAid kettle 5KEK1222 (onyx black): 262 H × 178 W × 226 D mm (with handle and spout)
+  const KT = kit(tallEnd + 0.04 + 0.315 + 0.03 + 0.089, wallY + 0.03 + 0.113, Math.PI);   // right beside the espresso machine; grinder & co. moved 22 cm along
+  put(KT, cyl(0.09, 0.095, 0.018), MATS.kaBlack, 0, 0.009, 0);                                        // 360° base
+  const dome = put(KT, new THREE.LatheGeometry([[0, 0], [0.078, 0], [0.084, 0.03], [0.082, 0.1], [0.07, 0.16], [0.045, 0.2], [0.03, 0.215], [0, 0.22]].map(([x, y]) => new THREE.Vector2(x, y)), 36), MATS.kaBlack, 0, 0.018, 0);
+  put(KT, cyl(0.018, 0.024, 0.03), MATS.chromeK, 0, 0.245, 0);                                         // lid knob
+  const hdl = put(KT, new THREE.TorusGeometry(0.075, 0.012, 8, 24, Math.PI * 1.05), MATS.chromeK, 0, 0.16, -0.06); hdl.rotation.set(0, Math.PI / 2, Math.PI * 0.47);
+  const spout = put(KT, cyl(0.012, 0.02, 0.07, 12), MATS.kaBlack, 0, 0.13, 0.085); spout.rotation.x = 0.9;
+  // KitchenAid 2-slice toaster 5KMT2109 (matte black): 212 H × 308 W × 175 D mm
+  const TS = kit(3.40, wallY + 0.03 + 0.154, Math.PI / 2);   // turned 90°: 17.5 cm along the wall, 30.8 cm deep
+  put(TS, new THREE.BoxGeometry(0.29, 0.19, 0.16), MATS.kaMatte, 0, 0.115, 0);
+  put(TS, new THREE.CylinderGeometry(0.08, 0.08, 0.29, 24, 1, false, 0, Math.PI), MATS.kaMatte, 0, 0.21, 0).rotation.set(0, 0, Math.PI / 2);
+  put(TS, new THREE.BoxGeometry(0.308, 0.02, 0.175), MATS.chromeK, 0, 0.01, 0);                        // chrome foot
+  for (const zz of [-0.03, 0.03]) put(TS, new THREE.BoxGeometry(0.24, 0.004, 0.03), MATS.nicheBlack, 0, 0.291, zz);   // slots
+  put(TS, new THREE.BoxGeometry(0.03, 0.02, 0.05), MATS.chromeK, 0.16, 0.16, 0);                       // lever
+  put(TS, cyl(0.014, 0.014, 0.012, 16), MATS.chromeK, 0.1, 0.08, 0.087).rotation.x = Math.PI / 2;      // dial
+  // Wilfa BLPS-1000 blender (silver, 1.5 L glass jar): listed 285 × 350 × 210 mm, read as ~350 tall with the jar
+  const BL = kit(3.76, wallY + 0.03 + 0.105, Math.PI);
+  put(BL, new THREE.BoxGeometry(0.18, 0.11, 0.18), MATS.chromeK, 0, 0.055, 0);
+  put(BL, cyl(0.03, 0.03, 0.01, 20), MATS.nicheBlack, 0, 0.06, 0.092).rotation.x = Math.PI / 2;        // speed dial
+  put(BL, cyl(0.075, 0.06, 0.2, 28), MATS.jarGlass, 0, 0.21, 0);                                        // glass jar
+  put(BL, cyl(0.078, 0.078, 0.025, 28), MATS.nicheBlack, 0, 0.322, 0);                                 // lid
+  put(BL, new THREE.BoxGeometry(0.025, 0.16, 0.03), MATS.nicheBlack, 0.09, 0.21, 0);                   // jar handle
   for (const k of kits) mergeByMaterial(k);
   // labels (with Sizes)
-  for (const [txt, bx, by, h] of [['Fellow Espresso Series 1 · 32 × 44 cm', tallEnd + 0.2, 0.75, 1.3], ['Niche Zero · 12 × 21 cm', tallEnd + 0.47, 0.72, 1.22], ['Thermomix TM7 · 25 × 41 cm', 4.16, 0.8, 1.3], ['0.56 m clear under the wall cabinets', tallEnd + 0.35, 0.9, 1.14]]) {
+  for (const [txt, bx, by, h] of [['Fellow Espresso Series 1 · 32 × 44 cm', tallEnd + 0.2, 0.75, 1.3], ['Niche Zero · 12 × 21 cm', tallEnd + 0.69, 0.72, 1.22], ['Thermomix TM7 · 25 × 41 cm', 4.16, 0.8, 1.3], ['0.56 m clear under the wall cabinets', tallEnd + 0.35, 0.9, 1.14], ['KitchenAid kettle 5KEK1222 · 1.25 L', tallEnd + 0.47, 0.78, 1.38], ['KitchenAid toaster 5KMT2109', 3.40, 0.72, 1.22], ['Wilfa blender BLPS-1000', 3.76, 0.75, 1.36]]) {
     const t = labelSprite(txt, { h: 0.028 }); t.position.copy(b2t(bx, by, h)); kitDims.add(t);
   }
 }
-function furnish() { buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); }
+// ------------------------------------------------------------ easter egg: something lives in the Teknik cupboard (only visible with the doors open)
+// an original riveted-steel boiler golem: barrel body, pipe limbs, clamp claws, a gauge for a heart and a glowing visor slit
+function buildTeknikGolem() {
+  const steel = std({ color: 0x6f757b, roughness: 0.45, metalness: 1 }), dark = std({ color: 0x24272b, roughness: 0.5, metalness: 0.9 });
+  const rust = std({ color: 0x6a3b22, roughness: 0.9, metalness: 0.3 }), glow = new THREE.MeshStandardMaterial({ color: 0x220000, emissive: 0xff2a10, emissiveIntensity: 2.2 });
+  const g = new THREE.Group(); g.position.copy(b2t(4.9, 1.92, 0)); g.rotation.y = Math.PI / 2;   // facing the left door (towards the hall)
+  const put = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
+  const cyl = (r1, r2, h, s = 20) => new THREE.CylinderGeometry(r1, r2, h, s);
+  // legs: bent pipes with flanged feet
+  for (const sx of [-0.11, 0.11]) {
+    put(cyl(0.045, 0.05, 0.42), steel, sx, 0.23, -0.02, 0.18);
+    put(cyl(0.07, 0.07, 0.04), dark, sx, 0.02, 0.02);
+    put(new THREE.SphereGeometry(0.06, 14, 10), dark, sx, 0.44, -0.05);
+  }
+  // barrel torso, leaning forward, with rivet bands and a rusty seam
+  const torso = new THREE.Group(); torso.position.set(0, 0.5, -0.05); torso.rotation.x = 0.28; g.add(torso);
+  const tp = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.castShadow = true; torso.add(m); return m; };
+  tp(cyl(0.2, 0.17, 0.72, 28), steel, 0, 0.36, 0);
+  for (const y of [0.06, 0.36, 0.66]) {
+    tp(new THREE.TorusGeometry(0.2, 0.012, 6, 32), dark, 0, y, 0, Math.PI / 2);
+    for (let k = 0; k < 14; k++) { const a = k / 14 * Math.PI * 2; tp(new THREE.SphereGeometry(0.011, 6, 5), dark, Math.cos(a) * 0.212, y + 0.025, Math.sin(a) * 0.212); }
+  }
+  tp(new THREE.BoxGeometry(0.02, 0.6, 0.02), rust, 0.14, 0.36, 0.14);
+  tp(cyl(0.07, 0.07, 0.03, 24), dark, 0, 0.45, 0.19, Math.PI / 2);                       // the gauge
+  tp(new THREE.CircleGeometry(0.058, 24), std({ color: 0xe8e2d0, roughness: 0.6 }), 0, 0.45, 0.206);
+  tp(new THREE.BoxGeometry(0.004, 0.05, 0.004), glow, 0.012, 0.465, 0.21, 0, 0, -0.9);  // needle in the red
+  // hunched head: a squat dome with a single glowing slit
+  tp(cyl(0.07, 0.09, 0.06), dark, 0, 0.75, 0.02);
+  const head = tp(new THREE.SphereGeometry(0.15, 22, 14, 0, Math.PI * 2, 0, Math.PI * 0.62), steel, 0, 0.8, 0.06);
+  tp(cyl(0.152, 0.152, 0.03, 24), dark, 0, 0.81, 0.06);
+  tp(new THREE.BoxGeometry(0.2, 0.022, 0.04), glow, 0, 0.865, 0.19, 0.25);
+  for (const sx of [-0.13, 0.13]) tp(cyl(0.012, 0.004, 0.14, 8), dark, sx, 0.97, 0.03, 0, 0, sx > 0 ? -0.5 : 0.5);   // antenna spikes
+  tp(cyl(0.03, 0.03, 0.25, 12), rust, -0.12, 0.85, -0.12, 0.3);                          // exhaust pipe
+  // long pipe arms reaching for the door, ending in three-pronged clamps
+  for (const sx of [-1, 1]) {
+    const arm = new THREE.Group(); arm.position.set(sx * 0.22, 0.6, 0.02); arm.rotation.set(-0.45, 0, sx * 0.35); torso.add(arm);
+    const ap = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.castShadow = true; arm.add(m); return m; };
+    ap(new THREE.SphereGeometry(0.05, 12, 8), dark, 0, 0, 0);
+    ap(cyl(0.03, 0.03, 0.34), steel, 0, -0.17, 0);
+    ap(new THREE.SphereGeometry(0.04, 12, 8), dark, 0, -0.34, 0);
+    ap(cyl(0.026, 0.026, 0.3), steel, 0, -0.49, 0.05, -0.35);
+    for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2; ap(cyl(0.008, 0.002, 0.14, 6), dark, Math.cos(a) * 0.03, -0.69, 0.1 + Math.sin(a) * 0.03, -0.35 + Math.sin(a) * 0.35, 0, Math.cos(a) * 0.35); }
+  }
+  for (const c of [torso, ...torso.children.filter((x) => x.isGroup)]) mergeByMaterial(c);
+  mergeByMaterial(g);
+  scene.add(g); g.updateMatrixWorld(true);
+  // keep every bit of it behind the closed doors: cupboard interior runs from x≈4.55 (back wall) to x≈5.24 (inside of the doors)
+  const bb = new THREE.Box3().setFromObject(g), over = bb.max.x - 5.2;
+  if (over > 0) { g.position.x -= over; g.updateMatrixWorld(true); }
+  const bb2 = new THREE.Box3().setFromObject(g);
+  if (bb2.min.x < 4.62) { const k = (5.2 - 4.62) / (bb2.max.x - bb2.min.x); g.scale.setScalar(Math.min(1, k)); g.updateMatrixWorld(true); const bb3 = new THREE.Box3().setFromObject(g); g.position.x += 5.2 - bb3.max.x; g.updateMatrixWorld(true); }
+  window.__golem = g;
+}
+function furnish() { buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); }
 if (modelRoot) furnish(); else window.__afterModel = furnish;
 
 // ------------------------------------------------------------ clouds
@@ -2638,7 +3016,7 @@ function frame() {
 window.__overlays = [pinsGroup, dimsGroup, plugsGroup, measureGroup, tapRing];
 updateRoom();
 requestAnimationFrame(frame);
-window.__apt = { renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
+window.__apt = { furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
 </script>
 
 </body></html>
