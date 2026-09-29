@@ -80,6 +80,7 @@
   #mover #mvDone { padding: 6px 10px; font-size: 12.5px; }
   #mover [hidden] { display: none !important; }
   #mvSelects { display: grid; gap: 6px; }
+  #mvLink { font: 600 12.5px/1.2 var(--ui); color: var(--oak); text-decoration: underline; text-underline-offset: 3px; }
   #mvSelects label { display: grid; gap: 3px; font: 600 11px/1 var(--ui); color: var(--ink); opacity: .8; letter-spacing: .02em; }
   #mvSelects select { font: 500 13px/1.2 var(--ui); color: var(--ink); background: rgba(242,237,228,.06); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; width: 100%; }
   #mvSelects select option, #mvSelects select optgroup { color: #1a1208; background: #f2ede4; }
@@ -213,6 +214,7 @@
   <div class="mvrow"><button id="mvLeft" aria-label="Move 5 cm left">◀ 5 cm</button><button id="mvVar">Try 180 cm</button><button id="mvRight" aria-label="Move 5 cm right">5 cm ▶</button></div>
   <div class="mvrow" id="mvRow2" hidden><button id="mvUp" aria-label="Move 5 cm up on screen">▲ 5 cm</button><button id="mvVar2">Flip</button><button id="mvDown" aria-label="Move 5 cm down on screen">5 cm ▼</button></div>
   <div id="mvSelects" hidden></div>
+  <a id="mvLink" target="_blank" rel="noopener" hidden></a>
   <small id="mvInfo"></small>
 </div>
 <div id="pinTip" class="panel" hidden>Click to open this render</div>
@@ -312,7 +314,8 @@
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+  "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.8.3/build/index.module.js"
 } }
 </script>
 <script type="module">
@@ -324,6 +327,12 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
+// fast raycasts (walking collisions, door picking, distance markers) through a BVH on the big merged model meshes
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
+THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
+THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 const PLAN = {"walls":[[[[5.305,1.587],[5.305,1.454],[5.363,1.454],[5.363,1.587]]],[[[5.363,2.982],[4.503,2.982],[4.495,0.468],[0.468,0.468],[0.459,2.03],[0.0,2.03],[0.0,0.008],[5.464,0.008],[5.464,0.468],[5.363,0.476],[5.363,0.81],[5.305,0.81],[5.305,0.493],[5.288,0.468],[4.578,0.468],[4.561,0.485],[4.561,2.899],[4.578,2.916],[5.288,2.916],[5.305,2.899],[5.305,2.239],[5.363,2.239]]],[[[0.0,5.439],[0.0,3.567],[0.459,3.567],[0.459,5.439]]],[[[6.675,8.546],[6.642,8.087],[7.26,8.037],[7.327,8.045],[7.377,8.028],[7.469,8.028],[7.485,8.012],[7.469,7.803],[7.477,7.694],[7.46,7.678],[7.243,4.486],[7.226,4.47],[7.143,4.478],[7.135,4.419],[7.218,4.411],[7.235,4.394],[7.226,4.269],[7.285,4.269],[7.519,7.527],[7.51,7.661],[7.527,7.678],[7.544,7.995],[7.561,8.02],[7.619,8.02],[7.644,8.471]]],[[[4.077,8.722],[4.043,8.262],[4.486,8.237],[4.503,8.221],[4.503,4.603],[4.561,4.595],[4.561,5.23],[4.578,5.246],[5.606,5.171],[5.614,5.104],[5.572,4.528],[6.19,4.486],[6.199,4.545],[6.007,4.561],[5.881,4.553],[5.865,4.57],[5.656,4.578],[5.639,4.595],[5.681,5.23],[4.578,5.305],[4.561,5.322],[4.561,8.212],[4.578,8.229],[4.987,8.195],[5.113,8.195],[5.138,8.647]]],[[[0.0,9.006],[0.0,6.976],[0.459,6.976],[0.459,8.154],[0.443,8.162],[0.443,8.179],[0.459,8.187],[0.459,8.505],[0.56,8.513],[0.81,8.488],[0.844,8.947]]],[[[10.618,9.799],[10.301,9.816],[10.201,9.783],[10.125,9.708],[10.092,9.591],[10.008,8.329],[9.992,8.312],[9.19,8.371],[9.173,8.363],[9.148,7.911],[10.234,7.836],[10.317,7.82],[10.301,7.577],[10.309,7.494],[10.292,7.46],[9.983,3.033],[9.708,3.033],[9.691,3.049],[7.226,3.216],[7.218,3.325],[7.16,3.325],[7.076,2.189],[7.084,2.164],[7.101,2.164],[7.168,3.183],[7.185,3.2],[7.995,3.141],[8.003,3.049],[7.978,2.765],[9.048,2.69],[9.064,3.024],[9.081,3.066],[9.641,3.024],[9.741,3.033],[9.758,3.016],[9.891,3.008],[9.9,2.874],[9.808,1.654],[9.791,1.637],[9.039,1.696],[8.997,1.696],[8.989,1.679],[9.098,1.662],[9.791,1.621],[9.808,1.604],[9.783,1.32],[9.791,1.195],[9.774,1.178],[9.766,0.961],[9.749,0.936],[9.616,0.936],[9.532,0.952],[7.043,1.119],[7.026,1.136],[7.034,1.22],[7.018,1.228],[6.984,0.877],[6.984,0.476],[6.842,0.459],[6.508,0.468],[6.508,0.008],[7.135,0.008],[7.143,0.693],[9.983,0.693]],[[8.02,3.083],[8.037,3.099],[9.031,3.033],[9.048,3.016],[9.031,2.74],[9.014,2.715],[8.02,2.782],[8.003,2.799]]]],"floor":[[10.618,9.799],[10.301,9.816],[10.201,9.783],[10.125,9.708],[10.092,9.591],[10.017,8.404],[9.992,8.312],[0.0,9.006],[0.0,0.008],[5.455,0.008],[5.464,-0.008],[7.135,0.008],[7.143,0.693],[9.983,0.693]],"balcony":[[0.045,10.532],[-0.147,10.521],[-0.329,10.46],[-0.489,10.355],[-0.617,10.211],[-0.703,10.04],[-0.741,9.852],[-0.73,9.66],[-0.669,9.478],[-0.564,9.318],[-0.42,9.19],[-0.249,9.104],[-0.061,9.066],[4.339,8.748],[4.445,10.215]],"rooms":[{"id":"living","da":"Køkken-alrum","en":"Kitchen & living","poly":[[0.476,8.48],[4.486,8.48],[4.486,0.476],[0.476,0.476]],"dim":"4 × 8 m"},{"id":"vaer","da":"Værelse","en":"Room","poly":[[4.57,8.212],[7.452,8.003],[7.243,4.453],[6.199,4.495],[5.614,4.536],[5.656,5.205],[4.57,5.288]],"dim":"2.9 × 3.5 m"},{"id":"bed","da":"Soveværelse","en":"Bedroom","poly":[[7.494,7.962],[10.317,7.811],[9.958,3.074],[7.176,3.241]],"dim":"2.7 × 4.8 m"},{"id":"bath","da":"Bad","en":"Bathroom","poly":[[7.16,3.2],[9.9,3.016],[9.766,0.927],[7.009,1.128]],"dim":"2.7 × 2 m"},{"id":"tek","da":"Teknik","en":"Utility","poly":[[4.57,2.907],[5.297,2.907],[5.297,0.476],[4.57,0.476]],"dim":""},{"id":"hall","da":"Entré","en":"Hallway","poly":[[4.486,5.288],[5.656,5.205],[5.614,4.536],[7.243,4.411],[6.992,0.443],[4.486,0.443]],"dim":"2.7 × 3.9 m"},{"id":"bal","da":"Altan","en":"Balcony","poly":[[0.045,10.532],[-0.147,10.521],[-0.329,10.46],[-0.489,10.355],[-0.617,10.211],[-0.703,10.04],[-0.741,9.852],[-0.73,9.66],[-0.669,9.478],[-0.564,9.318],[-0.42,9.19],[-0.249,9.104],[-0.061,9.066],[4.339,8.748],[4.445,10.215]],"dim":""},{"id":"stair","da":"Opgang","en":"Stairwell","dim":"","poly":[[0.25,-2.8],[7.2,-2.8],[7.2,-0.01],[0.25,-0.01]]}],"spawns":{"living":{"p":[3.734,3.2],"t":[0.894,8.379]},"kitchen":{"p":[2.314,5.205],"t":[2.523,0.693]},"hall":{"p":[6.115,0.777],"t":[5.99,5.205]},"vaer":{"p":[6.241,4.954],"t":[5.823,8.045]},"bed":{"p":[8.58,3.534],"t":[8.496,7.794]},"bath":{"p":[7.661,1.445],"t":[8.914,2.698]},"bal":{"p":[3.4,9.549],"t":[0.142,9.841]},"stair":{"p":[3.2,-1.15],"t":[6.0,0.3]}},"outlets":[{"label":"Socket, west wall","p":[0.485,3.743],"z":0.3,"n":[1,0],"kind":"socket"},{"label":"Socket, by balcony door","p":[0.668,8.471],"z":0.3,"n":[0,-1],"kind":"socket"},{"label":"Socket, living east wall","p":[4.478,8.045],"z":0.3,"n":[-1,0],"kind":"socket"},{"label":"Double socket, kitchen","p":[3.584,0.485],"z":1.05,"n":[0,1],"kind":"socket2"},{"label":"Socket, kitchen by tall unit","p":[1.579,0.485],"z":1.05,"n":[0,1],"kind":"socket"},{"label":"Switch, kitchen end wall","p":[4.486,2.815],"z":1.05,"n":[-1,0],"kind":"switch"},{"label":"Switch, hallway by Værelse door","p":[5.99,4.444],"z":1.05,"n":[0,-1],"kind":"switch"}],"dims":[{"label":"4 m","a":[0.493,8.17],"b":[4.486,7.878]},{"label":"8 m","a":[0.852,8.48],"b":[0.852,0.485]},{"label":"2.9 m","a":[4.586,7.962],"b":[7.452,7.728]},{"label":"3.5 m","a":[7.368,8.045],"b":[7.118,4.495]},{"label":"2.7 m","a":[7.536,7.694],"b":[10.317,7.477]},{"label":"4.8 m","a":[7.536,7.962],"b":[7.243,3.2]},{"label":"2.7 m","a":[4.47,4.478],"b":[7.201,4.353]},{"label":"3.9 m","a":[7.16,4.353],"b":[6.867,0.459]},{"label":"2.7 m","a":[7.076,1.32],"b":[9.791,1.153]},{"label":"2 m","a":[9.749,3.033],"b":[9.624,0.944]},{"label":"1.1 m","a":[4.586,5.414],"b":[5.698,5.33]},{"label":"0.7 m","a":[5.739,5.205],"b":[5.714,4.511]}],"shots":[{"id":"render_entrance","kind":"render","title":"Entrance, looking in","room":"Entré","p":[6.115,0.693],"t":[5.99,5.205],"z":1.55},{"id":"render_living_to_entrance","kind":"render","title":"Living room towards the entrance","room":"Køkken-alrum","p":[1.729,7.627],"t":[5.405,1.696],"z":1.5},{"id":"render_kitchen","kind":"render","title":"Kitchen area","room":"Køkken-alrum","p":[2.314,5.205],"t":[2.523,0.693],"z":1.4},{"id":"render_living","kind":"render","title":"Living room, sofa and TV side","room":"Køkken-alrum","p":[4.319,2.949],"t":[0.727,8.296],"z":1.45},{"id":"render_bath","kind":"render","title":"Bathroom","room":"Bad","p":[7.31,1.529],"t":[9.415,2.698],"z":1.55},{"id":"render_bed_door","kind":"render","title":"Bedroom from the door","room":"Soveværelse","p":[7.87,3.826],"t":[8.622,7.794],"z":1.55},{"id":"render_bed_window","kind":"render","title":"Bedroom from the window","room":"Soveværelse","p":[8.789,7.335],"t":[7.87,3.283],"z":1.55},{"id":"render_vaer_door","kind":"render","title":"Værelse from the door","room":"Værelse","p":[6.617,4.745],"t":[5.823,7.962],"z":1.55},{"id":"render_vaer_window","kind":"render","title":"Værelse from the window","room":"Værelse","p":[5.99,7.627],"t":[6.324,4.62],"z":1.55},{"id":"render_balcony","kind":"render","title":"Balcony, looking north","room":"Altan","p":[3.734,9.424],"t":[-0.109,9.883],"z":1.55},{"id":"render_doll","kind":"render","title":"Cutaway from the balcony side","room":"Overview"},{"id":"render_doll2","kind":"render","title":"Cutaway from the entrance side","room":"Overview"},{"id":"render_axo","kind":"render","title":"Axonometric projection","room":"Overview"}],"doors":[{"id":"win_vaer_sash0","label":"Window","hinge":[5.181,8.5704],"closed":[0.9971,-0.0759],"open":[0.0,-1.0],"len":0.711,"h":2.2,"z0":0.14,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_vaer_sash1","label":"Window","hinge":[6.5985,8.4626],"closed":[-0.9971,0.0759],"open":[0.0,-1.0],"len":0.711,"h":2.2,"z0":0.14,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_bed_sash0","label":"Window","hinge":[7.6956,8.395],"closed":[0.9971,-0.0759],"open":[0.0,-1.0],"len":0.711,"h":2.2,"z0":0.14,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_bed_sash1","label":"Window","hinge":[9.1131,8.2871],"closed":[-0.9971,0.0759],"open":[0.0,-1.0],"len":0.711,"h":2.2,"z0":0.14,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_w1_sash0","label":"Window","hinge":[0.0716,6.9158],"closed":[0.0,-1.0],"open":[1.0,0.0],"len":0.713,"h":1.83,"z0":0.46,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_w1_sash1","label":"Window","hinge":[0.0716,5.4902],"closed":[-0.0,1.0],"open":[1.0,0.0],"len":0.713,"h":1.83,"z0":0.46,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_w2_sash0","label":"Window","hinge":[0.0716,3.5073],"closed":[0.0,-1.0],"open":[1.0,0.0],"len":0.713,"h":1.83,"z0":0.46,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_w2_sash1","label":"Window","hinge":[0.0716,2.0817],"closed":[-0.0,1.0],"open":[1.0,0.0],"len":0.713,"h":1.83,"z0":0.46,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"door_entry","label":"Front door","hinge":[5.4637,0.2339],"closed":[1.0,0.0],"open":[-0.0,1.0],"len":1.033,"h":2.09,"z0":0.0,"thick":0.04,"mat":"door","handle":true},{"id":"door_vaer","label":"Værelse door","hinge":[7.1345,4.4152],"closed":[-0.9961,0.0882],"open":[-0.0,1.0],"len":0.928,"h":2.09,"z0":0.0,"thick":0.04,"mat":"door","handle":true},{"id":"door_bed","label":"Bedroom door","hinge":[7.1888,3.2999],"closed":[0.0597,0.9982],"open":[1.0,0.0],"len":0.959,"h":2.09,"z0":0.0,"thick":0.04,"mat":"door","handle":true},{"id":"door_bath","label":"Bathroom door","hinge":[7.0802,1.1947],"closed":[0.0431,0.9991],"open":[1.0,0.0],"len":0.95,"h":2.09,"z0":0.0,"thick":0.04,"mat":"door","handle":true},{"id":"door_tek1","label":"Teknik cupboard","hinge":[5.33,2.264],"closed":[0.0,-1.0],"open":[1.0,0.0],"len":0.665,"h":2.09,"z0":0.0,"thick":0.04,"mat":"door","handle":true},{"id":"door_tek2","label":"Teknik cupboard","hinge":[5.33,0.7853],"closed":[0.0,1.0],"open":[1.0,0.0],"len":0.648,"h":2.09,"z0":0.0,"thick":0.04,"mat":"door","handle":true},{"id":"fridge","label":"Fridge","hinge":[0.4802,1.0852],"closed":[1.0,0.0],"open":[0.0,1.0],"len":0.612,"h":1.163,"z0":0.982,"thick":0.018,"mat":"oak","handle":false},{"id":"wc_lid","label":"Toilet lid","shape":"lid","hinge":[8.396,2.6396],"closed":[0.0,-1.0],"open":[0.0,-1.0],"len":0.46,"w":0.35,"open_angle":1.6,"h":0.025,"z0":0.422,"thick":0.025,"mat":"porcelain"},{"id":"washer_door","label":"Washing machine","shape":"round","hinge":[9.1943,1.4615],"closed":[0.0,-1.0],"open":[-1.0,0.0],"len":0.35,"h":0.35,"z0":0.205,"thick":0.045,"mat":"chrome"},{"id":"dryer_door","label":"Dryer","shape":"round","hinge":[9.1943,1.4615],"closed":[0.0,-1.0],"open":[-1.0,0.0],"len":0.35,"h":0.35,"z0":1.055,"thick":0.045,"mat":"chrome"}],"sliders":[{"id":"balcony_slide","label":"Balcony door","a":[0.857,8.8736],"dir":[0.9974,-0.072],"n":[0.0,-1.0],"w":1.053,"z0":0.0,"z1":2.45,"inset":0.06,"travel":1.023}]};
 const $ = (id) => document.getElementById(id);
@@ -342,10 +351,14 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.1;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false;              // redrawn only when the scene, the sun or a door changes (see frame())
+let shadowDirty = true;
 $('stage').appendChild(renderer.domElement);
 renderer.domElement.tabIndex = 0;
 
 const scene = new THREE.Scene();
+{ const add = scene.add.bind(scene), rem = scene.remove.bind(scene);
+  scene.add = (...o) => { shadowDirty = true; return add(...o); }; scene.remove = (...o) => { shadowDirty = true; return rem(...o); }; }
 const camera = new THREE.PerspectiveCamera(coarse ? 66 : 60, 1, 0.05, 6000);
 camera.rotation.order = 'YXZ';
 
@@ -592,6 +605,7 @@ new GLTFLoader().parse(glbBytes.buffer, '', (gltf) => {
     const isGlass = o.material === MATS.glass;
     o.castShadow = !isGlass;
     o.receiveShadow = !isGlass;
+    if (k.startsWith('collide') || k.startsWith('nocollide')) o.geometry.computeBoundsTree();
     if (k.startsWith('collide')) collidables.push(o);
     if (k.includes('oakfloor') || k.includes('bathfloor') || k.includes('concrete') || k.includes('stairterrazzo')) pickables.push(o);
     if (k.startsWith('ceiling')) ceiling = o;
@@ -635,6 +649,7 @@ const stars = (() => {
 const MOON = (() => { const A = 200 * D2R, E = 34 * D2R; return new THREE.Vector3(-Math.cos(A) * Math.cos(E), Math.sin(E), -Math.sin(A) * Math.cos(E)).normalize(); })();
 let dayLevel = 1;
 function updateSun(h, rebuildEnv) {
+  shadowDirty = true;
   const { v, el } = sunDir(h);
   const lift = THREE.MathUtils.clamp(el / 12, 0, 1);            // full daylight above ~12°
   const dusk = THREE.MathUtils.clamp((el + 8) / 10, 0, 1);      // 0 = deep night, 1 = day
@@ -719,7 +734,7 @@ function blocked(from, step) {
   const len = step.length();
   if (len < 1e-6) return false;
   tmp.copy(step).normalize();
-  ray.far = len + RADIUS;
+  ray.far = len + RADIUS; ray.firstHitOnly = true;
   for (const h of [0.3, 0.95, 1.55]) {
     ray.set(new THREE.Vector3(from.x, h, from.z), tmp);
     if (ray.intersectObjects(collidables, false).length) return true;
@@ -793,7 +808,7 @@ function setOverlayDepth(test) {
   lineMat.depthTest = test; lineMat.needsUpdate = true;
 }
 function setMode(m) {
-  mode = m;
+  mode = m; shadowDirty = true;
   setOverlayDepth(m === 'walk');
   $('mWalk').setAttribute('aria-pressed', m === 'walk');
   $('mOver').setAttribute('aria-pressed', m === 'over');
@@ -1447,12 +1462,13 @@ let doorNear = null;
 function updateDoors(dt) {
   for (const d of doors) {
     if (d.kind === 'swap' || d.t === d.target) continue;
-    d.t = d.target > d.t ? Math.min(1, d.t + dt * 1.6) : Math.max(0, d.t - dt * 1.6);
+    d.t = d.target > d.t ? Math.min(1, d.t + dt * 1.6) : Math.max(0, d.t - dt * 1.6); shadowDirty = true;
     const e = d.t * d.t * (3 - 2 * d.t);
     if (d.kind === 'hinge') d.pivot.rotation[d.axis] = d.a0 + (d.a1 - d.a0) * e;
     else d.group.position.copy(d.base).addScaledVector(d.dirV, d.travel * e);
   }
-  const n = started && $('lightbox').hidden ? nearestDoor() : null;
+  updateDoors.k = ((updateDoors.k || 0) + 1) % 4;
+  const n = !(started && $('lightbox').hidden) ? null : updateDoors.k === 0 || !doors.includes(doorNear) || Math.hypot(doorNear.center.x - player.pos.x, doorNear.center.z - player.pos.z) > 2.1 ? nearestDoor() : doorNear;
   if (n !== doorNear) {
     doorNear = n;
     $('doorTip').hidden = !n;
@@ -1481,6 +1497,32 @@ MATS.fabric = std({ map: fabricTex, color: 0xe9e1d4, roughness: 0.95 });
 MATS.linen = std({ color: 0xf6f4ef, roughness: 0.9 });
 MATS.legwood = std({ color: 0xc9a473, roughness: 0.5 });
 const bed = { width: 1.6, offset: null, doorGap: 0.90, group: null, dims: [], door: null, wall: null };
+// one draw call per material for a finished piece of furniture (the pieces never move relative to each other)
+function mergeByMaterial(g, solid = null) {
+  const byMat = new Map();
+  for (const c of [...g.children]) {
+    if (!c.isMesh || c.children.length) continue;
+    c.updateMatrix();
+    const geo = c.geometry.index ? c.geometry.clone() : c.geometry.clone();
+    geo.applyMatrix4(c.matrix);
+    for (const k of Object.keys(geo.attributes)) if (!['position', 'normal', 'uv'].includes(k)) geo.deleteAttribute(k);
+    const e = byMat.get(c.material) || { geos: [], solid: false, shadow: false, ud: null, order: 0 };
+    e.geos.push(geo.index ? geo : geo); e.solid ||= !solid || solid.has(c); e.shadow ||= c.castShadow; e.ud ||= c.userData; e.order = Math.max(e.order, c.renderOrder);
+    byMat.set(c.material, e);
+    g.remove(c); c.geometry.dispose();
+  }
+  const all = [], solids = [];
+  for (const [mat, e] of byMat) {
+    const idx = e.geos.every((x) => x.index), geos = idx ? e.geos : e.geos.map((x) => (x.index ? x.toNonIndexed() : x));
+    const merged = mergeGeometries(geos, false);
+    if (!merged) { for (const x of geos) { const m1 = new THREE.Mesh(x, mat); m1.castShadow = e.shadow; m1.receiveShadow = true; m1.userData = { ...e.ud }; g.add(m1); all.push(m1); if (e.solid) solids.push(m1); } continue; }
+    const m = new THREE.Mesh(merged, mat);
+    for (const x of geos) x.dispose();
+    m.castShadow = e.shadow; m.receiveShadow = true; m.renderOrder = e.order; m.userData = { ...e.ud };
+    g.add(m); all.push(m); if (e.solid) solids.push(m);
+  }
+  return { all, solids };
+}
 const furnDims = new THREE.Group(); dimsGroup.add(furnDims);
 function findBedWall() {
   // inner face of the bedroom wall towards Værelse, found by casting from the middle of the room
@@ -1534,6 +1576,7 @@ function buildBed() {
   }
   // oak legs: corners + the seam between the two units
   for (const x of [HB + 0.08, HB + L - 0.08]) for (const z of [-w / 2 + 0.06, 0, w / 2 - 0.06]) add(new THREE.CylinderGeometry(0.024, 0.02, 0.1, 12), MATS.legwood, x, 0.05, z);
+  { const mg = mergeByMaterial(g); parts.length = 0; parts.push(...mg.all); }
   const door = { kind: 'swap', label: 'Bed', parts, center: O.clone().addScaledVector(n3, HB + L / 2).setY(0.6),
     swap: () => selectFurniture(selected === bedMover ? null : bedMover),
     prompt: () => (selected === bedMover ? 'Done moving the bed' : 'Move or resize the bed') };
@@ -1584,7 +1627,7 @@ function buildMoverSelects(m) {
     const lab = document.createElement('label'); const head = document.createElement('span'); head.textContent = sel.label; lab.appendChild(head);
     const el = document.createElement('select'); el.dataset.id = sel.id; let grp = null, cur = null;
     sel.options().forEach((o, i) => {
-      if (o.group && o.group !== cur) { grp = document.createElement('optgroup'); grp.label = o.group; el.appendChild(grp); cur = o.group; }
+      if (o.group !== undefined && o.group !== '' && o.group !== cur) { grp = document.createElement('optgroup'); grp.label = o.group; el.appendChild(grp); cur = o.group; }
       const op = document.createElement('option'); op.value = i; op.textContent = o.label; (o.group ? grp : el).appendChild(op);
     });
     el.value = sel.get();
@@ -1593,7 +1636,8 @@ function buildMoverSelects(m) {
     lab.appendChild(el); box.appendChild(lab);
   }
 }
-function updateMoverInfo() { if (!selected) return; if (selected.title) $('mvName').textContent = selected.title(); $('mvInfo').textContent = selected.info();
+function updateMoverInfo() { if (!selected) return; if (selected.title) $('mvName').textContent = selected.title();
+  const lk = $('mvLink'); lk.hidden = !selected.link; if (selected.link) { const L = selected.link(); lk.href = L.href; lk.textContent = L.text; } $('mvInfo').textContent = selected.info();
   for (const sel of selected.selects || []) { const el = $('mvSelects').querySelector(`select[data-id="${sel.id}"]`); if (el && +el.value !== sel.get()) el.value = sel.get(); }
   if (selected.variant2) $('mvVar2').disabled = selected.variant2.label() === '—'; if (selected.variant) $('mvVar').textContent = selected.variant.label(); if (selected.variant2) $('mvVar2').textContent = selected.variant2.label(); }
 function moverMap(m) {
@@ -1710,6 +1754,7 @@ function makeRun(O, n, width, name, sections) {
       made.push(d);
     }
   }
+  { const mg = mergeByMaterial(g, new Set(parts)); parts.length = 0; parts.push(...mg.solids); for (const m of mg.solids) m.userData.furniture = true; }
   for (const p of parts) collidables.push(p);
   scene.add(g); g.updateMatrixWorld(true);
   for (const d of made) d.pivot.updateMatrixWorld(true);
@@ -2075,6 +2120,7 @@ function buildMedia() {
     for (const p of d.parts) p.userData.furniture = true;
     d.pivot.updateMatrixWorld(true); M.doors.push(d);
   }
+  { const mg = mergeByMaterial(g, new Set(parts)); parts.length = 0; parts.push(...mg.solids); }
   const door = { kind: 'swap', label: 'TV wall', parts, center: O.clone().setY(ty).addScaledVector(n, 0.1),
     swap: () => selectFurniture(selected === mediaMover ? null : mediaMover),
     prompt: () => (selected === mediaMover ? 'Done moving the TV' : 'Move the TV wall') };
@@ -2091,32 +2137,121 @@ const mediaMover = {
   info: () => { const M = liv.media; const c = Math.abs(M.offset) < 0.025 ? 'centred on the wall' : `${Math.round(Math.abs(M.offset) * 100)} cm towards the ${(M.offset > 0) === M.aToBalcony ? 'balcony' : 'hallway'}`;
     return `${c} · TV centre ${(TVW.bottom + TVW.H / 2).toFixed(2)} m up · wall ${(M.half * 2).toFixed(2)} m`; },
 };
-// ---- ILVA Nyland: every "Sofatype" on ilva.dk (each corner/chaise type comes højre- or venstrevendt), all 93 cm deep, 82 cm high, seat 47 cm
-// højrevendt = the corner / chaise sits on your right when you stand in front of the sofa (as in ILVA's drawings)
-const SOFAS = [
-  { name: '2 Personer', L: 1.80, R: 0.93, ends: ['arm', 'arm'] },
-  { name: '3 Personer', L: 2.20, R: 0.93, ends: ['arm', 'arm'] },
-  { name: 'Hjørnesofa', L: 2.63, R: 1.92, sided: true, main: { t: 'corner', R: 1.92 } },
-  { name: 'Hjørnesofa - Ekstra Længde', L: 3.03, R: 2.12, sided: true, main: { t: 'corner', R: 2.12 } },
-  { name: 'Hjørnesofa Med Chaiselong', L: 3.54, R: 2.22, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, other: { t: 'corner', R: 2.22 } },
-  { name: 'Hjørnesofa Med Chaiselong - Ekstra Længde', L: 3.94, R: 2.22, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, other: { t: 'corner', R: 2.22 } },
-  { name: 'Hjørnesofa Med Pufafslutning', L: 2.63, R: 2.22, sided: true, main: { t: 'pouf', R: 2.22 } },
-  { name: 'Hjørnesofa Med Pufafslutning - Ekstra Længde', L: 3.03, R: 2.22, sided: true, main: { t: 'pouf', R: 2.22 } },
-  { name: 'Sofa Med Chaiselong', L: 2.71, R: 1.52, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 } },
-  { name: 'Sofa Med Chaiselong - Ekstra Længde', L: 3.11, R: 1.52, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 } },
+// ---- sofa models to compare. Each has its own configurations (names as the shop writes them), fabrics/colours and legs.
+// sided configs come as left/right: "right" = the corner / chaise / open end sits on your right standing in front of the sofa (as in the shops' drawings).
+// Colours are matched by eye from the shops' swatches. (est.) marks a measure the shop doesn't list, read from its drawings.
+const ILVA_SERIES = 'https://ilva.dk/stuen/serier-til-stuen/nyland-sofaserie/c-2128/';
+const IKEA_P = (s) => `https://www.ikea.com/dk/da/p/${s}/`;
+const SOFA_MODELS = [
+  { brand: 'ILVA', name: 'Nyland', url: 'https://ilva.dk/stuen/sofaer/hjoernesofaer/nyland/austin-3-antelope-stof/p-1069363-5642658601/', D: 0.93, defaultCfg: 2,
+    side: (n, r) => `${r ? 'Højrevendt' : 'Venstrevendt'} ${n}`,
+    style: { LEG: 0.14, BASE: 0.30, SEAT: 0.47, ARMH: 0.60, BACKH: 0.82, AW: 0.12, BT2: 0.16, POUF: 0.37, legR: 0.013, taper: 0.8 },
+    configs: [
+      { name: '2 Personer', L: 1.80, R: 0.93, url: ILVA_SERIES },
+      { name: '3 Personer', L: 2.20, R: 0.93, url: 'https://ilva.dk/stuen/sofaer/2-personers-sofaer/nyland/verdon-281-natural-stof/p-1068327-5642933945/' },
+      { name: 'Hjørnesofa', L: 2.63, R: 1.92, sided: true, main: { t: 'corner', R: 1.92 } },
+      { name: 'Hjørnesofa - Ekstra Længde', L: 3.03, R: 2.12, sided: true, main: { t: 'corner', R: 2.12 } },
+      { name: 'Hjørnesofa Med Chaiselong', L: 3.54, R: 2.22, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, other: { t: 'corner', R: 2.22 }, url: 'https://ilva.dk/stuen/sofaer/hjoernesofaer/nyland/austin-3-antelope-stof/p-1069446-5642661995/' },
+      { name: 'Hjørnesofa Med Chaiselong - Ekstra Længde', L: 3.94, R: 2.22, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, other: { t: 'corner', R: 2.22 }, url: 'https://ilva.dk/stuen/sofaer/hjoernesofaer/nyland/austin-3-antelope-stof/p-1069446-5642661995/' },
+      { name: 'Hjørnesofa Med Pufafslutning', L: 2.63, R: 2.22, sided: true, main: { t: 'pouf', R: 2.22 } },
+      { name: 'Hjørnesofa Med Pufafslutning - Ekstra Længde', L: 3.03, R: 2.22, sided: true, main: { t: 'pouf', R: 2.22 } },
+      { name: 'Sofa Med Chaiselong', L: 2.71, R: 1.52, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, url: 'https://ilva.dk/stuen/sofaer/chaiselongsofaer/nyland/austin-3-antelope-stof/p-1069266-5642657215/' },
+      { name: 'Sofa Med Chaiselong - Ekstra Længde', L: 3.11, R: 1.52, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, url: 'https://ilva.dk/stuen/sofaer/chaiselongsofaer/nyland/austin-3-antelope-stof/p-1069266-5642657215/' },
+    ],
+    fabrics: [
+      ['Austin', 'fladvævet', [['Antelope', 0x958777], ['Anthracite', 0x6f7173], ['Deep Blue', 0x28324a], ['Grey', 0xb4b4b6], ['Winter Moss', 0x676d5f]], 1],
+      ['Crush', 'bouclé', [['Cappuccino', 0x4f3727], ['Choco', 0x2c2420], ['Forest', 0x2f3b34], ['Off White', 0xdcd6cb], ['Taupe', 0x4d4239]], 1],
+      ['Kentucky', 'regenereret læder', [['Cognac', 0x7d4024]], 0.5],
+      ['Linde', 'lærredsvævning', [['Off White', 0xd0cbc1]], 1],
+      ['Verdon', 'chenille', [['Grey', 0x9c9e9c], ['Natural', 0xb3ac9c], ['Sand', 0x9d8f7b], ['Taupe', 0x514437]], 0.95],
+      ['Wave', 'fløjl', [['Moss Green', 0x6e6b47], ['Sand', 0xcbc0b2], ['Taupe', 0x7a7366]], 0.75],
+    ],
+    legs: [['Sort Metal', 'black'], ['Eg (lakeret)', 'oak']] },
+  { brand: 'ILVA', name: 'Linea', url: 'https://ilva.dk/stuen/sofaer/hjoernesofaer/linea/austin-18-grey-stof/p-1083602-5643106935/', D: 0.88, defaultCfg: 4,
+    side: (n, r) => (n.startsWith('3 Personer') ? n.replace('3 Personer', `3 Personer ${r ? 'Højrevendt' : 'Venstrevendt'}`) : `${r ? 'Højrevendt' : 'Venstrevendt'} ${n}`),
+    style: { LEG: 0.16, BASE: 0.28, SEAT: 0.44, ARMH: 0.60, BACKH: 0.80, AW: 0.11, BT2: 0.15, POUF: 0.45, legR: 0.02, taper: 0.55 },
+    configs: [
+      { name: '2 Personer', L: 1.57, R: 0.88 },
+      { name: '3 Personer', L: 2.22, R: 0.88 },
+      { name: '3 Personer Med Chaiselong', L: 2.21, R: 1.49, sided: true, main: { t: 'chaise', R: 1.49, W: 0.9 } },
+      { name: 'Hjørnesofa Med Chaiselong', L: 2.94, R: 2.03, sided: true, main: { t: 'chaise', R: 1.49, W: 0.9 }, other: { t: 'corner', R: 2.03 } },
+      { name: 'Hjørnesofa Med Pufafslutning', L: 2.29, R: 2.03, sided: true, main: { t: 'pouf', R: 2.03 } },
+    ],
+    fabrics: [
+      ['Austin', 'fladvævet', [['Antelope', 0x958777], ['Anthracite', 0x6f7173], ['Deep Blue', 0x28324a], ['Grey', 0xb4b4b6], ['Ivory', 0xe2dccf], ['Taupe', 0x7d7065], ['Winter Moss', 0x676d5f]], 1],
+      ['Cord', 'fladvævet', [['Charcoal', 0x3d3d3f], ['Off White', 0xdcd6ca], ['Sand', 0xbfae93], ['Taupe', 0x7a6d60], ['Winter Moss', 0x646b5c]], 1],
+      ['Crush', 'bouclé', [['Cappuccino', 0x4f3727], ['Forest', 0x2f3b34], ['Off White', 0xdcd6cb], ['Taupe', 0x4d4239]], 1],
+      ['Kentucky', 'regenereret læder', [['Cognac', 0x7d4024]], 0.5],
+      ['Linde', 'lærredsvævning', [['Okker', 0xb58a3c]], 1],
+      ['Narv', 'semianilinlæder', [['Black', 0x1c1c1c]], 0.45],
+      ['Rustic', 'bouclé', [['Forest', 0x3a4a3d], ['Natural', 0xcfc5b3], ['Off White', 0xe0dbd0], ['Taupe', 0x6e6257]], 1],
+      ['Soil', 'fladvævet', [['Coffee', 0x4b3a2f], ['Hunter', 0x3f4a3a], ['Sand', 0xb9a88f], ['Taupe', 0x7a6c5f]], 1],
+      ['Verdon', 'chenille', [['Grey', 0x9c9e9c], ['Natural', 0xb3ac9c], ['Sand', 0x9d8f7b]], 0.95],
+      ['Wave', 'fløjl', [['Moss Green', 0x6e6b47], ['Royal Blue', 0x2b3f7a], ['Sand', 0xcbc0b2], ['Taupe', 0x7a7366]], 0.75],
+    ],
+    legs: [['Eg', 'oak']] },
+  { brand: 'IKEA', name: 'EKHOLMA', url: IKEA_P('ekholma-hjornesofa-4-pers-med-aben-ende-hakebo-beige-s59562970'), D: 0.85, defaultCfg: 2,
+    side: (n, r) => `${n} (${r ? 'åben ende højre' : 'åben ende venstre'})`,
+    style: { LEG: 0.15, BASE: 0.32, SEAT: 0.49, ARMH: 0.62, BACKH: 0.90, AW: 0.09, BT2: 0.14, POUF: 0.62, legR: 0.014, taper: 0.9 },
+    configs: [
+      { name: '2-pers. sofa', L: 1.67, R: 0.85, url: IKEA_P('ekholma-2-pers-sofa-hakebo-morkegra-s99535588') },
+      { name: '3-pers. sofa', L: 2.07, R: 0.85, url: IKEA_P('ekholma-3-pers-sofa-kilanda-rodbrun-s29535596') },
+      { name: 'hjørnesofa, 4-pers., med åben ende', L: 2.36, R: 1.95, sided: true, main: { t: 'pouf', R: 1.95 } },
+    ],
+    fabrics: [['', 'betræk', [['Hakebo beige', 0xbfb3a0], ['Hakebo mørkegrå', 0x4a4b4d], ['Kilanda rødbrun', 0x7a3e2c], ['Kilanda lys beige', 0xd6ccb9], ['Hemmesta grågrøn', 0x7c8573], ['Hemmesta gråbeige', 0xa9a192]], 1]],
+    legs: [['Standard', 'black']] },
+  { brand: 'IKEA', name: 'LILLEHEM', url: IKEA_P('lillehem-modulopb-hjornesofa-4-p-vissle-beige-metal-s79536169'), D: 0.76, defaultCfg: 6,
+    side: (n, r) => `${n} (${r ? 'højre' : 'venstre'})`,
+    style: { LEG: 0.10, BASE: 0.26, SEAT: 0.42, ARMH: 0.55, BACKH: 0.73, AW: 0.04, BT2: 0.12, POUF: 0.4, legR: 0.018, taper: 1, frame: true },
+    configs: [
+      { name: '2-pers. modulopbygget sofa', L: 1.52, R: 0.76, url: IKEA_P('lillehem-2-pers-modulopbygget-sofa-gunnared-morkegra-trae-s99471261') },
+      { name: '3-pers. modulopbygget sofa', L: 2.24, R: 0.76, url: IKEA_P('lillehem-3-pers-modulopbygget-sofa-gunnared-rodbrun-metal-s99617782') },
+      { name: '4-pers. modulopbygget sofa', L: 2.96, R: 0.76, url: IKEA_P('lillehem-4-pers-modulopbygget-sofa-gunnared-rodbrun-trae-s99536031') },
+      { name: '6-pers. modulopbygget sofa', L: 4.40, R: 0.80, url: IKEA_P('lillehem-6-pers-modulopbygget-sofa-gunnared-rodbrun-trae-s89536201') },
+      { name: '3-pers. modulsofa med chaiselong', L: 2.24, R: 1.48, sided: true, main: { t: 'chaise', R: 1.48, W: 0.76 }, url: IKEA_P('lillehem-3-pers-modulsofa-med-chaiselong-gunnared-rodbrun-trae-s89568292'), est: 'chaise length' },
+      { name: 'modulopbygget hjørnesofa (3 moduler)', L: 1.48, R: 1.48, sided: true, main: { t: 'corner', R: 1.48 }, url: 'https://www.ikea.com/dk/da/search/?q=lillehem%20hj%C3%B8rnesofa' },
+      { name: 'modulopb hjørnesofa 4-p', L: 2.24, R: 2.24, sided: true, main: { t: 'corner', R: 2.24 }, url: IKEA_P('lillehem-modulopb-hjornesofa-4-p-vissle-beige-metal-s79536169') },
+    ],
+    fabrics: [['', 'betræk', [['Vissle beige', 0xc8bba5], ['Gunnared mørkegrå', 0x4b4c4e], ['Gunnared rødbrun', 0x7b4a3a]], 1]],
+    legs: [['Træ', 'oak'], ['Metal', 'black']] },
+  { brand: 'IKEA', name: 'EKTORP', url: IKEA_P('ektorp-hjornesofa-4-pers-blekinge-hvid-s69628659'), D: 0.88, defaultCfg: 3,
+    side: (n, r) => `${n} (${r ? 'højre' : 'venstre'})`,
+    style: { LEG: 0.06, BASE: 0.26, SEAT: 0.45, ARMH: 0.64, BACKH: 0.88, AW: 0.20, BT2: 0.18, POUF: 0.4, legR: 0.02, taper: 1 },
+    configs: [
+      { name: '2-pers. sofa', L: 1.79, R: 0.88, url: 'https://www.ikea.com/dk/da/search/?q=ektorp%202-pers%20sofa' },
+      { name: '3-pers. sofa', L: 2.18, R: 0.88, url: 'https://www.ikea.com/dk/da/search/?q=ektorp%203-pers%20sofa' },
+      { name: '3-pers. sofa med chaiselong', L: 2.52, R: 1.63, sided: true, main: { t: 'chaise', R: 1.63, W: 0.9 }, url: IKEA_P('ektorp-3-pers-sofa-med-chaiselong-blekinge-hvid-s69627966'), est: 'chaise length' },
+      { name: 'hjørnesofa 4-pers.', L: 2.43, R: 2.43, sided: true, main: { t: 'corner', R: 2.43 }, url: IKEA_P('ektorp-hjornesofa-4-pers-blekinge-hvid-s69628659') },
+    ],
+    fabrics: [['', 'betræk', [['Blekinge hvid', 0xeeece6], ['Kilanda mørkeblå', 0x2a3550], ['Kilanda lys beige', 0xd6ccb9], ['Hakebo grågrøn', 0x7e8a7a], ['Hakebo mørkegrå', 0x4a4b4d], ['Tallmyra beige', 0xc9bca6], ['Mångbyn brun/flerfarvet', 0x7b5b45], ['Alhamn mørk gul-brun', 0x8a6a2e], ['Näggen grågrøn', 0x6f7a6c]], 1]],
+    legs: [['Standard', 'black']] },
+  { brand: 'Muuto', name: 'Outline', url: 'https://www.muuto.com/product/Outline-Corner-Sofa/', D: 0.84, defaultCfg: 4,
+    side: (n, r) => `${n} (${r ? 'right' : 'left'})`,
+    style: { LEG: 0.10, BASE: 0.24, SEAT: 0.40, ARMH: 0.60, BACKH: 0.71, AW: 0.08, BT2: 0.10, POUF: 0.4, legR: 0.011, taper: 0.7 },
+    configs: [
+      { name: '2 Seater', L: 1.70, R: 0.84, url: 'https://www.muuto.com/product/Outline-Sofa-2-Seater/' },
+      { name: '3 Seater', L: 2.20, R: 0.84, url: 'https://www.muuto.com/product/Outline-Sofa-3-Seater/' },
+      { name: '3½ Seater', L: 2.54, R: 0.84, url: 'https://www.muuto.com/product/Outline-Sofa-3-5-Seater/' },
+      { name: 'Chaise Longue', L: 2.63, R: 1.42, sided: true, main: { t: 'chaise', R: 1.42, W: 0.85 }, url: 'https://www.muuto.com/product/Outline-Sofa-Chaise-Longue/' },
+      { name: 'Corner Sofa', L: 2.55, R: 2.55, sided: true, main: { t: 'corner', R: 2.55 }, url: 'https://www.muuto.com/product/Outline-Corner-Sofa/' },
+    ],
+    fabrics: [
+      ['Ocean', 'textile', [['Mud', 0x7c6f60], ['Grey', 0x8e8e8c], ['Dark grey', 0x4c4c4e], ['Dove grey', 0xb5b3ae], ['Dark brown', 0x4a3a2f], ['Black', 0x1f1f20], ['Dark green', 0x33443a]], 1],
+      ['Fiord', 'textile', [['151', 0xbdbab3]], 1],
+      ['Refine', 'leather', [['Cognac', 0x8a4a28], ['Black', 0x1a1a1a], ['Stone', 0xb9ae9e], ['Camel', 0xa9784a]], 0.45],
+    ],
+    legs: [['Black aluminium', 'black'], ['Polished aluminium', 'chrome']] },
 ];
-// fabrics ("Betræk og farve"), colours sampled from ILVA's swatches
-const FABRICS = [
-  ['Austin', 'fladvævet', [['Antelope', 0x958777], ['Anthracite', 0x6f7173], ['Deep Blue', 0x28324a], ['Grey', 0xb4b4b6], ['Winter Moss', 0x676d5f]], 1],
-  ['Crush', 'bouclé', [['Cappuccino', 0x4f3727], ['Choco', 0x2c2420], ['Forest', 0x2f3b34], ['Off White', 0xdcd6cb], ['Taupe', 0x4d4239]], 1],
-  ['Kentucky', 'regenereret læder', [['Cognac', 0x7d4024]], 0.5],
-  ['Linde', 'lærredsvævning', [['Off White', 0xd0cbc1]], 1],
-  ['Verdon', 'chenille', [['Grey', 0x9c9e9c], ['Natural', 0xb3ac9c], ['Sand', 0x9d8f7b], ['Taupe', 0x514437]], 0.95],
-  ['Wave', 'fløjl', [['Moss Green', 0x6e6b47], ['Sand', 0xcbc0b2], ['Taupe', 0x7a7366]], 0.75],
-].flatMap(([g, kind, cols, rough]) => cols.map(([c, hex]) => ({ g, kind, c, hex, rough })));
-const LEGS = [['Sort Metal', () => MATS.blackMetal], ['Eg (lakeret)', () => MATS.legwood]];
-const SD = 0.93;
-function sofaName(S) { const c = SOFAS[S.cfg]; return c.sided ? `${S.flip ? 'Højrevendt' : 'Venstrevendt'} ${c.name}` : c.name; }
+let SOFAS, FABRICS, LEGS, SD, SSTY, SMODEL;
+function useModel(i) {
+  SMODEL = SOFA_MODELS[i]; SOFAS = SMODEL.configs; SD = SMODEL.D; SSTY = SMODEL.style;
+  FABRICS = SMODEL.fabrics.flatMap(([g, kind, cols, rough]) => cols.map(([c, hex]) => ({ g, kind, c, hex, rough })));
+  LEGS = SMODEL.legs.map(([n, k]) => [n, () => (k === 'oak' ? MATS.legwood : k === 'chrome' ? MATS.chromeK : MATS.blackMetal)]);
+}
+useModel(0);
+
+function sofaName(S) { const c = SOFAS[S.cfg]; return c.sided ? SMODEL.side(c.name, S.flip) : c.name; }
+function sofaFull(S) { return `${SMODEL.brand} ${SMODEL.name} ${sofaName(S)}`; }
 function applyFabric(S) {
   const fb = FABRICS[S.fabric];
   MATS.sofa.color.setHex(fb.hex); MATS.sofa.roughness = fb.rough;
@@ -2148,7 +2283,7 @@ function buildSofa(tryMove) {
     // back of the sofa 90 cm off the window wall (a proper walkway), centred on the TV
     const WW = wallLine([2.5, 7.6], [2.5, 4.9], [-1, 0]);
     const depth = WW ? M.base.clone().sub(WW.p).dot(WW.n) : 4.0;
-    S = liv.sofa = { cfg: 2, flip: false, fabric: 0, legs: 0, O: M.base.clone().addScaledVector(M.n, depth - 0.92), group: null, parts: [] };
+    S = liv.sofa = { model: 0, cfg: 2, flip: false, fabric: 0, legs: 0, O: M.base.clone().addScaledVector(M.n, depth - 0.92), group: null, parts: [] };
   }
   if (S.group) { scene.remove(S.group); dropParts(S.parts); }
   applyFabric(S);
@@ -2179,7 +2314,7 @@ function buildSofa(tryMove) {
     const k = Math.max(1, Math.round((zb - za) / seg)), w = (zb - za) / k;
     for (let i = 0; i < k; i++) box(x0, x1, y0, y1, za + i * w + 0.006, za + (i + 1) * w - 0.006, mat);
   };
-  const LEG = 0.14, BASE = 0.30, SEAT = 0.47, ARMH = 0.60, BACKH = 0.82, AW = 0.12, BT2 = 0.16, POUF = 0.37;
+  const { LEG, BASE, SEAT, ARMH, BACKH, AW, BT2, POUF } = SSTY;
   const legs = [], seatIn = {};
   box(-L / 2, L / 2, LEG, BASE, 0, SD, MATS.sofa);                                   // main base + back frame
   box(-L / 2, L / 2, BASE, 0.62, 0, BT2, MATS.sofa);
@@ -2206,7 +2341,8 @@ function buildSofa(tryMove) {
   cushRow(seatIn[-1], seatIn[1], BASE, SEAT, BT2, SD, MATS.sofaCush);
   cushRow(seatIn[-1], seatIn[1], SEAT - 0.02, BACKH, BT2, BT2 + 0.2, MATS.sofaCush, -0.12);
   const legMat = LEGS[S.legs][1]();
-  for (const [lx, lz] of legs) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.011, LEG, 10), legMat); m.position.set(lx, LEG / 2, lz); m.castShadow = true; g.add(m); }
+  for (const [lx, lz] of legs) { const m = new THREE.Mesh(new THREE.CylinderGeometry(SSTY.legR, SSTY.legR * SSTY.taper, LEG, 10), legMat); m.position.set(lx, LEG / 2, lz); m.castShadow = true; g.add(m); }
+  { const mg = mergeByMaterial(g); parts.length = 0; parts.push(...mg.all); }
   const door = { kind: 'swap', label: 'Sofa', parts, center: O.clone().addScaledVector(f, SD / 2).setY(0.5),
     swap: () => selectFurniture(selected === sofaMover ? null : sofaMover),
     prompt: () => (selected === sofaMover ? 'Done with the sofa' : 'Move or change the sofa') };
@@ -2257,26 +2393,29 @@ function livingDims() {
     for (const r of G.rets) line(r, (d, nm) => `${d.toFixed(2)} m${nm}${nm === ' to TV unit' && d < 0.6 ? ' (tight)' : ''}`);
     line(G.endP, (d, nm) => `${d.toFixed(2)} m${nm}`); line(G.endN, (d, nm) => `${d.toFixed(2)} m${nm}`);
     const S = liv.sofa, cfg = SOFAS[S.cfg], fb = FABRICS[S.fabric];
-    const tag = labelSprite(`Nyland ${sofaName(S)} ${Math.round(cfg.L * 100)} × ${Math.round(cfg.R * 100)} cm · ${fb.g} ${fb.c} · ${G.view.toFixed(1)} m to screen`, { h: 0.03 });
+    const tag = labelSprite(`${sofaFull(S)} ${Math.round(cfg.L * 100)} × ${Math.round(cfg.R * 100)} cm · ${fb.g} ${fb.c} · ${G.view.toFixed(1)} m to screen`, { h: 0.03 });
     tag.position.copy(G.eye).setY(1.25); livDims.add(tag);
   }
 }
 const sofaMover = {
   name: 'Sofa', anchor: () => (liv.sofa && liv.sofa.group ? liv.sofa.O.clone().addScaledVector(sofaFrame().f, SD / 2).setY(1.1) : null),
   axis: () => sofaFrame().x, axis2: () => sofaFrame().f,
-  title: () => `Nyland ${sofaName(liv.sofa)}`,
+  title: () => sofaFull(liv.sofa),
+  link: () => ({ href: SOFAS[liv.sofa.cfg].url || SMODEL.url, text: `${SMODEL.brand} product page ↗` }),
   shift: (dir) => { if (!buildSofa((O) => O.addScaledVector(sofaFrame().x, dir * 0.05))) showToast('Can’t go further: wall or furniture'); livingDims(); },
   shift2: (dir) => { if (!buildSofa((O) => O.addScaledVector(sofaFrame().f, dir * 0.05))) showToast('Can’t go further: wall or furniture'); livingDims(); },
   info: () => { const G = sofaGaps(); const cfg = SOFAS[liv.sofa.cfg];
     return `L ${Math.round(cfg.L * 100)} × D ${Math.round(cfg.R * 100)} cm · ${G && G.back.d !== null ? G.back.d.toFixed(2) : '–'} m behind · ${G && G.front.d !== null ? G.front.d.toFixed(2) : '–'} m to TV unit · ${G ? G.view.toFixed(1) : '–'} m to screen`; },
   selects: [
-    { id: 'type', label: 'Sofatype', options: () => SOFAS.map((c) => ({ label: `${c.name} · ${Math.round(c.L * 100)} × ${Math.round(c.R * 100)}` })), get: () => liv.sofa.cfg,
-      set: (i) => { liv.sofa.cfg = i; buildSofa(); livingDims(); const c = SOFAS[i]; showToast(`${sofaName(liv.sofa)} · L ${Math.round(c.L * 100)} × D ${Math.round(c.R * 100)} cm`); } },
-    { id: 'fabric', label: 'Betræk og farve', options: () => FABRICS.map((fb) => ({ label: fb.c, group: `${fb.g} – ${fb.kind}`, hex: fb.hex })), get: () => liv.sofa.fabric,
+    { id: 'model', label: 'Model', options: () => SOFA_MODELS.map((m) => ({ label: `${m.brand} ${m.name}`, group: m.brand })), get: () => liv.sofa.model,
+      set: (i) => { const S = liv.sofa; S.model = i; useModel(i); S.cfg = SMODEL.defaultCfg; S.fabric = 0; S.legs = 0; buildSofa(); livingDims(); buildMoverSelects(sofaMover); showToast(sofaFull(S)); } },
+    { id: 'type', label: 'Configuration', options: () => SOFAS.map((c) => ({ label: `${c.name} · ${Math.round(c.L * 100)} × ${Math.round(c.R * 100)}${c.est ? ' (est.)' : ''}` })), get: () => liv.sofa.cfg,
+      set: (i) => { liv.sofa.cfg = i; buildSofa(); livingDims(); const c = SOFAS[i]; showToast(`${sofaFull(liv.sofa)} · L ${Math.round(c.L * 100)} × D ${Math.round(c.R * 100)} cm`); } },
+    { id: 'fabric', label: 'Fabric & colour', options: () => FABRICS.map((fb) => ({ label: fb.c, group: fb.g ? `${fb.g} – ${fb.kind}` : '', hex: fb.hex })), get: () => liv.sofa.fabric,
       set: (i) => { liv.sofa.fabric = i; applyFabric(liv.sofa); livingDims(); } },
   ],
-  variant: { label: () => `Ben: ${LEGS[liv.sofa.legs][0]}`, run: () => { liv.sofa.legs = (liv.sofa.legs + 1) % LEGS.length; buildSofa(); livingDims(); } },
-  variant2: { label: () => (SOFAS[liv.sofa.cfg].sided ? `⇄ ${liv.sofa.flip ? 'Venstrevendt' : 'Højrevendt'}` : '—'),
+  variant: { label: () => `Legs: ${LEGS[liv.sofa.legs][0]}`, run: () => { liv.sofa.legs = (liv.sofa.legs + 1) % LEGS.length; buildSofa(); livingDims(); } },
+  variant2: { label: () => (SOFAS[liv.sofa.cfg].sided ? `⇄ ${liv.sofa.flip ? 'Corner left' : 'Corner right'}` : '—'),
     run: () => { if (!SOFAS[liv.sofa.cfg].sided) return; liv.sofa.flip = !liv.sofa.flip; buildSofa(); livingDims(); showToast(sofaName(liv.sofa)); } },
 };
 
@@ -2293,7 +2432,8 @@ const kitDims = new THREE.Group(); dimsGroup.add(kitDims);
 function buildCoffee() {
   const top = 0.90;                                      // worktop height
   const wallY = 0.476, tallEnd = 0.476 + 0.62;          // south wall face, end of the tall fridge column (Blender coords)
-  const kit = (bx, by, rotY) => { const g = new THREE.Group(); g.position.copy(b2t(bx, by, top)); g.rotation.y = rotY; scene.add(g); return g; };
+  const kits = [];
+  const kit = (bx, by, rotY) => { const g = new THREE.Group(); g.position.copy(b2t(bx, by, top)); g.rotation.y = rotY; scene.add(g); kits.push(g); return g; };
   const put = (g, geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
   const cyl = (rt, rb, h, seg = 28) => new THREE.CylinderGeometry(rt, rb, h, seg);
   // local frame for things on the long counter: +z = towards the room, +x = towards the fridge
@@ -2339,6 +2479,7 @@ function buildCoffee() {
   put(T, cyl(0.1, 0.085, 0.17), MATS.chromeK, 0, 0.265, -0.07);
   put(T, cyl(0.106, 0.106, 0.035), MATS.nicheBlack, 0, 0.365, -0.07);
   put(T, new THREE.BoxGeometry(0.03, 0.12, 0.05), MATS.nicheBlack, 0.115, 0.27, -0.07);
+  for (const k of kits) mergeByMaterial(k);
   // labels (with Sizes)
   for (const [txt, bx, by, h] of [['Fellow Espresso Series 1 · 32 × 44 cm', tallEnd + 0.2, 0.75, 1.3], ['Niche Zero · 12 × 21 cm', tallEnd + 0.47, 0.72, 1.22], ['Thermomix TM7 · 25 × 41 cm', 4.16, 0.8, 1.3], ['0.56 m clear under the wall cabinets', tallEnd + 0.35, 0.9, 1.14]]) {
     const t = labelSprite(txt, { h: 0.028 }); t.position.copy(b2t(bx, by, h)); kitDims.add(t);
@@ -2426,6 +2567,8 @@ function frame() {
   updateDoors(dt);
   if (window.__clouds) window.__clouds.rotation.y += dt * 0.004;
   window.__cam = camera.position.toArray().map((v) => +v.toFixed(2)).join(',') + ' ' + [player.yaw, player.pitch].map((v) => +v.toFixed(2)).join(',');
+  frame.n = (frame.n || 0) + 1;
+  if (shadowDirty || frame.n % 90 === 0) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
   if (composer) composer.render(); else renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
@@ -2450,7 +2593,7 @@ function frame() {
 window.__overlays = [pinsGroup, dimsGroup, plugsGroup, measureGroup, tapRing];
 updateRoom();
 requestAnimationFrame(frame);
-window.__apt = { player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFAS, FABRICS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
+window.__apt = { renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
 </script>
 
 </body></html>
