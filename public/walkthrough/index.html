@@ -69,6 +69,19 @@
   #doorTip { position: fixed; left: 50%; bottom: calc(var(--gut) + 56px + var(--safe-b)); transform: translateX(-50%);
     font: 500 14px/1 var(--ui); color: var(--ink); padding: 12px 16px; display: flex; gap: 10px; align-items: center; cursor: pointer; z-index: 5; }
   #doorTip kbd { font: 500 11px/1 var(--mono); border: 1px solid var(--oak); color: var(--oak); border-radius: 4px; padding: 3px 5px; }
+  /* touch: pulsing tap targets on everything you can open or move (replaces the door button) */
+  #hotspots { position: fixed; inset: 0; pointer-events: none; z-index: 4; }
+  #hotspots button { position: absolute; width: 48px; height: 48px; margin: -24px 0 0 -24px; padding: 0; border: 0; background: none; pointer-events: auto;
+    -webkit-tap-highlight-color: transparent; touch-action: manipulation; cursor: pointer; }
+  #hotspots button::before { content: ''; position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+    background: var(--oak); box-shadow: 0 0 0 2px rgba(255,255,255,.85), 0 1px 6px rgba(0,0,0,.35); }
+  #hotspots button::after { content: ''; position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+    border: 2px solid var(--oak); animation: hsPulse 1.8s ease-out infinite; }
+  #hotspots button.on::before { background: #f2ede4; box-shadow: 0 0 0 2px var(--oak), 0 1px 6px rgba(0,0,0,.35); }
+  #hotspots button.on::after { border-color: #f2ede4; }
+  #hotspots button:active::before { transform: scale(0.85); }
+  @keyframes hsPulse { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(2.8); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { #hotspots button::after { animation: none; transform: scale(1.8); opacity: .5; } }
   #mover { position: fixed; transform: translate(-50%, -100%); padding: 10px 12px; display: grid; gap: 8px; z-index: 8; width: min(360px, calc(100vw - 24px)); box-sizing: border-box; }
   #mover * { box-sizing: border-box; min-width: 0; }
   #mover .mvrow button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 8px; padding-right: 8px; }
@@ -231,6 +244,7 @@
   <small id="mvInfo"></small>
 </div>
 <div id="pinTip" class="panel" hidden>Click to open this render</div>
+<div id="hotspots" hidden></div>
 <button id="doorTip" class="panel" hidden><kbd class="mouse-only" style="display:inline">E</kbd> <span id="doorTipText">Open door</span></button>
 
 <div id="scrim" hidden></div>
@@ -1536,7 +1550,7 @@ function updateDoors(dt) {
   const n = !(started && $('lightbox').hidden) ? null : updateDoors.k === 0 || !doors.includes(doorNear) || Math.hypot(doorNear.center.x - player.pos.x, doorNear.center.z - player.pos.z) > 2.1 ? nearestDoor() : doorNear;
   if (n !== doorNear) {
     doorNear = n;
-    $('doorTip').hidden = !n;
+    $('doorTip').hidden = !n || coarse;
   }
   if (n) $('doorTipText').textContent = n.kind === 'swap' ? n.prompt() : n.name ? `${n.target ? 'Close' : 'Open'} ${n.name}` : `${n.target ? 'Close' : 'Open'} the ${n.label.toLowerCase()}`;
 }
@@ -1545,6 +1559,40 @@ addEventListener('keydown', (e) => {
   if ((e.code === 'KeyE' || e.code === 'Space') && doorNear) { e.preventDefault(); toggleDoor(doorNear); }
 });
 $('doorTip').addEventListener('click', () => { if (doorNear) toggleDoor(doorNear); });
+// touch: a pulsing circle on every interactable within reach and in view; tap it to open/close or pick up the furniture
+const hs = { list: [], k: 0, pool: new Map() };
+function doorLabel(d) { return d.kind === 'swap' ? d.prompt() : d.name ? `${d.target ? 'Close' : 'Open'} ${d.name}` : `${d.target ? 'Close' : 'Open'} the ${(d.label || 'door').toLowerCase()}`; }
+function updateHotspots() {
+  const box = $('hotspots');
+  const show = coarse && started && mode === 'walk' && !measuring && $('lightbox').hidden;
+  box.hidden = !show; if (!show) return;
+  if ((hs.k++ % 6) === 0) {                               // who is in reach and not behind a wall (raycasts, so not every frame)
+    const f = new THREE.Vector3(); camera.getWorldDirection(f);
+    const cand = [];
+    for (const d of doors) {
+      if (!d.center || !d.parts) continue;
+      const flat = Math.hypot(d.center.x - player.pos.x, d.center.z - player.pos.z);
+      if (flat > 2.8) continue;
+      const to = d.center.clone().sub(camera.position); if (to.dot(f) <= 0.05) continue;
+      cand.push([flat, d]);
+    }
+    cand.sort((a, b) => a[0] - b[0]);
+    hs.list = cand.slice(0, 10).map((c) => c[1]).filter((d) => !doorHidden(d));
+  }
+  const live = new Set();
+  const v = new THREE.Vector3();
+  for (const d of hs.list) {
+    v.copy(d.center).project(camera);
+    if (v.z > 1 || Math.abs(v.x) > 1.02 || Math.abs(v.y) > 1.02) continue;
+    let b = hs.pool.get(d);
+    if (!b) { b = document.createElement('button'); b.type = 'button'; b.addEventListener('click', (e) => { e.stopPropagation(); toggleDoor(d); }); box.appendChild(b); hs.pool.set(d, b); }
+    b.style.left = `${((v.x + 1) / 2) * innerWidth}px`; b.style.top = `${((1 - v.y) / 2) * innerHeight}px`;
+    b.classList.toggle('on', d.kind !== 'swap' && !!d.target);
+    const lbl = doorLabel(d); if (b.getAttribute('aria-label') !== lbl) b.setAttribute('aria-label', lbl);
+    b.hidden = false; live.add(d);
+  }
+  for (const [d, b] of hs.pool) if (!live.has(d)) { if (!doors.includes(d)) { b.remove(); hs.pool.delete(d); } else b.hidden = true; }
+}
 // clicking a door leaf also toggles it
 canvas.addEventListener('click', (e) => {
   if (!started || mode !== 'walk' || measuring) return;
@@ -3238,7 +3286,7 @@ function frame() {
   updatePinTip();
   placeMover();
   updateOcclusion();
-  updateDoors(dt);
+  updateDoors(dt); updateHotspots();
   if (window.__clouds) window.__clouds.rotation.y += dt * 0.004;
   window.__cam = camera.position.toArray().map((v) => +v.toFixed(2)).join(',') + ' ' + [player.yaw, player.pitch].map((v) => +v.toFixed(2)).join(',');
   frame.n = (frame.n || 0) + 1;
