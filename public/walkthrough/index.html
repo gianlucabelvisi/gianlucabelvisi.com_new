@@ -482,7 +482,7 @@ const MATS = {
   wall: std({ color: 0xebe8e2, roughness: 0.92 }),
   ceiling: std({ color: 0xf0eeea, roughness: 0.95 }),
   frame: std({ color: 0xf1f0ec, roughness: 0.45 }),
-  door: std({ color: 0xefeeea, roughness: 0.4 }),
+  door: std({ color: 0xdfddd7, roughness: 0.4 }),   // a touch darker than the walls so the leaves read
   worktop: std({ color: 0xeeebe6, roughness: 0.25 }),
   black: std({ color: 0x0b0b0c, roughness: 0.12, metalness: 0.2 }),
   steel: std({ color: 0xcfd1d4, roughness: 0.25, metalness: 1 }),
@@ -992,7 +992,37 @@ $('go').addEventListener('click', () => {
   }
   canvas.focus();
   showHint();
+  startArrow();
 });
+// ------------------------------------------------------------ first-seconds hint: a pulsing arrow by the front door pointing at it
+// (shows for 5 s after the intro closes, gone as soon as you start walking; looking around doesn't count)
+const hintArrow = (() => {
+  const sh = new THREE.Shape();                          // arrow in its own XY plane, pointing along +x
+  sh.moveTo(-0.28, 0.07); sh.lineTo(0.02, 0.07); sh.lineTo(0.02, 0.17); sh.lineTo(0.28, 0); sh.lineTo(0.02, -0.17); sh.lineTo(0.02, -0.07); sh.lineTo(-0.28, -0.07); sh.closePath();
+  const mat = new THREE.MeshBasicMaterial({ color: 0xcf9152, transparent: true, opacity: 0, side: THREE.DoubleSide, toneMapped: false, depthWrite: false });
+  const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), mat);
+  const g = new THREE.Group(); g.add(m); g.visible = false; g.renderOrder = 30;
+  // 0.55 m out from the front door (leaf spans x 5.46–6.50 at y≈0.23), 1.15 m up; the arrow lies in a plane facing the start spot and points +y (into the door)
+  g.position.copy(b2t(5.98, -0.55, 1.15));
+  const along = b2t(0, 1).normalize(), up = new THREE.Vector3(0, 1, 0), nrm = new THREE.Vector3().crossVectors(along, up);
+  g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(along, up, nrm));
+  g.lookAtStart = () => { const to = b2t(2.0, -1.5, 1.2).sub(g.position); if (to.dot(nrm) < 0) g.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI); };
+  g.lookAtStart();
+  scene.add(g);
+  return { g, m, mat, t0: 0, on: false };
+})();
+function startArrow() { hintArrow.t0 = performance.now(); hintArrow.on = true; hintArrow.g.visible = true; }
+function stopArrow() { hintArrow.on = false; }
+function updateArrow() {
+  const H = hintArrow; if (!H.g.visible) return;
+  const t = (performance.now() - H.t0) / 1000;
+  if (t > 5) H.on = false;
+  if (!H.on) { H.mat.opacity -= 0.06; if (H.mat.opacity <= 0) { H.mat.opacity = 0; H.g.visible = false; } return; }
+  const pulse = 0.5 + 0.5 * Math.sin(t * Math.PI * 2 * 1.2);
+  H.mat.opacity = Math.min(1, t * 3) * (0.6 + 0.4 * pulse);
+  H.m.scale.setScalar(0.92 + 0.12 * pulse);
+  H.m.position.x = 0.08 * pulse;                        // nudges towards the door
+}
 
 // ------------------------------------------------------------ rooms, chips, minimap
 const ROOM_BY_ID = Object.fromEntries(PLAN.rooms.map((r) => [r.id, r]));
@@ -3228,8 +3258,8 @@ function frame() {
       step.set(0, 0, 0).addScaledVector(fwd, f).addScaledVector(right, s);
       if (step.lengthSq() > 1) step.normalize();
       tryMove(step.multiplyScalar(speed));
-      autoTarget = null;
-    } else stepAuto(dt);
+      autoTarget = null; if (hintArrow.on) stopArrow();
+    } else { if (autoTarget && hintArrow.on) stopArrow(); stepAuto(dt); }
     camera.position.copy(player.pos);
     camera.rotation.set(player.pitch, player.yaw, 0);
   } else {
@@ -3240,7 +3270,7 @@ function frame() {
   updatePinTip();
   placeMover();
   updateOcclusion();
-  updateDoors(dt);
+  updateDoors(dt); updateArrow();
   if (window.__clouds) window.__clouds.rotation.y += dt * 0.004;
   window.__cam = camera.position.toArray().map((v) => +v.toFixed(2)).join(',') + ' ' + [player.yaw, player.pitch].map((v) => +v.toFixed(2)).join(',');
   frame.n = (frame.n || 0) + 1;
