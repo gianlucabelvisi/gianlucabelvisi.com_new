@@ -223,13 +223,13 @@
 
 <div id="quick" class="panel" role="group" aria-label="View and show">
   <button id="qView" title="View from above (V)" aria-pressed="false"><i>V</i>From above</button>
-  <button data-for="tPhotos" title="Render pins (1)"><i>1</i>Pins</button>
-  <button data-for="tDims" title="Dimensions (2)"><i>2</i>Sizes</button>
-  <button data-for="tPlugs" title="Sockets and switches (3)"><i>3</i>Sockets</button>
-  <button data-for="tMeasure" title="Tape measure (4)"><i>4</i>Tape</button>
-  <button data-for="tMap" title="Mini map (5)"><i>5</i>Map</button>
-  <button id="qRun" title="Run instead of walk (6 or R; Shift also runs while held)" aria-pressed="false"><i>6</i>Run</button>
-  <button id="qTime" title="Time of day (T)" aria-pressed="false" aria-controls="timePop"><i id="qTimeIcon">☀</i><span id="qTimeOut">09:00</span></button>
+  <button data-for="tPhotos" title="Render pins (P)"><i>P</i>Pins</button>
+  <button data-for="tDims" title="Sizes (Z)"><i>Z</i>Sizes</button>
+  <button data-for="tPlugs" title="Sockets and switches (K)"><i>K</i>Sockets</button>
+  <button data-for="tMeasure" title="Tape measure (T)"><i>T</i>Tape</button>
+  <button data-for="tMap" title="Mini map (M)"><i>M</i>Map</button>
+  <button id="qRun" title="Run instead of walk (R; Shift also runs while held)" aria-pressed="false"><i>R</i>Run</button>
+  <button id="qTime" title="Time of day (H)" aria-pressed="false" aria-controls="timePop"><i>H</i><span id="qTimeOut">09:00</span></button>
 </div>
 <div id="timePop" class="panel" hidden role="group" aria-label="Time of day"></div>
 
@@ -300,7 +300,7 @@
         <dt>Mouse</dt><dd>Click the view, then move the mouse to look</dd>
         <dt>E / Space</dt><dd>Open or close the door in front of you</dd>
         <dt>M</dt><dd>Open or close this menu</dd>
-        <dt>1 – 5</dt><dd>Render pins, sizes, sockets, tape measure, mini map</dd>
+        <dt>P Z K T M</dt><dd>Render pins, sizes, sockets, tape measure, mini map</dd>
         <dt>, and .</dt><dd>Move the selected bed 5 cm left or right</dd>
         <dt>Esc</dt><dd>Release the mouse</dd>
       </dl>
@@ -330,7 +330,7 @@
     <dl class="help mouse-only">
       <dt>W A S D</dt><dd>Walk, with the mouse to look around</dd>
       <dt>E / Space</dt><dd>Open doors, the fridge and the balcony door</dd>
-      <dt>R · V · T</dt><dd>Run, view from above, time of day</dd>
+      <dt>R · V · H</dt><dd>Run, view from above, time of day</dd>
     </dl>
     <dl class="help touch-only">
       <dt>Joystick</dt><dd>Bottom left: push to walk</dd>
@@ -404,16 +404,16 @@ sky.material.uniforms.rayleigh.value = 3.2;
 sky.material.uniforms.mieCoefficient.value = 0.0018;
 sky.material.uniforms.mieDirectionalG.value = 0.8;
 // deeper, bluer daytime sky: tone the physical sky down a touch and push its saturation (the raw shader washes out to white under ACES)
-sky.material.uniforms.skyGain = { value: 0.62 };
+sky.material.uniforms.skyGain = { value: 0.56 };
 sky.material.fragmentShader = sky.material.fragmentShader.replace('varying vec3 vWorldPosition;', 'varying vec3 vWorldPosition;\nuniform float skyGain;')
-  .replace(/gl_FragColor = vec4\( (\w+), 1\.0 \);/, (m, v) => `vec3 sc = mix( vec3( dot( ${v}, vec3( 0.3333 ) ) ), ${v}, 1.45 ); gl_FragColor = vec4( max( sc, 0.0 ) * skyGain, 1.0 );`);
+  .replace(/gl_FragColor = vec4\( (\w+), 1\.0 \);/, (m, v) => `vec3 sc = mix( vec3( dot( ${v}, vec3( 0.3333 ) ) ), ${v}, 1.7 ); gl_FragColor = vec4( max( sc, 0.0 ) * skyGain, 1.0 );`);
 sky.material.needsUpdate = true;
 scene.add(sky);
 const skyScene = new THREE.Scene();
 const skyForEnv = new Sky();
 skyForEnv.scale.setScalar(4000);
-skyForEnv.material.uniforms.turbidity.value = 2.4;
-skyForEnv.material.uniforms.rayleigh.value = 2.2;
+skyForEnv.material.uniforms.turbidity.value = 1.6;
+skyForEnv.material.uniforms.rayleigh.value = 3.0;
 skyScene.add(skyForEnv);
 const pmrem = new THREE.PMREMGenerator(renderer);
 let envRT = null;
@@ -742,18 +742,18 @@ function updateSun(h, rebuildEnv) {
   dayLevel = dusk;
   if (el > -1) {
     sun.position.copy(CENTER).addScaledVector(v, 40);
-    sun.intensity = 2.8 * lift;                                 // a bit softer so sunlit facades keep their colour
-    sun.color.setHSL(0.09, 0.9, 0.62 + 0.3 * lift);
+    sun.intensity = 3.8 * lift;                                 // clear-sky, Mediterranean sun: strong and warm, crisp shadows
+    sun.color.setHSL(0.1, 0.95, 0.58 + 0.24 * lift);
   } else {                                                       // moonlight: dim and blue
     sun.position.copy(CENTER).addScaledVector(MOON, 40);
     sun.intensity = 0.38 * (1 - dusk);
     sun.color.set(0x9db6ff);
   }
-  hemi.intensity = 0.06 + 0.84 * dusk * (0.55 + 0.45 * lift);
-  hemi.color.set(dusk < 0.5 ? 0x5a6a90 : 0xe4ecf7);
+  hemi.intensity = 0.06 + 0.42 * dusk * (0.55 + 0.45 * lift);
+  hemi.color.set(dusk < 0.5 ? 0x5a6a90 : 0xa9c9f2); hemi.groundColor.set(dusk < 0.5 ? 0x3a3028 : 0xc29a6c);   // blue sky above, warm bounce below
   sky.visible = el > -10;
   scene.background = sky.visible ? null : new THREE.Color(0x05070f);
-  renderer.toneMappingExposure = 1.1 + 0.6 * (1 - dusk);
+  renderer.toneMappingExposure = 0.8 + 0.9 * (1 - dusk);
   stars.material.opacity = THREE.MathUtils.clamp(1 - dusk * 1.6, 0, 1);
   stars.visible = stars.material.opacity > 0.01;
   if (window.__clouds) window.__clouds.material.color.setScalar(0.12 + 0.88 * dusk);
@@ -763,12 +763,12 @@ function updateSun(h, rebuildEnv) {
   skyForEnv.material.uniforms.sunPosition.value.copy(v);
   const hh = Math.floor(h), mm = Math.round((h - hh) * 60);
   $('sunout').textContent = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
-  $('qTimeOut').textContent = $('sunout').textContent; $('qTimeIcon').textContent = el > -1 ? '☀' : '☾';
+  $('qTimeOut').textContent = $('sunout').textContent;
   if (rebuildEnv) {
     if (envRT) envRT.dispose();
     envRT = pmrem.fromScene(skyScene);
     scene.environment = envRT.texture;
-    scene.environmentIntensity = 0.05 + 0.75 * dayLevel;
+    scene.environmentIntensity = 0.05 + 0.45 * dayLevel;
   }
 }
 $('sunrange').addEventListener('input', (e) => updateSun(+e.target.value, false));
@@ -1035,7 +1035,7 @@ canvas.addEventListener('pointerdown', () => { if (!$('timePop').hidden) closeMe
 addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey || !$('lightbox').hidden) return;
   if (e.code === 'KeyV' && !e.repeat) setMode(mode === 'walk' ? 'over' : 'walk');
-  else if (e.code === 'KeyT' && !e.repeat) $('qTime').click();
+  else if (e.code === 'KeyH' && !e.repeat) $('qTime').click();
   else if (e.code === 'Escape' && !$('timePop').hidden) closeMenu();
 });
 toggle($('tMap'), null, (on) => { $('mapwrap').hidden = !on; });
@@ -1161,6 +1161,9 @@ map.addEventListener('click', (e) => {
 });
 map.style.cursor = 'crosshair';
 function drawMap() {
+  if ($('mapwrap').hidden) return;
+  const key = [Math.round(player.pos.x * 50), Math.round(player.pos.z * 50), Math.round(player.yaw * 60), currentRoom, plugsGroup.visible, pinsGroup.visible, map.clientWidth].join('|');
+  if (key === drawMap.key) return; drawMap.key = key;
   const dpr = devicePixelRatio || 1, W = map.clientWidth, H = map.clientHeight;
   if (map.width !== Math.round(W * dpr)) { map.width = Math.round(W * dpr); map.height = Math.round(H * dpr); }
   mg.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1251,9 +1254,9 @@ function toggle(btn, group, extra) {
 for (const q of document.querySelectorAll('#quick button[data-for]')) q.addEventListener('click', () => $(q.dataset.for).click());
 addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
-  const map = { Digit1: 'tPhotos', Digit2: 'tDims', Digit3: 'tPlugs', Digit4: 'tMeasure', Digit5: 'tMap' };
+  const map = { KeyP: 'tPhotos', KeyZ: 'tDims', KeyK: 'tPlugs', KeyT: 'tMeasure', KeyM: 'tMap' };
   if (map[e.code]) { $(map[e.code]).click(); }
-  if ((e.code === 'Digit6' || (e.code === 'KeyR' && !selected)) && !e.repeat) setRun(!running);
+  if (e.code === 'KeyR' && !selected && !e.repeat) setRun(!running);
 });
 // run toggle: double walking speed until switched off (Shift still flips it while held)
 let running = false;
@@ -1493,7 +1496,8 @@ function updatePinTip() {
 const occRay = new THREE.Raycaster();
 const occV = new THREE.Vector3(), occD = new THREE.Vector3();
 let occTick = 0;
-function occluders() { return collidables.filter((o) => o.material !== MATS.glass); }
+let _occ = null, _occN = -1, _occT = 0;
+function occluders() { if (_occN !== collidables.length || ++_occT % 15 === 0) { _occ = collidables.filter((o) => o.material !== MATS.glass); _occN = collidables.length; } return _occ; }
 function updateOcclusion() {
   if (occTick++ % 4) return;
   const occ = occluders();
@@ -1682,6 +1686,16 @@ MATS.linen = std({ color: 0xf6f4ef, roughness: 0.9 });
 MATS.legwood = std({ color: 0xc9a473, roughness: 0.5 });
 const bed = { width: 1.6, offset: null, doorGap: 0.90, group: null, dims: [], door: null, wall: null };
 // one draw call per material for a finished piece of furniture (the pieces never move relative to each other)
+// many small static meshes with the same material (lamp lenses, spots, fittings) → one draw call per material
+function bakeLoose(list, opts = {}) {
+  const byMat = new Map();
+  for (const m of list) { m.updateMatrixWorld(true); const g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone(); g.applyMatrix4(m.matrixWorld);
+    for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
+    (byMat.get(m.material) || byMat.set(m.material, []).get(m.material)).push(g); if (m.parent) m.parent.remove(m); }
+  const out = [];
+  for (const [mat, geos] of byMat) { const mm = new THREE.Mesh(mergeGeometries(geos, false), mat); mm.castShadow = !!opts.shadow; mm.receiveShadow = !!opts.receive; if (opts.order) mm.renderOrder = opts.order; scene.add(mm); out.push(mm); }
+  return out;
+}
 function mergeByMaterial(g, solid = null) {
   const byMat = new Map();
   for (const c of [...g.children]) {
@@ -3236,14 +3250,15 @@ MATS.kSpotLed = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, emissive: 0xff
 MATS.kSpotRim = new THREE.MeshStandardMaterial({ color: 0xc9c9c6, roughness: 0.35, metalness: 0.6 });
 const kitchenSpots = [];
 {
-  const UZ0 = 1.46;      // underside of the wall cabinets (build.py)
+  const UZ0 = 1.46, spotBits = [];      // underside of the wall cabinets (build.py)
   for (const [x, y] of [[1.45, 0.68], [2.35, 0.68], [3.25, 0.68], [4.31, 1.30], [4.31, 2.30]]) {
     const P = b2t(x, y, UZ0);
-    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.034, 0.006, 24), MATS.kSpotRim); rim.position.copy(P).setY(UZ0 - 0.003); scene.add(rim);
-    const led = new THREE.Mesh(new THREE.CircleGeometry(0.024, 24), MATS.kSpotLed); led.rotation.x = Math.PI / 2; led.position.copy(P).setY(UZ0 - 0.0065); scene.add(led);
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.034, 0.006, 24), MATS.kSpotRim); rim.position.copy(P).setY(UZ0 - 0.003); scene.add(rim); spotBits.push(rim);
+    const led = new THREE.Mesh(new THREE.CircleGeometry(0.024, 24), MATS.kSpotLed); led.rotation.x = Math.PI / 2; led.position.copy(P).setY(UZ0 - 0.0065); scene.add(led); spotBits.push(led);
     const sp = new THREE.SpotLight(0xfff0d8, 0, 3, 0.75, 0.6, 1.6); sp.position.copy(P).setY(UZ0 - 0.01); sp.target.position.copy(P).setY(0); sp.visible = false;
     scene.add(sp, sp.target); kitchenSpots.push(sp);
   }
+  bakeLoose(spotBits);
 }
 // balcony: a solar string of tiny warm bulbs draped along the railing, just under the handrail. It charges in the day and comes on
 // by itself when it gets dark, always dim; no switch.
@@ -4073,12 +4088,13 @@ const poolTex = (() => { const c = document.createElement('canvas'); c.width = c
 MATS.lampPool = new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
 const lampLights = [];
 {
-  const ZGf = -9.6, lens = new THREE.CircleGeometry(0.19, 20), pool = new THREE.PlaneGeometry(11, 11);
+  const ZGf = -9.6, lens = new THREE.CircleGeometry(0.19, 20), pool = new THREE.PlaneGeometry(11, 11), lampBits = [], poolBits = [];
   for (const [x, y] of LAMPS) {
     const onBridge = x > -27.4 && x < -8.6 && y > 47 && y < 62;
-    const l = new THREE.Mesh(lens, MATS.lampLens); l.rotation.x = Math.PI / 2; l.position.copy(b2t(x, y, ZGf + 6.845)); scene.add(l);
-    const p = new THREE.Mesh(pool, MATS.lampPool); p.rotation.x = -Math.PI / 2; p.position.copy(b2t(x, y, ZGf + (onBridge ? 0.2 : 0.08))); p.renderOrder = 3; scene.add(p);
+    const l = new THREE.Mesh(lens, MATS.lampLens); l.rotation.x = Math.PI / 2; l.position.copy(b2t(x, y, ZGf + 6.845)); scene.add(l); lampBits.push(l);
+    const p = new THREE.Mesh(pool, MATS.lampPool); p.rotation.x = -Math.PI / 2; p.position.copy(b2t(x, y, ZGf + (onBridge ? 0.2 : 0.08))); scene.add(p); poolBits.push(p);
   }
+  bakeLoose(lampBits); bakeLoose(poolBits, { order: 3 });
   for (const [x, y] of [[-8.1, -10], [-8.1, 15], [-8.1, -35]]) { const L = new THREE.PointLight(0xffc27a, 0, 22, 1.4); L.position.copy(b2t(x, y, ZGf + 6.6)); scene.add(L); lampLights.push(L); }
 }
 // the moon: a pale disc with soft maria, high in the southern sky (same direction as the moonlight)
@@ -4158,8 +4174,10 @@ function buildLift() {
   // ceiling fittings on every landing and in the lobby, wall lights at the half landings (glow with the motion-sensor lights)
   MATS.stairLamp = new THREE.MeshStandardMaterial({ color: 0xf2efe8, emissive: 0xfff1dc, emissiveIntensity: 0, roughness: 0.5 });
   { const disc = new THREE.CylinderGeometry(0.17, 0.17, 0.05, 24), wl = new THREE.BoxGeometry(0.06, 0.12, 0.3);
-    for (const [x, y, z] of [[5.6, -1.4, 2.6], [5.6, -1.4, -0.25], [5.6, -1.4, -3.2], [5.6, -1.4, -6.15], [3.6, -5.3, -6.17]]) { const m = new THREE.Mesh(disc, MATS.stairLamp); m.position.copy(b2t(x, y, z - 0.025)); scene.add(m); }
-    for (const lh of [-1.475, -4.425, -7.725]) { const m = new THREE.Mesh(wl, MATS.stairLamp); m.position.copy(b2t(0.28, -2.45, lh + 2.0)); scene.add(m); } }
+    const bits = [];
+    for (const [x, y, z] of [[5.6, -1.4, 2.6], [5.6, -1.4, -0.25], [5.6, -1.4, -3.2], [5.6, -1.4, -6.15], [3.6, -5.3, -6.17]]) { const m = new THREE.Mesh(disc, MATS.stairLamp); m.position.copy(b2t(x, y, z - 0.025)); scene.add(m); bits.push(m); }
+    for (const lh of [-1.475, -4.425, -7.725]) { const m = new THREE.Mesh(wl, MATS.stairLamp); m.position.copy(b2t(0.28, -2.45, lh + 2.0)); scene.add(m); bits.push(m); }
+    bakeLoose(bits); }
   // two lights that follow you round the stairwell (a lit landing + the half landing / lobby next to it)
   for (let i = 0; i < 2; i++) { const p = new THREE.PointLight(0xfff0dc, 0, 7, 1.6); scene.add(p); lift.lamps.push(p); }
   // street door (no. 9): red-brown glazed leaf, hinged on the stairwell side, opening into the lobby
@@ -4362,7 +4380,7 @@ if (modelRoot) furnish(); else window.__afterModel = furnish;
     const fade = Math.min(1, y / (Hh * 0.25)) * Math.min(1, (Hh - y) / (Hh * 0.08)); // soft at zenith seam and horizon
     for (let x = 0; x < W; x++) {
       const i = (y * W + x) * 4, v = px[i] / 255;
-      const a = Math.max(0, Math.min(1, (v - 0.6) / 0.18)) * fade * 0.9;
+      const a = Math.max(0, Math.min(1, (v - 0.74) / 0.12)) * fade * 0.85;   // a few fair-weather clouds
       px[i] = px[i + 1] = px[i + 2] = 255; px[i + 3] = a * 235;
     }
   }
@@ -4377,12 +4395,31 @@ if (modelRoot) furnish(); else window.__afterModel = furnish;
   window.__clouds = dome;
 })();
 
+// ------------------------------------------------------------ performance housekeeping
+// Lights at zero intensity are switched off entirely (each visible light costs every pixel of every material, even at 0), and
+// the render resolution adapts to the device: it steps down when frames are slow and back up when there is headroom.
+let autoLights = null;
+const PR_MAX = Math.min(devicePixelRatio, coarse ? 1.5 : 2), PR_MIN = coarse ? 0.7 : 1;
+let prNow = PR_MAX, ftAvg = 16, prCheck = 0;
+function perfTick(dt) {
+  if (!autoLights && modelRoot) { autoLights = []; scene.traverse((o) => { if (o.isLight && o !== sun && o !== hemi) autoLights.push(o); }); }
+  if (autoLights && frame.n % 3 === 0) for (const L of autoLights) { const v = L.intensity > 0.001; if (L.visible !== v) L.visible = v; }
+  if (!started || document.hidden) return;
+  ftAvg += (Math.min(dt, 0.1) * 1000 - ftAvg) * 0.05;
+  if ((prCheck += dt) < 2.5) return; prCheck = 0;
+  let next = prNow;
+  if (ftAvg > 24 && prNow > PR_MIN) next = Math.max(PR_MIN, prNow - 0.15);
+  else if (ftAvg < 13 && prNow < PR_MAX) next = Math.min(PR_MAX, prNow + 0.1);
+  if (next !== prNow) { prNow = +next.toFixed(2); renderer.setPixelRatio(prNow); resize(); }
+}
+window.__perf = () => ({ prNow, ftAvg: +ftAvg.toFixed(1), lights: autoLights && autoLights.filter((l) => l.visible).length });
+
 // ------------------------------------------------------------ loop
 function resize() {
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w, h, false);
   camera.aspect = w / h; camera.updateProjectionMatrix();
-  if (composer) { composer.setSize(w, h); }
+  if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); }
 }
 addEventListener('resize', resize);
 resize();
@@ -4422,10 +4459,18 @@ function frame() {
   updateOcclusion();
   updateDoors(dt); updateArrow(); updateTV(performance.now());
   if (window.__clouds) window.__clouds.rotation.y += dt * 0.004;
-  window.__cam = camera.position.toArray().map((v) => +v.toFixed(2)).join(',') + ' ' + [player.yaw, player.pitch].map((v) => +v.toFixed(2)).join(',');
   frame.n = (frame.n || 0) + 1;
-  if (shadowDirty || frame.n % 90 === 0) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
-  if (composer) composer.render(); else renderer.render(scene, camera);
+  if (frame.n % 10 === 0) window.__cam = camera.position.toArray().map((v) => +v.toFixed(2)).join(',') + ' ' + [player.yaw, player.pitch].map((v) => +v.toFixed(2)).join(',');
+  perfTick(dt);
+  if (selected && frame.n % 10 === 0) shadowDirty = true;          // furniture being moved
+  // standing still with nothing animating: render at ~10 fps instead of 60 (saves battery; clouds and fades still move)
+  const now = performance.now(), q = camera.quaternion, cp = camera.position;
+  const sig = cp.x * 1.3 + cp.y * 7.1 + cp.z * 13.7 + q.x * 17 + q.y * 19 + q.z * 23 + q.w * 29;
+  const busy = shadowDirty || selected || measuring || mode !== 'walk' || tvState.on || lift.moving || lift.after || lift.open.some((o) => o > 0 && o < 1) || hintArrow.on || Math.abs(sig - (frame.sig ?? 0)) > 1e-6;
+  frame.sig = sig; if (busy) frame.busyAt = now;
+  const idle = now - (frame.busyAt ?? 0) > 900;
+  if (shadowDirty || frame.n % 600 === 0) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
+  if (!idle || frame.n % 6 === 0) { if (composer) composer.render(); else renderer.render(scene, camera); }
   requestAnimationFrame(frame);
 }
 (function doorPlate() {
