@@ -2665,6 +2665,72 @@ const livDims = new THREE.Group(); dimsGroup.add(livDims);
 // real wall-hung TV units you can buy in Denmark (W × H × D m). Fronts: 'doors' = hinged doors, 'fabric' = flip-down flaps with
 // acoustic fabric, 'octave' = drawers either side of perforated flaps. Colours matched by eye.
 const IKEA_DK = (s) => `https://www.ikea.com/dk/da/p/${s}/`;
+// floor-standing wooden TV benches (vente-unique.dk "TV-borde i træ", Oct 2026 — not the tall, white or black ones; + Logo Møbler Yasumi)
+// H = carcass height above the legs (legH); bench: sections across the front (fractions of the width) and a front style
+const VU = (slug) => `https://www.vente-unique.dk/p/${slug}`;
+const BENCH_MODELS = [
+  { brand: 'Logo Møbler', name: 'Yasumi RTV195', W: 1.95, D: 0.39, H: 0.445, legH: 0.08, legs: 'sled', front: 'bench', style: 'plain', lip: true, sections: [['door', .25], ['door', .25], ['door', .25], ['door', .25]],
+    price: '1,460 kr (før 1,950)', note: '195 × 39 × 55 cm · laminated oak · 4 push doors · set-back sled base', finishes: [{ name: 'Lamineret eg', body: 0xc39463, front: 0xc39463, grain: true, url: 'https://logomoebler.dk/products/yasumi-rtv195-tv-bord' }] },
+  { brand: 'Vente-unique', name: 'ISLARA (mango)', W: 1.65, D: 0.40, H: 0.44, legH: 0.06, legs: 'block', front: 'bench', style: 'fluted', round: true, sections: [['door', .36], ['niche2', .28], ['door', .36]],
+    price: '3,979 kr', note: '165 × 40 × 50 cm · solid mango wood · 2 doors + 2 niches · rounded ends', finishes: [{ name: 'Naturlig mango', body: 0xb98a5a, front: 0xb98a5a, grain: true, url: VU('islara-tv-mobel-med-2-lager-og-2-nicher-i-mangotrae-naturlig-islara') }] },
+  { brand: 'Vente-unique', name: 'LOTULA', W: 1.80, D: 0.445, H: 0.40, legH: 0.026, legs: 'plinth', front: 'bench', style: 'grain', topC: 0xd6c8b2, sections: [['door', .25], ['nicheTop', .3], ['door', .2], ['door', .25]],
+    price: '1,459 kr', note: '180 × 44.5 × 44.6 cm · dark natural wood look with a beige travertine-look top · 3 doors + 1 niche', finishes: [{ name: 'Mørk naturlig / beige travertin', body: 0x5a4636, front: 0x5e4a39, grain: true, url: VU('lotula-tv-mobel-med-3-lager-og-1-niche-mork-naturlig-og-beige-travertin-effekt-lotula') }] },
+  { brand: 'Vente-unique', name: 'EROLYA', W: 1.80, D: 0.445, H: 0.42, legH: 0.026, legs: 'plinth', front: 'bench', style: 'fluted', sections: [['door', .3], ['nicheTop', .4], ['door', .3]],
+    price: '1,699 kr', note: '180 × 44.5 × 44.6 cm · beige fluted fronts · 3 doors + 1 niche', finishes: [{ name: 'Beige', body: 0xc0b099, front: 0xc2b29b, url: VU('erolya-tv-bord-med-3-dore-og-1-niche-beige-erolya') }] },
+  { brand: 'Vente-unique', name: 'Walnut 4 drawers + 2 sliding doors', W: 1.80, D: 0.35, H: 0.36, legH: 0.14, legs: 'taper', front: 'bench', style: 'fluted', sections: [['door', .27], ['drawers4', .46], ['door', .27]],
+    price: '1,336 kr', note: '180 × 35 × 50 cm · brown walnut look · fluted sliding doors, 4 drawers with metal pulls, wooden legs', finishes: [{ name: 'Brun', body: 0x7a4f30, front: 0x7f5333, grain: true, url: VU('tv-mobel-180x35x50-cm-4-skuffer-og-2-skydedore-ben-i-trae-og-handtag-i-metal-brun') }] },
+  { brand: 'Vente-unique', name: 'Louvre doors 150', W: 1.50, D: 0.35, H: 0.32, legH: 0.12, legs: 'splay', front: 'bench', style: 'louvre', sections: [['door', .33], ['nicheDrawer', .34], ['door', .33]],
+    price: '852 kr', note: '150 × 35 × 44 cm · dark walnut look · 2 louvre doors + drawer, cable management', finishes: [{ name: 'Brun', body: 0x5b3b28, front: 0x5e3e2a, grain: true, url: VU('moderne-tv-mobel-150-x-35-x-44-cm-2-persiennelager-og-1-skuffe-kabelstyring-mdf-brun') }] },
+  { brand: 'Vente-unique', name: 'Checker oak 200', W: 2.00, D: 0.35, H: 0.32, legH: 0.125, legs: 'metal', front: 'bench', style: 'checker', sections: [['door', .38], ['drawer', .24], ['door', .38]],
+    price: '731 kr', note: '200 × 35 × 44.5 cm · natural oak look, carved checker fronts, black metal legs · 2 sliding doors + drawer', finishes: [{ name: 'Natur', body: 0xd2a463, front: 0xd6a967, url: VU('moderne-tv-mobel-180x40x40-cm-afrundede-hjorner-2-skydedore-og-1-skuffe-mdf-natur') }] },
+  { brand: 'Vente-unique', name: 'DEVIKA (LED)', W: 1.90, D: 0.40, H: 0.38, legH: 0.06, legs: 'plinth', front: 'bench', style: 'grain', led: true, sections: [['drawer', .34], ['niche2', .32], ['drawer', .34]],
+    price: '2,999 kr', note: '190 × 40 × 44 cm · dark natural and beige · 2 drawers + 2 niches with LED · floating plinth', finishes: [{ name: 'Mørk natur / beige', body: 0x8a5a36, front: 0x8e5e39, grain: true, url: VU('devika-tv-mobel-med-2-skuffer-og-2-nicher-med-led-lys-i-mdf-mork-natur-og-beige-devika-af-pascal-morabito') }] },
+  { brand: 'Vente-unique', name: 'Gold legs 160', W: 1.60, D: 0.36, H: 0.30, legH: 0.12, legs: 'gold', front: 'bench', style: 'chevron', sections: [['drawers2', .25], ['niche2', .3], ['door', .225], ['door', .225]],
+    price: '629 kr', note: '160 × 36 × 42 cm · natural wood look · 2 drawers, open shelves, 2 chevron doors · gold legs', finishes: [{ name: 'Naturlig', body: 0xc9a066, front: 0xcca469, grain: true, url: VU('tv-bord-160x36x42-cm-med-2-skuffer-og-2-dore-guldben-naturlig') }] },
+];
+function buildBenchFront(add, UM, UF, bodyM, inM, ub, uh, uw, ud) {
+  const grainy = UF.grain ? { map: weaveTex('flat') } : {};
+  const fm = std({ color: UF.front, roughness: 0.72, envMapIntensity: 0.5, ...grainy }), dark = std({ color: new THREE.Color(UF.body).multiplyScalar(0.45).getHex(), roughness: 0.8 });
+  const fz = ud + 0.005, T2 = 0.018;
+  let x = -uw / 2;
+  for (const [kind, f] of UM.sections) {
+    const w = uw * f, cx = x + w / 2; x += w;
+    if (x < uw / 2 - 0.01) add(new THREE.BoxGeometry(T2, uh - 2 * T2, ud - 0.02), bodyM, x, ub + uh / 2, (ud - 0.02) / 2);
+    const face = (fw, fh, py, style = UM.style) => {
+      add(new THREE.BoxGeometry(fw, fh, 0.014), fm, cx, py, fz);
+      if (style === 'fluted') { const n = Math.max(4, Math.round(fw / 0.028)); for (let i = 0; i < n; i++) add(new THREE.CylinderGeometry(0.009, 0.009, fh - 0.01, 8), fm, cx - fw / 2 + (i + 0.5) * fw / n, py, fz + 0.005, false); }
+      else if (style === 'louvre') { const n = Math.round(fh / 0.03); for (let i = 0; i < n; i++) { const s = add(new THREE.BoxGeometry(fw - 0.03, 0.022, 0.006), fm, cx, py - fh / 2 + (i + 0.5) * fh / n, fz + 0.01, false); s.rotation.x = -0.5; } }
+      else if (style === 'checker') { const nx = Math.max(2, Math.round(fw / 0.11)), ny = Math.max(2, Math.round(fh / 0.11)), cw = fw / nx, ch = fh / ny;
+        for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) if ((i + j) % 2) add(new THREE.BoxGeometry(cw - 0.006, ch - 0.006, 0.008), std({ color: new THREE.Color(UF.front).multiplyScalar(0.88).getHex(), roughness: 0.55, ...grainy }), cx - fw / 2 + (i + 0.5) * cw, py - fh / 2 + (j + 0.5) * ch, fz + 0.009, false); }
+      else if (style === 'chevron') { for (let i = -3; i <= 3; i++) { const s = add(new THREE.BoxGeometry(0.006, fh * 0.9, 0.004), dark, cx + i * fw / 8, py, fz + 0.009, false); s.rotation.z = (i < 0 ? 1 : -1) * 0.6; s.scale.y = 0.6; } }
+    };
+    const pull = (py) => add(new THREE.BoxGeometry(0.08, 0.008, 0.012), std({ color: UM.legs === 'gold' ? 0xc9a25a : 0x2a2a2a, metalness: 0.7, roughness: 0.35 }), cx, py, fz + 0.012, false);
+    if (kind === 'door') face(w - 0.006, uh - 0.008, ub + uh / 2);
+    else if (kind === 'drawer') { face(w - 0.006, uh - 0.008, ub + uh / 2, UM.style === 'checker' ? 'checker' : 'plain'); pull(ub + uh - 0.05); }
+    else if (kind === 'drawers2' || kind === 'drawers4') {
+      const rows = 2, cols = kind === 'drawers4' ? 2 : 1, dw = w / cols;
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { const px = x - w + (c + 0.5) * dw, py = ub + (r + 0.5) * uh / rows;
+        add(new THREE.BoxGeometry(dw - 0.006, uh / rows - 0.006, 0.014), fm, px, py, fz); add(new THREE.BoxGeometry(0.07, 0.008, 0.012), std({ color: UM.legs === 'gold' ? 0xc9a25a : 0x2a2a2a, metalness: 0.7, roughness: 0.35 }), px, py + uh / rows * 0.25, fz + 0.012, false); }
+    } else if (kind === 'niche2') { add(new THREE.BoxGeometry(w - 0.02, T2, ud - 0.03), inM, cx, ub + uh / 2, (ud - 0.03) / 2);
+      if (UM.led) add(new THREE.BoxGeometry(w - 0.04, 0.006, 0.01), new THREE.MeshBasicMaterial({ color: 0xffc98a, toneMapped: false }), cx, ub + uh - T2 - 0.004, ud - 0.03, false); }
+    else if (kind === 'nicheTop') { add(new THREE.BoxGeometry(w - 0.02, T2, ud - 0.03), inM, cx, ub + uh * 0.55, (ud - 0.03) / 2); face(w - 0.006, uh * 0.55 - 0.008, ub + uh * 0.275); }
+    else if (kind === 'nicheDrawer') { face(w - 0.006, uh * 0.35 - 0.006, ub + uh * 0.825, 'plain'); pull(ub + uh * 0.8); }
+  }
+  // top: travertine-look slab, or a lip (Yasumi)
+  if (UM.topC) add(new THREE.BoxGeometry(uw + 0.01, 0.02, ud + 0.012), std({ color: UM.topC, roughness: 0.6, map: weaveTex('velvet') }), 0, ub + uh + 0.01, ud / 2);
+  if (UM.lip) { add(new THREE.BoxGeometry(uw, 0.025, 0.018), fm, 0, ub + uh + 0.0125, 0.009); for (const s of [-1, 1]) add(new THREE.BoxGeometry(0.018, 0.025, ud), fm, s * (uw / 2 - 0.009), ub + uh + 0.0125, ud / 2); }
+  if (UM.round) for (const s of [-1, 1]) { const c = add(new THREE.CylinderGeometry(ud / 2, ud / 2, uh, 24, 1, false, s < 0 ? Math.PI : 0, Math.PI), fm, s * uw / 2, ub + uh / 2, ud / 2); c.rotation.y = 0; }
+  // legs
+  const lm = UM.legs === 'gold' ? std({ color: 0xc9a25a, metalness: 0.85, roughness: 0.3 }) : UM.legs === 'metal' ? std({ color: 0x1d1d1d, metalness: 0.6, roughness: 0.4 }) : std({ color: new THREE.Color(UF.body).multiplyScalar(0.85).getHex(), roughness: 0.6, ...grainy });
+  const LH = UM.legH;
+  if (UM.legs === 'plinth') add(new THREE.BoxGeometry(uw - 0.08, LH, ud - 0.06), dark, 0, LH / 2, ud / 2);
+  else if (UM.legs === 'sled') for (const s of [-1, 1]) { add(new THREE.BoxGeometry(0.04, LH, ud - 0.08), lm, s * (uw / 2 - 0.22), LH / 2, ud / 2); }
+  else for (const sx of [-1, 1]) for (const sz of [0.06, ud - 0.06]) {
+    const lx = sx * (uw / 2 - (UM.round ? 0.1 : 0.06));
+    const geo = UM.legs === 'block' ? new THREE.BoxGeometry(0.05, LH, 0.05) : UM.legs === 'taper' || UM.legs === 'splay' ? new THREE.CylinderGeometry(0.018, 0.011, LH, 12) : new THREE.CylinderGeometry(0.008, 0.008, LH, 8);
+    const l = add(geo, lm, lx, LH / 2, sz); if (UM.legs === 'splay') { l.rotation.z = -sx * 0.25; l.position.x += sx * 0.012; }
+  }
+}
 const UNIT_MODELS = [
   { brand: 'IKEA', name: 'BESTÅ tv-bord med låger', W: 1.80, H: 0.38, D: 0.42, front: 'doors', n: 3, price: 'from ≈ 1,400 kr + wall rail', note: '3 soft-close doors · hangs on the BESTÅ suspension rail',
     finishes: [
@@ -2696,8 +2762,9 @@ const UNIT_MODELS = [
       { name: 'New White', body: 0xf1efe9, front: 0xf1efe9, url: 'https://vester-moebler.dk/montana/montana-selection/montana-octave-v-tv-bord-ophaengt/' },
       { name: 'Black', body: 0x1d1d1d, front: 0x1d1d1d, url: 'https://vester-moebler.dk/montana/montana-selection/montana-octave-v-tv-bord-ophaengt/' },
     ] },
+  ...BENCH_MODELS,
 ];
-const unitSel = { m: 0, f: 0 };
+const unitSel = { m: UNIT_MODELS.findIndex((u) => u.name === 'Yasumi RTV195'), f: 0 };   // Gianluca: source the bench from vente-unique / Yasumi
 const TVW = { W: 1.445, H: 0.828, D: 0.028, bottom: 0.74, off: 0.03 }, UNIT = { W: 1.8, H: 0.38, D: 0.42, bottom: 0.20 }, ARC = { W: 1.178, H: 0.075, D: 0.1106, bottom: 0.62 };
 function wallRun(C0, n, a, maxS = 6) {
   // how far the wall face runs from C0 along a: stop at a corner or where the wall steps back (an opening)
@@ -2728,7 +2795,7 @@ function buildMedia() {
     M.aToBalcony = toBl(a)[1] > 0;
   }
   if (M.group) { scene.remove(M.group); dropParts(M.parts); for (const d of M.doors) removeHingedDoor(d); M.doors = []; }
-  { const UM = UNIT_MODELS[unitSel.m]; UNIT.W = UM.W; UNIT.H = UM.H; UNIT.D = UM.D; }
+  { const UM = UNIT_MODELS[unitSel.m]; UNIT.W = UM.W; UNIT.H = UM.H; UNIT.D = UM.D; UNIT.bottom = UM.legH ?? 0.20; ARC.bottom = UM.legH !== undefined ? UM.legH + UM.H + (UM.lip ? 0.002 : UM.topC ? 0.02 : 0) : 0.62; }   // floor benches: the soundbar stands on top
   M.offset = Math.max(-(M.half - UNIT.W / 2 - 0.02), Math.min(M.half - UNIT.W / 2 - 0.02, M.offset));
   const { n, a } = M, O = M.base.clone().addScaledVector(a, M.offset);
   const g = new THREE.Group(); g.position.copy(O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a, UP, n));
@@ -2746,8 +2813,8 @@ function buildMedia() {
   add(new THREE.BoxGeometry(ARC.W - 0.1, 0.004, ARC.D * 0.7), MATS.tvFrame, 0, ARC.bottom + ARC.H - 0.001, sz, false);
   // wall-hung media unit (the selected real model); inside a PS5 and an Apple TV
   const UM = UNIT_MODELS[unitSel.m], UF = UM.finishes[unitSel.f];
-  const bodyM = std({ color: UF.body, roughness: 0.55 }), frontM = UM.front === 'fabric' ? std({ color: UF.front, roughness: 1 }) : std({ color: UF.front, roughness: 0.5 });
-  const inM = std({ color: new THREE.Color(UF.body).multiplyScalar(0.8), roughness: 0.7 });
+  const bodyM = UM.front === 'bench' ? std({ color: UF.body, roughness: 0.78, envMapIntensity: 0.5, ...(UF.grain ? { map: weaveTex('flat') } : {}) }) : std({ color: UF.body, roughness: 0.55 }), frontM = UM.front === 'fabric' ? std({ color: UF.front, roughness: 1 }) : std({ color: UF.front, roughness: 0.5 });
+  const inM = std({ color: new THREE.Color(UF.body).multiplyScalar(UM.front === 'bench' ? 0.5 : 0.8), roughness: 0.7 });
   const ub = UNIT.bottom, uh = UNIT.H, uw = UNIT.W, ud = UNIT.D, T2 = 0.018;
   add(new THREE.BoxGeometry(uw, T2, ud), bodyM, 0, ub + uh - T2 / 2, ud / 2);
   add(new THREE.BoxGeometry(uw, T2, ud), bodyM, 0, ub + T2 / 2, ud / 2);
@@ -2774,7 +2841,8 @@ function buildMedia() {
     for (const x of [-1, 1]) add(new THREE.BoxGeometry(fw2, uh - 0.06, 0.012), frontM, x * (fw2 / 2 + 0.015), ub + uh / 2, ud + 0.004);
     add(new THREE.BoxGeometry(uw, 0.03, 0.02), bodyM, 0, ub + uh - 0.015, ud + 0.004); add(new THREE.BoxGeometry(uw, 0.03, 0.02), bodyM, 0, ub + 0.015, ud + 0.004);
     for (const x of [-uw / 2 + 0.015, 0, uw / 2 - 0.015]) add(new THREE.BoxGeometry(0.03, uh, 0.02), bodyM, x, ub + uh / 2, ud + 0.004);
-  } else {                                                 // Octave: drawer | perforated flap(s) | drawer, flush lacquered fronts with thin gaps
+  } else if (UM.front === 'bench') buildBenchFront(add, UM, UF, bodyM, inM, ub, uh, uw, ud);
+  else {                                                 // Octave: drawer | perforated flap(s) | drawer, flush lacquered fronts with thin gaps
     const fwk = (uw - 0.004 * (UM.n + 1)) / UM.n, perfTex = (() => {
       const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
       x.fillStyle = '#' + new THREE.Color(UF.front).getHexString(); x.fillRect(0, 0, 64, 64); x.fillStyle = 'rgba(0,0,0,0.55)';
@@ -2941,7 +3009,7 @@ const mediaMover = {
     return `${UM.note} · ${UM.price} · ${(UM.W * 100).toFixed(1)} × ${(UM.H * 100).toFixed(1)} × ${(UM.D * 100).toFixed(0)} cm · ${c} · wall ${(M.half * 2).toFixed(2)} m`; },
   title: () => `${UNIT_MODELS[unitSel.m].brand} ${UNIT_MODELS[unitSel.m].name} + 65" + Arc`,
   selects: [
-    { id: 'umodel', label: 'TV unit', options: () => UNIT_MODELS.map((m) => ({ label: `${m.brand} ${m.name} · ${(m.W * 100).toFixed(0)} cm` })), get: () => unitSel.m,
+    { id: 'umodel', label: 'TV unit', options: () => UNIT_MODELS.map((m) => ({ group: m.legH !== undefined ? 'Floor-standing, wood (vente-unique / Logo Møbler)' : 'Wall-hung', label: `${m.brand} ${m.name} · ${(m.W * 100).toFixed(0)} cm${m.legH !== undefined ? ` · ${Math.round((m.H + m.legH) * 100 + (m.lip ? 2.5 : m.topC ? 2 : 0))} cm high · ${m.price}` : ''}` })), get: () => unitSel.m,
       set: (i) => { unitSel.m = i; unitSel.f = 0; buildMedia(); livingDims(); buildMoverSelects(mediaMover); } },
     { id: 'ufin', label: 'Finish', options: () => UNIT_MODELS[unitSel.m].finishes.map((f) => ({ label: f.name })), get: () => unitSel.f,
       set: (i) => { unitSel.f = i; buildMedia(); livingDims(); } },
@@ -5323,6 +5391,7 @@ function buildVaerCloset() {
   for (const q of r.parts) q.userData.door = door;
   vpax.swap = door; doors.push(door);
   vpaxDimsUpdate();
+  if (window.__deskReady) window.__buildDesk();          // the desk shares this wall
 }
 function vpaxGaps() {
   const { n, a } = vpax.wall, r = vpax.run, W = r.width;
@@ -5813,7 +5882,144 @@ const alcoveMover = {
   },
   info: () => { const B = alcoveBox(); return `Alcove ${Math.round(B.W * 100)} × ${Math.round(B.D * 100)} cm, 260 cm high · ${alc.model ? 'six shelves 40 cm deep, curtain on a ceiling track (scroll or click its point)' : 'carpenter-built closet: hat shelf, coat rail, two shoe shelves; flush push-open doors (use their points)'}`; },
 };
-function furnish() { fridgeSideSkin(); buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); try { updateNight(); } catch (_) { /* ok */ } }
+// ------------------------------------------------------------ værelse: a desk on the wall shared with the big bedroom (ILVA, not white, 60 cm deep)
+// With Gianluca's own kit: ASUS ProArt 32" monitor, a mic on a bending boom arm with a pop filter, a space-grey MacBook Pro.
+// Desk and the closet share that wall; "Swap" puts the desk by the window and the closet by the door (or back).
+const DESKS = [
+  { name: 'Torsby 140 × 60', W: 1.4, D: 0.6, H: 0.75, kr: 3999, top: 0xaeafab, hpl: true, legs: 'round', leg: 0xcfae80, apron: 'drawers2', url: 'torsby/bordplade-i-lysgraa-hpl-laminat/p-1086853-5643327580', desc: 'light-grey HPL top, lacquered solid oak legs, 2 drawers + open niche' },
+  { name: 'Wilton 120 × 60', W: 1.2, D: 0.6, H: 0.75, kr: 2999, top: 0xb98b56, grain: true, legs: 'square', leg: 0xb58852, apron: 'drawer1', url: 'wilton/top-i-olieret-egefiner/p-1078250-5642877578', desc: 'oiled oak veneer, solid oak legs, drawer + open niche' },
+  { name: 'Richmont 120 × 60', W: 1.2, D: 0.6, H: 0.76, kr: 2999, was: 4299, top: 0xb4875a, grain: true, legs: 'splay', leg: 0xb3885a, apron: 'drawers2', url: 'richmont/bordplade-i-olieret-egefiner/p-1085316-5643267757', desc: 'oiled oak veneer top, splayed solid oak legs, 2 drawers + open niche' },
+  { name: 'Landholm 120 × 60', W: 1.2, D: 0.6, H: 0.75, kr: 3199, top: 0xbb9465, grain: true, legs: 'panel', leg: 0xbb9465, apron: 'plain', url: 'landholm/bordplade-i-matlakeret-egefiner/p-1080578-5642948860', desc: 'matt-lacquered oak veneer, fluted panel legs' },
+];
+const desk = { m: 1, arm: 0, mac: 0, group: null, parts: [] };          // default Wilton (oak) — Gianluca doesn't like white desks
+const DESK_ARMS = ['ProArt stand', 'Monitor arm (clamped, frees the desk)'];
+const MACS = [{ name: 'MacBook Pro 14″', W: 0.3126, D: 0.2212, T: 0.0155 }, { name: 'MacBook Pro 16″', W: 0.3557, D: 0.2481, T: 0.0168 }];
+function screenTex(kind) {
+  return canvasTex(512, 300, (g, W, H) => {
+    g.fillStyle = kind === 'mac' ? '#1b1e24' : '#202630'; g.fillRect(0, 0, W, H);
+    const gr = g.createLinearGradient(0, 0, W, H); gr.addColorStop(0, '#2c3e57'); gr.addColorStop(1, '#5a4a6a'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(255,255,255,0.9)'; g.fillRect(W * 0.08, H * 0.12, W * 0.55, H * 0.7);
+    g.fillStyle = '#e9edf2'; g.fillRect(W * 0.08, H * 0.12, W * 0.55, H * 0.07);
+    g.fillStyle = '#c7ced8'; for (let i = 0; i < 9; i++) g.fillRect(W * 0.11, H * (0.24 + i * 0.06), W * (0.2 + (i * 37 % 30) / 100), H * 0.025);
+    g.fillStyle = 'rgba(25,28,34,0.92)'; g.fillRect(W * 0.67, H * 0.2, W * 0.27, H * 0.5);
+    g.fillStyle = '#7fd1a1'; for (let i = 0; i < 6; i++) g.fillRect(W * 0.69, H * (0.25 + i * 0.07), W * (0.08 + (i * 13 % 10) / 60), H * 0.02);
+    g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(0, H - H * 0.06, W, H * 0.06);
+  }, [1, 1]);
+}
+function deskSpan() {
+  const w = vpax.wall; if (!w) return null; const Dm = DESKS[desk.m];
+  const room = w.sDoor - w.sWin, need = Dm.W + vpaxW() + 0.04;
+  const s0 = vpax.atWin ? w.sDoor - Dm.W : w.sWin + 0.02;
+  return { s0, s1: s0 + Dm.W, fits: need <= room + 1e-6, room, need };
+}
+function buildDesk() {
+  if (desk.group) { scene.remove(desk.group); dropParts(desk.parts); desk.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); desk.group = null; }
+  const w = vpax.wall, sp = deskSpan(); if (!w || !sp) return;
+  const Dm = DESKS[desk.m], { n, a, p } = w, sc = (sp.s0 + sp.s1) / 2;
+  const g = new THREE.Group(); g.position.copy(p).addScaledVector(a, sc).addScaledVector(n, 0.01 + Dm.D / 2);
+  g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a.clone().negate(), UP, n.clone().negate()));   // local +z = towards the wall, x = along it
+  // local frame: x along the wall (+x = towards the window), z = 0 desk centre, +z towards the wall (back edge at +D/2), user sits at -z
+  const parts = [], add = (geo, m, x, y, z, solid = false) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; g.add(o); if (solid) parts.push(o); return o; };
+  const W = Dm.W, D = Dm.D, H = Dm.H, tt = 0.025;
+  const topM = Dm.grain ? std({ color: Dm.top, roughness: 0.5, map: weaveTex('flat') }) : std({ color: Dm.top, roughness: 0.45 });
+  const legM = std({ color: Dm.leg, roughness: 0.55, map: weaveTex('flat') });
+  add(new THREE.BoxGeometry(W, tt, D), topM, 0, H - tt / 2, 0, true);
+  if (Dm.hpl) add(new THREE.BoxGeometry(W + 0.002, 0.006, D + 0.002), std({ color: 0xcfae80, roughness: 0.5 }), 0, H - tt + 0.003, 0);   // oak edge band under the HPL
+  // apron with drawers / niche
+  const ah = Dm.apron === 'plain' ? 0.06 : 0.11, ay = H - tt - ah / 2;
+  if (Dm.apron === 'plain') add(new THREE.BoxGeometry(W - 0.2, ah, 0.02), legM, 0, ay, D / 2 - 0.06);
+  else {
+    add(new THREE.BoxGeometry(W - 0.06, 0.012, D - 0.06), legM, 0, H - tt - ah, 0);                     // apron bottom
+    add(new THREE.BoxGeometry(W - 0.06, ah, 0.012), std({ color: new THREE.Color(Dm.leg).multiplyScalar(0.55).getHex(), roughness: 0.7 }), 0, ay, D / 2 - 0.035);   // back of the niche (in shadow)
+    const knob = std({ color: 0x2a2622, roughness: 0.4 });
+    const fronts = Dm.apron === 'drawers2' ? [[-W * 0.32, W * 0.3], [W * 0.32, W * 0.3]] : [[-W * 0.17, W * 0.52]];
+    for (const [x, fw] of fronts) { add(new THREE.BoxGeometry(fw, ah - 0.012, 0.018), legM, x, ay, -D / 2 + 0.03); add(new THREE.CylinderGeometry(0.009, 0.009, 0.012, 12).rotateX(Math.PI / 2), knob, x, ay, -D / 2 + 0.018); }
+    if (Dm.apron === 'drawer1') add(new THREE.BoxGeometry(0.012, ah, D - 0.06), legM, W * 0.1, ay, 0);
+  }
+  // legs
+  const lx = W / 2 - 0.05, lz = D / 2 - 0.05, lh = H - tt;
+  if (Dm.legs === 'panel') { for (const s of [-1, 1]) { add(new THREE.BoxGeometry(0.03, lh, D - 0.08), legM, s * (W / 2 - 0.12), lh / 2, 0, true);
+    for (let i = 0; i < 9; i++) add(new THREE.BoxGeometry(0.006, lh - 0.02, 0.008), legM, s * (W / 2 - 0.12) + s * 0.016, lh / 2, -(D - 0.1) / 2 + i * (D - 0.1) / 8); } }
+  else for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const leg = Dm.legs === 'round' ? new THREE.CylinderGeometry(0.022, 0.022, lh, 16) : Dm.legs === 'square' ? new THREE.BoxGeometry(0.04, lh, 0.04) : new THREE.CylinderGeometry(0.022, 0.014, lh + 0.02, 14);
+    const l = add(leg, legM, sx * (lx - (Dm.legs === 'splay' ? 0.04 : 0)), lh / 2, sz * (lz - (Dm.legs === 'splay' ? 0.03 : 0)), true);
+    if (Dm.legs === 'splay') { l.rotation.z = -sx * 0.1; l.rotation.x = sz * 0.08; }
+    if (Dm.legs === 'square') { l.scale.set(1, 1, 1); }
+  }
+  // ASUS ProArt 32": panel ≈72.7 × 42.3 cm, dark-grey; on its stand at the back, or on a clamped arm floating closer to the wall
+  const mon = new THREE.Group(); g.add(mon);
+  const darkM = std({ color: 0x2b2c2f, roughness: 0.45, metalness: 0.2 }), scrM = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: 0xffffff, emissiveMap: screenTex('mon'), emissiveIntensity: 0.55, roughness: 0.2 });
+  const PW = 0.727, PH = 0.423, mx = -0.12 * (W > 1.3 ? 1 : 0.5), mz = desk.arm ? D / 2 - 0.12 : D / 2 - 0.16, my = H + (desk.arm ? 0.16 : 0.12) + PH / 2;
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(PW, PH, 0.05), darkM); panel.position.set(mx, my, mz); panel.castShadow = true; mon.add(panel);
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(PW - 0.012, PH - 0.02), scrM); scr.position.set(mx, my + 0.004, mz - 0.0255); scr.rotation.y = Math.PI; mon.add(scr);
+  const logo = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.006, 0.002), std({ color: 0x8a8d92, metalness: 0.7, roughness: 0.3 })); logo.position.set(mx, my - PH / 2 + 0.008, mz - 0.026); mon.add(logo);
+  if (!desk.arm) {
+    add(new THREE.BoxGeometry(0.27, 0.012, 0.21), darkM, mx, H + 0.006, mz + 0.02);                  // square-ish base
+    add(new THREE.BoxGeometry(0.07, my - H - 0.05, 0.035), darkM, mx, H + (my - H - 0.05) / 2, mz + 0.06);   // column
+  } else {
+    const armM = std({ color: 0x1e1e1f, roughness: 0.4, metalness: 0.4 });
+    add(new THREE.BoxGeometry(0.06, 0.08, 0.07), armM, mx + 0.25, H - 0.02, D / 2 - 0.02);           // clamp at the back edge
+    add(new THREE.CylinderGeometry(0.016, 0.016, 0.3, 12), armM, mx + 0.25, H + 0.15, D / 2 - 0.03);
+    const seg = add(new THREE.BoxGeometry(0.28, 0.03, 0.035), armM, mx + 0.12, H + 0.3, D / 2 - 0.06); seg.rotation.y = 0.35;
+    add(new THREE.BoxGeometry(0.1, 0.1, 0.02), armM, mx, my, mz + 0.035);                               // VESA plate
+  }
+  // MacBook Pro (space grey), open ~110°, to the left of the monitor, turned slightly towards you
+  const M = MACS[desk.mac], mac = new THREE.Group(); g.add(mac); const alu = std({ color: 0x5c5e62, roughness: 0.32, metalness: 0.75 });
+  mac.position.set(W / 2 - M.W / 2 - 0.08, H, -D / 2 + M.D / 2 + 0.08); mac.rotation.y = -0.32;
+  const base = new THREE.Mesh(new THREE.BoxGeometry(M.W, M.T * 0.6, M.D), alu); base.position.y = M.T * 0.3; base.castShadow = true; mac.add(base);
+  const kb = new THREE.Mesh(new THREE.PlaneGeometry(M.W * 0.86, M.D * 0.42), std({ color: 0x141416, roughness: 0.6 })); kb.rotation.x = -Math.PI / 2; kb.position.set(0, M.T * 0.6 + 0.0005, M.D * 0.14); mac.add(kb);
+  const tp = new THREE.Mesh(new THREE.PlaneGeometry(M.W * 0.42, M.D * 0.3), std({ color: 0x6a6c70, roughness: 0.3, metalness: 0.6 })); tp.rotation.x = -Math.PI / 2; tp.position.set(0, M.T * 0.6 + 0.0006, -M.D * 0.27); mac.add(tp);
+  const lid = new THREE.Group(); lid.position.set(0, M.T * 0.6, M.D / 2); lid.rotation.x = 0.35; mac.add(lid);
+  const lidM = new THREE.Mesh(new THREE.BoxGeometry(M.W, M.D, M.T * 0.4), alu); lidM.position.y = M.D / 2; lidM.castShadow = true; lid.add(lidM);
+  const ls = new THREE.Mesh(new THREE.PlaneGeometry(M.W * 0.94, M.D * 0.9), new THREE.MeshStandardMaterial({ color: 0x0c0c0c, emissive: 0xffffff, emissiveMap: screenTex('mac'), emissiveIntensity: 0.45 }));
+  ls.position.set(0, M.D / 2, -M.T * 0.21); ls.rotation.y = Math.PI; lid.add(ls);
+  // microphone on a bending boom arm (clamped at the right back corner) with a round pop filter in front
+  const armM2 = std({ color: 0x1b1b1c, roughness: 0.45, metalness: 0.3 }), cx = -W / 2 + 0.07, cz = D / 2 - 0.04;
+  add(new THREE.BoxGeometry(0.05, 0.08, 0.06), armM2, cx, H - 0.02, cz);
+  add(new THREE.CylinderGeometry(0.012, 0.012, 0.12, 10), armM2, cx, H + 0.06, cz);
+  const j1 = new THREE.Vector3(cx, H + 0.12, cz), j2 = new THREE.Vector3(cx + 0.06, H + 0.5, cz - 0.18), j3 = new THREE.Vector3(cx + 0.1, H + 0.36, -D / 2 + 0.14);
+  for (const [A, B] of [[j1, j2], [j2, j3]]) {
+    const L = A.distanceTo(B), mid = A.clone().lerp(B, 0.5);
+    for (const off of [-0.012, 0.012]) { const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, L, 8), armM2); rod.position.copy(mid).add(new THREE.Vector3(off, 0, 0)); rod.quaternion.setFromUnitVectors(UP, B.clone().sub(A).normalize()); rod.castShadow = true; g.add(rod); }
+    const spring = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, L * 0.6, 6), std({ color: 0x9a9da2, metalness: 0.8, roughness: 0.3 })); spring.position.copy(mid).add(new THREE.Vector3(0, 0.02, 0)); spring.quaternion.setFromUnitVectors(UP, B.clone().sub(A).normalize()); g.add(spring);
+  }
+  for (const J of [j2, j3]) { const k = new THREE.Mesh(new THREE.SphereGeometry(0.016, 10, 8), armM2); k.position.copy(J); g.add(k); }
+  const micBody = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.026, 0.17, 18), std({ color: 0x232325, roughness: 0.5, metalness: 0.3 }));
+  micBody.position.copy(j3).add(new THREE.Vector3(0.01, -0.06, -0.03)); micBody.rotation.x = 1.2; micBody.castShadow = true; g.add(micBody);
+  const grille = new THREE.Mesh(new THREE.SphereGeometry(0.031, 16, 10), std({ color: 0x3a3b3e, roughness: 0.7, metalness: 0.4 })); grille.position.copy(micBody.position).add(new THREE.Vector3(0, -0.03, -0.075)); g.add(grille);
+  const pf = new THREE.Group(); pf.position.copy(grille.position).add(new THREE.Vector3(0, 0, -0.08)); g.add(pf);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.005, 8, 32), armM2); pf.add(ring);
+  const mesh = new THREE.Mesh(new THREE.CircleGeometry(0.073, 32), new THREE.MeshStandardMaterial({ color: 0x111111, transparent: true, opacity: 0.55, side: THREE.DoubleSide, roughness: 0.9 })); pf.add(mesh);
+  const goose = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.14, 8), armM2); goose.position.set(0.05, 0.08, 0.06); goose.rotation.set(0.6, 0, -0.5); pf.add(goose);
+  scene.add(g); g.updateMatrixWorld(true);
+  const hitC = new THREE.Vector3(0, H, 0).applyMatrix4(g.matrixWorld);
+  const door = { kind: 'swap', label: 'Desk', parts, center: hitC.clone().setY(H + 0.2),
+    swap: () => selectFurniture(selected === deskMover ? null : deskMover), prompt: () => (selected === deskMover ? 'Done with the desk' : 'Desk options') };
+  for (const q of parts) { q.userData.door = door; q.userData.furniture = true; collidables.push(q); }
+  const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Desk'); if (di >= 0) doors.splice(di, 1);
+  doors.push(door); desk.group = g; desk.parts = parts; shadowDirty = true; window.__deskReady = true;
+}
+window.__buildDesk = () => buildDesk();
+function swapDeskCloset() {
+  const w = vpax.wall; if (!w) return;
+  vpax.atWin = !vpax.atWin; vpax.off = vpax.atWin ? 99 : 0;
+  buildVaerCloset(); buildDesk();
+  const sp = deskSpan(); showToast(`Desk by the ${vpax.atWin ? 'door' : 'window'}, closet by the ${vpax.atWin ? 'window' : 'door'}${sp && !sp.fits ? ' — they overlap: pick a narrower closet or desk' : ''}`);
+}
+const deskMover = {
+  name: 'Desk', title: () => `ILVA ${DESKS[desk.m].name} · desk by the ${vpax.atWin ? 'door' : 'window'}`,
+  anchor: () => (desk.group ? desk.group.position.clone().setY(1.5) : null),
+  variant: { label: () => `Swap: desk by the ${vpax.atWin ? 'window' : 'door'}, closet by the ${vpax.atWin ? 'door' : 'window'}`, run: () => { swapDeskCloset(); if (selected === deskMover) updateMoverInfo(); } },
+  selects: [
+    { id: 'dmod', label: 'Desk (ILVA)', options: () => DESKS.map((d) => ({ label: `${d.name} · ${d.kr.toLocaleString('da-DK')} kr` })), get: () => desk.m, set: (i) => { desk.m = i; buildDesk(); const sp = deskSpan(); if (sp && !sp.fits) showToast('Desk + closet are wider than the wall here'); } },
+    { id: 'darm', label: 'Monitor', options: () => DESK_ARMS.map((v) => ({ label: `ASUS ProArt 32″ · ${v}` })), get: () => desk.arm, set: (i) => { desk.arm = i; buildDesk(); } },
+    { id: 'dmac', label: 'Laptop', options: () => MACS.map((v) => ({ label: `${v.name} · space grey` })), get: () => desk.mac, set: (i) => { desk.mac = i; buildDesk(); } },
+  ],
+  link: () => ({ href: `https://ilva.dk/kontoret/skriveborde/${DESKS[desk.m].url}/`, text: `ILVA · ${DESKS[desk.m].name.split(' ')[0]} skrivebord ↗` }),
+  info: () => { const Dm = DESKS[desk.m], sp = deskSpan();
+    return `${Math.round(Dm.W * 100)} × ${Math.round(Dm.D * 100)} × ${Math.round(Dm.H * 100)} cm · ${Dm.desc} · ${Dm.kr.toLocaleString('da-DK')} kr${Dm.was ? ` (før ${Dm.was.toLocaleString('da-DK')})` : ''} · the 32″ screen sits ≈${desk.arm ? 50 : 45} cm from the front edge (≈70–75 cm from your eyes)${sp && !sp.fits ? ' · ⚠ desk + closet don’t fit on this wall together' : ''}`; },
+};
+function furnish() { fridgeSideSkin(); buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); try { updateNight(); } catch (_) { /* ok */ } }
 function prewarmShaders() {
   // compile every material variant now (incl. hidden things: ceiling, upper floors, closed panels), not the first time it comes into view
   // lights first exactly as perfTick leaves them (light counts are part of every shader), then the meshes
@@ -5969,8 +6175,8 @@ requestAnimationFrame(frame);
 // · doors, cabinets, windows, switches, the TV: a small pulsing point at the handle, shown only within reach; click/tap it (or E) to use it
 // · furniture: an (i) button above each piece → flies to a close aerial view with the options panel docked beside it (never on top)
 // · moving/turning: arrows around the piece in the scene (always for the piece in close-up; for every piece with the Move layer, G)
-const FURN_LABELS = new Set(['Bed', 'Closet', 'TV', 'TV wall', 'Sofa', 'Dining', 'Lamp', 'Sofa bed', 'Lounge chair', 'Book tower', 'Plant', 'Painting', 'Console', 'Alcove']);
-const MOVERS = { bedMover, closetMover, tvMover, mediaMover, sofaMover, lampMover, diningMover, petraMover, guestMover, vpaxMover, nookMover, booksMover, plantMover, artMover, consoleMover, alcoveMover };
+const FURN_LABELS = new Set(['Bed', 'Closet', 'TV', 'TV wall', 'Sofa', 'Dining', 'Lamp', 'Sofa bed', 'Lounge chair', 'Book tower', 'Plant', 'Painting', 'Console', 'Alcove', 'Desk']);
+const MOVERS = { bedMover, closetMover, tvMover, mediaMover, sofaMover, lampMover, diningMover, petraMover, guestMover, vpaxMover, nookMover, booksMover, plantMover, artMover, consoleMover, alcoveMover, deskMover };
 function doorMover(d) { if (d._mover === undefined) { const m = String(d.swap).match(/selected === (\w+)/); d._mover = (m && MOVERS[m[1]]) || null; } return d._mover; }
 const isFurn = (d) => d.kind === 'swap' && FURN_LABELS.has(d.label);
 const hud = { el: $('hud3d'), pools: { ipt: [], finfo: [], marr: [] }, used: { ipt: 0, finfo: 0, marr: 0 }, focusDoor: null, n: 0, occ: new WeakMap(), vsig: '' };
@@ -6212,7 +6418,7 @@ $('qLights').addEventListener('click', () => toggleAllLights());
 addEventListener('resize', () => { hud.vsig = ''; });
 window.__hudDbg = () => doors.filter((d) => !isFurn(d)).map((d) => { const P = ringPoint(d, new THREE.Vector3()); const dist = P.distanceTo(camera.position); if (dist > REACH) return null; const sc = {}; const on = toScreen(P, sc); hud.occ.delete(d); const vis = hudVisible(d, camera.position, P, d.parts); return [d.label, dist.toFixed(2), on, vis, Math.round(sc.x), Math.round(sc.y), started, measuring, mode, !!focus]; }).filter(Boolean);
 window.__bvc = () => buildVaerCloset(); window.__bs = () => { buildSofa(); livingDims(); }; window.__bd = () => { buildDining(); };
-window.__apt = { alc, buildAlcove, alcoveMover, cons, buildConsole, consoleMover, art, buildArt, artMover, curtains, books, booksMover, buildBooks, plant, plantMover, buildPlant, setAllLights, toggleAllLights, hueLights, getHold: () => lightHold, THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, petra, petraMover, buildPetra, hud, focusFurniture, exitFocus, setMoveLayer, getFocus: () => focus, getTween: () => camTween, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
+window.__apt = { desk, buildDesk, deskMover, swapDeskCloset, alc, buildAlcove, alcoveMover, cons, buildConsole, consoleMover, art, buildArt, artMover, curtains, books, booksMover, buildBooks, plant, plantMover, buildPlant, setAllLights, toggleAllLights, hueLights, getHold: () => lightHold, THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, petra, petraMover, buildPetra, hud, focusFurniture, exitFocus, setMoveLayer, getFocus: () => focus, getTween: () => camTween, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
 </script>
 
 </body></html>
