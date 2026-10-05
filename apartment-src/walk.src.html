@@ -5584,21 +5584,27 @@ const artMover = {
 // 82 cm sofa back), storage inside, plants and candles on top. ikea.dk prices Oct 2026.
 const CONSOLE = {
   frames: [
-    { name: 'Hvid', c: 0xf3f2ee, art: 'besta-stel-hvid-60245919', kr: 220 },
-    { name: 'Sortbrun', c: 0x3a302a, art: 'besta-stel-sortbrun-20245959', kr: 220 },
-    { name: 'Egetræsmønster m. hvid bejdse', c: 0xd9ccb6, grain: true, art: 'besta-stel-egetraesmonster-med-hvid-bejdse-80247413', kr: 220 },
+    { name: 'Hvid', c: 0xf3f2ee, art: 'besta-stel-hvid-60245919', kr: 220, art38: 'besta-stel-hvid-00245917', kr38: 170 },
+    { name: 'Sortbrun', c: 0x3a302a, art: 'besta-stel-sortbrun-20245959', kr: 220, art38: 'besta-stel-sortbrun-60245957', kr38: 170 },
+    { name: 'Egetræsmønster m. hvid bejdse', c: 0xd9ccb6, grain: true, art: 'besta-stel-egetraesmonster-med-hvid-bejdse-80247413', kr: 220, art38: 'besta-stel-egetraesmonster-med-hvid-bejdse-80247408', kr38: 170 },
   ],
   fronts: [
     { name: 'Open (no doors)', open: true, kr: 0 },
-    { name: 'LAPPVIKEN · hvid', c: 0xf4f3ef, style: 'slab', art: 'lappviken-lage-hvid-50291676', kr: 130 },
-    { name: 'HANVIKEN · hvid', c: 0xf2f1ec, style: 'frame', art: 'hanviken-lage-hvid-60291845', kr: 160 },
-    { name: 'FÄNRIK · ask', c: 0xd6bf98, style: 'slab', grain: true, art: 'faenrik-lage-ask-10590385', kr: 130 },
-    { name: 'BJÖRKÖVIKEN · egetræsfiner', c: 0xc79b68, style: 'slab', grain: true, art: 'bjoerkoeviken-lage-egetraesfiner-60638610', kr: 400 },
-    { name: 'HEDEVIKEN · brun egetræsfiner', c: 0x7a5236, style: 'slab', grain: true, art: 'hedeviken-lage-brun-egetraesfiner-med-bejdse-70638624', kr: 400 },
-    { name: 'KRUKMAKARE · mørk grågrøn', c: 0x4f5a4f, style: 'frame', art: 'krukmakare-lage-mork-gragron-60602324', kr: 240 },
-    { name: 'STUDSVIKEN · hvid/flettet poppel', c: 0xf2f1ec, style: 'woven', art: 'studsviken-lage-hvid-flettet-poppel-70468240', kr: 220 },
+    { name: 'LAPPVIKEN · hvid', c: 0xf4f3ef, style: 'slab', art: 'lappviken-lage-hvid-50291676', kr: 130, art38: 'lappviken-lage-skuffefront-hvid-00291674', kr38: 90 },
+    { name: 'HANVIKEN · hvid', c: 0xf2f1ec, style: 'frame', art: 'hanviken-lage-hvid-60291845', kr: 160, art38: 'hanviken-lage-skuffefront-hvid-00291848', kr38: 100 },
+    { name: 'FÄNRIK · ask', c: 0xd6bf98, style: 'slab', grain: true, art: 'faenrik-lage-ask-10590385', kr: 130, art38: 'faenrik-lage-skuffefront-ask-90590386', kr38: 90 },
+    { name: 'BJÖRKÖVIKEN · egetræsfiner', c: 0xc79b68, style: 'slab', grain: true, art: 'bjoerkoeviken-lage-egetraesfiner-60638610', kr: 400, art38: 'bjoerkoeviken-lage-skuffefront-egetraesfiner-10638617', kr38: 290 },
+    { name: 'HEDEVIKEN · brun egetræsfiner', c: 0x7a5236, style: 'slab', grain: true, art: 'hedeviken-lage-brun-egetraesfiner-med-bejdse-70638624', kr: 400, art38: 'hedeviken-lage-skuffefront-brun-egetraesfiner-med-bejdse-40638625', kr38: 290 },
+    { name: 'KRUKMAKARE · mørk grågrøn', c: 0x4f5a4f, style: 'frame', art: 'krukmakare-lage-mork-gragron-60602324', kr: 240, art38: 'krukmakare-lage-skuffefront-mork-gragron-90602327', kr38: 170 },
+    { name: 'STUDSVIKEN · hvid/flettet poppel', c: 0xf2f1ec, style: 'woven', art: 'studsviken-lage-hvid-flettet-poppel-70468240', kr: 220, art38: 'studsviken-lage-skuffefront-hvid-flettet-poppel-60472884', kr38: 130 },
     { name: 'SELSVIKEN · højglans sort', c: 0x161616, style: 'slab', gloss: true, art: 'selsviken-lage-hojglans-sort-00291626', kr: 260 },
     { name: 'HAMMARSMED · antracit', c: 0x3b3d3f, style: 'frame', art: 'hammarsmed-lage-antracit-00590362', kr: 290 },
+  ],
+  heights: [
+    { name: 'BESTÅ 64 on 10 cm legs · 76.5 cm', H: 0.64, leg: 0.10 },
+    { name: 'BESTÅ 64 on the floor · 66.5 cm', H: 0.64, leg: 0 },
+    { name: 'BESTÅ 38 on 10 cm legs · 50.5 cm', H: 0.38, leg: 0.10 },
+    { name: 'BESTÅ 38 on the floor · 40.5 cm', H: 0.38, leg: 0 },
   ],
   layouts: ['Doors on every frame', 'Doors at the ends, open in the middle', 'Open in the ends, door in the middle'],
   legs: [
@@ -5610,7 +5616,9 @@ const CONSOLE = {
   ],
   tops: [{ name: 'Oak board (cut to size)', c: 0xc69a64, grain: true }, { name: 'Walnut board', c: 0x6a4a33, grain: true }, { name: 'White board', c: 0xf3f2ee }, { name: 'No board (frames only)', c: null }],
 };
-const cons = { frame: 0, front: 4, layout: 1, legs: 0, top: 0, decor: true, on: true, group: null, parts: [], n: 0 };
+const cons = { frame: 0, front: 4, layout: 1, legs: 0, top: 0, h: 0, decor: true, on: true, group: null, parts: [], n: 0 };
+const consLow = () => CONSOLE.heights[cons.h].H < 0.5;
+const consFrontOK = (F) => F.open || !consLow() || !!F.art38;
 const ikeaUrl = (art) => `https://www.ikea.com/dk/da/p/${art}/`;
 MATS.candleWax = std({ color: 0xf1e9d8, roughness: 0.6 });
 MATS.candleFlame = new THREE.MeshBasicMaterial({ color: 0xffc56b, toneMapped: false, transparent: true, opacity: 0 });
@@ -5626,16 +5634,17 @@ function buildConsole() {
   const parts = [], add = (geo, m, px, py, pz, solid = false) => { const o = new THREE.Mesh(geo, m); o.position.set(px, py, pz); o.castShadow = o.receiveShadow = true; g.add(o); if (solid) parts.push(o); return o; };
   const grainM = (c, rough = 0.6) => std({ color: c, roughness: rough, map: weaveTex('flat') });
   const fm = FR.grain ? grainM(FR.c) : std({ color: FR.c, roughness: 0.55 });
-  const D = 0.20, H = 0.64, LEG = 0.10, gap = 0.03, xo = -L / 2 - gap, xc = xo - D / 2;            // frames 20 deep against the sofa's side, fronts face out
+  const HT = CONSOLE.heights[cons.h], D = 0.20, H = HT.H, LEG = HT.leg, gap = 0.03, xo = -L / 2 - gap, xc = xo - D / 2;            // frames 20 deep against the sofa's side, fronts face out
   const z0 = (R - Lc) / 2, T = 0.016;
-  const doorM = FT.open ? null : FT.gloss ? std({ color: FT.c, roughness: 0.08, metalness: 0.1 }) : FT.grain ? grainM(FT.c, 0.55) : std({ color: FT.c, roughness: 0.6 });
+  const noDoors = FT.open || !consFrontOK(FT);
+  const doorM = noDoors ? null : FT.gloss ? std({ color: FT.c, roughness: 0.08, metalness: 0.1 }) : FT.grain ? grainM(FT.c, 0.55) : std({ color: FT.c, roughness: 0.6 });
   for (let k = 0; k < n; k++) {
     const zc = z0 + 0.3 + 0.6 * k, y0 = LEG;
     add(new THREE.BoxGeometry(D, T, 0.6), fm, xc, y0 + T / 2, zc); add(new THREE.BoxGeometry(D, T, 0.6), fm, xc, y0 + H - T / 2, zc);       // bottom, top
     for (const s of [-1, 1]) add(new THREE.BoxGeometry(D, H, T), fm, xc, y0 + H / 2, zc + s * (0.3 - T / 2));                              // sides
     add(new THREE.BoxGeometry(0.004, H, 0.6), fm, xo - 0.002, y0 + H / 2, zc);                                                            // back (sofa side)
-    add(new THREE.BoxGeometry(D - 0.02, T, 0.6 - 2 * T), fm, xc + 0.01, y0 + H / 2, zc);                                                   // the shelf
-    const isDoor = !FT.open && (cons.layout === 0 || (cons.layout === 1 ? (k === 0 || k === n - 1 || n < 3) : (k !== 0 && k !== n - 1)));
+    if (H > 0.5) add(new THREE.BoxGeometry(D - 0.02, T, 0.6 - 2 * T), fm, xc + 0.01, y0 + H / 2, zc);                                      // the shelf (64 frames only)
+    const isDoor = !noDoors && (cons.layout === 0 || (cons.layout === 1 ? (k === 0 || k === n - 1 || n < 3) : (k !== 0 && k !== n - 1)));
     if (isDoor) {
       const dx = xo - D - 0.009;
       add(new THREE.BoxGeometry(0.018, H - 0.004, 0.596), doorM, dx, y0 + H / 2, zc);
@@ -5647,11 +5656,12 @@ function buildConsole() {
       // open frame: a few things inside (books lying, a basket)
       const r = rng(k * 13 + 3), bc = [0x2f4a3a, 0xc9b48a, 0x7a2e2a, 0x1f2a44, 0xe8e2d4];
       for (let i = 0, yy = y0 + T; i < 4; i++) { const t = 0.025 + r() * 0.02; add(new THREE.BoxGeometry(0.15, t, 0.21), std({ color: bc[Math.floor(r() * 5)], roughness: 0.8 }), xc - 0.01, yy + t / 2, zc - 0.13 + (r() - 0.5) * 0.02); yy += t; }
-      add(new THREE.BoxGeometry(0.16, 0.2, 0.26), new THREE.MeshStandardMaterial({ color: 0xbf9d6a, map: weaveTex('canvas'), roughness: 0.95 }), xc - 0.01, y0 + H / 2 + T / 2 + 0.1, zc + 0.12);   // seagrass basket
-      add(new THREE.CylinderGeometry(0.05, 0.045, 0.14, 20), std({ color: 0xd9cfc0, roughness: 0.5 }), xc - 0.02, y0 + T + 0.07, zc + 0.15);         // vase
+      const bh = H > 0.5 ? 0.2 : 0.18, by0 = H > 0.5 ? y0 + H / 2 + T / 2 : y0 + T;
+      add(new THREE.BoxGeometry(0.16, bh, 0.26), new THREE.MeshStandardMaterial({ color: 0xbf9d6a, map: weaveTex('canvas'), roughness: 0.95 }), xc - 0.01, by0 + bh / 2, zc + 0.12);   // seagrass basket
+      if (H > 0.5) add(new THREE.CylinderGeometry(0.05, 0.045, 0.14, 20), std({ color: 0xd9cfc0, roughness: 0.5 }), xc - 0.02, y0 + T + 0.07, zc + 0.15);         // vase
     }
     // legs: 4 per frame, set in from the corners
-    for (const [lx, lz] of [[xo - 0.04, zc - 0.25], [xo - D + 0.04, zc - 0.25], [xo - 0.04, zc + 0.25], [xo - D + 0.04, zc + 0.25]]) {
+    if (LEG > 0) for (const [lx, lz] of [[xo - 0.04, zc - 0.25], [xo - D + 0.04, zc - 0.25], [xo - 0.04, zc + 0.25], [xo - D + 0.04, zc + 0.25]]) {
       const lm = LG.metal ? std({ color: LG.c, roughness: 0.3, metalness: 0.85 }) : std({ color: LG.c, roughness: 0.6 });
       add(LG.shape === 'taper' ? new THREE.CylinderGeometry(0.016, 0.011, LEG, 12) : new THREE.CylinderGeometry(0.014, 0.014, LEG, 12), lm, lx, LEG / 2, lz);
     }
@@ -5689,25 +5699,26 @@ function buildConsole() {
   if (window.__candles) window.__candles.set(typeof dayLevel === 'number' ? THREE.MathUtils.clamp((0.6 - dayLevel) / 0.45, 0, 1) : 0);
 }
 function consoleCost() {
-  const FT = CONSOLE.fronts[cons.front], n = cons.n;
-  const doorsN = FT.open ? 0 : cons.layout === 0 ? n : cons.layout === 1 ? (n < 3 ? n : 2) : Math.max(0, n - 2);
-  const legsPacks = n * 2, LG = CONSOLE.legs[cons.legs];
-  return { doorsN, kr: n * CONSOLE.frames[cons.frame].kr + doorsN * FT.kr + legsPacks * LG.kr, legsPacks };
+  const FT = CONSOLE.fronts[cons.front], n = cons.n, low = consLow(), FR = CONSOLE.frames[cons.frame];
+  const doorsN = !consFrontOK(FT) || FT.open ? 0 : cons.layout === 0 ? n : cons.layout === 1 ? (n < 3 ? n : 2) : Math.max(0, n - 2);
+  const legsPacks = CONSOLE.heights[cons.h].leg ? n * 2 : 0, LG = CONSOLE.legs[cons.legs];
+  return { doorsN, kr: n * (low ? FR.kr38 : FR.kr) + doorsN * (low ? (FT.kr38 || 0) : FT.kr) + legsPacks * LG.kr, legsPacks };
 }
 const consoleMover = {
-  name: 'Console', title: () => `IKEA hack · ${cons.n} × BESTÅ 60×20×64 · ${CONSOLE.fronts[cons.front].name.split(' · ')[0]}`,
+  name: 'Console', title: () => `IKEA hack · ${cons.n} × BESTÅ 60×20×${consLow() ? 38 : 64} · ${CONSOLE.fronts[cons.front].name.split(' · ')[0]}`,
   anchor: () => (cons.group ? cons.parts[0].getWorldPosition(new THREE.Vector3()).setY(1.1) : null),
   variant: { label: () => (cons.decor ? 'Clear the top' : 'Plants & candles on top'), run: () => { cons.decor = !cons.decor; buildConsole(); } },
   selects: [
-    { id: 'cfr', label: 'Frames', options: () => CONSOLE.frames.map((v) => ({ label: `BESTÅ ${v.name} · ${v.kr} kr` })), get: () => cons.frame, set: (i) => { cons.frame = i; buildConsole(); } },
-    { id: 'cft', label: 'Fronts', options: () => CONSOLE.fronts.map((v) => ({ label: v.open ? v.name : `${v.name} · ${v.kr} kr` })), get: () => cons.front, set: (i) => { cons.front = i; buildConsole(); } },
+    { id: 'chgt', label: 'Height', options: () => CONSOLE.heights.map((v) => ({ label: v.name })), get: () => cons.h, set: (i) => { cons.h = i; buildConsole(); buildMoverSelects(consoleMover); } },
+    { id: 'cfr', label: 'Frames', options: () => CONSOLE.frames.map((v) => ({ label: `BESTÅ ${v.name} · ${consLow() ? v.kr38 : v.kr} kr` })), get: () => cons.frame, set: (i) => { cons.frame = i; buildConsole(); } },
+    { id: 'cft', label: 'Fronts', options: () => CONSOLE.fronts.map((v) => ({ label: v.open ? v.name : !consFrontOK(v) ? `${v.name} · not made in 60×38` : `${v.name} · ${consLow() ? v.kr38 : v.kr} kr` })), get: () => cons.front, set: (i) => { cons.front = i; buildConsole(); } },
     { id: 'clay', label: 'Doors', options: () => CONSOLE.layouts.map((v) => ({ label: v })), get: () => cons.layout, set: (i) => { cons.layout = i; buildConsole(); } },
     { id: 'clg', label: 'Legs (10 cm)', options: () => CONSOLE.legs.map((v) => ({ label: `${v.name} · ${v.kr} kr/2` })), get: () => cons.legs, set: (i) => { cons.legs = i; buildConsole(); } },
     { id: 'ctp', label: 'Top', options: () => CONSOLE.tops.map((v) => ({ label: v.name })), get: () => cons.top, set: (i) => { cons.top = i; buildConsole(); } },
   ],
-  link: () => ({ href: ikeaUrl(CONSOLE.frames[cons.frame].art), text: `IKEA · BESTÅ stel ${CONSOLE.frames[cons.frame].name} ↗`, ...(CONSOLE.fronts[cons.front].art ? { href2: ikeaUrl(CONSOLE.fronts[cons.front].art), text2: `${CONSOLE.fronts[cons.front].name.split(' · ')[0]} låge ↗` } : {}) }),
+  link: () => ({ href: ikeaUrl(consLow() ? CONSOLE.frames[cons.frame].art38 : CONSOLE.frames[cons.frame].art), text: `IKEA · BESTÅ stel ${CONSOLE.frames[cons.frame].name} ↗`, ...(CONSOLE.fronts[cons.front].art && consFrontOK(CONSOLE.fronts[cons.front]) ? { href2: ikeaUrl(consLow() ? CONSOLE.fronts[cons.front].art38 : CONSOLE.fronts[cons.front].art), text2: `${CONSOLE.fronts[cons.front].name.split(' · ')[0]} låge ↗` } : {}) }),
   info: () => { const C = consoleCost();
-    return `${Math.round(cons.Lc * 100)} × 20 cm, ${Math.round(cons.topY * 100)} cm high (sofa back 82) along the ${Math.round(cons.R * 100)} cm side · ${cons.n} frames, ${C.doorsN} doors, ${C.legsPacks} × 2 legs ≈ ${C.kr.toLocaleString('da-DK')} kr + the board · follows the sofa`; },
+    return `${Math.round(cons.Lc * 100)} × 20 cm, ${Math.round(cons.topY * 100)} cm high (sofa back 82) along the ${Math.round(cons.R * 100)} cm side · ${cons.n} frames, ${C.doorsN} doors, ${C.legsPacks ? C.legsPacks + ' × 2 legs' : 'standing on the floor'} ≈ ${C.kr.toLocaleString('da-DK')} kr + the board · follows the sofa`; },
 };
 // ------------------------------------------------------------ hall: the alcove behind the TV wall (≈104 × 60 cm, floor to ceiling)
 // Two ideas to compare: a custom built-in closet with flush handleless doors (real, openable leaves), or open oak shelves behind a linen curtain
