@@ -1,0 +1,17 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'] });
+const p = await b.newPage({ viewport: { width: 800, height: 500 } });
+p.on('pageerror', e => console.log('ERR', e.message));
+await p.route(/fonts\.(googleapis|gstatic)/, r => r.abort());
+await p.goto('http://localhost:8765/test.html?lite');
+await p.waitForFunction(() => !document.getElementById('go').disabled, null, { timeout: 180000 });
+await p.evaluate(() => document.getElementById('go').click()); await p.waitForTimeout(3000);
+const st = (v) => p.evaluate((v) => { const a = window.__apt; a.player.pos.copy(a.b2t(v[0], v[1], v[2] + 1.62)); a.setFeet(v[2]); const d = a.b2t(v[3], v[4]); a.player.yaw = Math.atan2(-d.x, -d.z); a.player.pitch = v[5];
+  return new Promise((res) => setTimeout(() => { const i = a.renderer.info; let lights = 0, vis = 0, meshes = 0, tris = 0; a.scene.traverse((o) => { if (o.isLight) { lights++; if (o.visible && o.intensity > 0) vis++; } if (o.isMesh) meshes++; });
+    res({ calls: i.render.calls, tris: i.render.triangles, programs: i.programs.length, geos: i.memory.geometries, tex: i.memory.textures, lights, litOn: vis, meshes }); }, 4000)); }, v);
+console.log('inside', JSON.stringify(await st([3.6, 7.6, 0, -0.6, -1, -0.12])));
+console.log('canal', JSON.stringify(await st([-6, 2, -9.6, -1, -0.6, 0.25])));
+console.log('balc', JSON.stringify(await st([1.2, 9.0, 0, 0.2, 1, 0.1])));
+const t = await p.evaluate(() => { const a = window.__apt; const t0 = performance.now(); for (let i = 0; i < 20; i++) a.renderer.render(a.scene, a.camera); return (performance.now() - t0) / 20; });
+console.log('ms/frame (swiftshader)', t.toFixed(1));
+await b.close();

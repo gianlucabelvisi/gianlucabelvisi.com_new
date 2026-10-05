@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'] });
+const p = await b.newPage({ viewport: { width: 1000, height: 640 } });
+await p.route(/fonts\.(googleapis|gstatic)/, r => r.abort());
+await p.goto('http://localhost:8765/test.html?lite');
+await p.waitForFunction(() => !document.getElementById('go').disabled, null, { timeout: 120000 });
+await p.click('#go'); await p.waitForTimeout(1500); await p.keyboard.press('Escape');
+await p.evaluate(() => { const r = document.getElementById('sunrange'); r.value = 13; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); });
+const look = (v, f) => p.evaluate((v) => { const a = window.__apt; a.player.pos.copy(a.b2t(v[0], v[1], v[2])); const d = a.b2t(v[3], v[4]); a.player.yaw = Math.atan2(-d.x, -d.z); a.player.pitch = v[5]; }, v).then(() => p.waitForTimeout(2500)).then(() => p.screenshot({ path: f }));
+await look([-27, 16, -7.5, 27, -24, 0.3], '/home/claude/apt/web/ent.png');
+await look([-8, -12, -8, 8, 5, 0.05], '/home/claude/apt/web/ent2.png');
+await b.close();

@@ -210,7 +210,41 @@
     #doorTip { bottom: calc(var(--gut) + 150px + var(--safe-b)); font-size: 15px; padding: 14px 18px; }
     #lightbox .bar button { flex: 1; }
   }
+  /* ---- world HUD: interaction points at handles, furniture info buttons, move arrows (projected from 3D each frame) */
+  #hud3d { position: fixed; inset: 0; pointer-events: none; z-index: 6; overflow: hidden; }
+  #hud3d > button { position: absolute; left: 0; top: 0; pointer-events: auto; transform: translate(-50%, -50%); padding: 0; margin: 0; -webkit-tap-highlight-color: transparent; }
+  #hud3d > button[hidden] { display: none; }
+  .ipt { width: 48px; height: 48px; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+  .ipt::before { content: ''; position: absolute; inset: 17px; border-radius: 50%; background: rgba(255, 255, 255, .95); box-shadow: 0 0 0 1.5px rgba(0, 0, 0, .18), 0 1px 5px rgba(0, 0, 0, .35); transition: background .2s, inset .2s; }
+  .ipt::after { content: ''; position: absolute; inset: 7px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .85); box-shadow: 0 0 3px rgba(0, 0, 0, .3), inset 0 0 3px rgba(0, 0, 0, .2); animation: iptPulse 2.2s ease-out infinite; }
+  .ipt:hover::before, .ipt.focus::before { background: var(--oak); inset: 15px; }
+  .ipt.focus::after { border-color: rgba(207, 145, 82, .95); }
+  .ipt .k { position: absolute; left: 44px; top: 15px; font: 600 11px/1 var(--mono); color: #f2ede4; background: rgba(20, 16, 12, .65); border-radius: 4px; padding: 3px 5px; display: none; white-space: nowrap; }
+  @media (pointer: fine) { .ipt.focus .k { display: block; } }
+  @media (pointer: coarse) { .ipt { width: 56px; height: 56px; } .ipt::before { inset: 20px; } .ipt.focus::before { inset: 18px; } .ipt::after { inset: 9px; } }
+  @keyframes iptPulse { 0% { transform: scale(.55); opacity: 1; } 70% { transform: scale(1.1); opacity: 0; } 100% { transform: scale(1.1); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .ipt::after { animation: none; opacity: .6; } }
+  .finfo { width: 26px; height: 26px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .5); background: rgba(24, 20, 16, .5); color: #f2ede4; font: italic 700 14px/1 Georgia, 'Times New Roman', serif; cursor: pointer; display: grid; place-items: center; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); opacity: .85; transition: opacity .2s, background .2s; }
+  .finfo:hover { opacity: 1; }
+  .finfo.on { background: var(--oak); color: #1a1208; border-color: var(--oak); opacity: 1; }
+  @media (pointer: coarse) { .finfo { width: 34px; height: 34px; font-size: 17px; } }
+  .marr { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--oak); color: #1a1208; box-shadow: 0 2px 6px rgba(0, 0, 0, .35); display: grid; place-items: center; cursor: pointer; opacity: .9; touch-action: none; }
+  .marr:hover, .marr:active { opacity: 1; }
+  .marr svg { width: 16px; height: 16px; display: block; }
+  .marr.rot { width: 30px; height: 30px; font: 700 16px/1 var(--ui); }
+  .marr.ghost { opacity: .55; }
+  /* furniture panel docked beside the close-up view (focus mode); nothing of the piece is hidden under it */
+  #mover.docked { left: 12px !important; top: 12px !important; transform: none; max-height: calc(100vh - 24px); overflow: auto; }
+  body.focus #room, body.focus #mapwrap, body.focus #hint, body.flying #hint { display: none !important; }
+  @media (max-width: 640px) {
+    #mover.docked { left: 0 !important; right: 0; top: auto !important; bottom: 0; width: 100%; max-height: 46vh; border-radius: 16px 16px 0 0; }
+  }
+  #mover.docked .mvtop { cursor: default; }
+  #mover.docked #mvGrip { display: none !important; }
+  @media (max-width: 640px) { body.focus #quick, body.focus #joy { display: none !important; } }
 </style>
+
+<div id="hud3d" aria-label="Interaction points"></div>
 
 <div id="stage" data-media="/walkthrough/media/"></div>
 <div id="cross" hidden></div>
@@ -228,6 +262,8 @@
   <button data-for="tPlugs" title="Sockets and switches (K)"><i>K</i>Sockets</button>
   <button data-for="tMeasure" title="Tape measure (T)"><i>T</i>Tape</button>
   <button data-for="tMap" title="Mini map (M)"><i>M</i>Map</button>
+  <button id="qInfo" title="Info buttons above the furniture (I)" aria-pressed="true"><i>I</i>Info</button>
+  <button id="qMove" title="Move furniture: arrows on every piece (G)" aria-pressed="false"><i>G</i>Move</button>
   <button id="qRun" title="Run instead of walk (R; Shift also runs while held)" aria-pressed="false"><i>R</i>Run</button>
   <button id="qTime" title="Time of day (H)" aria-pressed="false" aria-controls="timePop"><i>H</i><span id="qTimeOut">09:00</span></button>
 </div>
@@ -710,11 +746,13 @@ new GLTFLoader().parse(glbBytes.buffer, '', (gltf) => {
 
 // ------------------------------------------------------------ sun (balcony faces east; plan top = east)
 const D2R = Math.PI / 180;
+// the plan's "east" (balcony side) isn't true east: in reality the sun rises ~45° to the left of it, seen from the balcony (Gianluca, 2026-10-05)
+const PLAN_TURN = -45;
 function sunDir(h) {
   // Copenhagen, late September: sunrise ~07:10 at az 93°, sunset ~19:00 at az 267°, noon elevation ~33°
   const t = (h - 7.1) / (19.0 - 7.1);
   const el = 33 * Math.sin(Math.PI * t);   // negative below the horizon (night)
-  const az = 93 + 174 * t;
+  const az = 93 + 174 * t + PLAN_TURN;
   const A = az * D2R, E = el * D2R;
   const bx = -Math.cos(A) * Math.cos(E); // plan right = south, so +x is south
   const by = Math.sin(A) * Math.cos(E);  // plan up = east
@@ -731,7 +769,7 @@ const stars = (() => {
   p.visible = false; scene.add(p); return p;
 })();
 // moon: a fixed spot high in the southern sky, only used after dusk
-const MOON = (() => { const A = 200 * D2R, E = 34 * D2R; return new THREE.Vector3(-Math.cos(A) * Math.cos(E), Math.sin(E), -Math.sin(A) * Math.cos(E)).normalize(); })();
+const MOON = (() => { const A = (200 + PLAN_TURN) * D2R, E = 34 * D2R; return new THREE.Vector3(-Math.cos(A) * Math.cos(E), Math.sin(E), -Math.sin(A) * Math.cos(E)).normalize(); })();
 let dayLevel = 1;
 function updateSun(h, rebuildEnv) {
   clockHour = h;
@@ -925,6 +963,7 @@ addEventListener('pointercancel', endPointer);
 
 // ------------------------------------------------------------ modes
 let mode = 'walk', started = false;
+let focus = null, camTween = null, moveLayer = false, infoLayer = true;   // furniture close-up (info button), camera fly, move-arrows layer
 const orbit = new OrbitControls(camera, canvas);
 orbit.enabled = false;
 orbit.enableDamping = true;
@@ -934,7 +973,8 @@ orbit.maxDistance = 40;
 function setOverlayDepth(test) {
   lineMat.depthTest = test; lineMat.needsUpdate = true;
 }
-function setMode(m) {
+function setMode(m, internal) {
+  if (focus && !internal) { const f = focus; focus = null; endFocusLook(); if (selected === f.mover) selectFurniture(null); }
   mode = m; shadowDirty = true;
   setOverlayDepth(m === 'walk');
   $('mWalk').setAttribute('aria-pressed', m === 'walk');
@@ -958,7 +998,7 @@ $('mOver').addEventListener('click', () => { setMode('over'); closeMenu(); });
 // overview: double-click / double-tap the floor to walk there
 let lastTap = 0;
 canvas.addEventListener('pointerup', (e) => {
-  if (mode !== 'over') return;
+  if (mode !== 'over' || focus) return;
   const now = performance.now();
   if (now - lastTap < 320) {
     const ndc = new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
@@ -1656,25 +1696,19 @@ function updateDoors(dt) {
     else d.group.position.copy(d.base).addScaledVector(d.dirV, d.travel * e);
   }
   updateDoors.k = ((updateDoors.k || 0) + 1) % 4;
-  const n = !(started && $('lightbox').hidden) ? null : updateDoors.k === 0 || !doors.includes(doorNear) || Math.hypot(doorNear.center.x - player.pos.x, doorNear.center.z - player.pos.z) > 2.1 ? nearestDoor() : doorNear;
-  if (n !== doorNear) {
-    doorNear = n;
-    $('doorTip').hidden = !n || coarse;
-  }
-  if (n) $('doorTipText').textContent = n.kind === 'swap' ? n.prompt() : n.name ? `${n.target ? 'Close' : 'Open'} ${n.name}` : `${n.target ? 'Close' : 'Open'} the ${n.label.toLowerCase()}`;
+  doorNear = started && $('lightbox').hidden ? hud.focusDoor : null;       // the interaction point nearest the centre of view (E / Space)
+  $('doorTip').hidden = true;
 }
 addEventListener('keydown', (e) => {
   if (e.repeat || e.target.tagName === 'INPUT' || !$('lightbox').hidden) return;
   if ((e.code === 'KeyE' || e.code === 'Space') && doorNear) { e.preventDefault(); toggleDoor(doorNear); }
 });
 $('doorTip').addEventListener('click', () => { if (doorNear) toggleDoor(doorNear); });
-// clicking a door leaf also toggles it
+// doors, cabinets, switches and the TV are opened only through their interaction points (see the world HUD below);
+// with the mouse captured, a click opens whatever point sits under the crosshair
 canvas.addEventListener('click', (e) => {
-  if (!started || mode !== 'walk' || measuring) return;
-  const ndc = locked ? new THREE.Vector2(0, 0) : new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
-  occRay.setFromCamera(ndc, camera); occRay.far = 3;
-  const hit = occRay.intersectObjects(doors.flatMap((d) => d.parts), false)[0];
-  if (hit) { e.stopImmediatePropagation(); toggleDoor(hit.object.userData.door); }
+  if (!started || !locked || mode !== 'walk' || measuring) return;
+  if (hudClickAtCentre()) e.stopImmediatePropagation();
 }, true);
 
 // ------------------------------------------------------------ furniture: bed in the main bedroom (160 or 180 × 200, click to swap)
@@ -1808,16 +1842,18 @@ const bedMover = {
   variant: { label: () => `Try ${bed.width > 1.7 ? '160' : '180'} cm`, run: () => { const nw = bed.width > 1.7 ? 1.6 : 1.8; bed.offset += (nw - bed.width) / 2; bed.width = nw; buildBed(); if (furn.gianluca || furn.svetlanaInfo) furnitureDims(); showToast(`Bed ${Math.round(bed.width * 100)} × 200 cm`); } },
 };
 function selectFurniture(m) {
+  if (focus && m !== focus.mover && !focus.switching) exitFocus();
   selected = m;
   $('mover').hidden = !m;
   if (m) {
     if (document.pointerLockElement) document.exitPointerLock();
+    // moving and turning happen with the arrows in the scene; the panel keeps only choices (and the odd action button)
     $('mvName').textContent = m.name; $('mvVar').hidden = !m.variant;
-    $('mvRow2').hidden = !m.axis2 && !m.variant2; $('mvUp').style.visibility = $('mvDown').style.visibility = m.axis2 ? 'visible' : 'hidden';
+    $('mvRow2').hidden = !m.variant2; $('mvUp').style.visibility = $('mvDown').style.visibility = 'hidden';
     $('mvVar2').hidden = !m.variant2;
-    $('mvRow3').hidden = !m.rotate;
-    $('mvRow1').hidden = !m.axis && !m.variant;
-    $('mvLeft').style.visibility = $('mvRight').style.visibility = m.axis ? 'visible' : 'hidden';
+    $('mvRow3').hidden = true;
+    $('mvRow1').hidden = !m.variant;
+    $('mvLeft').style.visibility = $('mvRight').style.visibility = 'hidden';
     buildMoverSelects(m);
     updateMoverInfo();
   }
@@ -1841,7 +1877,7 @@ function buildMoverSelects(m) {
 function updateMoverInfo() { if (!selected) return; if (selected.title) $('mvName').textContent = selected.title();
   const lk = $('mvLink'), lk2 = $('mvLink2'); lk.hidden = !selected.link; lk2.hidden = true;
   if (selected.link) { const L = selected.link(); lk.href = L.href; lk.textContent = L.text; if (L.href2) { lk2.hidden = false; lk2.href = L.href2; lk2.textContent = L.text2; } }
-  if (selected.rotate) $('mvAng').textContent = `${Math.round(((dining.angle * 180 / Math.PI) % 360 + 360) % 360)}°`; $('mvInfo').textContent = selected.info();
+  if (selected.rotate) $('mvAng').textContent = `${Math.round((((selected.angle ? selected.angle() : dining.angle) * 180 / Math.PI) % 360 + 360) % 360)}°`; $('mvInfo').textContent = selected.info();
   for (const sel of selected.selects || []) { const el = $('mvSelects').querySelector(`select[data-id="${sel.id}"]`); if (el && +el.value !== sel.get()) el.value = sel.get(); }
   if (selected.variant2) $('mvVar2').disabled = selected.variant2.label() === '—'; if (selected.variant) $('mvVar').textContent = selected.variant.label(); if (selected.variant2) $('mvVar2').textContent = selected.variant2.label(); }
 function moverMap(m) {
@@ -1916,6 +1952,7 @@ function savePin() { try { localStorage.setItem('moverPin', JSON.stringify(mover
 function placeMover() {
   if (!selected) return;
   const el = $('mover');
+  if (focus) { el.style.opacity = '1'; return; }                 // docked beside the close-up (CSS)
   if (moverPin && finePointer.matches) {                       // parked by you: leave it where it is
     el.classList.add('pinned'); el.style.opacity = '1';
     clampPin(); el.style.left = moverPin.x + 'px'; el.style.top = moverPin.y + 'px';
@@ -1968,7 +2005,7 @@ function lineMeet(p1, t1, p2, t2) {        // intersection of two horizontal lin
   const s = ((p2.x - p1.x) * t2.z - (p2.z - p1.z) * t2.x) / den;
   return p1.clone().addScaledVector(t1, s);
 }
-let H_CL = 2.364, DOOR_H = 2.294; const D_CL = 0.58, PL = 0.05, T = 0.018;   // IKEA PAX frame 58 cm deep; door front at 60 cm
+let H_CL = 2.364, DOOR_H = 2.294, D_CL = 0.58; const PL = 0.05, T = 0.018;   // IKEA PAX frame 58 cm deep; door front at 60 cm
 function makeRun(O, n, width, name, sections) {
   // one straight wardrobe run. O = back corner on the wall where local x = 0; local x = UP × n, local z = n (towards the room)
   const a = new THREE.Vector3().crossVectors(UP, n).normalize();
@@ -1995,6 +2032,7 @@ function makeRun(O, n, width, name, sections) {
     const ky = H_CL / 2.364, addS = (geo, mat, x, y, z, solid) => add(geo, mat, x, PL + (y - PL) * ky, z, solid);
     const ctx = { g, x0, x1, add: addS, w: sec.w };
     if (sec.fill) sec.fill(ctx);
+    if (sec.open) continue;                                   // open frame, no doors
     if (sec.blind) { add(new THREE.BoxGeometry(sec.w - T, H_CL - PL - T, T), MATS.paxFrame, (x0 + x1) / 2, (PL + H_CL - T) / 2, D_CL - T / 2, true); continue; }
     const doorsIn = sec.doors || 1, dw = (sec.w - 0.004) / doorsIn;
     for (let k = 0; k < doorsIn; k++) {
@@ -2014,7 +2052,7 @@ function makeRun(O, n, width, name, sections) {
   return { g, a, n, O, width, doors: made, parts };
 }
 // ---- interior helpers (local run coordinates)
-const zc = D_CL / 2;
+let zc = D_CL / 2;
 function rail(c, y) { c.add(new THREE.CylinderGeometry(0.012, 0.012, c.w - 0.04, 12), MATS.rail, (c.x0 + c.x1) / 2, y, zc).rotation.z = Math.PI / 2; }
 function shelf(c, y) { c.add(new THREE.BoxGeometry(c.w - T * 2, T, D_CL - 0.04), MATS.paxIn, (c.x0 + c.x1) / 2, y, (D_CL - 0.04) / 2); }
 function hang(c, y, items) {           // items: [thickness, length, width, colour]
@@ -2429,8 +2467,39 @@ const tvMover = {
 MATS.tvScreen = std({ color: 0x08090b, roughness: 0.12, metalness: 0.4 });
 MATS.tvFrame = std({ color: 0x1b1c1f, roughness: 0.4, metalness: 0.5 });
 MATS.sonos = std({ color: 0x161616, roughness: 0.85 });
-MATS.sofa = std({ color: 0x8f8577, roughness: 1 });           // ILVA "Austin 3 Antelope", greyish brown
-MATS.sofaCush = std({ color: 0x998f82, roughness: 1 });
+// sofa upholstery: MeshPhysical with sheen (soft cloth look) and a per-weave canvas texture (melange colour + bump), UVs in metres
+const FABRIC_TEX = {};
+function weaveTex(kind) {
+  if (FABRIC_TEX[kind]) return FABRIC_TEX[kind];
+  const r = rng({ flat: 31, boucle: 32, chenille: 33, canvas: 34, velvet: 35, leather: 36 }[kind] || 31);
+  const tile = { flat: 0.06, boucle: 0.09, chenille: 0.07, canvas: 0.05, velvet: 0.12, leather: 0.2 }[kind] || 0.06;
+  const t = canvasTex(256, 256, (g, W) => {
+    g.fillStyle = '#d8d8d8'; g.fillRect(0, 0, W, W);
+    if (kind === 'boucle') {                       // tight loops: lots of small light/dark blobs
+      for (let k = 0; k < 2600; k++) { const v = 150 + r() * 105 | 0; g.fillStyle = `rgb(${v},${v},${v})`; g.beginPath(); g.arc(r() * W, r() * W, 1.5 + r() * 3.2, 0, 7); g.fill(); }
+    } else if (kind === 'leather') {               // fine pebble grain
+      for (let k = 0; k < 5000; k++) { const v = 190 + r() * 50 | 0; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(r() * W, r() * W, 1 + r() * 2, 1 + r() * 2); }
+    } else if (kind === 'velvet') {                // almost smooth pile, soft mottling
+      for (let k = 0; k < 900; k++) { const v = 200 + r() * 40 | 0; g.fillStyle = `rgba(${v},${v},${v},0.35)`; g.beginPath(); g.arc(r() * W, r() * W, 3 + r() * 10, 0, 7); g.fill(); }
+    } else if (kind === 'chenille') {              // soft horizontal ribs with slubs
+      for (let y = 0; y < W; y += 4) { const v = 175 + r() * 60 | 0; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(0, y, W, 2.6); }
+      for (let k = 0; k < 600; k++) { const v = 215 + r() * 40 | 0; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(r() * W, r() * W, 4 + r() * 10, 2); }
+    } else {                                       // flat weave / canvas: two-tone basket weave + melange flecks
+      const st = kind === 'canvas' ? 4 : 3;
+      for (let y = 0; y < W; y += st) for (let x = 0; x < W; x += st) { const on = ((x / st) + (y / st)) % 2, v = (on ? 205 : 180) + r() * 35 | 0; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(x, y, st, st); }
+      for (let k = 0; k < 700; k++) { const v = r() < 0.5 ? 140 + r() * 30 | 0 : 235; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(r() * W, r() * W, 1 + r() * 3, 1); }
+    }
+    // normalise so the texture averages ~0.93 (it multiplies the fabric colour; the colour itself stays as picked)
+    const id = g.getImageData(0, 0, W, W), d = id.data; let sum = 0; for (let k = 0; k < d.length; k += 4) sum += d[k];
+    const kk = 238 / (sum / (d.length / 4)); for (let k = 0; k < d.length; k += 4) d[k] = d[k + 1] = d[k + 2] = Math.min(255, d[k] * kk); g.putImageData(id, 0, 0);
+  }, [tile, tile]);
+  return (FABRIC_TEX[kind] = t);
+}
+function fabricTexKind(kind = '') { const k = kind.toLowerCase(); return /boucl/.test(k) ? 'boucle' : /fløjl|velvet/.test(k) ? 'velvet' : /læder|leather/.test(k) ? 'leather' : /chenille/.test(k) ? 'chenille' : /lærred|canvas/.test(k) ? 'canvas' : 'flat'; }
+const fabricMat = (hex) => new THREE.MeshPhysicalMaterial({ color: hex, roughness: 0.95, sheen: 0.6, sheenRoughness: 0.6, sheenColor: 0xffffff, envMapIntensity: 0.25 });
+MATS.sofa = fabricMat(0x8f8577);
+MATS.sofaCush = fabricMat(0x998f82);
+MATS.sofaPipe = fabricMat(0x8f8577);
 MATS.blackMetal = std({ color: 0x1a1a1a, roughness: 0.45, metalness: 0.6 });
 MATS.ps5 = std({ color: 0xf2f2f0, roughness: 0.5 });
 const liv = { media: null, sofa: null };
@@ -2725,31 +2794,28 @@ const mediaMover = {
 // Colours are matched by eye from the shops' swatches. (est.) marks a measure the shop doesn't list, read from its drawings.
 const ILVA_SERIES = 'https://ilva.dk/stuen/serier-til-stuen/nyland-sofaserie/c-2128/';
 const IKEA_P = (s) => `https://www.ikea.com/dk/da/p/${s}/`;
+// ILVA Nyland, read from ilva.dk (Oct 2026): per size, the price per fabric and the variant id per legs+seat ('10' = oak legs, cold foam; '11' = oak, pocket springs; '0x' = black metal)
+const NYLAND = {"fabrics":[{"g":"Austin","c":"13 Winter Moss","kind":"fladvævet","tex":"flat","hex":"0x606254","slug":"austin-13-winter-moss-stof"},{"g":"Austin","c":"15 Deep Blue","kind":"fladvævet","tex":"flat","hex":"0x37414e","slug":"austin-15-deep-blue-stof"},{"g":"Austin","c":"18 Light Grey","kind":"fladvævet","tex":"flat","hex":"0x9b999a","slug":"austin-18-l-grey-stof"},{"g":"Austin","c":"19 Anthracite","kind":"fladvævet","tex":"flat","hex":"0x636362","slug":"austin-19-anthracite-stof"},{"g":"Austin","c":"3 Antelope","kind":"fladvævet","tex":"flat","hex":"0x696458","slug":"austin-3-antelope-stof"},{"g":"Crush","c":"150 Midnight Blue","kind":"bouclé","tex":"boucle","hex":"0x2d2e32","slug":"crush-150-midnight-blue-stof"},{"g":"Crush","c":"200 Forrest Green","kind":"bouclé","tex":"boucle","hex":"0x444734","slug":"crush-200-forrest-green-stof"},{"g":"Crush","c":"210 Cappuccino","kind":"bouclé","tex":"boucle","hex":"0x442c20","slug":"crush-210-cappuccino-stof"},{"g":"Crush","c":"220 Choco","kind":"bouclé","tex":"boucle","hex":"0x1f1917","slug":"crush-220-choco-stof"},{"g":"Crush","c":"40 Taupe","kind":"bouclé","tex":"boucle","hex":"0x665a4e","slug":"crush-40-taupe-stof"},{"g":"Crush","c":"90 Offwhite","kind":"bouclé","tex":"boucle","hex":"0xc7c3bb","slug":"crush-90-offwhite-stof"},{"g":"Kentucky","c":"9 Cognac","kind":"regenereret læder","tex":"leather","hex":"0x875c3d","slug":"kentucky-9-cognac-regenereret-laeder"},{"g":"Linde","c":"209 Off White","kind":"lærredsvævning","tex":"canvas","hex":"0xcac8c2","slug":"linde-209-off-white-stof"},{"g":"Verdon","c":"281 Natural","kind":"chenille","tex":"chenille","hex":"0xc3b8a2","slug":"verdon-281-natural-stof"},{"g":"Verdon","c":"388 Taupe","kind":"chenille","tex":"chenille","hex":"0x86706a","slug":"verdon-388-taupe-stof"},{"g":"Verdon","c":"416 Sand","kind":"chenille","tex":"chenille","hex":"0xb3a28a","slug":"verdon-416-sand-stof"},{"g":"Verdon","c":"482 Grey","kind":"chenille","tex":"chenille","hex":"0xb2a89a","slug":"verdon-482-grey-stof"},{"g":"Verdon","c":"742 Ocean","kind":"chenille","tex":"chenille","hex":"0x444548","slug":"verdon-742-ocean-stof"},{"g":"Verdon","c":"966 Antracite","kind":"chenille","tex":"chenille","hex":"0x4b4b49","slug":"verdon-966-antracite-stof"},{"g":"Wave","c":"180 Moss Green","kind":"fløjl","tex":"velvet","hex":"0x7f7255","slug":"wave-180-moss-green-stof"},{"g":"Wave","c":"70 Sand","kind":"fløjl","tex":"velvet","hex":"0xa59583","slug":"wave-70-sand-stof"},{"g":"Wave","c":"80 Taupe","kind":"fløjl","tex":"velvet","hex":"0x877e6e","slug":"wave-80-taupe-stof"},{"g":"Soil","c":"90 Indigo","kind":"struktur","tex":"flat","hex":"0x4e5c5f","slug":"soil-90-indigo-stof"}],"prods":{"corner263":{"item":1069363,"p":{"0":14399,"1":14399,"2":14399,"3":14399,"4":14399,"6":15599,"7":15599,"8":15599,"9":15599,"10":15599,"11":15599,"12":14999,"13":14999,"14":14999,"15":14999,"16":14999,"19":14399,"20":14399,"21":14399},"v":{"0":{"11":"5642657763","10":"5642657803","00":"5642658633","01":"5642658593"},"1":{"01":"5643222150","00":"5642933619"},"2":{"10":"5642657799","01":"5642658589","11":"5642657759","00":"5642658629"},"3":{"11":"5642657767","00":"5642658637","10":"5642657807","01":"5642658597"},"4":{"00":"5642658641","11":"5642657771","01":"5642658601","10":"5642657811"},"6":{"00":"5643224470","01":"5643224993"},"7":{"01":"5643225059","00":"5643093018"},"8":{"01":"5643225125","00":"5643092890"},"9":{"01":"5643225188","00":"5643224539"},"10":{"00":"5643224670","01":"5643225308"},"11":{"11":"5642657735","00":"5642658605","10":"5642657775","01":"5642657815"},"12":{"00":"5643093712"},"13":{"00":"5642933635"},"14":{"01":"5643229646","11":"5643229710"},"15":{"00":"5642933655"},"16":{"00":"5642933663"},"19":{"00":"5642933623"},"20":{"00":"5642933607"},"21":{"00":"5642933631"}}},"corner303":{"item":1069394,"p":{"0":16199,"1":16199,"2":16199,"3":16199,"4":16199,"6":17399,"7":17399,"8":17399,"9":17399,"10":17399,"11":17399,"12":16799,"13":16799,"14":16799,"15":16799,"16":16799,"19":16199,"20":16199,"21":16199},"v":{"0":{"11":"5642658846","01":"5642658926","10":"5642658886","00":"5642658966"},"1":{"01":"5643222158","00":"5642936884"},"2":{"11":"5642658842","01":"5642658922","00":"5642658962","10":"5642658882"},"3":{"00":"5642658970","10":"5642658890","01":"5642658930","11":"5642658850"},"4":{"11":"5642658854","01":"5642658934","10":"5642658894","00":"5642658974"},"6":{"01":"5643225001","00":"5643224478"},"7":{"01":"5643225067","00":"5643093026"},"8":{"01":"5643225133","00":"5643092898"},"9":{"00":"5643224547","01":"5643225196"},"10":{"00":"5643224678","01":"5643225316"},"11":{"10":"5642658858","01":"5642658898","11":"5642658818","00":"5642658938"},"12":{"00":"5643093720"},"13":{"01":"5643110946","00":"5642936900"},"14":{"11":"5643229718","01":"5643229654"},"15":{"00":"5642936920"},"16":{"00":"5642936928"},"19":{"00":"5642936888"},"20":{"00":"5642936872"},"21":{"00":"5642936896"}}},"pouf263":{"item":1069451,"p":{"0":14999,"1":14999,"2":14999,"3":14999,"4":14999,"6":16199,"7":16199,"8":16199,"9":16199,"10":16199,"11":16199,"12":15599,"13":15599,"14":15599,"15":15599,"16":15599,"19":14999,"20":14999,"21":14999,"22":15599},"v":{"0":{"11":"5642660586","01":"5642660666","00":"5642660706","10":"5642660626"},"1":{"00":"5642937876","01":"5643222177"},"2":{"11":"5642660582","01":"5642660662","00":"5642660702","10":"5642660622"},"3":{"00":"5642660710","10":"5642660630","01":"5642660670","11":"5642660590"},"4":{"00":"5642660714","01":"5642660674","11":"5642660594","10":"5642660634"},"6":{"01":"5643225029","00":"5643224506"},"7":{"01":"5643225095","00":"5643093054"},"8":{"00":"5643092926","01":"5643225161"},"9":{"00":"5643224570","01":"5643225219"},"10":{"01":"5643225344","00":"5643224706"},"11":{"01":"5642660638","00":"5642660678","10":"5642660598","11":"5642660558"},"12":{"00":"5643093748"},"13":{"00":"5642937892"},"14":{"11":"5643229746","01":"5643229682"},"15":{"00":"5642937912"},"16":{"00":"5642937920"},"19":{"00":"5642937880"},"20":{"01":"5642929819","00":"5642937864"},"21":{"00":"5642937888"},"22":{"10":"5642890461"}}},"pouf303":{"item":1068328,"p":{"0":15599,"1":15599,"2":15599,"3":15599,"4":15599,"5":16799,"6":16799,"7":16799,"8":16799,"9":16799,"10":16799,"11":16799,"14":16199,"20":15599,"21":15599},"v":{"0":{"01":"5642650443"},"1":{"01":"5643222133"},"2":{"11":"5642650537","01":"5642650439"},"3":{"01":"5642638723"},"4":{"01":"5642650447","10":"5642650589"},"5":{"11":"5643223677"},"6":{"01":"5642993618"},"7":{"01":"5643225039"},"8":{"01":"5643225105"},"9":{"01":"5643225171"},"10":{"01":"5643225295"},"11":{"01":"5642650419","11":"5642650513"},"14":{"11":"5643229690","01":"5643229626"},"20":{"01":"5642961879"},"21":{"01":"5643032893"}}},"u394":{"item":1069435,"p":{"0":21599,"1":21599,"2":21599,"3":21599,"4":21599,"6":22799,"7":22799,"8":22799,"9":22799,"10":22799,"11":22799,"12":22199,"13":22199,"14":22199,"15":22199,"16":22199,"18":22199,"19":21599,"20":21599,"21":21599},"v":{"0":{"11":"5642660338","01":"5642660438","10":"5642660388","00":"5642660488"},"1":{"00":"5642937363","01":"5643222162"},"2":{"11":"5642660333","10":"5642660383","01":"5642660433","00":"5642660483"},"3":{"10":"5642660393","00":"5642660493","11":"5642660343","01":"5642660443"},"4":{"11":"5642660348","01":"5642660448","10":"5642660398","00":"5642660498"},"6":{"00":"5643224491","01":"5643225014"},"7":{"00":"5643093039","01":"5643225080"},"8":{"00":"5643092911","01":"5643225146"},"9":{"01":"5643225209","00":"5643224560"},"10":{"01":"5643225329","00":"5643224691"},"11":{"00":"5642660453","10":"5642660353","11":"5642660303","01":"5642660403"},"12":{"00":"5643093733"},"13":{"01":"5642934335","00":"5642937383"},"14":{"01":"5643229667","11":"5643229731"},"15":{"00":"5642937408"},"16":{"00":"5642937418"},"18":{"10":"5642877351"},"19":{"00":"5642937368"},"20":{"00":"5642937348"},"21":{"00":"5642937378"}}},"u354":{"item":1069430,"p":{"0":20399,"1":20399,"2":20399,"3":20399,"4":20399,"6":21599,"7":21599,"8":21599,"9":21599,"10":21599,"11":21599,"12":20999,"13":20999,"14":20999,"15":20999,"16":20999,"19":20399,"20":20399,"21":20399},"v":{"0":{"10":"5642660177","00":"5642660277","11":"5642660127","01":"5642660227"},"1":{"01":"5642833106","00":"5642937203"},"2":{"10":"5642660172","00":"5642660272","01":"5642660222","11":"5642660122"},"3":{"11":"5642660132","01":"5642660232","10":"5642660182","00":"5642660282"},"4":{"10":"5642660187","00":"5642660287","11":"5642660137","01":"5642660237"},"6":{"01":"5643225009","00":"5643224486"},"7":{"01":"5643225075","00":"5643093034"},"8":{"01":"5643225141","00":"5643092906"},"9":{"01":"5643225204","00":"5643224555"},"10":{"01":"5643225324","00":"5643224686"},"11":{"00":"5642660242","10":"5642660142","11":"5642660092","01":"5642660192"},"12":{"00":"5643093728"},"13":{"00":"5642937223","01":"5642959493"},"14":{"01":"5643229662","11":"5643229726"},"15":{"00":"5642937243"},"16":{"00":"5642937253"},"19":{"00":"5642937208"},"20":{"00":"5642937188"},"21":{"00":"5642937218"}}},"chaise271":{"item":1069253,"p":{"0":13199,"1":13199,"2":13199,"3":13199,"4":13199,"6":14399,"7":14399,"8":14399,"9":14399,"10":14399,"11":14399,"12":13799,"13":13799,"14":13799,"15":13799,"16":13799,"19":13199,"20":13199,"21":13199},"v":{"0":{"10":"5642652295","00":"5642652355","01":"5642652325","11":"5642652271"},"1":{"00":"5642933164","01":"5643222137"},"2":{"00":"5642652352","01":"5642652322","10":"5642652292","11":"5642652270"},"3":{"01":"5642652328","10":"5642652298","00":"5642652358","11":"5642652272"},"4":{"10":"5642652301","01":"5642652331","00":"5642652361","11":"5642652273"},"6":{"01":"5643038922","00":"5643224457"},"7":{"00":"5643093005","01":"5643225046"},"8":{"00":"5643092877","01":"5643225112"},"9":{"01":"5643225178","00":"5643224526"},"10":{"01":"5643225302","00":"5643224660"},"11":{"00":"5642652334","11":"5642652264","01":"5642652304","10":"5642652274"},"12":{"00":"5643093699"},"13":{"00":"5642933176"},"14":{"11":"5643229697","01":"5643229633"},"15":{"00":"5642933191"},"16":{"00":"5642933197"},"19":{"00":"5642933167"},"20":{"00":"5642933155"},"21":{"00":"5642933173"}}},"chaise311":{"item":1069266,"p":{"0":16799,"1":16799,"2":16799,"3":16799,"4":16799,"5":17999,"6":17999,"7":17999,"8":17999,"9":17999,"10":17999,"11":17999,"12":17399,"13":17399,"14":17399,"15":17399,"16":17399,"19":16799,"20":16799,"21":16799},"v":{"0":{"10":"5642657179","11":"5642657149","01":"5642657209","00":"5642657239"},"1":{"00":"5642933368","01":"5643222143"},"2":{"01":"5642657206","10":"5642657176","00":"5642657236","11":"5642657146"},"3":{"10":"5642657182","01":"5642657212","11":"5642657152","00":"5642657242"},"4":{"10":"5642657185","00":"5642657245","01":"5642657215","11":"5642657155"},"5":{"11":"5643223690"},"6":{"00":"5643224463","01":"5643224986"},"7":{"00":"5643093011","01":"5643225052"},"8":{"00":"5643092883","01":"5643225118"},"9":{"01":"5642992425","00":"5643224532"},"10":{"10":"5642895344","01":"5642977133","00":"5643224663"},"11":{"10":"5642657158","01":"5642657188","00":"5642657218","11":"5642657128"},"12":{"00":"5643093705"},"13":{"01":"5642886119","00":"5642933380"},"14":{"11":"5643229703","01":"5643229639"},"15":{"01":"5642886122","00":"5642933395"},"16":{"00":"5642933401"},"19":{"00":"5642933371"},"20":{"00":"5642933359"},"21":{"00":"5642933377"}}},"three220":{"item":1068327,"p":{"0":8099,"2":8099,"3":8099,"4":8099,"5":8699,"10":8699,"11":8699,"13":8399,"14":8399,"15":8399,"16":8399,"17":8399,"18":8399,"20":8099},"v":{"0":{"10":"5642650416","00":"5642650510"},"2":{"10":"5642650415"},"3":{"10":"5642650417"},"4":{"10":"5642650418","00":"5642650512"},"5":{"10":"5642928440"},"10":{"10":"5642882410"},"11":{"11":"5642650483","10":"5642650410"},"13":{"10":"5642933945"},"14":{"11":"5643229622"},"15":{"10":"5642933950"},"16":{"10":"5642933952"},"17":{"10":"5642933951"},"18":{"10":"5642933953"},"20":{"10":"5642933940"}}},"two180":{"item":1069239,"p":{"0":7499,"1":7499,"2":7499,"3":7499,"4":7499,"6":8099,"7":8099,"8":8099,"9":8099,"10":8099,"11":8099,"12":7799,"13":7799,"14":7799,"15":7799,"16":7799,"19":7499,"20":7499,"21":7499},"v":{"0":{"10":"5642653216","00":"5642653236","01":"5642653226","11":"5642653206"},"1":{"01":"5642823332","00":"5642934244"},"2":{"10":"5642653215","01":"5642653225","11":"5642653205","00":"5642653235"},"3":{"10":"5642653217","00":"5642653237","11":"5642653207","01":"5642653227"},"4":{"10":"5642653218","01":"5642653228","00":"5642653238","11":"5642653208"},"6":{"01":"5643224979","00":"5642894149"},"7":{"00":"5643092570","01":"5643225038"},"8":{"01":"5643225104","00":"5643092583"},"9":{"01":"5643225170","00":"5643224516"},"10":{"10":"5642911423","01":"5643225294","00":"5643224650"},"11":{"11":"5642653199","01":"5642653219","10":"5642653209","00":"5642653229"},"12":{"00":"5643092418"},"13":{"00":"5642934248"},"14":{"11":"5643229624","01":"5643229625"},"15":{"00":"5642934253"},"16":{"00":"5642934255"},"19":{"00":"5642934245"},"20":{"00":"5642913759","01":"5642961901"},"21":{"00":"5642934247"}}}},"pouf":{"1068895":{"item":1068895,"p":{"0":2699,"1":2699,"2":2699,"3":2699,"4":2699,"6":3299,"7":3299,"8":3299,"9":3299,"10":3299,"11":3299,"12":2999,"13":2999,"14":2999,"15":2999,"16":2999,"19":2699,"20":2699,"21":2699},"v":{"0":"5642652749","1":"5642823331","2":"5642652748","3":"5642652760","4":"5642652751","6":"5643224447","7":"5643092568","8":"5643092581","9":"5643224515","10":"5642977136","11":"5642652742","12":"5643092416","13":"5642934216","14":"5643092606","15":"5642886105","16":"5642934222","19":"5642934213","20":"5642934210","21":"5642934215"}},"1069440":{"item":1069440,"p":{"0":2399,"1":2399,"2":2399,"3":2399,"4":2399,"6":2999,"7":2999,"8":2999,"9":2999,"10":2999,"11":2999,"12":2699,"13":2699,"14":2699,"15":2699,"16":2699,"19":2399,"20":2399,"21":2399},"v":{"0":"5642661627","1":"5642937449","2":"5642661626","3":"5642661628","4":"5642661639","6":"5643224449","7":"5643092574","8":"5643092587","9":"5643224518","10":"5643224652","11":"5642661630","12":"5643092422","13":"5642937453","14":"5643092612","15":"5642937458","16":"5642937460","19":"5642937450","20":"5642937446","21":"5642937452"}}}};
 const SOFA_MODELS = [
-  { brand: 'ILVA', name: 'Nyland', url: 'https://ilva.dk/stuen/sofaer/hjoernesofaer/nyland/austin-3-antelope-stof/p-1069363-5642658601/', D: 0.93, defaultCfg: 2,
-    side: (n, r) => `${r ? 'Højrevendt' : 'Venstrevendt'} ${n}`,
-    style: { LEG: 0.14, BASE: 0.30, SEAT: 0.47, ARMH: 0.60, BACKH: 0.82, AW: 0.12, BT2: 0.16, POUF: 0.37, legR: 0.013, taper: 0.8 },
+  { brand: 'ILVA', name: 'Nyland', url: 'https://ilva.dk/stuen/sofaer/hjoernesofaer/nyland/austin-13-winter-moss-stof/p-1069363-5642657763/', D: 0.93, defaultCfg: 4, defaultLegs: 1, ilva: true,
+    side: (n) => n,
+    // from the ILVA drawings: seat 47, back 82, arms ≈60 high and ≈15 wide (track arms with piping), loose pillow backs, round tapered legs no. 141 (oak) / no. 145 (black metal)
+    style: { LEG: 0.14, BASE: 0.375, SEAT: 0.47, ARMH: 0.60, BACKH: 0.82, AW: 0.15, BT2: 0.17, POUF: 1.25, legR: 0.017, taper: 0.6, r: 0.028, pipe: true },
+    // only the versions whose returns sit on the kitchen side, backs to the outer wall (Gianluca, 2026-10-04); ILVA's hand in the name
     configs: [
-      { name: '2 Personer', L: 1.80, R: 0.93, url: ILVA_SERIES },
-      { name: '3 Personer', L: 2.20, R: 0.93, url: 'https://ilva.dk/stuen/sofaer/2-personers-sofaer/nyland/verdon-281-natural-stof/p-1068327-5642933945/' },
-      { name: 'Hjørnesofa', L: 2.63, R: 1.92, sided: true, main: { t: 'corner', R: 1.92 } },
-      { name: 'Hjørnesofa - Ekstra Længde', L: 3.03, R: 2.12, sided: true, main: { t: 'corner', R: 2.12 } },
-      { name: 'Hjørnesofa Med Chaiselong', L: 3.54, R: 2.22, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, other: { t: 'corner', R: 2.22 }, url: 'https://ilva.dk/stuen/sofaer/hjoernesofaer/nyland/austin-3-antelope-stof/p-1069446-5642661995/' },
-      { name: 'Hjørnesofa Med Chaiselong - Ekstra Længde', L: 3.94, R: 2.22, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, other: { t: 'corner', R: 2.22 }, url: 'https://ilva.dk/stuen/sofaer/hjoernesofaer/nyland/austin-3-antelope-stof/p-1069446-5642661995/' },
-      { name: 'Hjørnesofa Med Pufafslutning', L: 2.63, R: 2.22, sided: true, main: { t: 'pouf', R: 2.22 } },
-      { name: 'Hjørnesofa Med Pufafslutning - Ekstra Længde', L: 3.03, R: 2.22, sided: true, main: { t: 'pouf', R: 2.22 } },
-      { name: 'Sofa Med Chaiselong', L: 2.71, R: 1.52, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, url: 'https://ilva.dk/stuen/sofaer/chaiselongsofaer/nyland/austin-3-antelope-stof/p-1069266-5642657215/' },
-      { name: 'Sofa Med Chaiselong - Ekstra Længde', L: 3.11, R: 1.52, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, url: 'https://ilva.dk/stuen/sofaer/chaiselongsofaer/nyland/austin-3-antelope-stof/p-1069266-5642657215/' },
+      { name: '2 Personer', L: 1.80, R: 0.93, ny: 'two180', cat: 'sofaer/2-personers-sofaer' },
+      { name: '3 Personer', L: 2.20, R: 0.93, ny: 'three220', cat: 'sofaer/2-personers-sofaer' },
+      { name: 'Venstrevendt sofa med chaiselong', L: 2.71, R: 1.52, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, ny: 'chaise271', cat: 'sofaer/chaiselongsofaer' },
+      { name: 'Venstrevendt sofa med chaiselong · ekstra længde', L: 3.11, R: 1.52, sided: true, main: { t: 'chaise', R: 1.52, W: 1.0 }, ny: 'chaise311', cat: 'sofaer/chaiselongsofaer' },
+      { name: 'Venstrevendt hjørnesofa', L: 2.63, R: 1.92, sided: true, main: { t: 'corner', R: 1.92 }, ny: 'corner263', cat: 'sofaer/hjoernesofaer' },
+      { name: 'Venstrevendt hjørnesofa · ekstra længde', L: 3.03, R: 2.12, sided: true, main: { t: 'corner', R: 2.12 }, ny: 'corner303', cat: 'sofaer/hjoernesofaer' },
+      { name: 'Venstrevendt hjørnesofa med pufafslutning', L: 2.63, R: 2.22, sided: true, main: { t: 'pouf', R: 2.22 }, ny: 'pouf263', cat: 'sofaer/hjoernesofaer' },
+      { name: 'Venstrevendt hjørnesofa med pufafslutning · ekstra længde', L: 3.03, R: 2.22, sided: true, main: { t: 'pouf', R: 2.22 }, ny: 'pouf303', cat: 'sofaer/hjoernesofaer' },
+      { name: 'Højrevendt hjørnesofa med chaiselong (U)', L: 3.54, R: 2.22, sided: true, main: { t: 'corner', R: 2.22 }, other: { t: 'chaise', R: 1.52, W: 1.0 }, ny: 'u354', cat: 'sofaer/hjoernesofaer' },
+      { name: 'Højrevendt hjørnesofa med chaiselong (U) · ekstra længde', L: 3.94, R: 2.22, sided: true, main: { t: 'corner', R: 2.22 }, other: { t: 'chaise', R: 1.52, W: 1.0 }, ny: 'u394', cat: 'sofaer/hjoernesofaer' },
     ],
-    fabrics: [
-      ['Austin', 'fladvævet', [['Antelope', 0x958777], ['Anthracite', 0x6f7173], ['Deep Blue', 0x28324a], ['Grey', 0xb4b4b6], ['Winter Moss', 0x676d5f]], 1],
-      ['Crush', 'bouclé', [['Cappuccino', 0x4f3727], ['Choco', 0x2c2420], ['Forest', 0x2f3b34], ['Off White', 0xdcd6cb], ['Taupe', 0x4d4239]], 1],
-      ['Kentucky', 'regenereret læder', [['Cognac', 0x7d4024]], 0.5],
-      ['Linde', 'lærredsvævning', [['Off White', 0xd0cbc1]], 1],
-      ['Verdon', 'chenille', [['Grey', 0x9c9e9c], ['Natural', 0xb3ac9c], ['Sand', 0x9d8f7b], ['Taupe', 0x514437]], 0.95],
-      ['Wave', 'fløjl', [['Moss Green', 0x6e6b47], ['Sand', 0xcbc0b2], ['Taupe', 0x7a7366]], 0.75],
-    ],
-    legs: [['Sort Metal', 'black'], ['Eg (lakeret)', 'oak']] },
+    fabrics: (() => { const out = []; for (const f of NYLAND.fabrics) { const last = out[out.length - 1]; if (last && last[0] === f.g) last[2].push([f.c, f.hex, f.tex]); else out.push([f.g, f.kind, [[f.c, f.hex, f.tex]], f.tex === 'leather' ? 0.5 : f.tex === 'velvet' ? 0.75 : 1]); } return out; })(),
+    legs: [['Sort metal (no. 145)', 'black'], ['Lakeret massiv eg (no. 141)', 'oak']] },
   { brand: 'ILVA', name: 'Linea', url: 'https://ilva.dk/stuen/sofaer/hjoernesofaer/linea/austin-18-grey-stof/p-1083602-5643106935/', D: 0.88, defaultCfg: 4,
     side: (n, r) => (n.startsWith('3 Personer') ? n.replace('3 Personer', `3 Personer ${r ? 'Højrevendt' : 'Venstrevendt'}`) : `${r ? 'Højrevendt' : 'Venstrevendt'} ${n}`),
     style: { LEG: 0.16, BASE: 0.28, SEAT: 0.44, ARMH: 0.60, BACKH: 0.80, AW: 0.11, BT2: 0.15, POUF: 0.45, legR: 0.02, taper: 0.55 },
@@ -2828,17 +2894,47 @@ const SOFA_MODELS = [
 let SOFAS, FABRICS, LEGS, SD, SSTY, SMODEL;
 function useModel(i) {
   SMODEL = SOFA_MODELS[i]; SOFAS = SMODEL.configs; SD = SMODEL.D; SSTY = SMODEL.style;
-  FABRICS = SMODEL.fabrics.flatMap(([g, kind, cols, rough]) => cols.map(([c, hex]) => ({ g, kind, c, hex, rough })));
+  FABRICS = SMODEL.fabrics.flatMap(([g, kind, cols, rough]) => cols.map(([c, hex, tex]) => ({ g, kind, c, hex, rough, tex: tex || fabricTexKind(kind) })));
   LEGS = SMODEL.legs.map(([n, k]) => [n, () => (k === 'oak' ? MATS.legwood : k === 'chrome' ? MATS.chromeK : MATS.blackMetal)]);
 }
 useModel(0);
 
-function sofaName(S) { const c = SOFAS[S.cfg]; return c.sided ? SMODEL.side(c.name, S.flip) : c.name; }
+function sofaName(S) { const c = SOFAS[S.cfg]; return c.sided ? SMODEL.side(c.name, false) : c.name; }
+// ---- ILVA Nyland: availability, price and the exact product page per size × fabric × legs × seat
+const NY_FILL = ['Koldskum', 'Pocketfjedre / koldskum'];
+function nyProd(S) { const c = SOFAS[S.cfg]; return c.ny ? NYLAND.prods[c.ny] : null; }
+function nyFix(S, quiet) {                              // keep the chosen fabric/legs/seat valid for this size; returns a note when something had to change
+  const P = nyProd(S); if (!P) return '';
+  let note = '';
+  if (!P.v[S.fabric]) { const was = FABRICS[S.fabric]; const alt = Object.keys(P.v).map(Number).sort((a, b) => Math.abs(a - S.fabric) - Math.abs(b - S.fabric))[0]; S.fabric = alt; note = `${was.g} ${was.c} isn’t made in this size · showing ${FABRICS[alt].g} ${FABRICS[alt].c}`; }
+  const V = P.v[S.fabric], want = `${S.legs}${S.fill}`;
+  if (!V[want]) {
+    const k = V[`${S.legs}${1 - S.fill}`] ? `${S.legs}${1 - S.fill}` : Object.keys(V)[0];
+    const nl = +k[0], nf = +k[1];
+    if (!note) note = nl !== S.legs ? `${FABRICS[S.fabric].c} comes with ${LEGS[nl][0].toLowerCase()} legs only here` : `${FABRICS[S.fabric].c}: seat ${NY_FILL[nf].toLowerCase()} only`;
+    S.legs = nl; S.fill = nf;
+  }
+  if (note && !quiet) showToast(note);
+  return note;
+}
+function nyUrl(S) {
+  const c = SOFAS[S.cfg], P = nyProd(S); if (!P) return null;
+  const erp = (P.v[S.fabric] || {})[`${S.legs}${S.fill}`] || Object.values(P.v[S.fabric] || {})[0];
+  return `https://ilva.dk/stuen/${c.cat}/nyland/${NYLAND.fabrics[S.fabric].slug}/p-${P.item}-${erp}/`;
+}
+const nyKr = (v) => `${Math.round(v).toLocaleString('da-DK')} kr`;
+function nyPouf(S) { if (!S.pouf) return null; const P = NYLAND.pouf[S.pouf === 1 ? '1069440' : '1068895'], f = P.p[S.fabric] ? S.fabric : 0;
+  return { P, price: P.p[f], url: `https://ilva.dk/stuen/puffer-fodskamler/nyland/${NYLAND.fabrics[f].slug}/p-${P.item}-${P.v[f]}/`, size: S.pouf === 1 ? '72 × 59 × 47' : '92 × 59 × 47', missing: !P.p[S.fabric] }; }
 function sofaFull(S) { return `${SMODEL.brand} ${SMODEL.name} ${sofaName(S)}`; }
 function applyFabric(S) {
   const fb = FABRICS[S.fabric];
-  MATS.sofa.color.setHex(fb.hex); MATS.sofa.roughness = fb.rough;
-  MATS.sofaCush.color.setHex(fb.hex).offsetHSL(0, 0, 0.03); MATS.sofaCush.roughness = fb.rough;
+  const T = weaveTex(fb.tex), leather = fb.tex === 'leather', velvet = fb.tex === 'velvet';
+  const bump = { boucle: 0.012, chenille: 0.006, flat: 0.004, canvas: 0.004, velvet: 0.0015, leather: 0.002 }[fb.tex] ?? 0.004;
+  for (const [m, dl] of [[MATS.sofa, -0.01], [MATS.sofaCush, 0.015], [MATS.sofaPipe, -0.04]]) {
+    m.color.setHex(fb.hex).offsetHSL(0, 0, dl); m.map = T; m.bumpMap = T; m.bumpScale = bump;
+    m.roughness = leather ? 0.48 : velvet ? 0.8 : 0.97; m.sheen = leather ? 0 : velvet ? 0.8 : 0.3; m.sheenRoughness = velvet ? 0.4 : 0.8;
+    m.sheenColor.setHex(fb.hex).lerp(new THREE.Color(0xffffff), velvet ? 0.25 : 0.08); m.clearcoat = leather ? 0.15 : 0; m.needsUpdate = true;
+  }
 }
 function sofaFrame() { const M = liv.media; const f = M.n.clone().negate(); return { f, x: new THREE.Vector3().crossVectors(UP, f).normalize() }; }
 function sofaEnds(cfg, side) {
@@ -2859,6 +2955,29 @@ function sofaClear(O, cfg, side) {
   }
   return worst;
 }
+// rounded, subdivided box with analytic normals and metric UVs (for fabric); o.top / o.front / o.side crown the faces like a filled cushion
+function softBox(w, h, d, r, o = {}) {
+  r = Math.max(0.002, Math.min(r, w / 2 - 1e-3, h / 2 - 1e-3, d / 2 - 1e-3));
+  const geo = new THREE.BoxGeometry(w, h, d, Math.max(2, Math.ceil(w / 0.05)), Math.max(2, Math.ceil(h / 0.05)), Math.max(2, Math.ceil(d / 0.05)));
+  const P = geo.attributes.position, N = geo.attributes.normal, UVa = geo.attributes.uv, hx = w / 2, hy = h / 2, hz = d / 2;
+  const v = new THREE.Vector3(), c = new THREE.Vector3(), n = new THREE.Vector3(), cl = THREE.MathUtils.clamp;
+  for (let i = 0; i < P.count; i++) {
+    v.fromBufferAttribute(P, i);
+    c.set(cl(v.x, -hx + r, hx - r), cl(v.y, -hy + r, hy - r), cl(v.z, -hz + r, hz - r));
+    n.subVectors(v, c); const len = n.length(); if (len < 1e-9) n.fromBufferAttribute(N, i); else n.divideScalar(len);
+    v.copy(c).addScaledVector(n, r);
+    const ux = Math.max(0, 1 - (v.x / hx) ** 2), uy = Math.max(0, 1 - (v.y / hy) ** 2), uz = Math.max(0, 1 - (v.z / hz) ** 2);
+    let gx = 0, gy = 0, gz = 0;
+    if (o.top && n.y > 0) { const k = o.top * n.y; v.y += k * ux * uz; gx += k * uz * (-2 * v.x / hx / hx); gz += k * ux * (-2 * v.z / hz / hz); n.x -= gx * n.y; n.z -= gz * n.y; }
+    if (o.front && n.z > 0) { const k = o.front * n.z; v.z += k * ux * uy; n.x -= k * uy * (-2 * v.x / hx / hx) * n.z; n.y -= k * ux * (-2 * v.y / hy / hy) * n.z; }
+    if (o.side && Math.abs(n.x) > 0) { const k = o.side * Math.abs(n.x), sg = Math.sign(n.x); v.x += sg * k * uy * uz; n.y -= sg * k * uz * (-2 * v.y / hy / hy) * n.x; n.z -= sg * k * uy * (-2 * v.z / hz / hz) * n.x; }
+    n.normalize();
+    P.setXYZ(i, v.x, v.y, v.z); N.setXYZ(i, n.x, n.y, n.z);
+    const ax = Math.abs(n.x), ay = Math.abs(n.y), az = Math.abs(n.z);
+    if (ay >= ax && ay >= az) UVa.setXY(i, v.x, v.z); else if (ax >= az) UVa.setXY(i, v.z, v.y); else UVa.setXY(i, v.x, v.y);
+  }
+  return geo;
+}
 function buildSofa(tryMove) {
   let S = liv.sofa; const M = liv.media; if (!M) return false;
   const { f, x } = sofaFrame();
@@ -2866,11 +2985,12 @@ function buildSofa(tryMove) {
     // back of the sofa 90 cm off the window wall (a proper walkway), centred on the TV
     const WW = wallLine([2.5, 7.6], [2.5, 4.9], [-1, 0]);
     const depth = WW ? M.base.clone().sub(WW.p).dot(WW.n) : 4.0;
-    S = liv.sofa = { model: 0, cfg: 2, flip: false, fabric: 0, legs: 0, O: M.base.clone().addScaledVector(M.n, depth - 0.92), group: null, parts: [] };
+    S = liv.sofa = { model: 0, cfg: SOFA_MODELS[0].defaultCfg, flip: false, fabric: 0, legs: SOFA_MODELS[0].defaultLegs ?? 0, fill: 1, pouf: 0, O: M.base.clone().addScaledVector(M.n, depth - 0.92), group: null, parts: [] };
   }
   if (S.group) { scene.remove(S.group); dropParts(S.parts); }
   applyFabric(S);
-  const cfg = SOFAS[S.cfg], side = S.flip ? 1 : -1;
+  nyFix(S, true); applyFabric(S);
+  const cfg = SOFAS[S.cfg], side = -1;                // returns always on the kitchen side (left, standing in front)
   let moved = true;
   if (tryMove) { const cand = tryMove(S.O.clone()); if (sofaClear(cand, cfg, side) > 0.015) S.O = cand; else moved = false; }
   else if (sofaClear(S.O, cfg, side) <= 0.015) {
@@ -2888,43 +3008,81 @@ function buildSofa(tryMove) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(xb - xa, y1 - y0, zb - za), mat); m.position.set((xa + xb) / 2, (y0 + y1) / 2, (za + zb) / 2); m.rotation.x = rotX;
     m.castShadow = m.receiveShadow = true; g.add(m); parts.push(m); return m;
   };
-  const cushRow = (xa, xb, y0, y1, z0, z1, mat, rotX = 0, seg = 0.8) => {
-    const a0 = Math.min(xa, xb), a1 = Math.max(xa, xb), k = Math.max(1, Math.round((a1 - a0) / seg)), w = (a1 - a0) / k;
-    for (let i = 0; i < k; i++) box(a0 + i * w + 0.006, a0 + (i + 1) * w - 0.006, y0, y1, z0, z1, mat, rotX);
+  const { LEG, BASE, SEAT, ARMH, BACKH, AW, BT2, POUF } = SSTY, RF = SSTY.r ?? 0.03;
+  const legs = [], seatIn = {};
+  // soft, upholstered pieces: rounded edges everywhere, crowned seat cushions, plump back pillows, piping on the arms
+  const soft = (x0, x1, y0, y1, z0, z1, mat, r, o, rotX = 0) => {
+    const xa = Math.min(x0, x1), xb = Math.max(x0, x1), za = Math.min(z0, z1), zb = Math.max(z0, z1);
+    const m = new THREE.Mesh(softBox(xb - xa, y1 - y0, zb - za, r, o), mat); m.position.set((xa + xb) / 2, (y0 + y1) / 2, (za + zb) / 2); m.rotation.x = rotX;
+    m.castShadow = m.receiveShadow = true; g.add(m); parts.push(m); return m;
   };
-  const cushCol = (x0, x1, y0, y1, za, zb, mat, seg = 0.75) => {
+  const pipe = (pts) => {                                          // welt cord along a polyline (local coords), corners rounded
+    const path = new THREE.CurvePath(), V = pts.map((q) => new THREE.Vector3(...q)), rr = 0.025;
+    let prev = V[0];
+    for (let k = 1; k < V.length; k++) {
+      const a = V[k], last = k === V.length - 1;
+      if (last) { path.add(new THREE.LineCurve3(prev, a)); break; }
+      const b = V[k + 1], p1 = a.clone().add(prev.clone().sub(a).setLength(rr)), p2 = a.clone().add(b.clone().sub(a).setLength(rr));
+      path.add(new THREE.LineCurve3(prev, p1)); path.add(new THREE.QuadraticBezierCurve3(p1, a, p2)); prev = p2;
+    }
+    const m = new THREE.Mesh(new THREE.TubeGeometry(path, 48, 0.0042, 6, false), MATS.sofaPipe); m.castShadow = false; m.receiveShadow = true; g.add(m); parts.push(m);
+  };
+  const armPipes = (xo, xi, z1, top) => { if (!SSTY.pipe) return; for (const xx of [xo, xi]) pipe([[xx, top - 0.012, 0.03], [xx, top - 0.012, z1 - 0.012], [xx, LEG + 0.02, z1 - 0.012]]); };
+  const seatCush = (xa, xb, z0, z1) => soft(xa, xb, BASE - 0.005, SEAT - 0.012, z0, z1, MATS.sofaCush, 0.045, { top: 0.022, front: 0.012 });
+  const cushRow = (xa, xb, z0, z1, seg = 0.8) => {
+    const a0 = Math.min(xa, xb), a1 = Math.max(xa, xb), k = Math.max(1, Math.round((a1 - a0) / seg)), w = (a1 - a0) / k;
+    for (let i = 0; i < k; i++) seatCush(a0 + i * w + 0.004, a0 + (i + 1) * w - 0.004, z0, z1);
+  };
+  const backRow = (xa, xb, seg = 0.8) => {
+    const a0 = Math.min(xa, xb), a1 = Math.max(xa, xb), k = Math.max(1, Math.round((a1 - a0) / seg)), w = (a1 - a0) / k;
+    for (let i = 0; i < k; i++) soft(a0 + i * w + 0.006, a0 + (i + 1) * w - 0.006, SEAT - 0.03, BACKH, BT2 - 0.01, BT2 + 0.19, MATS.sofaCush, 0.05, { front: 0.022, top: 0.008 }, -0.12);
+  };
+  const cushCol = (x0, x1, za, zb, back, seg = 0.75) => {          // seats (or back pillows) running along a return
     if (zb - za < 0.1) return;
     const k = Math.max(1, Math.round((zb - za) / seg)), w = (zb - za) / k;
-    for (let i = 0; i < k; i++) box(x0, x1, y0, y1, za + i * w + 0.006, za + (i + 1) * w - 0.006, mat);
+    for (let i = 0; i < k; i++) {
+      if (!back) { seatCush(x0, x1, za + i * w + 0.004, za + (i + 1) * w - 0.004); continue; }
+      const m = soft(x0, x1, SEAT - 0.03, BACKH, za + i * w + 0.006, za + (i + 1) * w - 0.006, MATS.sofaCush, 0.05, { side: 0.022, top: 0.008 });
+      m.rotation.z = Math.sign(x1 - x0) * 0.12;                    // lean outwards like the main backs
+    }
   };
-  const { LEG, BASE, SEAT, ARMH, BACKH, AW, BT2, POUF } = SSTY;
-  const legs = [], seatIn = {};
-  box(-L / 2, L / 2, LEG, BASE, 0, SD, MATS.sofa);                                   // main base + back frame
-  box(-L / 2, L / 2, BASE, 0.62, 0, BT2, MATS.sofa);
+  soft(-L / 2, L / 2, LEG, BASE, 0, SD, MATS.sofa, 0.022);                                   // main base
+  soft(-L / 2, L / 2, BASE - 0.03, 0.64, 0, BT2, MATS.sofa, RF, { top: 0.008 });             // back frame
   for (const e of sofaEnds(cfg, side)) {
     const s = e.s, ex = s * L / 2, inX = (d) => ex - s * d;
-    legs.push([inX(0.05), 0.05]);
+    legs.push([inX(0.06), 0.06]);
     if (e.t === 'arm') {
-      box(ex, inX(AW), BASE, ARMH, 0, SD, MATS.sofa); seatIn[s] = inX(AW); legs.push([inX(0.05), SD - 0.05]); continue;
+      soft(ex, inX(AW), LEG, ARMH, 0, SD, MATS.sofa, RF, { top: 0.006 }); armPipes(ex + s * 0.0015, inX(AW) - s * 0.0015, SD, ARMH);
+      seatIn[s] = inX(AW); legs.push([inX(0.06), SD - 0.06]); continue;
     }
-    box(ex, inX(e.W), LEG, BASE, SD, e.R, MATS.sofa);                                   // the return's base
-    legs.push([inX(0.05), e.R - 0.05], [inX(e.W - 0.05), e.R - 0.05]);
-    if (e.t === 'chaise') {                                                            // arm along the outside, open end
-      box(ex, inX(AW), BASE, ARMH, 0, e.R, MATS.sofa); seatIn[s] = inX(AW);
-      box(inX(AW) - s * 0.006, inX(e.W), BASE, SEAT, SD + 0.006, e.R - 0.006, MATS.sofaCush);
-    } else {                                                                            // corner / pouf end: backrest along the outside
+    soft(ex, inX(e.W), LEG, BASE, SD - 0.02, e.R, MATS.sofa, 0.022);                       // the return's base
+    legs.push([inX(0.06), e.R - 0.06], [inX(e.W - 0.06), e.R - 0.06]);
+    if (e.t === 'chaise') {                                                                 // arm block at the back, long open lounge in front
+      soft(ex, inX(AW), LEG, ARMH, 0, SD, MATS.sofa, RF, { top: 0.006 }); armPipes(ex + s * 0.0015, inX(AW) - s * 0.0015, SD, ARMH);
+      seatIn[s] = inX(AW);
+      seatCush(inX(0.004), inX(e.W - 0.004), SD - 0.01, e.R + 0.008);
+    } else {                                                                                // corner / pouf end: backrest along the outside
       const backEnd = e.t === 'pouf' ? e.R - POUF : e.R;
-      box(ex, inX(BT2), BASE, 0.62, 0, backEnd, MATS.sofa); seatIn[s] = inX(BT2);
+      soft(ex, inX(BT2), BASE - 0.03, 0.64, 0, backEnd, MATS.sofa, RF, { top: 0.008 }); seatIn[s] = inX(BT2);
       const seatEnd = e.t === 'corner' ? e.R - AW : e.R;
-      if (e.t === 'corner') box(ex, inX(e.W), BASE, ARMH, e.R - AW, e.R, MATS.sofa);  // arm cap at the end of the return
-      cushCol(inX(BT2), inX(e.W), BASE, SEAT, SD, seatEnd, MATS.sofaCush);
-      cushCol(inX(BT2), inX(BT2 + 0.2), SEAT - 0.02, BACKH, BT2 + 0.2, e.t === 'pouf' ? backEnd : seatEnd, MATS.sofaCush);
+      if (e.t === 'corner') { soft(ex, inX(e.W), LEG, ARMH, e.R - AW, e.R, MATS.sofa, RF, { top: 0.006 });                     // arm cap at the end of the return
+        if (SSTY.pipe) for (const zz of [e.R - AW - 0.0015, e.R + 0.0015]) pipe([[ex, ARMH - 0.012, zz], [inX(e.W - 0.012), ARMH - 0.012, zz], [inX(e.W - 0.012), LEG + 0.02, zz]]); }
+      cushCol(inX(BT2), inX(e.W), SD, seatEnd + (e.t === 'pouf' ? 0.008 : 0), false);
+      cushCol(inX(BT2 - 0.01), inX(BT2 + 0.19), BT2 + 0.2, e.t === 'pouf' ? backEnd : seatEnd, true);
     }
   }
-  cushRow(seatIn[-1], seatIn[1], BASE, SEAT, BT2, SD, MATS.sofaCush);
-  cushRow(seatIn[-1], seatIn[1], SEAT - 0.02, BACKH, BT2, BT2 + 0.2, MATS.sofaCush, -0.12);
-  const legMat = LEGS[S.legs][1]();
-  for (const [lx, lz] of legs) { const m = new THREE.Mesh(new THREE.CylinderGeometry(SSTY.legR, SSTY.legR * SSTY.taper, LEG, 10), legMat); m.position.set(lx, LEG / 2, lz); m.castShadow = true; g.add(m); }
+  cushRow(seatIn[-1], seatIn[1], BT2 + 0.02, SD + 0.01);
+  backRow(seatIn[-1], seatIn[1]);
+  const legMat = LEGS[S.legs][1](), metal = legMat === MATS.blackMetal, lr = metal ? SSTY.legR * 0.7 : SSTY.legR;
+  for (const [lx, lz] of legs) { const m = new THREE.Mesh(new THREE.CylinderGeometry(lr, lr * (metal ? 0.85 : SSTY.taper), LEG, 14), legMat); m.position.set(lx, LEG / 2, lz); m.castShadow = true; g.add(m); }
+  // ILVA Nyland puf / fodskammel (72 or 92 × 59 × 47) in front of the seats
+  if (SMODEL.ilva && S.pouf) {
+    const PW = S.pouf === 1 ? 0.72 : 0.92, PD = 0.59, lims = sofaEnds(cfg, side).map((e) => (e.t === 'arm' ? e.s * L / 2 : e.s * (L / 2 - e.W)));
+    const px = (lims[0] + lims[1]) / 2, z0 = SD + 0.4;
+    soft(px - PW / 2, px + PW / 2, LEG, 0.37, z0, z0 + PD, MATS.sofa, 0.03);
+    soft(px - PW / 2 + 0.005, px + PW / 2 - 0.005, 0.365, 0.47, z0 + 0.005, z0 + PD - 0.005, MATS.sofaCush, 0.05, { top: 0.018 });
+    for (const dx of [-1, 1]) for (const dz of [0.06, PD - 0.06]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(lr, lr * (metal ? 0.85 : SSTY.taper), LEG, 14), legMat); m.position.set(px + dx * (PW / 2 - 0.06), LEG / 2, z0 + dz); m.castShadow = true; g.add(m); }
+  }
   { const mg = mergeByMaterial(g); parts.length = 0; parts.push(...mg.all); }
   const door = { kind: 'swap', label: 'Sofa', parts, center: O.clone().addScaledVector(f, SD / 2).setY(0.5),
     swap: () => selectFurniture(selected === sofaMover ? null : sofaMover),
@@ -2938,7 +3096,7 @@ function buildSofa(tryMove) {
 }
 function sofaGaps() {
   const S = liv.sofa, M = liv.media; if (!S || !S.group) return null;
-  const cfg = SOFAS[S.cfg], side = S.flip ? 1 : -1, { f, x } = sofaFrame(), L = cfg.L;
+  const cfg = SOFAS[S.cfg], side = -1, { f, x } = sofaFrame(), L = cfg.L;
   const P = (lx, lz, y = 0.35) => S.O.clone().addScaledVector(x, lx).addScaledVector(f, lz).setY(y);
   const ends = sofaEnds(cfg, side);
   // middle of the open seating (between the returns)
@@ -2984,22 +3142,35 @@ const sofaMover = {
   name: 'Sofa', anchor: () => (liv.sofa && liv.sofa.group ? liv.sofa.O.clone().addScaledVector(sofaFrame().f, SD / 2).setY(1.1) : null),
   axis: () => sofaFrame().x, axis2: () => sofaFrame().f,
   title: () => sofaFull(liv.sofa),
-  link: () => ({ href: SOFAS[liv.sofa.cfg].url || SMODEL.url, text: `${SMODEL.brand} product page ↗` }),
+  link: () => { const S = liv.sofa, u = nyUrl(S), pf = SMODEL.ilva ? nyPouf(S) : null;
+    const L = { href: u || SOFAS[S.cfg].url || SMODEL.url, text: u ? `ILVA · Nyland in ${FABRICS[S.fabric].c} · ${nyKr(nyProd(S).p[S.fabric])} ↗` : `${SMODEL.brand} product page ↗` };
+    if (pf) { L.href2 = pf.url; L.text2 = `ILVA · Nyland puf ${pf.size} · ${nyKr(pf.price)} ↗`; } return L; },
   shift: (dir) => { if (!buildSofa((O) => O.addScaledVector(sofaFrame().x, dir * 0.05))) showToast('Can’t go further: wall or furniture'); livingDims(); },
   shift2: (dir) => { if (!buildSofa((O) => O.addScaledVector(sofaFrame().f, dir * 0.05))) showToast('Can’t go further: wall or furniture'); livingDims(); },
-  info: () => { const G = sofaGaps(); const cfg = SOFAS[liv.sofa.cfg];
-    return `L ${Math.round(cfg.L * 100)} × D ${Math.round(cfg.R * 100)} cm · ${G && G.back.d !== null ? G.back.d.toFixed(2) : '–'} m behind · ${G && G.front.d !== null ? G.front.d.toFixed(2) : '–'} m to TV unit · ${G ? G.view.toFixed(1) : '–'} m to screen`; },
-  selects: [
-    { id: 'model', label: 'Model', options: () => SOFA_MODELS.map((m) => ({ label: `${m.brand} ${m.name}`, group: m.brand })), get: () => liv.sofa.model,
-      set: (i) => { const S = liv.sofa; S.model = i; useModel(i); S.cfg = SMODEL.defaultCfg; S.fabric = 0; S.legs = 0; buildSofa(); livingDims(); buildMoverSelects(sofaMover); showToast(sofaFull(S)); } },
-    { id: 'type', label: 'Configuration', options: () => SOFAS.map((c) => ({ label: `${c.name} · ${Math.round(c.L * 100)} × ${Math.round(c.R * 100)}${c.est ? ' (est.)' : ''}` })), get: () => liv.sofa.cfg,
-      set: (i) => { liv.sofa.cfg = i; buildSofa(); livingDims(); const c = SOFAS[i]; showToast(`${sofaFull(liv.sofa)} · L ${Math.round(c.L * 100)} × D ${Math.round(c.R * 100)} cm`); } },
-    { id: 'fabric', label: 'Fabric & colour', options: () => FABRICS.map((fb) => ({ label: fb.c, group: fb.g ? `${fb.g} – ${fb.kind}` : '', hex: fb.hex })), get: () => liv.sofa.fabric,
-      set: (i) => { liv.sofa.fabric = i; applyFabric(liv.sofa); livingDims(); } },
-  ],
-  variant: { label: () => `Legs: ${LEGS[liv.sofa.legs][0]}`, run: () => { liv.sofa.legs = (liv.sofa.legs + 1) % LEGS.length; buildSofa(); livingDims(); } },
-  variant2: { label: () => (SOFAS[liv.sofa.cfg].sided ? `⇄ ${liv.sofa.flip ? 'Corner left' : 'Corner right'}` : '—'),
-    run: () => { if (!SOFAS[liv.sofa.cfg].sided) return; liv.sofa.flip = !liv.sofa.flip; buildSofa(); livingDims(); showToast(sofaName(liv.sofa)); } },
+  info: () => { const G = sofaGaps(), S = liv.sofa, cfg = SOFAS[S.cfg], P = nyProd(S), pf = SMODEL.ilva ? nyPouf(S) : null;
+    const price = P ? ` · ${nyKr(P.p[S.fabric])}${pf ? ` + puf ${nyKr(pf.price)}` : ''} · seat ${NY_FILL[S.fill].toLowerCase()}` : '';
+    return `L ${Math.round(cfg.L * 100)} × D ${Math.round(cfg.R * 100)} cm${price} · ${G && G.back.d !== null ? G.back.d.toFixed(2) : '–'} m behind · ${G && G.front.d !== null ? G.front.d.toFixed(2) : '–'} m to TV unit · ${G ? G.view.toFixed(1) : '–'} m to screen${pf && pf.missing ? ' · puf not made in this fabric (price shown for Winter Moss)' : ''}`; },
+  get selects() {
+    const S = liv.sofa, ny = !!SMODEL.ilva;
+    const list = [
+      { id: 'model', label: 'Model', options: () => SOFA_MODELS.map((m) => ({ label: `${m.brand} ${m.name}`, group: m.brand })), get: () => liv.sofa.model,
+        set: (i) => { const S = liv.sofa; S.model = i; useModel(i); S.cfg = SMODEL.defaultCfg; S.fabric = 0; S.legs = SMODEL.defaultLegs ?? 0; S.fill = 1; S.pouf = 0; buildSofa(); livingDims(); buildMoverSelects(sofaMover); showToast(sofaFull(S)); } },
+      { id: 'type', label: ny ? 'Size' : 'Configuration', options: () => SOFAS.map((c) => { const P = c.ny ? NYLAND.prods[c.ny] : null, from = P ? Math.min(...Object.values(P.p)) : 0;
+          return { label: `${c.name} · ${Math.round(c.L * 100)} × ${Math.round(c.R * 100)}${c.est ? ' (est.)' : ''}${P ? ` · fra ${nyKr(from)}` : ''}` }; }), get: () => liv.sofa.cfg,
+        set: (i) => { liv.sofa.cfg = i; nyFix(liv.sofa); buildSofa(); livingDims(); buildMoverSelects(sofaMover); const c = SOFAS[i]; showToast(`${sofaFull(liv.sofa)} · L ${Math.round(c.L * 100)} × D ${Math.round(c.R * 100)} cm`); } },
+      { id: 'fabric', label: 'Fabric & colour', options: () => { const P = nyProd(liv.sofa); return FABRICS.map((fb, k) => ({ label: P ? `${fb.c} · ${P.p[k] ? nyKr(P.p[k]) : 'not in this size'}` : fb.c, group: fb.g ? `${fb.g} – ${fb.kind}` : '', hex: fb.hex })); }, get: () => liv.sofa.fabric,
+        set: (i) => { liv.sofa.fabric = i; nyFix(liv.sofa); buildSofa(); livingDims(); buildMoverSelects(sofaMover); } },
+      { id: 'legs', label: 'Legs', options: () => LEGS.map(([n], k) => { const P = nyProd(liv.sofa), V = P && P.v[liv.sofa.fabric]; return { label: n + (V && !V[`${k}0`] && !V[`${k}1`] ? ' (not with this fabric)' : '') }; }), get: () => liv.sofa.legs,
+        set: (i) => { liv.sofa.legs = i; nyFix(liv.sofa); buildSofa(); livingDims(); buildMoverSelects(sofaMover); } },
+    ];
+    if (ny) {
+      list.push({ id: 'fill', label: 'Seat', options: () => NY_FILL.map((n, k) => { const V = (nyProd(liv.sofa) || { v: {} }).v[liv.sofa.fabric] || {}; return { label: n + (!V[`${liv.sofa.legs}${k}`] ? ' (not with this fabric/legs)' : '') }; }), get: () => liv.sofa.fill,
+        set: (i) => { liv.sofa.fill = i; nyFix(liv.sofa); updateMoverInfo(); buildMoverSelects(sofaMover); } });
+      list.push({ id: 'pouf', label: 'Puf / fodskammel', options: () => [{ label: 'None' }, { label: '72 × 59 × 47 cm' }, { label: '92 × 59 × 47 cm' }], get: () => liv.sofa.pouf,
+        set: (i) => { liv.sofa.pouf = i; buildSofa(); livingDims(); } });
+    }
+    return list;
+  },
 };
 
 // ------------------------------------------------------------ dining: table + chairs, moved and rotated as one group
@@ -3024,6 +3195,19 @@ const TABLE_MODELS = [
       { name: 'Top i egemelamin · ben i hvidolieret massiv eg', top: 0xd8c29f, edge: 0xcfb58c, legs: 0xe2d3b8 },
       { name: 'Hvid melamin · kant i hvidpigmenteret eg · hvidolierede ben', top: 0xf1efe9, edge: 0xe6dccb, legs: 0xe2d3b8 },
     ] },
+  { brand: 'Homitis', name: 'Viona', maker: 'Homeroom', url: 'https://www.homeroom.dk/homitis/spisebord-med-udtraek-viona/2296144-05', roundLegs: true,
+    // homeroom.dk (Oct 2026): Ø100 × 75, pulls out to 131 × 100 with one 31 cm leaf; 18 mm melamine top, wooden legs; 3.079 kr (før 4.399), all colours
+    configs: [
+      { name: 'Ø100 cm · 3.079 kr (før 4.399)', D: 1.00, L: 1.00, H: 0.75, leaves: 0, seats: 4, urls: [1, 2, 3, 4, 5].map((k) => `https://www.homeroom.dk/homitis/spisebord-med-udtraek-viona/2296144-0${k}`) },
+      { name: 'Udtrukket 131 × 100 cm (1 plade, 31 cm)', D: 1.00, L: 1.31, H: 0.75, leaves: 1, seats: 6, urls: [1, 2, 3, 4, 5].map((k) => `https://www.homeroom.dk/homitis/spisebord-med-udtraek-viona/2296144-0${k}`) },
+    ],
+    finishes: [
+      { name: 'Atlantisk fyrretræ', top: 0xb98a5a, edge: 0xa77a4d, legs: 0xb08355, grain: true },
+      { name: 'Kafkas eg', top: 0xa07a55, edge: 0x8f6b48, legs: 0x9a7450, grain: true },
+      { name: 'Travertin / valnød', top: 0xded5c6, edge: 0xcfc4b3, legs: 0x6a4a34, stone: true },
+      { name: 'Barok valnød', top: 0x6e4c36, edge: 0x5f402d, legs: 0x684731, grain: true },
+      { name: 'Travertin / eg', top: 0xdccbbb, edge: 0xcdbcab, legs: 0xdcc8ad, stone: true },
+    ] },
 ];
 const CHAIR_MODELS = [
   { brand: 'ILVA', name: 'Adler', url: ILVA('spisestuen/spisebordsstole/adler/austin-3-antelope-stof/p-1082027-5643010159'), W: 0.58, D: 0.54, H: 0.77, SH: 0.47,
@@ -3043,7 +3227,7 @@ const CHAIR_MODELS = [
 MATS.tTop = std({ color: 0xd8c29f, roughness: 0.55 }); MATS.tEdge = std({ color: 0xcfb58c, roughness: 0.6 }); MATS.tLegs = std({ color: 0xe2d3b8, roughness: 0.6 });
 MATS.cSeat = std({ color: 0x958777, roughness: 1, side: THREE.DoubleSide }); MATS.cLegs = std({ color: 0xc9a473, roughness: 0.5 });
 MATS.seam = std({ color: 0x8a7658, roughness: 0.8 });
-const dining = { t: 0, tc: 0, tf: 0, c: 0, cv: 0, n: 4, angle: 0, O: null, group: null, parts: [] };
+const dining = { t: 0, tc: 0, tf: 1, c: 1, cv: 0, n: 4, angle: 0, O: null, group: null, parts: [] };
 const diningDims = new THREE.Group(); dimsGroup.add(diningDims);
 function dFrame() { const a = dining.angle; return { x: new THREE.Vector3(Math.cos(a), 0, -Math.sin(a)), z: new THREE.Vector3(Math.sin(a), 0, Math.cos(a)) }; }
 function chairSpots() {
@@ -3091,9 +3275,21 @@ function diningClear(O, angle) {
 function applyDiningMats() {
   const F = TABLE_MODELS[dining.t].finishes[dining.tf], V = CHAIR_MODELS[dining.c].variants[dining.cv];
   MATS.tTop.color.setHex(F.top); MATS.tEdge.color.setHex(F.edge); MATS.tLegs.color.setHex(F.legs);
+  { const m = F.stone ? stoneTex() : F.grain ? grainTex() : null; if (MATS.tTop.map !== m) { MATS.tTop.map = m; MATS.tTop.needsUpdate = true; } }
   MATS.cSeat.color.setHex(V.seat); MATS.cSeat.roughness = V.rough; MATS.cLegs.color.setHex(V.legs);
   const cord = CHAIR_MODELS[dining.c].style === 'kasami' ? cordTex() : null;
   if (MATS.cSeat.map !== cord) { MATS.cSeat.map = cord; MATS.cSeat.needsUpdate = true; }
+}
+let _stoneTex = null, _grainTex = null;
+function stoneTex() {                                   // travertine: warm beige with soft horizontal bands and small pits
+  return (_stoneTex ||= canvasTex(512, 512, (g, W) => { const r = rng(91); g.fillStyle = '#f4f0ea'; g.fillRect(0, 0, W, W);
+    for (let k = 0; k < 70; k++) { const y = r() * W, v = 225 + r() * 25 | 0; g.fillStyle = `rgba(${v},${v - 6},${v - 14},0.5)`; g.fillRect(0, y, W, 1 + r() * 6); }
+    for (let k = 0; k < 500; k++) { const v = 190 + r() * 30 | 0; g.fillStyle = `rgba(${v},${v - 8},${v - 16},0.7)`; g.beginPath(); g.ellipse(r() * W, r() * W, 1 + r() * 4, 0.6 + r() * 1.5, 0, 0, 7); g.fill(); }
+  }, [0.6, 0.6]));
+}
+function grainTex() {                                   // neutral wood grain that tints with the finish colour
+  return (_grainTex ||= canvasTex(512, 512, (g, W) => { const r = rng(92); g.fillStyle = '#f0f0f0'; g.fillRect(0, 0, W, W);
+    grain(g, 0, -20, W, W + 40, r, '120,120,120', 120, 0.12); grain(g, 0, -20, W, W + 40, r, '255,255,255', 40, 0.1); }, [0.8, 0.8]));
 }
 let _cordTex = null;
 function cordTex() {
@@ -3164,7 +3360,7 @@ function buildDining(tryPlace) {
   add(new THREE.BoxGeometry(T.L - T.D + apR * 1.6, 0.07, apR * 1.6), MATS.tLegs, 0, T.H - TT - 0.035, 0).visible = true;
   for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
     const lx = sx * (s + apR * 0.62), lz = sz * apR * 0.62;
-    const leg = add(new THREE.CylinderGeometry(0.022, 0.016, legH, 4), MATS.tLegs, lx + sx * 0.04, legH / 2, lz + sz * 0.04);
+    const leg = add(new THREE.CylinderGeometry(0.022, 0.016, legH, TABLE_MODELS[dining.t].roundLegs ? 14 : 4), MATS.tLegs, lx + sx * 0.04, legH / 2, lz + sz * 0.04);
     leg.rotation.set(sz * 0.07, Math.PI / 4, -sx * 0.07);
   }
   // chairs (Adler-like): upholstered seat, curved upholstered back band, oak legs, rear legs rising into the back
@@ -3745,6 +3941,113 @@ function guestDimsUpdate() {
   const [coll, name] = GS_COLORS[guest.color];
   const t = labelSprite(`Arezzo sovesofa · ${coll} ${name}${guest.open ? ' · bed 198 × 152' : ''}`, { h: 0.03 }); t.position.copy(O).addScaledVector(n, 0.5).setY(1.2); guestDims.add(t);
 }
+// ------------------------------------------------------------ Living: &Tradition Little Petra VB1 lounge chair (Viggo Boesen, 1938), free to move and turn
+// interiorshop.dk (Oct 2026): W 81 × D 83 × H 75 cm, seat 40; oiled oak or walnut legs; 6 upholsteries; variantId per combination
+const PETRA = {
+  url: (id) => `https://www.interiorshop.dk/shop/52-and-tradition/21770-tradition-little-petra-vb1-loungestol/?variantId=${id}`,
+  woods: [{ name: 'Oiled Oak', c: 0xc9a473 }, { name: 'Oiled Walnut', c: 0x6e4c34 }],
+  covers: [
+    { name: 'Hallingdal 130', kind: 'wool, light grey', c: 0xb3b1ad, tex: 'flat', ids: [35183, 35181], kr: [15996, 17246], was: 22995 },
+    { name: 'Ectriture 0640', kind: 'wool, dusty rose', c: 0xd9aaa3, tex: 'canvas', ids: [35166, 35165], kr: [17996, 17996], was: 23995 },
+    { name: 'Karakorum 003', kind: 'bouclé, off-white', c: 0xcfc7ba, tex: 'boucle', ids: [35187, 35184], kr: [18746, 18746], was: 24995 },
+    { name: 'Sheepskin Honey 50mm', kind: 'long-pile sheepskin', c: 0xb98a55, tex: 'boucle', pile: 2.6, ids: [35167, 35164], kr: [25496, 25496], was: 33995 },
+    { name: 'Sheepskin Moonlight 17mm', kind: 'sheepskin', c: 0xe6dfd0, tex: 'boucle', pile: 1.6, ids: [35186, 35189], kr: [24222, 23695], was: 33995 },
+    { name: 'Sheepskin Sahara 17mm', kind: 'sheepskin', c: 0x76594a, tex: 'boucle', pile: 1.6, ids: [35185, 35182], kr: [25496, 25496], was: 33995 },
+  ],
+};
+const petra = { pos: null, angle: 0, cover: 2, wood: 0, group: null, parts: [] };
+const petraDims = new THREE.Group(); dimsGroup.add(petraDims);
+const LIV_BOX = { x0: 0.5, x1: 4.46, y0: 0.5, y1: 8.45 };            // living room inner faces (Blender)
+function buildPetra(tryPos, tryAngle) {
+  if (!petra.pos) { petra.pos = [3.86, 7.82]; petra.angle = Math.atan2(-2.46, 1.42); }   // left of the TV (seen from the sofa), by the balcony door, turned towards the sofa
+  let pos = tryPos || petra.pos, ang = tryAngle ?? petra.angle, ok = true;
+  const R = 0.41, cx = THREE.MathUtils.clamp(pos[0], LIV_BOX.x0 + R, LIV_BOX.x1 - R), cy = THREE.MathUtils.clamp(pos[1], LIV_BOX.y0 + R, LIV_BOX.y1 - R);
+  if (Math.abs(cx - pos[0]) > 1e-6 || Math.abs(cy - pos[1]) > 1e-6) ok = false;
+  pos = [cx, cy];
+  if (petra.group) { scene.remove(petra.group); dropParts(petra.parts); }
+  petra.pos = pos; petra.angle = ang;
+  const C = PETRA.covers[petra.cover], W = PETRA.woods[petra.wood];
+  const fab = new THREE.MeshPhysicalMaterial({ color: C.c, map: weaveTex(C.tex), bumpMap: weaveTex(C.tex), bumpScale: 0.006 * (C.pile || 1), roughness: 0.97, sheen: C.pile ? 0.7 : 0.35, sheenRoughness: 0.75, sheenColor: new THREE.Color(C.c).lerp(new THREE.Color(0xffffff), 0.15), envMapIntensity: 0.25 });
+  const wood = std({ color: W.c, roughness: 0.55 });
+  const g = new THREE.Group(); g.position.copy(b2t(pos[0], pos[1], 0)); g.rotation.y = ang;
+  const parts = [];
+  const add = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; g.add(o); parts.push(o); return o; };
+  // the shell: a thick wall swept round the back (lathe), high at the back (75) falling to the arm fronts (≈58), plan 81 × 83
+  const prof = [], T = 0.13, y0 = 0.27, Hb = 0.75;
+  const ri = 0.27, ro = ri + T;
+  prof.push(new THREE.Vector2(ri, y0)); prof.push(new THREE.Vector2(ro - 0.03, y0)); prof.push(new THREE.Vector2(ro, y0 + 0.04));
+  for (let k = 0; k <= 10; k++) { const a = Math.PI * k / 10; prof.push(new THREE.Vector2((ri + ro) / 2 + Math.cos(a) * T / 2, Hb - T / 2 + Math.sin(a) * T / 2 * 1.1)); }
+  prof.push(new THREE.Vector2(ri, y0 + 0.02));
+  const span = Math.PI * 1.22, phi0 = Math.PI - span / 2;   // open towards +z (the front)
+  const shell = new THREE.LatheGeometry(prof, 56, phi0, span);
+  { const P = shell.attributes.position, v = new THREE.Vector3();
+    for (let i = 0; i < P.count; i++) {
+      v.fromBufferAttribute(P, i);
+      const front = Math.max(0, v.z / ro);                                  // 0 at the back half … 1 at the arm ends
+      const hk = 1 - 0.3 * Math.pow(front, 1.3);                            // arms lower than the back
+      v.y = y0 + (v.y - y0) * hk;
+      v.x *= 1.0; v.z = v.z * 1.0 - 0.02;
+      P.setXYZ(i, v.x * (0.405 / ro), v.y, v.z * (0.4 / ro));
+      shell.attributes.uv.setXY(i, Math.atan2(v.x, v.z) * 0.36, v.y + Math.hypot(v.x, v.z) * 0.5);   // metric UVs so the weave isn't stretched
+    }
+    shell.computeVertexNormals(); }
+  add(shell, fab, 0, 0, 0);
+  // round off the open arm ends
+  for (const sg of [-1, 1]) { const a = phi0 + (sg < 0 ? 0 : span), rm = (ri + ro) / 2;
+    const ex = Math.sin(a) * rm * (0.405 / ro), ez = Math.cos(a) * rm * (0.4 / ro) - 0.02;
+    const hk = 1 - 0.3 * Math.pow(Math.max(0, Math.cos(a) * rm / ro), 1.3), hh = (Hb - y0) * hk;
+    const cap = add(new THREE.SphereGeometry(1, 20, 14), fab, ex, y0 + hh / 2, ez); cap.scale.set(0.045, hh / 2 * 0.98, T / 2 * 0.98); cap.rotation.y = a; }
+  // deep seat cushion, front rolled
+  add(softBox(0.6, 0.15, 0.6, 0.06, { top: 0.025, front: 0.02 }), fab, 0, 0.33, 0.08);
+  add(softBox(0.62, 0.08, 0.6, 0.03), fab, 0, 0.245, 0.05);                 // seat base
+  // button tufting on the inside of the back
+  const btn = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(C.c).multiplyScalar(0.8), roughness: 0.9 });
+  for (const [bx, by] of [[-0.12, 0.6], [0.12, 0.6], [0, 0.5], [-0.2, 0.5], [0.2, 0.5]]) { const zz = -Math.sqrt(Math.max(0, (ri * 1.04) ** 2 - bx * bx)) * (0.4 / ro) + 0.01; add(new THREE.SphereGeometry(0.012, 8, 6), btn, bx, by, zz); }
+  // four splayed tapered legs
+  for (const [lx, lz] of [[-0.26, -0.24], [0.26, -0.24], [-0.27, 0.26], [0.27, 0.26]]) {
+    const leg = add(new THREE.CylinderGeometry(0.018, 0.013, 0.25, 12), wood, lx * 1.05, 0.12, lz * 1.05);
+    leg.rotation.z = -Math.sign(lx) * 0.12; leg.rotation.x = Math.sign(lz) * 0.12;
+  }
+  const door = { kind: 'swap', label: 'Lounge chair', parts, center: g.position.clone().setY(0.5),
+    swap: () => selectFurniture(selected === petraMover ? null : petraMover), prompt: () => (selected === petraMover ? 'Done with the chair' : 'Move or turn the lounge chair') };
+  for (const q of parts) { q.userData.door = door; q.userData.furniture = true; collidables.push(q); }
+  const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Lounge chair'); if (di >= 0) doors.splice(di, 1);
+  doors.push(door);
+  scene.add(g); g.updateMatrixWorld(true);
+  petra.group = g; petra.parts = parts; shadowDirty = true;
+  petraDimsUpdate();
+  return ok;
+}
+function petraGaps() {
+  const g = petra.group; if (!g) return null;
+  const out = {};
+  for (const [k, d] of [['N', [-1, 0]], ['S', [1, 0]], ['E', [0, 1]], ['W', [0, -1]]]) {
+    const dir = b2t(d[0], d[1]).normalize(), from = g.position.clone().setY(0.3).addScaledVector(dir, 0.42);
+    out[k] = { from, dir, d: gapTo(from, dir, 5) };
+  }
+  return out;
+}
+function petraDimsUpdate() {
+  petraDims.clear(); const G = petraGaps(); if (!G) return;
+  for (const o of Object.values(G)) if (o.d !== null && o.d !== undefined && o.d < 2.5) petraDims.add(dimLine(toBl(o.from), toBl(o.from.clone().addScaledVector(o.dir, o.d)), `${o.d.toFixed(2)} m`, 0.05));
+  const t = labelSprite(`Little Petra · ${PETRA.covers[petra.cover].name} · ${PETRA.woods[petra.wood].name}`, { h: 0.03 }); t.position.copy(petra.group.position).setY(1.0); petraDims.add(t);
+}
+const petraMover = {
+  name: 'Lounge chair', title: () => `&Tradition Little Petra VB1 · ${PETRA.covers[petra.cover].name}`,
+  anchor: () => (petra.group ? petra.group.position.clone().setY(1.05) : null),
+  axis: () => b2t(1, 0).normalize(), axis2: () => b2t(0, 1).normalize(),
+  shift: (dir) => { const p0 = petra.pos; if (!buildPetra([p0[0] + dir * 0.05, p0[1]])) showToast('Can’t go further: wall'); },
+  shift2: (dir) => { const p0 = petra.pos; if (!buildPetra([p0[0], p0[1] + dir * 0.05])) showToast('Can’t go further: wall'); },
+  rotate: (dir) => { buildPetra(null, petra.angle + dir * Math.PI / 12); },
+  angle: () => petra.angle,
+  selects: [
+    { id: 'pcov', label: 'Upholstery', options: () => PETRA.covers.map((c) => ({ label: `${c.name} · ${c.kind}` })), get: () => petra.cover, set: (i) => { petra.cover = i; buildPetra(); } },
+    { id: 'pwood', label: 'Legs', options: () => PETRA.woods.map((w) => ({ label: w.name })), get: () => petra.wood, set: (i) => { petra.wood = i; buildPetra(); } },
+  ],
+  link: () => { const C = PETRA.covers[petra.cover]; return { href: PETRA.url(C.ids[petra.wood]), text: `Interiorshop · ${C.name} / ${PETRA.woods[petra.wood].name} · ${C.kr[petra.wood].toLocaleString('da-DK')} kr ↗` }; },
+  info: () => { const C = PETRA.covers[petra.cover], G = petraGaps(), f = (o) => (o && o.d !== null ? o.d.toFixed(2) : '>5');
+    return `81 × 83 × 75 cm · seat 40 · ${C.kr[petra.wood].toLocaleString('da-DK')} kr (list ${C.was.toLocaleString('da-DK')}) · free: ${f(G.N)} m towards the window wall, ${f(G.S)} m towards the TV wall, ${f(G.E)} m towards the balcony, ${f(G.W)} m towards the kitchen · ⟲ ⟳ turn 15°`; },
+};
 const guestMover = {
   name: 'Sofa bed', title: () => `Arezzo 3-pers sovesofa${guest.open ? ' · as bed' : ''}`,
   anchor: () => (guest.group ? guest.group.position.clone().addScaledVector(guest.wall.n, guestFront() + 0.2).setY(0.9) : null),
@@ -4258,9 +4561,44 @@ const VPAX = {
   doors: [{ name: 'FLISBERGET lys beige', c: 0xd9cdb6 }, { name: 'FLISBERGET antracit', c: 0x4b4d50 }],
   links: { '1.0|0': 's79480308', '1.0|1': 's69480304', '2.0|0': 's39304128', '2.0|1': 's49304340', '1.5|0': 's59500680', '1.5|1': 's99500678' },
 };
-const vpax = { w: 1, h: 0, f: 0, d: 0, off: 0, atWin: true, run: null, wall: null, swap: null };
+// Option 2 (Gianluca, 2026-10-04): a bare IKEA PAX frame (garderobsstomme) on the same wall, starting by the window.
+// ikea.com/se, Oct 2026: widths 50 / 100 (49.8 / 99.8), depths 35 / 58 (35.5 / 58.0), heights 236.4 / 201.2;
+// Vit, Gråbeige (58 deep only), Mörkgrå, Vitlaserad ekeffekt. A 100 frame is one open box (no middle side). Doors optional (FLISBERGET 50).
+const WASH = canvasTex(512, 512, (g, W) => { const r = rng(23); g.fillStyle = '#ddd1bd'; g.fillRect(0, 0, W, W);
+  grain(g, 0, -20, W, W + 40, r, '150,120,85', 90, 0.10); grain(g, 0, -20, W, W + 40, r, '250,244,232', 40, 0.12); }, [1, 1]);
+const PAXF = {
+  widths: [{ w: 0.498, cm: 50 }, { w: 0.998, cm: 100 }],
+  depths: [{ d: 0.355, cm: 35 }, { d: 0.58, cm: 58 }],
+  heights: [{ name: '236.4 cm', H: 2.364, door: 2.294, cm: 236 }, { name: '201.2 cm', H: 2.012, door: 1.946, cm: 201 }],
+  colours: [
+    { name: 'Vit', slug: 'vit', c: 0xf1f0ec, deep: null },
+    { name: 'Gråbeige', slug: 'grabeige', c: 0xb7ab9a, deep: 1 },          // only made 58 deep
+    { name: 'Mörkgrå', slug: 'moerkgra', c: 0x55575a, deep: null },
+    { name: 'Vitlaserad ekeffekt', slug: 'vitlaserad-ekeffekt', c: 0xffffff, map: true, deep: null },
+  ],
+  doors: [{ name: 'None · open frame' }, { name: 'FLISBERGET lys beige', c: 0xd9cdb6 }, { name: 'FLISBERGET antracit', c: 0x4b4d50 }],
+  // `${colour}|${W}x${D}x${H}` → [article slug id, SEK]
+  items: {
+    'vit|50x35x201': ['60214569', 600], 'vit|50x35x236': ['40214565', 800], 'vit|50x58x201': ['70214559', 700], 'vit|50x58x236': ['80214568', 900],
+    'vit|100x35x201': ['90214563', 800], 'vit|100x35x236': ['00214572', 1000], 'vit|100x58x201': ['20214566', 895], 'vit|100x58x236': ['50214560', 1100],
+    'moerkgra|50x35x201': ['90509230', 800], 'moerkgra|50x35x236': ['10509234', 1000], 'moerkgra|50x58x201': ['50509128', 900], 'moerkgra|50x58x236': ['70509132', 1100],
+    'moerkgra|100x35x201': ['20509224', 1000], 'moerkgra|100x35x236': ['50509227', 1200], 'moerkgra|100x58x201': ['80509122', 1100], 'moerkgra|100x58x236': ['10509125', 1300],
+    'vitlaserad-ekeffekt|50x35x201': ['50273413', 800], 'vitlaserad-ekeffekt|50x35x236': ['00273415', 1000], 'vitlaserad-ekeffekt|50x58x201': ['20201724', 900], 'vitlaserad-ekeffekt|50x58x236': ['90183991', 1100],
+    'vitlaserad-ekeffekt|100x35x201': ['30273409', 1000], 'vitlaserad-ekeffekt|100x35x236': ['90273411', 1200], 'vitlaserad-ekeffekt|100x58x201': ['40201723', 1100], 'vitlaserad-ekeffekt|100x58x236': ['30183989', 1300],
+    'grabeige|50x58x201': ['90458216', 900], 'grabeige|50x58x236': ['10458220', 1100], 'grabeige|100x58x201': ['90458202', 1100], 'grabeige|100x58x236': ['00458206', 1300],
+  },
+};
+const vpax = { model: 1, w: 1, h: 0, f: 0, d: 0, fw: 1, fd: 0, fh: 0, fc: 0, fdoor: 0, off: 0, atWin: true, run: null, wall: null, swap: null };
+const paxfItem = () => { const C = PAXF.colours[vpax.fc]; return PAXF.items[`${C.slug}|${PAXF.widths[vpax.fw].cm}x${PAXF.depths[vpax.fd].cm}x${PAXF.heights[vpax.fh].cm}`]; };
+const vpaxW = () => (vpax.model ? PAXF.widths[vpax.fw].w : VPAX.widths[vpax.w]);
+const vpaxDepth = () => (vpax.model ? PAXF.depths[vpax.fd].d + (vpax.fdoor ? 0.024 : 0) : 0.60);
+const vpaxH = () => (vpax.model ? PAXF.heights[vpax.fh].H : VPAX.heights[vpax.h].H);
 const vpaxDims = new THREE.Group(); dimsGroup.add(vpaxDims);
 function vpaxUrl() {
+  if (vpax.model) { const C = PAXF.colours[vpax.fc], it = paxfItem(), W = PAXF.widths[vpax.fw].cm, D = PAXF.depths[vpax.fd].cm, H = PAXF.heights[vpax.fh].cm;
+    const L = { href: `https://www.ikea.com/se/sv/p/pax-garderobsstomme-${C.slug}-${it[0]}/`, text: `IKEA · PAX frame ${W}×${D}×${H} ${C.name} · ${it[1].toLocaleString('en')} kr ↗` };
+    if (vpax.fdoor) { L.href2 = vpax.fh ? 'https://www.ikea.com/dk/da/p/flisberget-lage-med-haengsler-lys-beige-s39181066/' : 'https://www.ikea.com/dk/da/p/flisberget-lage-med-haengsler-lys-beige-s99181068/'; L.text2 = `IKEA · FLISBERGET door 50 cm × ${W / 50} ↗`; }
+    return L; }
   const W = VPAX.widths[vpax.w], key = `${W.toFixed(1)}|${vpax.h}`, id = VPAX.links[key];
   if (id) return { href: `https://www.ikea.com/dk/da/p/pax-flisberget-garderobe${W === 1.5 ? 'kombination' : 'skab'}-hvid-lys-beige-${id}/`, text: `IKEA · PAX/FLISBERGET ${Math.round(W * 100)}×60×${vpax.h ? 201 : 236} ↗` };
   return { href: vpax.h ? 'https://www.ikea.com/dk/da/p/flisberget-lage-med-haengsler-lys-beige-s39181066/' : 'https://www.ikea.com/dk/da/p/flisberget-lage-med-haengsler-lys-beige-s99181068/', text: 'IKEA · FLISBERGET door 50 cm (+ PAX 50 frame) ↗' };
@@ -4273,24 +4611,33 @@ function buildVaerCloset() {
     vpax.wall = { n, a, p: Wl.p.clone().setY(0), sDoor: S(5.40), sWin: S(8.0) };       // door end: past the Værelse door's open leaf (it lies along this wall to y ≈ 5.35)
   }
   if (vpax.run) { scene.remove(vpax.run.g); dropParts(vpax.run.parts); for (const d of vpax.run.doors) removeHingedDoor(d); const i = doors.indexOf(vpax.swap); if (i >= 0) doors.splice(i, 1); }
-  const { n, a, p, sDoor, sWin } = vpax.wall, W = VPAX.widths[vpax.w], HH = VPAX.heights[vpax.h];
+  const { n, a, p, sDoor, sWin } = vpax.wall, W = vpaxW(), HH = vpax.model ? PAXF.heights[vpax.fh] : VPAX.heights[vpax.h];
   const maxOff = Math.max(0, sDoor - sWin - W - 0.02);
   if (vpax.atWin) vpax.off = maxOff;                                                   // default: against the window wall (Gianluca)
   vpax.off = Math.max(-0.5, Math.min(maxOff, vpax.off)); vpax.atWin = vpax.off >= maxOff - 1e-4;                               // 0 = right after the door; + = towards the window
   const sEnd = sDoor - vpax.off, O = p.clone().addScaledVector(a, sEnd - W).addScaledVector(n, 0.005);
   // temporarily point the shared PAX builder at this closet's height and colours
-  const keep = { H: H_CL, D: DOOR_H, fr: MATS.paxFrame, dr: MATS.paxDoor };
+  const keep = { H: H_CL, D: DOOR_H, fr: MATS.paxFrame, dr: MATS.paxDoor, dc: D_CL, zc, pin: MATS.paxIn };
   H_CL = HH.H; DOOR_H = HH.door;
-  MATS.paxFrame = std({ color: VPAX.frames[vpax.f].c, roughness: 0.6 }); MATS.paxDoor = std({ color: VPAX.doors[vpax.d].c, roughness: 0.65 });
+  if (vpax.model) {
+    const C = PAXF.colours[vpax.fc], m = std(C.map ? { map: WASH, roughness: 0.62 } : { color: C.c, roughness: 0.6 });
+    MATS.paxFrame = m; MATS.paxIn = m; D_CL = PAXF.depths[vpax.fd].d; zc = D_CL / 2;
+    MATS.paxDoor = std({ color: (PAXF.doors[vpax.fdoor].c ?? 0xd9cdb6), roughness: 0.65 });
+  } else { MATS.paxFrame = std({ color: VPAX.frames[vpax.f].c, roughness: 0.6 }); MATS.paxDoor = std({ color: VPAX.doors[vpax.d].c, roughness: 0.65 }); }
+  // open-frame contents (interior fittings are sold separately; shown for scale): 58 deep = rail + hat shelf, 35 deep = shelves with folded piles
+  const deep = D_CL > 0.5, fr = (c) => {
+    if (deep) { rail(c, HH.H - 0.34); hang(c, HH.H - 0.34, SHIRTS.slice(0, c.w > 0.6 ? 7 : 4).map((col) => [0.035, 0.8, 0.42, col])); shelf(c, HH.H - 0.22); stacks(c, HH.H - 0.22, c.w > 0.6 ? [TEES[0], TEES[1]] : [TEES[0]], 3); shelf(c, 0.75); stacks(c, 0.75, c.w > 0.6 ? [TEES[1], TEES[0]] : [TEES[1]], 4); }
+    else { for (const y of [0.42, 0.8, 1.18, 1.56, 1.94].filter((y) => y < HH.H - 0.25)) { shelf(c, y); stacks(c, y, c.w > 0.6 ? [TEES[0], TEES[1]] : [TEES[Math.round(y * 10) % 2]], 4); } }
+  };
   const fillA = (c) => { rail(c, HH.H - 0.34); hang(c, HH.H - 0.34, [0.035, 0.035, 0.03, 0.035, 0.04].map((t, i) => [t, 0.8, 0.42, SHIRTS[i]])); shelf(c, HH.H - 0.22); boxes(c, HH.H - 0.22, [0x6b6557]); };
   const fillB = (c) => { drawers(c, PL + T + 0.01, 3, 0.19); for (const y of [0.85, 1.25, 1.65]) { shelf(c, y); stacks(c, y, [TEES[0].slice(0, 4), TEES[1].slice(0, 4)], 4); } };
   const pair = (f1, f2) => [{ w: 0.5, doors: 1, hingeLeft: true, fill: f1 }, { w: 0.5, doors: 1, hingeLeft: false, fill: f2 }];
-  const secs = W === 0.5 ? [{ w: 0.5, doors: 1, hingeLeft: false, fill: fillA }] : W === 1.0 ? pair(fillA, fillB)
+  const secs = vpax.model ? [{ w: W, doors: vpax.fdoor ? Math.round(W / 0.5) : 1, hingeLeft: false, open: !vpax.fdoor, fill: fr }] : W === 0.5 ? [{ w: 0.5, doors: 1, hingeLeft: false, fill: fillA }] : W === 1.0 ? pair(fillA, fillB)
     : W === 1.5 ? [...pair(fillA, fillA), { w: 0.5, doors: 1, hingeLeft: false, fill: fillB }] : [...pair(fillA, fillA), ...pair(fillB, fillB)];
   const r = makeRun(O, n, W, 'Værelse closet', secs);
-  H_CL = keep.H; DOOR_H = keep.D; MATS.paxFrame = keep.fr; MATS.paxDoor = keep.dr;
+  H_CL = keep.H; DOOR_H = keep.D; MATS.paxFrame = keep.fr; MATS.paxDoor = keep.dr; D_CL = keep.dc; zc = keep.zc; MATS.paxIn = keep.pin;
   vpax.run = r;
-  const door = { kind: 'swap', label: 'Closet', parts: r.parts, center: O.clone().addScaledVector(a, W / 2).addScaledVector(n, 0.3).setY(1.2),
+  const door = { kind: 'swap', label: 'Closet', parts: r.parts, center: O.clone().addScaledVector(a, W / 2).addScaledVector(n, Math.min(0.3, vpaxDepth() / 2)).setY(1.2),
     swap: () => selectFurniture(selected === vpaxMover ? null : vpaxMover), prompt: () => (selected === vpaxMover ? 'Done with the closet' : 'Closet options') };
   for (const q of r.parts) q.userData.door = door;
   vpax.swap = door; doors.push(door);
@@ -4298,33 +4645,50 @@ function buildVaerCloset() {
 }
 function vpaxGaps() {
   const { n, a } = vpax.wall, r = vpax.run, W = r.width;
-  const front = r.O.clone().addScaledVector(n, 0.60);
+  const front = r.O.clone().addScaledVector(n, vpaxDepth());
   const toSofa = guest.group ? front.x - (guest.wall.base.x + guestFront()) : null;
-  const doorEnd = r.O.clone().addScaledVector(a, W + 0.01).addScaledVector(n, 0.3).setY(1.0), winEnd = r.O.clone().addScaledVector(a, -0.01).addScaledVector(n, 0.3).setY(1.0);
-  return { toSofa, toDoor: gapTo(doorEnd, a.clone(), 3), toWin: gapTo(winEnd, a.clone().negate(), 4) };
+  const zq = Math.min(0.3, vpaxDepth() / 2), doorEnd = r.O.clone().addScaledVector(a, W + 0.01).addScaledVector(n, zq).setY(1.0), winEnd = r.O.clone().addScaledVector(a, -0.01).addScaledVector(n, zq).setY(1.0);
+  return { toSofa, toDoor: gapTo(doorEnd, a.clone(), 3.6), toWin: gapTo(winEnd, a.clone().negate(), 4) };
 }
 function vpaxDimsUpdate() {
   vpaxDims.clear(); if (!vpax.run) return;
-  const r = vpax.run, { n, a } = vpax.wall, G = vpaxGaps(), H = VPAX.heights[vpax.h].H;
+  const r = vpax.run, { n, a } = vpax.wall, G = vpaxGaps(), H = vpaxH(), D = vpaxDepth(), zq = Math.min(0.3, D / 2);
   const P = (s, t) => toBl(r.O.clone().addScaledVector(a, s).addScaledVector(n, t));
-  vpaxDims.add(dimLine(P(0, 0.7), P(r.width, 0.7), `${Math.round(r.width * 100)} cm · 60 deep · ${(H * 100).toFixed(1)} high`, H + 0.06));
-  if (G.toDoor !== null) vpaxDims.add(dimLine(P(r.width, 0.3), P(r.width + G.toDoor, 0.3), `${G.toDoor.toFixed(2)} m`, 0.9));
-  if (G.toWin !== null) vpaxDims.add(dimLine(P(0, 0.3), P(-G.toWin, 0.3), `${G.toWin.toFixed(2)} m`, 0.9));
-  if (G.toSofa !== null) vpaxDims.add(dimLine(P(r.width / 2, 0.6), P(r.width / 2, 0.6 + G.toSofa), `${G.toSofa.toFixed(2)} m to the sofa${guest.open ? ' bed' : ''}${G.toSofa < 0.5 ? ' (doors can’t fully open)' : ''}`, 0.5));
+  vpaxDims.add(dimLine(P(0, D + 0.1), P(r.width, D + 0.1), `${(r.width * 100).toFixed(vpax.model ? 1 : 0)} cm · ${(D * 100).toFixed(1).replace('.0', '')} deep · ${(H * 100).toFixed(1)} high`, H + 0.06));
+  if (G.toDoor !== null) vpaxDims.add(dimLine(P(r.width, zq), P(r.width + G.toDoor, zq), `${G.toDoor.toFixed(2)} m`, 0.9));
+  if (G.toWin !== null) vpaxDims.add(dimLine(P(0, zq), P(-G.toWin, zq), `${G.toWin.toFixed(2)} m`, 0.9));
+  if (G.toSofa !== null) vpaxDims.add(dimLine(P(r.width / 2, D), P(r.width / 2, D + G.toSofa), `${G.toSofa.toFixed(2)} m to the sofa${guest.open ? ' bed' : ''}${G.toSofa < 0.5 ? ' (doors can’t fully open)' : ''}`, 0.5));
 }
+const VPAX_MODEL = { id: 'vm', label: 'Model', options: () => [{ label: 'PAX + FLISBERGET doors' }, { label: 'PAX frame (garderobsstomme)' }], get: () => vpax.model,
+  set: (i) => { vpax.model = i; vpax.atWin = true; buildVaerCloset(); selectFurniture(vpaxMover); } };
+const VPAX_SELECTS = [VPAX_MODEL,
+  { id: 'vw', label: 'Width', options: () => VPAX.widths.map((w) => ({ label: `${Math.round(w * 100)} cm · ${Math.round(w * 2)} door${w > 0.5 ? 's' : ''}` })), get: () => vpax.w, set: (i) => { vpax.w = i; buildVaerCloset(); } },
+  { id: 'vh', label: 'Height', options: () => VPAX.heights.map((h) => ({ label: h.name })), get: () => vpax.h, set: (i) => { vpax.h = i; buildVaerCloset(); } },
+  { id: 'vf', label: 'PAX frame', options: () => VPAX.frames.map((f) => ({ label: f.name })), get: () => vpax.f, set: (i) => { vpax.f = i; buildVaerCloset(); buildNookCloset(); } },
+  { id: 'vd', label: 'Doors', options: () => VPAX.doors.map((d) => ({ label: d.name })), get: () => vpax.d, set: (i) => { vpax.d = i; buildVaerCloset(); buildNookCloset(); } },
+];
+const PAXF_SELECTS = [VPAX_MODEL,
+  { id: 'fw', label: 'Width', options: () => PAXF.widths.map((w) => ({ label: `${w.cm} cm${w.cm === 100 ? ' · one open box' : ' · single column'}` })), get: () => vpax.fw, set: (i) => { vpax.fw = i; buildVaerCloset(); } },
+  { id: 'fd', label: 'Depth', options: () => PAXF.depths.map((d) => ({ label: `${d.cm} cm${d.cm === 35 ? ' (35.5)' : ''}` })), get: () => vpax.fd,
+    set: (i) => { if (i === 0 && PAXF.colours[vpax.fc].deep === 1) { vpax.fc = 0; showToast('Gråbeige only comes 58 deep · switched to Vit'); } vpax.fd = i; buildVaerCloset(); } },
+  { id: 'fh', label: 'Height', options: () => PAXF.heights.map((h) => ({ label: h.name })), get: () => vpax.fh, set: (i) => { vpax.fh = i; buildVaerCloset(); } },
+  { id: 'fc', label: 'Colour', options: () => PAXF.colours.map((c) => ({ label: c.name + (c.deep === 1 ? ' (58 deep only)' : '') })), get: () => vpax.fc,
+    set: (i) => { vpax.fc = i; if (PAXF.colours[i].deep === 1 && vpax.fd === 0) { vpax.fd = 1; showToast('Gråbeige only comes 58 deep · depth set to 58'); } buildVaerCloset(); } },
+  { id: 'fdoor', label: 'Doors', options: () => PAXF.doors.map((d) => ({ label: d.name })), get: () => vpax.fdoor, set: (i) => { vpax.fdoor = i; buildVaerCloset(); } },
+];
 const vpaxMover = {
-  name: 'Værelse closet', title: () => `PAX / FLISBERGET · ${Math.round(VPAX.widths[vpax.w] * 100)} cm`,
-  anchor: () => (vpax.run ? vpax.run.O.clone().addScaledVector(vpax.wall.a, vpax.run.width / 2).addScaledVector(vpax.wall.n, 0.9).setY(1.3) : null),
+  name: 'Værelse closet',
+  title: () => (vpax.model ? `PAX frame · ${PAXF.widths[vpax.fw].cm} × ${PAXF.depths[vpax.fd].cm} × ${PAXF.heights[vpax.fh].cm}` : `PAX / FLISBERGET · ${Math.round(VPAX.widths[vpax.w] * 100)} cm`),
+  anchor: () => (vpax.run ? vpax.run.O.clone().addScaledVector(vpax.wall.a, vpax.run.width / 2).addScaledVector(vpax.wall.n, vpaxDepth() + 0.3).setY(1.3) : null),
   axis: () => vpax.wall.a,
   shift: (dir) => { const b = vpax.off; vpax.atWin = false; vpax.off -= dir * 0.05; buildVaerCloset(); if (Math.abs(vpax.off - b) < 1e-6) showToast(dir > 0 ? 'Any closer and the room door hits it' : 'Can’t go further: window wall'); },
-  selects: [
-    { id: 'vw', label: 'Width', options: () => VPAX.widths.map((w) => ({ label: `${Math.round(w * 100)} cm · ${Math.round(w * 2)} door${w > 0.5 ? 's' : ''}` })), get: () => vpax.w, set: (i) => { vpax.w = i; buildVaerCloset(); } },
-    { id: 'vh', label: 'Height', options: () => VPAX.heights.map((h) => ({ label: h.name })), get: () => vpax.h, set: (i) => { vpax.h = i; buildVaerCloset(); } },
-    { id: 'vf', label: 'PAX frame', options: () => VPAX.frames.map((f) => ({ label: f.name })), get: () => vpax.f, set: (i) => { vpax.f = i; buildVaerCloset(); buildNookCloset(); } },
-    { id: 'vd', label: 'Doors', options: () => VPAX.doors.map((d) => ({ label: d.name })), get: () => vpax.d, set: (i) => { vpax.d = i; buildVaerCloset(); buildNookCloset(); } },
-  ],
+  get variant() { return vpax.model ? { label: () => (vpax.fw === 1 && vpax.fd === 0 ? 'Try 50 × 58' : 'Try 100 × 35'),
+    run: () => { const to100 = !(vpax.fw === 1 && vpax.fd === 0); vpax.fw = to100 ? 1 : 0; vpax.fd = to100 ? 0 : 1; if (to100 && PAXF.colours[vpax.fc].deep === 1) vpax.fc = 0; buildVaerCloset(); buildMoverSelects(vpaxMover); showToast(to100 ? 'PAX frame 100 × 35' : 'PAX frame 50 × 58'); } } : undefined; },
+  get selects() { return vpax.model ? PAXF_SELECTS : VPAX_SELECTS; },
   link: () => vpaxUrl(),
   info: () => { const G = vpaxGaps(); const t = (x) => (x === null ? '—' : `${x.toFixed(2)} m`);
+    if (vpax.model) { const it = paxfItem(), Wc = PAXF.widths[vpax.fw], Dc = PAXF.depths[vpax.fd];
+      return `${(Wc.w * 100).toFixed(1)} × ${(Dc.d * 100).toFixed(1)} × ${(PAXF.heights[vpax.fh].H * 100).toFixed(1)} cm · ${it[1].toLocaleString('en')} kr (IKEA SE) · ${t(G.toWin)} to the window wall · ${t(G.toDoor)} to the door end · ${t(G.toSofa)} to the sofa${guest.open ? ' bed' : ''} · ${vpax.fdoor ? 'doors + hinges extra (FLISBERGET 50 per door)' : 'frame only: doors'}, shelves and rail sold separately${Wc.cm === 100 ? ' · the 100 frame has no middle side' : ''}`; }
     return `${t(G.toDoor)} to the door end · ${t(G.toWin)} to the window wall · ${t(G.toSofa)} to the sofa${guest.open ? ' bed' : ''}${G.toSofa !== null && G.toSofa < 0.5 ? ' — doors can’t open fully' : ''} · white/lys beige is the standard combo; other frame colours: check IKEA` },
 };
 // ------------------------------------------------------------ Værelse: PAX 50 × 60 × 236 + one FLISBERGET door in the nook just left of the door as you come in
@@ -4356,7 +4720,7 @@ const nookMover = {
   link: () => ({ href: 'https://www.ikea.com/dk/da/p/flisberget-lage-med-haengsler-lys-beige-s99181068/', text: 'IKEA · FLISBERGET door 50×229 (+ PAX frame 50×58×236) ↗' }),
   info: () => '49.8 × 60.4 × 236.4 cm · 1,300 kr in the IKEA planner · fills the 57 cm nook between the jog and the door jamb · colours follow the big closet',
 };
-function furnish() { buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildOutside(); buildSwitches(); buildLift(); try { updateNight(); } catch (_) { /* ok */ } }
+function furnish() { buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildOutside(); buildSwitches(); buildLift(); try { updateNight(); } catch (_) { /* ok */ } }
 if (modelRoot) furnish(); else window.__afterModel = furnish;
 
 // ------------------------------------------------------------ clouds
@@ -4449,13 +4813,14 @@ function frame() {
     camera.position.set(player.pos.x, frame.camY, player.pos.z);
     camera.rotation.set(player.pitch, player.yaw, 0);
   } else {
-    orbit.update();
+    if (!stepCamTween()) orbit.update();
   }
   updateLift(dt); updateFridgeLight();
   updateRoom();
   drawMap();
   updatePinTip();
   placeMover();
+  hudUpdate();
   updateOcclusion();
   updateDoors(dt); updateArrow(); updateTV(performance.now());
   if (window.__clouds) window.__clouds.rotation.y += dt * 0.004;
@@ -4466,7 +4831,7 @@ function frame() {
   // standing still with nothing animating: render at ~10 fps instead of 60 (saves battery; clouds and fades still move)
   const now = performance.now(), q = camera.quaternion, cp = camera.position;
   const sig = cp.x * 1.3 + cp.y * 7.1 + cp.z * 13.7 + q.x * 17 + q.y * 19 + q.z * 23 + q.w * 29;
-  const busy = shadowDirty || selected || measuring || mode !== 'walk' || tvState.on || lift.moving || lift.after || lift.open.some((o) => o > 0 && o < 1) || hintArrow.on || Math.abs(sig - (frame.sig ?? 0)) > 1e-6;
+  const busy = shadowDirty || camTween || selected || measuring || mode !== 'walk' || tvState.on || lift.moving || lift.after || lift.open.some((o) => o > 0 && o < 1) || hintArrow.on || Math.abs(sig - (frame.sig ?? 0)) > 1e-6;
   frame.sig = sig; if (busy) frame.busyAt = now;
   const idle = now - (frame.busyAt ?? 0) > 900;
   if (shadowDirty || frame.n % 600 === 0) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
@@ -4494,7 +4859,241 @@ function frame() {
 window.__overlays = [pinsGroup, dimsGroup, plugsGroup, measureGroup, tapRing];
 updateRoom();
 requestAnimationFrame(frame);
-window.__apt = { THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
+// ------------------------------------------------------------ world HUD (2026-10-05, Gianluca: "the furniture UX is confusing")
+// · doors, cabinets, windows, switches, the TV: a small pulsing point at the handle, shown only within reach; click/tap it (or E) to use it
+// · furniture: an (i) button above each piece → flies to a close aerial view with the options panel docked beside it (never on top)
+// · moving/turning: arrows around the piece in the scene (always for the piece in close-up; for every piece with the Move layer, G)
+const FURN_LABELS = new Set(['Bed', 'Closet', 'TV', 'TV wall', 'Sofa', 'Dining', 'Lamp', 'Sofa bed', 'Lounge chair']);
+const MOVERS = { bedMover, closetMover, tvMover, mediaMover, sofaMover, lampMover, diningMover, petraMover, guestMover, vpaxMover, nookMover };
+function doorMover(d) { if (d._mover === undefined) { const m = String(d.swap).match(/selected === (\w+)/); d._mover = (m && MOVERS[m[1]]) || null; } return d._mover; }
+const isFurn = (d) => d.kind === 'swap' && FURN_LABELS.has(d.label);
+const hud = { el: $('hud3d'), pools: { ipt: [], finfo: [], marr: [] }, used: { ipt: 0, finfo: 0, marr: 0 }, focusDoor: null, n: 0, occ: new WeakMap(), vsig: '' };
+const REACH = 2.0;
+const ARROW_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+function hudEl(kind) {
+  const pool = hud.pools[kind], i = hud.used[kind]++;
+  if (pool[i]) return pool[i];
+  const b = document.createElement('button'); b.className = kind; b.type = 'button';
+  if (kind === 'ipt') { b.innerHTML = '<span class="k">E</span>'; b.setAttribute('aria-label', 'Use'); }
+  if (kind === 'finfo') { b.textContent = 'i'; }
+  if (kind === 'marr') {                                       // press and hold repeats
+    let tm = null, iv = null; const stop = () => { clearTimeout(tm); clearInterval(iv); tm = iv = null; };
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); if (b._act) b._act(); tm = setTimeout(() => { iv = setInterval(() => { if (b._act && !b.hidden) b._act(); else stop(); }, 110); }, 380); });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, stop);
+    b.addEventListener('click', (e) => e.stopPropagation());
+  } else b.addEventListener('click', (e) => { e.stopPropagation(); if (b._act) b._act(); });
+  b.addEventListener('keydown', (e) => e.stopPropagation());
+  hud.el.appendChild(b); pool.push(b); return b;
+}
+const _hp = new THREE.Vector3(), _hq = new THREE.Vector3(), _hs = new THREE.Vector3();
+function toScreen(v, out) { _hs.copy(v).project(camera); out.x = (_hs.x * 0.5 + 0.5) * innerWidth; out.y = (-_hs.y * 0.5 + 0.5) * innerHeight; out.z = _hs.z; return out.z < 1 && out.x > -40 && out.x < innerWidth + 40 && out.y > -40 && out.y < innerHeight + 40; }
+function ringPoint(d, out) {
+  if (d.kind === 'swap') return out.copy(d.center);
+  const near = (a, b) => (b.distanceToSquared(camera.position) < a.distanceToSquared(camera.position) ? a.copy(b) : a);
+  if (d.kind === 'slide') { out.set(d.w - 0.09, 1.05, 0.07); d.group.localToWorld(out); _hq.set(d.w - 0.09, 1.05, -0.07); d.group.localToWorld(_hq); return near(out, _hq); }
+  if (d.axis === 'x') { out.set(0, (d.thick || 0.03) + 0.02, d.len * 0.82); return d.pivot.localToWorld(out); }      // toilet lid: near its front edge
+  let x, y;
+  if (d.shape === 'sash') { x = d.len - 0.05; y = d.z0 + d.h * 0.48; }
+  else if (d.shape === 'round') { x = d.len - 0.03; y = d.z0 + d.len / 2; }
+  else if (d.shape === 'closet') { x = d.len - 0.05; y = d.h > 1 ? Math.min(d.z0 + d.h * 0.45, 1.12) : d.z0 + d.h / 2; }
+  else { x = d.len - 0.08; y = d.h > 1.5 ? 1.0 : d.z0 + d.h / 2; }
+  const z = (d.thick || 0.04) / 2 + 0.03;
+  out.set(x, y, z); d.pivot.localToWorld(out); _hq.set(x, y, -z); d.pivot.localToWorld(_hq);
+  return near(out, _hq);
+}
+const hudRay = new THREE.Raycaster();
+function hudVisible(key, from, to, own, every = 4) {     // cached line-of-sight test (walls and other furniture hide a point)
+  const c = hud.occ.get(key);
+  if (c && hud.n - c.n < every) return c.v;
+  const dir = _hq.copy(to).sub(from), dist = dir.length(); dir.normalize();
+  hudRay.set(from, dir); hudRay.far = Math.max(0.01, dist - 0.06);
+  const v = !hudRay.intersectObjects(occluders(), false).some((h) => !(own && own.includes(h.object)));
+  hud.occ.set(key, { n: hud.n, v }); return v;
+}
+function partsBox(d, fresh) {
+  if (!d._bb || fresh) { d._bb = new THREE.Box3(); for (const p of d.parts) { p.updateMatrixWorld(true); d._bb.expandByObject(p); } }
+  return d._bb;
+}
+const _sc = { x: 0, y: 0, z: 0 };
+function hudUpdate() {
+  hud.n++;
+  if (document.body.classList.contains('flying') !== !!camTween) document.body.classList.toggle('flying', !!camTween);
+  for (const k in hud.used) hud.used[k] = 0;
+  if (focus && !doors.includes(focus.door)) { const nd = doors.find((d) => isFurn(d) && doorMover(d) === focus.mover); if (nd) focus.door = nd; }   // pieces are rebuilt when they move
+  const live = started && $('lightbox').hidden;
+  hud.focusDoor = null;
+  // 1. interaction points within reach (walk mode only)
+  if (live && mode === 'walk' && !focus && !measuring) {
+    let best = null, bestD = 0.42;
+    for (const d of doors) {
+      if (isFurn(d)) continue;
+      const P = ringPoint(d, _hp);
+      if (P.distanceTo(camera.position) > REACH) continue;
+      if (!toScreen(P, _sc)) continue;
+      if (!hudVisible(d, camera.position, P, d.parts)) continue;
+      const b = hudEl('ipt'); b.hidden = false; b.style.left = _sc.x + 'px'; b.style.top = _sc.y + 'px';
+      b._door = d; b._act = () => toggleDoor(d); b.classList.remove('focus');
+      b.title = d.kind === 'swap' ? d.prompt() : d.name ? `${d.target ? 'Close' : 'Open'} ${d.name}` : `${d.target ? 'Close' : 'Open'} the ${d.label.toLowerCase()}`;
+      b.setAttribute('aria-label', b.title);
+      const dc = Math.hypot(_sc.x / innerWidth - 0.5, _sc.y / innerHeight - 0.5);
+      if (dc < bestD) { bestD = dc; best = b; }
+    }
+    if (best) { best.classList.add('focus'); hud.focusDoor = best._door; }
+  }
+  // 2. furniture info buttons (quick bar I; the one of the piece in close-up always stays)
+  if (live && !measuring && (infoLayer || focus)) {
+    for (const d of doors) {
+      if (!isFurn(d) || !d.parts.length) continue;
+      if (focus && focus.door !== d) continue;
+      const bb = partsBox(d, focus && focus.door === d);
+      bb.getCenter(_hp); _hp.y = bb.max.y + 0.14;
+      if (mode === 'walk') { const dist = _hp.distanceTo(camera.position); if (dist > 5.5 || dist < 0.5) continue; }
+      if (!toScreen(_hp, _sc)) continue;
+      if (mode === 'walk' && !hudVisible(d, camera.position, _hp, d.parts, 6)) continue;
+      const b = hudEl('finfo'); b.hidden = false; b.style.left = _sc.x + 'px'; b.style.top = _sc.y + 'px';
+      const on = !!focus && focus.door === d; b.classList.toggle('on', on);
+      b.title = on ? 'Back to where you were' : `${d.label}: options`; b.setAttribute('aria-label', b.title);
+      b._door = d; b._act = () => focusFurniture(d);
+      d._infoAt = { x: _sc.x, y: _sc.y };
+    }
+  }
+  // 3. move / turn arrows
+  if (live && !measuring && (focus || moveLayer)) {
+    const list = focus ? [focus.door] : doors.filter((d) => isFurn(d) && d.parts.length);
+    for (const d of list) {
+      const m = doorMover(d); if (!m || (!m.axis && !m.axis2 && !m.rotate)) continue;
+      const bb = partsBox(d, true); bb.getCenter(_hp); const C = _hp.clone();
+      if (!focus && mode === 'walk') { const dist = C.distanceTo(camera.position); if (dist > 7) continue; if (!hudVisible(d.parts[0], camera.position, C, d.parts, 6) && dist > 1.5) continue; }
+      const hx = (bb.max.x - bb.min.x) / 2, hz = (bb.max.z - bb.min.z) / 2;
+      const arrowPair = (ax, fn) => {
+        if (!ax) return;
+        const vertical = Math.abs(ax.y) > 0.9;
+        const base = vertical && m.anchor ? (m.anchor() || C) : C.clone().setY(0.25);
+        const ext = vertical ? 0.35 : Math.abs(ax.x) * hx + Math.abs(ax.z) * hz + 0.28;
+        const bs = { x: 0, y: 0, z: 0 }; toScreen(base, bs);
+        for (const sg of [1, -1]) {
+          const P = base.clone().addScaledVector(ax, sg * ext);
+          if (!toScreen(P, _sc)) continue;
+          const b = hudEl('marr'); b.hidden = false; b.classList.remove('rot', 'ghost'); b.innerHTML = ARROW_SVG;
+          b.style.left = _sc.x + 'px'; b.style.top = _sc.y + 'px';
+          const ang = Math.atan2(_sc.y - bs.y, _sc.x - bs.x); b.firstChild.style.transform = `rotate(${ang}rad)`;
+          b.title = vertical ? (sg > 0 ? 'Higher (5 cm)' : 'Lower (5 cm)') : 'Move 5 cm'; b.setAttribute('aria-label', b.title);
+          b._act = () => { fn(sg); if (selected === m) updateMoverInfo(); hudRefreshSoon(); };
+        }
+      };
+      arrowPair(m.axis && m.axis(), (sg) => m.shift(sg));
+      arrowPair(m.axis2 && m.axis2(), (sg) => m.shift2(sg));
+      if (m.rotate) {
+        const top = C.clone(); top.y = bb.max.y + 0.14;
+        if (toScreen(top, _sc)) for (const sg of [1, -1]) {
+          const b = hudEl('marr'); b.hidden = false; b.classList.add('rot'); b.classList.remove('ghost'); b.textContent = sg > 0 ? '⟲' : '⟳';
+          b.style.left = (_sc.x - sg * 38) + 'px'; b.style.top = _sc.y + 'px';
+          b.title = sg > 0 ? 'Turn 15° anticlockwise' : 'Turn 15° clockwise'; b.setAttribute('aria-label', b.title);
+          b._act = () => { m.rotate(sg); if (selected === m) updateMoverInfo(); hudRefreshSoon(); };
+        }
+      }
+    }
+  }
+  for (const k in hud.pools) { const pool = hud.pools[k]; for (let i = hud.used[k]; i < pool.length; i++) if (!pool[i].hidden) { pool[i].hidden = true; pool[i]._act = null; } }
+  // keep the close-up framed in the part of the screen the panel leaves free
+  if (focus && !camTween) { const el = $('mover'), sig = `${innerWidth}x${innerHeight}:${el.offsetWidth}x${el.offsetHeight}`; if (sig !== hud.vsig) { hud.vsig = sig; applyViewOffset(); } }
+}
+function hudRefreshSoon() { shadowDirty = true; }
+function hudClickAtCentre() {                    // mouse captured: the crosshair picks the HUD button under it
+  const cx = innerWidth / 2, cy = innerHeight / 2;
+  for (const k of ['marr', 'ipt', 'finfo']) for (const b of hud.pools[k]) {
+    if (b.hidden || !b._act) continue;
+    const r = b.getBoundingClientRect();
+    if (cx > r.left - 10 && cx < r.right + 10 && cy > r.top - 10 && cy < r.bottom + 10) { b._act(); return true; }
+  }
+  return false;
+}
+// ---- close-up of one piece of furniture
+function applyViewOffset(k = 1) {
+  if (!focus && k >= 1) return;
+  const W = innerWidth, H = innerHeight, el = $('mover');
+  if (k <= 0.001) { camera.clearViewOffset(); return; }
+  if (W <= 640) camera.setViewOffset(W, H, 0, k * Math.min(el.offsetHeight || H * 0.46, H * 0.46) / 2, W, H);
+  else camera.setViewOffset(W, H, -k * ((el.offsetWidth || 360) + 12) / 2, 0, W, H);
+}
+// camera flights: position along a gentle arc, orientation slerped (no orbit-control fighting), the panel offset eased in/out,
+// ceiling + upper floors shown or hidden at the moment the camera passes the ceiling, so nothing pops
+const _m4 = new THREE.Matrix4();
+const lookQuat = (pos, tgt) => new THREE.Quaternion().setFromRotationMatrix(_m4.lookAt(pos, tgt, UP));
+function camTo(pos, q1, dur, opts = {}) {
+  const p0 = camera.position.clone(), q0 = camera.quaternion.clone(), p1 = pos.clone();
+  const lift = opts.lift ?? 0;                                   // extra height at mid-flight (an arc instead of a straight line)
+  camTween = { p0, q0, p1, q1: q1.clone(), start: performance.now(), dur, lift, off: opts.off || null, tgt: opts.tgt || null, done: opts.done || null };
+}
+const easeIO = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+const easeSine = (k) => -(Math.cos(Math.PI * k) - 1) / 2;
+function setUpperVisible(on) { if (ceiling && ceiling.visible !== on) ceiling.visible = on; for (const o of aboveMeshes) if (o.visible !== on) o.visible = on; }
+function stepCamTween() {
+  if (!camTween) return false;
+  const T = camTween, k = Math.min(1, (performance.now() - T.start) / T.dur), e = easeIO(k), r = easeSine(Math.min(1, k * 1.15));
+  camera.position.lerpVectors(T.p0, T.p1, e); camera.position.y += T.lift * Math.sin(Math.PI * e);
+  camera.quaternion.slerpQuaternions(T.q0, T.q1, r);
+  if (T.off) applyViewOffset(T.off[0] + (T.off[1] - T.off[0]) * e);
+  setUpperVisible(camera.position.y - player.fy < 2.45);         // under the ceiling: keep the room closed
+  if (k >= 1) {
+    camTween = null;
+    if (T.tgt) { orbit.target.copy(T.tgt); orbit.update(); }
+    if (T.done) T.done();
+  }
+  return true;
+}
+function focusView(d, from) {
+  const bb = partsBox(d, true), C = bb.getCenter(new THREE.Vector3()), size = bb.getSize(new THREE.Vector3());
+  C.y = bb.min.y + size.y * 0.4;
+  const dir = C.clone().sub(from).setY(0); if (dir.lengthSq() < 1e-4) dir.set(0, 0, -1); dir.normalize();
+  const R = Math.max(size.x, size.z) / 2, dist = THREE.MathUtils.clamp(2.4 + R * 1.5, 3.0, 7.0) * (innerWidth <= 640 ? 1.45 : 1);   // phones: the sheet takes the lower half
+  return { pos: C.clone().addScaledVector(dir, -dist * 0.55).add(new THREE.Vector3(0, dist * 0.84, 0)), tgt: C };
+}
+function focusFurniture(d) {
+  if (focus && focus.door === d) { selectFurniture(null); return; }
+  if (focus) {                                                   // hop from one piece to another without leaving the close-up
+    focus.switching = true; selectFurniture(null); d.swap(); focus.switching = false;
+    if (!selected) { exitFocus(); return; }
+    focus.door = d; focus.mover = selected; hud.vsig = '';
+    const v = focusView(d, camera.position); camTo(v.pos, lookQuat(v.pos, v.tgt), 900, { tgt: v.tgt, off: [1, 1] }); return;
+  }
+  const prev = { mode, cam: camera.position.clone(), tgt: orbit.target.clone(), yaw: player.yaw, pitch: player.pitch };
+  if (selected) selectFurniture(null);
+  d.swap(); if (!selected) return;
+  focus = { door: d, mover: selected, prev };
+  document.body.classList.add('focus'); $('mover').classList.add('docked');
+  const startCam = camera.position.clone(), startQ = camera.quaternion.clone(), wasWalk = mode === 'walk';
+  if (mode !== 'over') setMode('over', true);
+  camera.position.copy(startCam); camera.quaternion.copy(startQ);      // fly from exactly where you were looking
+  if (wasWalk) setUpperVisible(true);
+  hud.vsig = 'tween';
+  const v = focusView(d, startCam);
+  camTo(v.pos, lookQuat(v.pos, v.tgt), 1150, { tgt: v.tgt, off: [0, 1], lift: wasWalk ? 0.25 : 0, done: () => { hud.vsig = ''; } });
+}
+function endFocusLook(keepOffset) { if (!keepOffset) camera.clearViewOffset(); hud.vsig = ''; document.body.classList.remove('focus'); $('mover').classList.remove('docked'); }
+function exitFocus() {
+  if (!focus) return;
+  const f = focus; focus = null; endFocusLook(true);               // the framing offset eases out during the flight back
+  if (f.prev.mode === 'walk') {
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(f.prev.pitch, f.prev.yaw, 0));
+    camTo(f.prev.cam, q, 1000, { off: [1, 0], lift: 0.2, done: () => { camera.clearViewOffset(); if (!focus) setMode('walk', true); } });
+  } else camTo(f.prev.cam, lookQuat(f.prev.cam, f.prev.tgt), 900, { off: [1, 0], tgt: f.prev.tgt, done: () => camera.clearViewOffset() });
+}
+// ---- Move layer (quick bar G)
+function setMoveLayer(on) { moveLayer = on; $('qMove').setAttribute('aria-pressed', String(on)); showToast(on ? 'Move: use the arrows around each piece (hold to keep moving)' : 'Move arrows off'); }
+$('qMove').addEventListener('click', () => setMoveLayer(!moveLayer));
+function setInfoLayer(on) { infoLayer = on; $('qInfo').setAttribute('aria-pressed', String(on)); try { localStorage.setItem('aptInfo', on ? '1' : '0'); } catch (_) { /* private mode */ } }
+try { if (localStorage.getItem('aptInfo') === '0') setInfoLayer(false); } catch (_) { /* ignore */ }
+$('qInfo').addEventListener('click', () => { setInfoLayer(!infoLayer); showToast(infoLayer ? 'Info buttons on' : 'Info buttons off'); });
+addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey || e.repeat || !$('lightbox').hidden) return;
+  if (e.code === 'KeyG') setMoveLayer(!moveLayer);
+  else if (e.code === 'KeyI') $('qInfo').click();
+});
+addEventListener('resize', () => { hud.vsig = ''; });
+window.__hudDbg = () => doors.filter((d) => !isFurn(d)).map((d) => { const P = ringPoint(d, new THREE.Vector3()); const dist = P.distanceTo(camera.position); if (dist > REACH) return null; const sc = {}; const on = toScreen(P, sc); hud.occ.delete(d); const vis = hudVisible(d, camera.position, P, d.parts); return [d.label, dist.toFixed(2), on, vis, Math.round(sc.x), Math.round(sc.y), started, measuring, mode, !!focus]; }).filter(Boolean);
+window.__bvc = () => buildVaerCloset(); window.__bs = () => { buildSofa(); livingDims(); }; window.__bd = () => { buildDining(); };
+window.__apt = { THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, petra, petraMover, buildPetra, hud, focusFurniture, exitFocus, setMoveLayer, getFocus: () => focus, getTween: () => camTween, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
 </script>
 
 </body></html>
