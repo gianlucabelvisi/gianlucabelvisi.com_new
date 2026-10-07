@@ -91,6 +91,9 @@
   #mover #mvDone { padding: 6px 10px; font-size: 12.5px; }
   #mover [hidden] { display: none !important; }
   #mvSelects { display: grid; gap: 6px; }
+  #mover .mvro { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font: 500 13px/1.3 var(--ui); }
+  #mover .mvro dt { color: var(--muted); font-size: 11.5px; padding-top: 1px; }
+  #mover .mvro dd { margin: 0; color: var(--ink); }
   #mover .mvlinks { display: flex; gap: 14px; flex-wrap: wrap; }
   #mvAng { align-self: center; text-align: center; font: 600 12px/1 var(--mono); color: var(--oak); }
   #mvLink, #mvLink2 { font: 600 12.5px/1.2 var(--ui); color: var(--oak); text-decoration: underline; text-underline-offset: 3px; }
@@ -2015,7 +2018,8 @@ function selectFurniture(m) {
   }
 }
 function buildMoverSelects(m) {
-  const box = $('mvSelects'); box.innerHTML = ''; box.hidden = !m.selects && !m.lights;
+  const box = $('mvSelects'); box.innerHTML = ''; box.hidden = !(m.selects && m.selects.length) && !m.lights && !m.readonly;
+  if (m.readonly) { const dl = document.createElement('dl'); dl.className = 'mvro'; for (const [k, v] of m.readonly) { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; dl.append(dt, dd); } box.appendChild(dl); }
   if (m.lights) buildLightControls(box, m.lights);
   for (const sel of m.selects || []) {
     const lab = document.createElement('label'); const head = document.createElement('span'); head.textContent = sel.label; lab.appendChild(head);
@@ -3376,29 +3380,13 @@ const sofaMover = {
   info: () => { const G = sofaGaps(), S = liv.sofa, cfg = SOFAS[S.cfg], P = nyProd(S), pf = SMODEL.ilva ? nyPouf(S) : null;
     const price = P ? ` · ${nyKr(P.p[S.fabric])}${pf ? ` + puf ${nyKr(pf.price)}` : ''} · seat ${NY_FILL[S.fill].toLowerCase()}` : '';
     return `L ${Math.round(cfg.L * 100)} × D ${Math.round(cfg.R * 100)} cm${price} · ${G && G.back.d !== null ? G.back.d.toFixed(2) : '–'} m behind · ${G && G.front.d !== null ? G.front.d.toFixed(2) : '–'} m to TV unit · ${G ? G.view.toFixed(1) : '–'} m to screen${pf && pf.missing ? ' · puf not made in this fabric (price shown for Winter Moss)' : ''}`; },
-  get selects() {
-    const S = liv.sofa, ny = !!SMODEL.ilva;
-    const list = [
-      { id: 'model', label: 'Model', options: () => SOFA_MODELS.map((m) => ({ label: `${m.brand} ${m.name}`, group: m.brand })), get: () => liv.sofa.model,
-        set: (i) => { const S = liv.sofa; S.model = i; useModel(i); S.cfg = SMODEL.defaultCfg; S.fabric = 0; S.legs = SMODEL.defaultLegs ?? 0; S.fill = 1; S.pouf = 0; buildSofa(); livingDims(); buildMoverSelects(sofaMover); showToast(sofaFull(S)); } },
-      { id: 'type', label: ny ? 'Size' : 'Configuration', options: () => SOFAS.map((c) => { const P = c.ny ? NYLAND.prods[c.ny] : null, from = P ? Math.min(...Object.values(P.p)) : 0;
-          return { label: `${c.name} · ${Math.round(c.L * 100)} × ${Math.round(c.R * 100)}${c.est ? ' (est.)' : ''}${P ? ` · fra ${nyKr(from)}` : ''}` }; }), get: () => liv.sofa.cfg,
-        set: (i) => { liv.sofa.cfg = i; nyFix(liv.sofa); buildSofa(); livingDims(); buildMoverSelects(sofaMover); const c = SOFAS[i]; showToast(`${sofaFull(liv.sofa)} · L ${Math.round(c.L * 100)} × D ${Math.round(c.R * 100)} cm`); } },
-      { id: 'fabric', label: 'Fabric & colour', options: () => { const P = nyProd(liv.sofa); return FABRICS.map((fb, k) => ({ label: P ? `${fb.c} · ${P.p[k] ? nyKr(P.p[k]) : 'not in this size'}` : fb.c, group: fb.g ? `${fb.g} – ${fb.kind}` : '', hex: fb.hex })); }, get: () => liv.sofa.fabric,
-        set: (i) => { liv.sofa.fabric = i; nyFix(liv.sofa); buildSofa(); livingDims(); buildMoverSelects(sofaMover); } },
-      { id: 'legs', label: 'Legs', options: () => LEGS.map(([n], k) => { const P = nyProd(liv.sofa), V = P && P.v[liv.sofa.fabric]; return { label: n + (V && !V[`${k}0`] && !V[`${k}1`] ? ' (not with this fabric)' : '') }; }), get: () => liv.sofa.legs,
-        set: (i) => { liv.sofa.legs = i; nyFix(liv.sofa); buildSofa(); livingDims(); buildMoverSelects(sofaMover); } },
-    ];
-    if (ny) {
-      list.push({ id: 'fill', label: 'Seat', options: () => NY_FILL.map((n, k) => { const V = (nyProd(liv.sofa) || { v: {} }).v[liv.sofa.fabric] || {}; return { label: n + (!V[`${liv.sofa.legs}${k}`] ? ' (not with this fabric/legs)' : '') }; }), get: () => liv.sofa.fill,
-        set: (i) => { liv.sofa.fill = i; nyFix(liv.sofa); updateMoverInfo(); buildMoverSelects(sofaMover); } });
-      list.push({ id: 'pouf', label: 'Puf / fodskammel', options: () => [{ label: 'None' }, { label: '72 × 59 × 47 cm' }, { label: '92 × 59 × 47 cm' }], get: () => liv.sofa.pouf,
-        set: (i) => { liv.sofa.pouf = i; buildSofa(); livingDims(); } });
-    }
-    return list;
-  },
+  // chosen (Gianluca, 2026-10-07): ILVA Nyland venstrevendt hjørnesofa 263 × 192, Austin 13 Winter Moss, lakeret massiv eg legs (no. 141),
+  // pocketfjedre / koldskum seat, no puf. The choices are gone; the panel shows the order read-only.
+  get readonly() { const S = liv.sofa, c = SOFAS[S.cfg], P = nyProd(S);
+    return [['Model', `${SMODEL.brand} ${SMODEL.name}`], ['Size', `${c.name} · ${Math.round(c.L * 100)} × ${Math.round(c.R * 100)} cm`], ['Fabric & colour', `${FABRICS[S.fabric].g} ${FABRICS[S.fabric].c}`],
+      ['Legs', LEGS[S.legs][0]], ['Seat', NY_FILL[S.fill]], ['Puf / fodskammel', 'None'], ['Price', P ? nyKr(P.p[S.fabric]) : '–']]; },
+  get selects() { return []; },
 };
-
 // ------------------------------------------------------------ dining: table + chairs, moved and rotated as one group
 // Table and chair candidates are separate lists, so each can be swapped independently (sizes, finishes, colours).
 const ILVA = (p) => `https://ilva.dk/${p}/`;
@@ -4303,7 +4291,8 @@ const PETRA = {
     { name: 'Sheepskin Sahara 17mm', kind: 'sheepskin', c: 0x76594a, tex: 'boucle', pile: 1.6, ids: [35185, 35182], kr: [25496, 25496], was: 33995 },
   ],
 };
-const petra = { pos: null, angle: 0, cover: 2, wood: 0, group: null, parts: [] };
+const petra = { pos: null, angle: 0, cover: 2, wood: 0, model: 0, group: null, parts: [] };
+const GUDRUN = { name: 'House Nordic Gudrun', c: 0x9a8063, url: 'https://www.boozt.com/dk/da/house-nordic-aps/gudrun-lounge-chair_32977013', kr: 3974, was: 5677 };
 const petraDims = new THREE.Group(); dimsGroup.add(petraDims);
 const LIV_BOX = { x0: 0.5, x1: 4.46, y0: 0.5, y1: 8.45 };            // living room inner faces (Blender)
 function buildPetra(tryPos, tryAngle) {
@@ -4320,6 +4309,23 @@ function buildPetra(tryPos, tryAngle) {
   const g = new THREE.Group(); g.position.copy(b2t(pos[0], pos[1], 0)); g.rotation.y = ang;
   const parts = [];
   const add = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; g.add(o); parts.push(o); return o; };
+  if (petra.model === 1) {
+    // House Nordic Gudrun: a plump wingback in curly light-brown teddy fabric, 84 × 86 × 87 cm, short black splayed legs
+    const G = GUDRUN, gf = new THREE.MeshPhysicalMaterial({ color: G.c, map: weaveTex('boucle'), bumpMap: weaveTex('boucle'), bumpScale: 0.035, roughness: 0.98, sheen: 0.6, sheenRoughness: 0.8, sheenColor: new THREE.Color(G.c).lerp(new THREE.Color(0xffffff), 0.2), envMapIntensity: 0.2 });
+    const legM = std({ color: 0x1b1a19, roughness: 0.5 });
+    const W2 = 0.42, D2 = 0.43, y0 = 0.14;
+    add(softBox(0.8, 0.22, 0.8, 0.1, { top: 0.01, front: 0.03 }), gf, 0, y0 + 0.11, 0.02);                      // base
+    add(softBox(0.56, 0.14, 0.6, 0.06, { top: 0.03, front: 0.03 }), gf, 0, y0 + 0.27, 0.08);                    // seat cushion (seat ≈ 42 cm)
+    const back = add(softBox(0.62, 0.62, 0.22, 0.1, { front: 0.06, top: 0.04 }), gf, 0, y0 + 0.42, -D2 + 0.13); back.rotation.x = -0.12;   // tall back, leaning, highest in the middle
+    for (const sx of [-1, 1]) {
+      const arm = add(softBox(0.17, 0.34, 0.68, 0.085, { top: 0.04, side: 0.03 }), gf, sx * (W2 - 0.085), y0 + 0.32, 0.03); arm.rotation.z = sx * 0.1;   // rolled arms, flaring out
+      const wing = add(softBox(0.17, 0.34, 0.32, 0.09, { side: 0.04, top: 0.03 }), gf, sx * (W2 - 0.1), y0 + 0.5, -D2 + 0.22); wing.rotation.set(-0.1, sx * 0.3, sx * 0.12);   // wings, lower than the back
+      for (const sz of [-1, 1]) { const leg = add(new THREE.CylinderGeometry(0.018, 0.012, 0.15, 12), legM, sx * (W2 - 0.08), 0.07, sz * (D2 - 0.1)); leg.rotation.x = sz < 0 ? -0.22 : 0.08; leg.rotation.z = -sx * 0.06; }
+    }
+    // a few tufting buttons on the back
+    const btn = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(G.c).multiplyScalar(0.75), roughness: 0.9 });
+    for (const [bx, by] of [[-0.12, 0.72], [0.12, 0.72], [0, 0.62]]) add(new THREE.SphereGeometry(0.014, 8, 6), btn, bx, by, -D2 + 0.24);
+  } else {
   // the shell: a thick wall swept round the back (lathe), high at the back (75) falling to the arm fronts (≈58), plan 81 × 83
   const prof = [], T = 0.13, y0 = 0.27, Hb = 0.75;
   const ri = 0.27, ro = ri + T;
@@ -4356,6 +4362,7 @@ function buildPetra(tryPos, tryAngle) {
     const leg = add(new THREE.CylinderGeometry(0.018, 0.013, 0.25, 12), wood, lx * 1.05, 0.12, lz * 1.05);
     leg.rotation.z = -Math.sign(lx) * 0.12; leg.rotation.x = Math.sign(lz) * 0.12;
   }
+  }
   const door = { kind: 'swap', label: 'Lounge chair', parts, center: g.position.clone().setY(0.5),
     swap: () => selectFurniture(selected === petraMover ? null : petraMover), prompt: () => (selected === petraMover ? 'Done with the chair' : 'Move or turn the lounge chair') };
   for (const q of parts) { q.userData.door = door; q.userData.furniture = true; collidables.push(q); }
@@ -4381,21 +4388,24 @@ function petraDimsUpdate() {
   const t = labelSprite(`Little Petra · ${PETRA.covers[petra.cover].name} · ${PETRA.woods[petra.wood].name}`, { h: 0.03 }); t.position.copy(petra.group.position).setY(1.0); petraDims.add(t);
 }
 const petraMover = {
-  name: 'Lounge chair', title: () => `&Tradition Little Petra VB1 · ${PETRA.covers[petra.cover].name}`,
+  name: 'Lounge chair', title: () => (petra.model ? 'House Nordic Gudrun lounge chair · light brown' : `&Tradition Little Petra VB1 · ${PETRA.covers[petra.cover].name}`),
   anchor: () => (petra.group ? petra.group.position.clone().setY(1.05) : null),
   axis: () => b2t(1, 0).normalize(), axis2: () => b2t(0, 1).normalize(),
   shift: (dir) => { const p0 = petra.pos; if (!buildPetra([p0[0] + dir * 0.05, p0[1]])) showToast('Can’t go further: wall'); },
   shift2: (dir) => { const p0 = petra.pos; if (!buildPetra([p0[0], p0[1] + dir * 0.05])) showToast('Can’t go further: wall'); },
   rotate: (dir) => { buildPetra(null, petra.angle + dir * Math.PI / 12); },
   angle: () => petra.angle,
-  selects: [
-    { id: 'pcov', label: 'Upholstery', options: () => PETRA.covers.map((c) => ({ label: `${c.name} · ${c.kind}` })), get: () => petra.cover, set: (i) => { petra.cover = i; buildPetra(); } },
-    { id: 'pwood', label: 'Legs', options: () => PETRA.woods.map((w) => ({ label: w.name })), get: () => petra.wood, set: (i) => { petra.wood = i; buildPetra(); } },
-  ],
-  link: () => { const C = PETRA.covers[petra.cover]; return { href: PETRA.url(C.ids[petra.wood]), text: `Interiorshop · ${C.name} / ${PETRA.woods[petra.wood].name} · ${C.kr[petra.wood].toLocaleString('da-DK')} kr ↗` }; },
+  get selects() { const model = { id: 'pmodel', label: 'Chair', options: () => [{ label: '&Tradition Little Petra VB1' }, { label: `House Nordic Gudrun · ${GUDRUN.kr.toLocaleString('da-DK')} kr` }], get: () => petra.model, set: (i) => { petra.model = i; buildPetra(); buildMoverSelects(petraMover); } };
+    return petra.model ? [model] : [model, ...PETRA_SELECTS]; },
+  link: () => { if (petra.model) return { href: GUDRUN.url, text: `Boozt · Gudrun lounge chair · ${GUDRUN.kr.toLocaleString('da-DK')} kr (før ${GUDRUN.was.toLocaleString('da-DK')}) ↗` }; const C = PETRA.covers[petra.cover]; return { href: PETRA.url(C.ids[petra.wood]), text: `Interiorshop · ${C.name} / ${PETRA.woods[petra.wood].name} · ${C.kr[petra.wood].toLocaleString('da-DK')} kr ↗` }; },
   info: () => { const C = PETRA.covers[petra.cover], G = petraGaps(), f = (o) => (o && o.d !== null ? o.d.toFixed(2) : '>5');
+    if (petra.model) return `84 × 86 × 87 cm wingback · curly light-brown teddy (polyester), black legs · ${GUDRUN.kr.toLocaleString('da-DK')} kr on Boozt (før ${GUDRUN.was.toLocaleString('da-DK')}) · free: ${f(G.N)} m towards the window wall, ${f(G.S)} m towards the TV wall, ${f(G.E)} m towards the balcony, ${f(G.W)} m towards the kitchen · ⟲ ⟳ turn 15°`;
     return `81 × 83 × 75 cm · seat 40 · ${C.kr[petra.wood].toLocaleString('da-DK')} kr (list ${C.was.toLocaleString('da-DK')}) · free: ${f(G.N)} m towards the window wall, ${f(G.S)} m towards the TV wall, ${f(G.E)} m towards the balcony, ${f(G.W)} m towards the kitchen · ⟲ ⟳ turn 15°`; },
 };
+const PETRA_SELECTS = [
+    { id: 'pcov', label: 'Upholstery', options: () => PETRA.covers.map((c) => ({ label: `${c.name} · ${c.kind}` })), get: () => petra.cover, set: (i) => { petra.cover = i; buildPetra(); } },
+    { id: 'pwood', label: 'Legs', options: () => PETRA.woods.map((w) => ({ label: w.name })), get: () => petra.wood, set: (i) => { petra.wood = i; buildPetra(); } },
+];
 // ------------------------------------------------------------ living: ART-GIFTREE floating book tower (amazon.com, white) + vertical Hue strip
 // Each piece: a white steel spine 31 cm tall with two "invisible" shelves 16 × 13 cm, 15.5 cm apart; the books lie flat, spines out, and hide
 // the plates. 2, 3 or 4 pieces stacked = 4, 6 or 8 tiers. On the TV wall between the TV unit and the opening to the hall; slides along it.
@@ -5670,7 +5680,6 @@ const CONSOLE = {
     { name: 'HAMMARSMED · antracit', c: 0x3b3d3f, style: 'frame', art: 'hammarsmed-lage-antracit-00590362', kr: 290 },
   ],
   heights: [
-    { name: 'BESTÅ 64 on 10 cm legs · 76.5 cm', H: 0.64, leg: 0.10 },
     { name: 'BESTÅ 64 on the floor · 66.5 cm', H: 0.64, leg: 0 },
     { name: 'BESTÅ 38 on 10 cm legs · 50.5 cm', H: 0.38, leg: 0.10 },
     { name: 'BESTÅ 38 on the floor · 40.5 cm', H: 0.38, leg: 0 },
@@ -5777,14 +5786,14 @@ const consoleMover = {
   name: 'Console', title: () => `IKEA hack · ${cons.n} × BESTÅ 60×20×${consLow() ? 38 : 64} · ${CONSOLE.fronts[cons.front].name.split(' · ')[0]}`,
   anchor: () => (cons.group ? cons.parts[0].getWorldPosition(new THREE.Vector3()).setY(1.1) : null),
   variant: { label: () => (cons.decor ? 'Clear the top' : 'Plants & candles on top'), run: () => { cons.decor = !cons.decor; buildConsole(); } },
-  selects: [
+  get selects() { return [
     { id: 'chgt', label: 'Height', options: () => CONSOLE.heights.map((v) => ({ label: v.name })), get: () => cons.h, set: (i) => { cons.h = i; buildConsole(); buildMoverSelects(consoleMover); } },
     { id: 'cfr', label: 'Frames', options: () => CONSOLE.frames.map((v) => ({ label: `BESTÅ ${v.name} · ${consLow() ? v.kr38 : v.kr} kr` })), get: () => cons.frame, set: (i) => { cons.frame = i; buildConsole(); } },
     { id: 'cft', label: 'Fronts', options: () => CONSOLE.fronts.map((v) => ({ label: v.open ? v.name : !consFrontOK(v) ? `${v.name} · not made in 60×38` : `${v.name} · ${consLow() ? v.kr38 : v.kr} kr` })), get: () => cons.front, set: (i) => { cons.front = i; buildConsole(); } },
     { id: 'clay', label: 'Doors', options: () => CONSOLE.layouts.map((v) => ({ label: v })), get: () => cons.layout, set: (i) => { cons.layout = i; buildConsole(); } },
     { id: 'clg', label: 'Legs (10 cm)', options: () => CONSOLE.legs.map((v) => ({ label: `${v.name} · ${v.kr} kr/2` })), get: () => cons.legs, set: (i) => { cons.legs = i; buildConsole(); } },
     { id: 'ctp', label: 'Top', options: () => CONSOLE.tops.map((v) => ({ label: v.name })), get: () => cons.top, set: (i) => { cons.top = i; buildConsole(); } },
-  ],
+  ].filter((x) => x.id !== 'clg' || CONSOLE.heights[cons.h].leg); },
   link: () => ({ href: ikeaUrl(consLow() ? CONSOLE.frames[cons.frame].art38 : CONSOLE.frames[cons.frame].art), text: `IKEA · BESTÅ stel ${CONSOLE.frames[cons.frame].name} ↗`, ...(CONSOLE.fronts[cons.front].art && consFrontOK(CONSOLE.fronts[cons.front]) ? { href2: ikeaUrl(consLow() ? CONSOLE.fronts[cons.front].art38 : CONSOLE.fronts[cons.front].art), text2: `${CONSOLE.fronts[cons.front].name.split(' · ')[0]} låge ↗` } : {}) }),
   info: () => { const C = consoleCost();
     return `${Math.round(cons.Lc * 100)} × 20 cm, ${Math.round(cons.topY * 100)} cm high (sofa back 82) along the ${Math.round(cons.R * 100)} cm side · ${cons.n} frames, ${C.doorsN} doors, ${C.legsPacks ? C.legsPacks + ' × 2 legs' : 'standing on the floor'} ≈ ${C.kr.toLocaleString('da-DK')} kr + the board · follows the sofa`; },
