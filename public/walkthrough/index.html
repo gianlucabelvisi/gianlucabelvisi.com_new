@@ -6028,7 +6028,52 @@ const deskMover = {
   info: () => { const Dm = DESKS[desk.m], sp = deskSpan();
     return `${Math.round(Dm.W * 100)} × ${Math.round(Dm.D * 100)} × ${Math.round(Dm.H * 100)} cm · ${Dm.desc} · ${Dm.kr.toLocaleString('da-DK')} kr${Dm.was ? ` (før ${Dm.was.toLocaleString('da-DK')})` : ''} · the 32″ screen sits ≈${desk.arm ? 50 : 45} cm from the front edge (≈70–75 cm from your eyes)${sp && !sp.fits ? ' · ⚠ desk + closet don’t fit on this wall together' : ''}`; },
 };
-function furnish() { fridgeSideSkin(); buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); try { updateNight(); } catch (_) { /* ok */ } }
+// ------------------------------------------------------------ living: IKEA HOLMERUD side table (80 × 31 × 52) at the sofa's free end
+const HOLM = { cols: [{ name: 'Egetræsmønstret', c: 0xc8a06e, url: 'https://www.ikea.com/dk/da/p/holmerud-sidebord-egetraesmonstret-40541421/' }, { name: 'Mørkebrun', c: 0x47352a, url: 'https://www.ikea.com/dk/da/p/holmerud-sidebord-morkebrun-20538721/' }], kr: 499 };
+const holm = { pos: null, angle: 0, col: 0, group: null, parts: [] };
+function buildHolm(tryPos, tryAngle) {
+  const S = liv.sofa; if (!S || !S.group) return false;
+  if (!holm.pos) { const { f, x } = sofaFrame(), L = SOFAS[S.cfg].L; const P = S.O.clone().addScaledVector(x, L / 2 + 0.03 + 0.155).addScaledVector(f, SD / 2); holm.pos = toBl(P); holm.angle = Math.atan2(-f.z, f.x); }
+  let pos = tryPos || holm.pos, ok = true;
+  const cx = THREE.MathUtils.clamp(pos[0], LIV_BOX.x0 + 0.2, LIV_BOX.x1 - 0.2), cy = THREE.MathUtils.clamp(pos[1], LIV_BOX.y0 + 0.2, LIV_BOX.y1 - 0.2);
+  if (Math.abs(cx - pos[0]) > 1e-6 || Math.abs(cy - pos[1]) > 1e-6) ok = false;
+  holm.pos = [cx, cy]; holm.angle = tryAngle ?? holm.angle;
+  if (holm.group) { scene.remove(holm.group); dropParts(holm.parts); holm.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
+  const C = HOLM.cols[holm.col], m = std({ color: C.c, roughness: 0.55, ...(holm.col === 0 ? { map: weaveTex('flat') } : {}) }), edge = std({ color: new THREE.Color(C.c).multiplyScalar(0.92).getHex(), roughness: 0.5 });
+  const g = new THREE.Group(); g.position.copy(b2t(cx, cy, 0)); g.rotation.y = holm.angle;
+  const D = 0.31, T = 0.018, parts = [];
+  const add = (x0, x1, y0, y1, mat = m) => { const o = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, D), mat); o.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0); o.castShadow = o.receiveShadow = true; g.add(o); parts.push(o); return o; };
+  add(-0.40, 0.40, 0.52 - T, 0.52);                 // top, full 80 cm
+  add(-0.385, -0.385 + T, 0, 0.52 - T);             // tall side panel, the top overhangs it a little
+  add(-0.385 + T, 0.40, 0.07, 0.07 + T);            // base shelf, 7 cm off the floor
+  add(0.40 - T, 0.40, 0, 0.07);                     // low foot at the open end
+  add(0.12, 0.12 + T, 0.07 + T, 0.52 - T);          // middle partition
+  add(-0.385 + T, 0.12, 0.29, 0.29 + T);            // half-height shelf
+  // a few things on it: two books and a small vase
+  const bk = (w, h, d, c, x, y) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), std({ color: c, roughness: 0.8 })); o.position.set(x, y, 0); o.castShadow = true; g.add(o); };
+  bk(0.22, 0.03, 0.16, 0x2c5d63, -0.2, 0.535); bk(0.2, 0.025, 0.15, 0xe8e2d4, -0.2, 0.5625);
+  const v = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.035, 0.18, 20), std({ color: 0xc9b9a0, roughness: 0.5 })); v.position.set(0.25, 0.61, 0.02); v.castShadow = true; g.add(v);
+  scene.add(g); g.updateMatrixWorld(true);
+  const door = { kind: 'swap', label: 'Side table', parts, center: g.position.clone().setY(0.4),
+    swap: () => selectFurniture(selected === holmMover ? null : holmMover), prompt: () => (selected === holmMover ? 'Done with the side table' : 'Move or turn the side table') };
+  for (const q of parts) { q.userData.door = door; q.userData.furniture = true; collidables.push(q); }
+  const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Side table'); if (di >= 0) doors.splice(di, 1);
+  doors.push(door); holm.group = g; holm.parts = parts; shadowDirty = true;
+  return ok;
+}
+const holmMover = {
+  name: 'Side table', title: () => `IKEA HOLMERUD sidebord · ${HOLM.cols[holm.col].name}`,
+  anchor: () => (holm.group ? holm.group.position.clone().setY(0.95) : null),
+  axis: () => b2t(1, 0).normalize(), axis2: () => b2t(0, 1).normalize(),
+  shift: (dir) => { const p = holm.pos; if (!buildHolm([p[0] + dir * 0.05, p[1]])) showToast('Can’t go further: wall'); },
+  shift2: (dir) => { const p = holm.pos; if (!buildHolm([p[0], p[1] + dir * 0.05])) showToast('Can’t go further: wall'); },
+  rotate: (dir) => { buildHolm(null, holm.angle + dir * Math.PI / 12); },
+  angle: () => holm.angle,
+  selects: [{ id: 'hcol', label: 'Colour', options: () => HOLM.cols.map((c) => ({ label: `${c.name} · ${HOLM.kr} kr` })), get: () => holm.col, set: (i) => { holm.col = i; buildHolm(); } }],
+  link: () => ({ href: HOLM.cols[holm.col].url, text: `IKEA · HOLMERUD ${HOLM.cols[holm.col].name.toLowerCase()} · ${HOLM.kr} kr ↗` }),
+  info: () => '80 × 31 × 52 cm · open shelf + half-height shelf, base 7 cm off the floor · max 15 kg on top, 5 kg per shelf · ⟲ ⟳ turn 15°',
+};
+function furnish() { fridgeSideSkin(); buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); buildHolm(); try { updateNight(); } catch (_) { /* ok */ } }
 function prewarmShaders() {
   // compile every material variant now (incl. hidden things: ceiling, upper floors, closed panels), not the first time it comes into view
   // lights first exactly as perfTick leaves them (light counts are part of every shader), then the meshes
@@ -6184,8 +6229,8 @@ requestAnimationFrame(frame);
 // · doors, cabinets, windows, switches, the TV: a small pulsing point at the handle, shown only within reach; click/tap it (or E) to use it
 // · furniture: an (i) button above each piece → flies to a close aerial view with the options panel docked beside it (never on top)
 // · moving/turning: arrows around the piece in the scene (always for the piece in close-up; for every piece with the Move layer, G)
-const FURN_LABELS = new Set(['Bed', 'Closet', 'TV', 'TV wall', 'Sofa', 'Dining', 'Lamp', 'Sofa bed', 'Lounge chair', 'Book tower', 'Plant', 'Painting', 'Console', 'Alcove', 'Desk']);
-const MOVERS = { bedMover, closetMover, tvMover, mediaMover, sofaMover, lampMover, diningMover, petraMover, guestMover, vpaxMover, nookMover, booksMover, plantMover, artMover, consoleMover, alcoveMover, deskMover };
+const FURN_LABELS = new Set(['Bed', 'Closet', 'TV', 'TV wall', 'Sofa', 'Dining', 'Lamp', 'Sofa bed', 'Lounge chair', 'Book tower', 'Plant', 'Painting', 'Console', 'Alcove', 'Desk', 'Side table']);
+const MOVERS = { bedMover, closetMover, tvMover, mediaMover, sofaMover, lampMover, diningMover, petraMover, guestMover, vpaxMover, nookMover, booksMover, plantMover, artMover, consoleMover, alcoveMover, deskMover, holmMover };
 function doorMover(d) { if (d._mover === undefined) { const m = String(d.swap).match(/selected === (\w+)/); d._mover = (m && MOVERS[m[1]]) || null; } return d._mover; }
 const isFurn = (d) => d.kind === 'swap' && FURN_LABELS.has(d.label);
 const hud = { el: $('hud3d'), pools: { ipt: [], finfo: [], marr: [] }, used: { ipt: 0, finfo: 0, marr: 0 }, focusDoor: null, n: 0, occ: new WeakMap(), vsig: '' };
@@ -6427,7 +6472,7 @@ $('qLights').addEventListener('click', () => toggleAllLights());
 addEventListener('resize', () => { hud.vsig = ''; });
 window.__hudDbg = () => doors.filter((d) => !isFurn(d)).map((d) => { const P = ringPoint(d, new THREE.Vector3()); const dist = P.distanceTo(camera.position); if (dist > REACH) return null; const sc = {}; const on = toScreen(P, sc); hud.occ.delete(d); const vis = hudVisible(d, camera.position, P, d.parts); return [d.label, dist.toFixed(2), on, vis, Math.round(sc.x), Math.round(sc.y), started, measuring, mode, !!focus]; }).filter(Boolean);
 window.__bvc = () => buildVaerCloset(); window.__bs = () => { buildSofa(); livingDims(); }; window.__bd = () => { buildDining(); };
-window.__apt = { desk, buildDesk, deskMover, swapDeskCloset, alc, buildAlcove, alcoveMover, cons, buildConsole, consoleMover, art, buildArt, artMover, curtains, books, booksMover, buildBooks, plant, plantMover, buildPlant, setAllLights, toggleAllLights, hueLights, getHold: () => lightHold, THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, petra, petraMover, buildPetra, hud, focusFurniture, exitFocus, setMoveLayer, getFocus: () => focus, getTween: () => camTween, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
+window.__apt = { holm, buildHolm, holmMover, desk, buildDesk, deskMover, swapDeskCloset, alc, buildAlcove, alcoveMover, cons, buildConsole, consoleMover, art, buildArt, artMover, curtains, books, booksMover, buildBooks, plant, plantMover, buildPlant, setAllLights, toggleAllLights, hueLights, getHold: () => lightHold, THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, petra, petraMover, buildPetra, hud, focusFurniture, exitFocus, setMoveLayer, getFocus: () => focus, getTween: () => camTween, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
 </script>
 
 </body></html>
