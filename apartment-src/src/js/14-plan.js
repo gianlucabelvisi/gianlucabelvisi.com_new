@@ -201,8 +201,8 @@ function placementCheck() {
   const out = [], F = collidables.filter(isFurnMesh), rc = new THREE.Raycaster();
   const hitF = (from, dir, far) => { rc.set(from, dir); rc.far = far; return rc.intersectObjects(F, false)[0] || null; };
   // hinged doors and inward windows: sweep the leaf from closed to open and find the first furniture it touches
-  for (const d of PLAN.doors) {
-    if (!/door|Window/i.test(d.label) || /Fridge|Toilet|Washing|Dryer|cupboard/i.test(d.label)) continue;
+  for (const d of doors) {
+    if (d.kind !== 'hinge' || !d.hinge || !/^(Front door|Værelse door|Bedroom door|Bathroom door|Balcony door|Window)$/.test(d.label)) continue;
     const a0 = Math.atan2(d.closed[1], d.closed[0]); let da = Math.atan2(d.open[1], d.open[0]) - a0; da = Math.atan2(Math.sin(da), Math.cos(da));
     const hs = [d.z0 + 0.15, d.z0 + d.h * 0.5, Math.min(d.z0 + d.h - 0.15, 1.9)];
     let stop = null, who = null;
@@ -210,8 +210,23 @@ function placementCheck() {
       const a = a0 + da * k / 18, dir = b2t(Math.cos(a), Math.sin(a)).normalize();
       for (const z of hs) { const h = hitF(b2t(d.hinge[0], d.hinge[1], z), dir, d.len - 0.02); if (h) { stop = Math.abs(da * (k - 1) / 18); who = h.object; break; } }
     }
-    if (stop !== null) { const deg = Math.round(stop * 180 / Math.PI), full = Math.round(Math.abs(da) * 180 / Math.PI);
-      out.push({ sev: deg < 75 ? 2 : 1, what: `${d.label === 'Window' ? 'Window' : d.label}${d.id.includes('vaer') ? ' (værelse)' : d.id.includes('bed') ? ' (bedroom)' : d.id.includes('w1') || d.id.includes('w2') ? ' (living)' : ''}`, msg: `opens only ${deg}° of ${full}° · ${furnLabel(who)} is in the way`, obj: who }); }
+    if (stop !== null) { const deg = Math.round(stop * 180 / Math.PI), full = Math.round(Math.abs(da) * 180 / Math.PI), id = d.id || '';
+      out.push({ sev: deg < 75 ? 2 : 1, what: `${d.label}${id.includes('vaer') ? ' (værelse)' : id.includes('win_bed') ? ' (bedroom)' : /w1|w2/.test(id) ? ' (living)' : /narrow/.test(id) ? ' (narrow leaf)' : /wide/.test(id) ? ' (wide leaf)' : ''}`, msg: `opens only ${deg}° of ${full}° · ${furnLabel(who)} is in the way`, obj: who }); }
+  }
+  // the way out: 80 cm free on both sides of every door opening (balcony door leaves together)
+  const openings = new Map();
+  for (const d of doors) { if (d.kind !== 'hinge' || !d.hinge || !/^(Front door|Værelse door|Bedroom door|Bathroom door|Balcony door)$/.test(d.label)) continue;
+    const a = d.hinge, b = [a[0] + d.closed[0] * d.len, a[1] + d.closed[1] * d.len], o = openings.get(d.label) || { pts: [], d };
+    o.pts.push(a, b); openings.set(d.label, o); }
+  for (const [label, o] of openings) {
+    let best = null; for (const p of o.pts) for (const q of o.pts) { const L = Math.hypot(q[0] - p[0], q[1] - p[1]); if (!best || L > best.L) best = { p, q, L }; }
+    const ux = (best.q[0] - best.p[0]) / best.L, uy = (best.q[1] - best.p[1]) / best.L;
+    let hit = null;
+    for (const sg of [1, -1]) for (let t = 0.2; t <= 0.8 && !hit; t += 0.3) for (const z of [0.3, 1.0]) {
+      const bx = best.p[0] + ux * best.L * t, by = best.p[1] + uy * best.L * t, h = hitF(b2t(bx, by, z), b2t(-uy * sg, ux * sg).normalize(), 0.8);
+      if (h && (!hit || h.distance < hit.distance)) hit = h;
+    }
+    if (hit) out.push({ sev: hit.distance < 0.55 ? 2 : 1, what: label, msg: `${furnLabel(hit.object)} is ${Math.round(hit.distance * 100)} cm from the doorway`, obj: hit.object });
   }
   // sockets and switches: is there furniture right in front of them?
   const spots = PLAN.outlets.map((o) => ({ label: o.label, p: o.p, z: o.z, n: o.n, kind: o.kind })).concat(SWITCH_SPOTS);
@@ -222,13 +237,6 @@ function placementCheck() {
     if (cm < 12) out.push({ sev: sw ? 2 : 1, what: s.label, msg: `covered by ${furnLabel(h.object)} (${cm} cm)${sw ? '' : ' · fine for a lamp plug, awkward for chargers'}`, obj: h.object });
     else if (sw && cm < 40) out.push({ sev: 1, what: s.label, msg: `${furnLabel(h.object)} is ${cm} cm in front: reachable, but a stretch`, obj: h.object });
   }
-  // balcony door: 70 cm free in front of the opening
-  for (const S of PLAN.sliders) for (const sg of [1, -1]) for (let t = 0.15; t < 1; t += 0.35) {
-    const bx = S.a[0] + S.dir[0] * S.w * t, by = S.a[1] + S.dir[1] * S.w * t;
-    if (!inPoly(bx + S.n[0] * sg * 0.3, by + S.n[1] * sg * 0.3, PLAN.rooms[0].poly)) continue;
-    for (const z of [0.3, 1.0]) { const h = hitF(b2t(bx, by, z), b2t(S.n[0] * sg, S.n[1] * sg).normalize(), 0.7);
-      if (h && !out.some((o) => o.what === S.label)) out.push({ sev: h.distance < 0.45 ? 2 : 1, what: S.label, msg: `${furnLabel(h.object)} is ${Math.round(h.distance * 100)} cm in front of it`, obj: h.object }); }
-  }
   // closets: the doors' own swing report (bed, desk…)
   try { furnitureDims(); } catch (_) { /* ok */ }
   for (const r of furn.swingReport || []) out.push({ sev: r.deg < 75 ? 2 : 1, what: r.name || 'Closet door', msg: `opens only ${r.deg}° of 90° · ${r.by}`, obj: null });
@@ -236,7 +244,7 @@ function placementCheck() {
 }
 function renderCheck(box) {
   const R = placementCheck();
-  let h = `<p class="pl-note">Doors and windows that can’t open fully, sockets and switches behind furniture, and the way out to the balcony. It runs on the current layout, so move things and check again.</p>`;
+  let h = `<p class="pl-note">Doors and windows that can’t open fully, furniture closer than 80 cm to a doorway, and sockets and switches behind furniture. It runs on the current layout, so move things and check again.</p>`;
   h += R.length ? `<ul class="pl-list">${R.map((r, i) => `<li class="pl-item chk s${r.sev}" data-i="${i}"><span class="dot"></span><span class="nm">${r.what}<small>${r.msg}</small></span>${r.obj && r.obj.userData.door ? '<button type="button" class="pl-mini">Select</button>' : ''}</li>`).join('')}</ul>`
     : '<p class="pl-ok">✓ Nothing in the way: every door and window opens fully, and no socket or switch is hidden.</p>';
   h += `<div class="pl-row"><button type="button" class="pl-btn" data-act="recheck">Check again</button></div><p class="pl-note">Floor heating, so there are no radiators to keep clear.</p>`;

@@ -5,6 +5,13 @@
   padding: calc(var(--header-height) + 2rem) 1.5rem 4rem;
 }
 
+/* Phones: no top bar on these dark pages (the bottom tab bar navigates) */
+@media (max-width: 900px) {
+  .page {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 1.75rem);
+  }
+}
+
 .header {
   margin-bottom: 2.5rem;
 }

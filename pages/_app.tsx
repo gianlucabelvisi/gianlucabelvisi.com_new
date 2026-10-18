@@ -3,6 +3,7 @@ import "@/styles/utils.css";
 import "@/styles/blog.css";
 import type { AppProps } from "next/app";
 import Script from "next/script";
+import Head from "next/head";
 import React from "react";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import { useRouter } from "next/router";
@@ -43,6 +44,10 @@ export default function App({ Component, pageProps }: AppProps) {
           strategy="afterInteractive"
         />
       )}
+      <Head>
+        {/* viewport-fit=cover: the phone tab bar sits above the home indicator via env(safe-area-inset-bottom) */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" key="viewport" />
+      </Head>
       <a href="#main-content" className="skip-link">Skip to content</a>
       <RouteProgress />
       <Header />

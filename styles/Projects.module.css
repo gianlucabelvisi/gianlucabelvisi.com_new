@@ -1,0 +1,196 @@
+/* /projects: cards for each side project (always dark, like the other browse pages) */
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: calc(var(--header-height) + 2rem) 1.5rem 4rem;
+}
+
+.header {
+  margin-bottom: 2.25rem;
+}
+
+.kicker {
+  margin: 0 0 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.9rem, 4vw, 2.75rem);
+  line-height: 1.15;
+  color: var(--color-text-primary);
+}
+
+.title em {
+  font-style: normal;
+  color: var(--color-primary);
+}
+
+.lede {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--color-text-secondary);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.75rem;
+}
+
+.item {
+  animation: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--color-background-card);
+  border: 1px solid var(--color-border);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(var(--color-primary-rgb), 0.5);
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.35);
+}
+
+.card:active {
+  transform: scale(0.985);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.media {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  background: #1d1d1d;
+  overflow: hidden;
+}
+
+.media img {
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.card:hover .media img {
+  transform: scale(1.04);
+}
+
+.body {
+  display: grid;
+  gap: 0.35rem;
+  padding: 1.1rem 1.25rem 1.25rem;
+}
+
+.cardKicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.cardTitle {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.cardBlurb {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+/* Phones: an app screen with a large title and big tappable cards */
+@media (max-width: 900px) {
+  .page {
+    padding: calc(env(safe-area-inset-top, 0px) + 1.75rem) 1rem 2rem;   /* no top bar on phones: the tab bar does the navigation */
+    animation: slideIn 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .kicker {
+    display: none;
+  }
+
+  .title {
+    font-size: 2.1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .title em {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: var(--color-text-secondary);
+    margin-top: 0.2rem;
+  }
+
+  .lede {
+    display: none;
+  }
+
+  .header {
+    margin-bottom: 1.25rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .cardTitle {
+    font-size: 1.15rem;
+  }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(18px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item, .page { animation: none; }
+}

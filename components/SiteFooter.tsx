@@ -18,6 +18,7 @@ export default function SiteFooter() {
         <nav className={styles.links} aria-label="Footer">
           <Link href="/archive">Archive</Link>
           <Link href="/tags">Tags</Link>
+          <Link href="/projects">Projects</Link>
           <Link href="/search">Search</Link>
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- XML document, not a page */}
           <a href="/feed.xml" className={styles.rss}>

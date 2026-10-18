@@ -334,3 +334,10 @@ html[data-theme="dark"] {
     border-right: none;
   }
 }
+
+/* Phones: room for the bottom tab bar (components/Header.tsx sets .has-tabbar) */
+@media (max-width: 900px) {
+  html.has-tabbar body {
+    padding-bottom: calc(4.1rem + env(safe-area-inset-bottom, 0px));
+  }
+}

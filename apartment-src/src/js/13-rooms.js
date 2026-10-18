@@ -133,10 +133,10 @@ function buildRoomFurniture() {
           add(new THREE.BoxGeometry(0.004, Cb.H - 0.01, 0.004), stdc({ color: 0x9a948a, roughness: 0.6 }), Cb.D + 0.002, y0 + Cb.H / 2, Cb.W / 2 - 0.004, false); }
         finishArea(g, p2, 'Bathroom', bathMover, b2t(8.4, 2.6, y0 + 0.5)); }
     } }
-  // balcony: a small set at the far (east) end, away from the door
+  // balcony: west of the double door (it opens outwards, x 2.49–4.01), towards the rounded end
   { const B = ROOMF.balc[roomsState.balc];
     if (B.kind) {
-      const g = wallGroup(3.35, 8.744, 0, 1), parts = [], add = mk(g, parts), m = stdc({ color: B.c, roughness: B.kind === 'wall' ? 0.8 : 0.45, metalness: B.kind === 'wall' ? 0 : 0.5 }), Y = -0.02;
+      const g = wallGroup(1.15, 8.744, 0, 1), parts = [], add = mk(g, parts), m = stdc({ color: B.c, roughness: B.kind === 'wall' ? 0.8 : 0.45, metalness: B.kind === 'wall' ? 0 : 0.5 }), Y = -0.02;
       const chair = (x, z, ry) => { const c = new THREE.Group(); c.position.set(x, Y, z); c.rotation.y = ry; g.add(c);
         const p = (geo, mm, xx, yy, zz) => { const o = new THREE.Mesh(geo, mm); o.position.set(xx, yy, zz); o.castShadow = o.receiveShadow = true; c.add(o); parts.push(o); return o; };
         p(new THREE.BoxGeometry(0.4, 0.025, 0.4), m, 0, 0.45, 0);
@@ -155,7 +155,7 @@ function buildRoomFurniture() {
       }
       add(new THREE.CylinderGeometry(0.05, 0.04, 0.09, 16), stdc({ color: 0xb06a43, roughness: 0.9 }), B.kind === 'wall' ? 0.25 : 0.75, 0.8, 0.1, false);       // a little pot with herbs
       add(new THREE.SphereGeometry(0.07, 12, 10), stdc({ color: 0x5f8a45, roughness: 1 }), B.kind === 'wall' ? 0.25 : 0.75, 0.88, 0.1, false);
-      finishArea(g, parts, 'Balcony', balconyMover, b2t(3.6, 9.5, 0.8));
+      finishArea(g, parts, 'Balcony', balconyMover, b2t(1.15, 9.5, 0.8));
     } }
   shadowDirty = true;
 }
@@ -169,7 +169,7 @@ const bathMover = { name: 'Bathroom', title: () => 'Bathroom', selects: [roomSel
   info: () => { const C = ROOMF.cab[roomsState.cab]; return C.W ? `${Math.round(C.W * 100)} × ${Math.round(C.D * 100)} × ${Math.round(C.H * 100)} cm, 130 cm up over the toilet · the heated towel ladder by the washer stays` : 'Nothing over the toilet'; } };
 const balconyMover = { name: 'Balcony', title: () => 'Balcony', selects: [roomSel('balc', 'Table and chairs')],
   link: () => { const B = ROOMF.balc[roomsState.balc]; return B.url ? { href: B.url, text: `IKEA · ${B.name.split(' ')[0]} ↗` } : {}; },
-  info: () => { const B = ROOMF.balc[roomsState.balc]; return B.kind ? `${B.desc} · at the east end of the balcony, about 1.6 m deep there` : 'Empty balcony'; } };
+  info: () => { const B = ROOMF.balc[roomsState.balc]; return B.kind ? `${B.desc} · west of the balcony door, clear of both leaves; about 1.7 m deep there` : 'Empty balcony'; } };
 function roomShopLines(add) {
   const R = roomsState, put = (room, key, o, detail) => { if (o && o.kr) add(room, key, `${o.brand} ${o.name}`, { kr: o.kr, href: o.url, detail: detail || '' }); };
   put('Entrance', 'shoe', ROOMF.shoe[R.shoe]); put('Entrance', 'above', ROOMF.above[R.above]);
