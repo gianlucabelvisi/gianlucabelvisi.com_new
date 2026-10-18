@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import SEO from '../components/SEO'
 import styles from '../styles/Apartment.module.css'
 
@@ -7,6 +8,9 @@ import styles from '../styles/Apartment.module.css'
  * Blender model); this route frames it under the site header.
  */
 export default function Apartment() {
+  // a shared layout link (/apartment#s=...) is handed on to the viewer, which opens that layout
+  const frame = useRef<HTMLIFrameElement>(null)
+  useEffect(() => { if (frame.current) frame.current.src = `/walkthrough/index.html${window.location.hash}` }, [])
   return (
     <div className={styles.page}>
       <SEO
@@ -16,8 +20,8 @@ export default function Apartment() {
         noindex
       />
       <iframe
+        ref={frame}
         className={styles.frame}
-        src="/walkthrough/index.html"
         title="3D walkthrough of the apartment"
         allow="fullscreen"
         allowFullScreen

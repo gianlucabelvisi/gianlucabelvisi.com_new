@@ -18,7 +18,15 @@ Lives in the blog repo at `new_blog/apartment-src/` (ignored by ESLint; not part
 Rebuild:
 ```
 pip install bpy==5.0.1 --break-system-packages   # if missing
-cd <workdir> && cp build.py geom.json cameras.json run_web.py export_web.py . ; mkdir -p web; cp walk.src.html plan.json web/
+cd <workdir> && cp build.py geom.json cameras.json run_web.py export_web.py . ; mkdir -p web; cp -r walk.src.html src plan.json web/
 python3 run_web.py && python3 assemble.py web /mnt/user-data/outputs/blog-bundle/public/walkthrough/index.html
 cd web && npm i three@0.186 three-mesh-bvh@0.8.3   # only for test.html
 ```
+
+## Source layout (since 2026-10-18)
+
+`walk.src.html` is now a thin shell (head, HTML, import map). Its `/*@include src/...*/` lines pull in
+`src/style.css` and the JS modules `src/js/01-core.js` … `15-loop-hud.js`, in order. The modules share one
+ES-module scope, so `assemble.py` simply concatenates them before inlining `plan.json` and the GLB; the
+assembled viewer is byte-identical to the old single file. Add new features as a new numbered module (or in
+the module of the room they belong to) and keep the order: later modules may use anything defined earlier.

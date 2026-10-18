@@ -11,6 +11,7 @@ export default defineConfig([
     'node_modules/**',
     'public/**',
     'apartment-src/**', // walkthrough sources (Blender/three.js build kit), not part of the Next app
+    'pantelleria-src/**', // Pantelleria map sources (prep/Blender/three.js build kit), not part of the Next app
     'next-env.d.ts',
   ]),
   {

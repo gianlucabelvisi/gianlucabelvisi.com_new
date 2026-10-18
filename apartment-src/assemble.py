@@ -1,10 +1,13 @@
-"""Inline plan.json + apartment.glb into walk.src.html.
+"""Expand src/ includes, inline plan.json + apartment.glb into walk.src.html.
 Usage: python3 assemble.py <web_dir> [blog_index_html_out]
 Writes <web_dir>/index.html (CDN three), <web_dir>/test.html (local node_modules three, for Playwright),
 and optionally the blog copy (full HTML doc, media path /walkthrough/media/)."""
 import base64, re, sys, os
 W = sys.argv[1] if len(sys.argv) > 1 else 'web'
 s = open(os.path.join(W, 'walk.src.html')).read()
+# walk.src.html is a thin shell: /*@include src/...*/ lines pull in the stylesheet and the JS modules (src/js/NN-*.js, in order;
+# they share one ES-module scope, so they're plain concatenation)
+s = re.sub(r'^/\*@include (\S+)\*/\n', lambda m: open(os.path.join(W, m.group(1))).read(), s, flags=re.M)
 glb = base64.b64encode(open(os.path.join(W, 'apartment.glb'), 'rb').read()).decode()
 plan = open(os.path.join(W, 'plan.json')).read()
 full = s.replace('__PLAN__', plan).replace('__GLB__', glb)
