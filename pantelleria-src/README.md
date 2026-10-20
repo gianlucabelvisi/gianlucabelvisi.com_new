@@ -2,7 +2,7 @@
 
 Rebuilds the /pantelleria map (three.js, served from `public/pantelleria-3d/`).
 Lives in the blog repo at `new_blog/pantelleria-src/` (not part of the Next app).
-Raw data, the .blend and the fetch scripts live in `~/Documents/Pantelleria 3D/`.
+Everything lives here: scripts, fetch scripts, raw downloads in `data/` and `pantelleria.blend`. `data/` and `*.blend` are git-ignored (≈120 MB); they rebuild from the fetch scripts + `build.py`.
 
 ## Data (all real, all open)
 | What | Source | Licence |
@@ -11,7 +11,7 @@ Raw data, the .blend and the fetch scripts live in `~/Documents/Pantelleria 3D/`
 | Roads, 14.8k buildings, coastline, landuse, names | OpenStreetMap via Overpass (`fetch_osm.sh`) | ODbL |
 | Colours | Sentinel-2 cloudless 2024, EOX, z15 tiles (`fetch_s2.sh`) | CC BY-NC-SA 4.0 |
 
-The fetch scripts must run natively on the Mac (osascript `do shell script`); the Cowork VM and the cloud container have no egress to these hosts.
+The fetch scripts (`fetch_tin.sh`, `fetch_osm.sh`, `fetch_poi.sh`, `fetch_s2.sh`, writing into `data/`) must run natively on the Mac (osascript `do shell script`); the Cowork VM and the cloud container have no egress to these hosts.
 
 ## Pipeline
 | Step | Command | Output |
@@ -21,7 +21,7 @@ The fetch scripts must run natively on the Mac (osascript `do shell script`); th
 | Web assets | `python3 web_assets.py web/assets` (needs `npm i -g @gltf-transform/cli`) | island.glb (meshopt), terrain*.webp, coast.png, height.bin (gzip u16), instances.bin, meta.json |
 | Viewer | `python3 assemble.py web <blog>/public/pantelleria-3d` | web/index.html, web/test.html, blog copy + assets |
 
-`s2_mosaic.png` is made by stitching data/s2/*.jpg (z15, x 17467–17483, y 12770–12787).
+`dem10.tif` is a copy of `data/tinitaly/w40575_s10/w40575_s10.tif`; `s2_mosaic.png` is made by stitching data/s2/*.jpg (z15, x 17467–17483, y 12770–12787).
 
 ## Frame
 Local transverse Mercator centred at 36.785 N, 11.99 E (`+proj=tmerc +lat_0=36.785 +lon_0=11.99 +k=1`), metres, x east, y north, z up.

@@ -44,3 +44,8 @@ next-env.d.ts
 /public/images/posts/
 
 .idea
+
+# Pantelleria 3D: raw downloads (DEM, OSM, Sentinel-2 tiles) and the 70 MB .blend stay local; rebuild with pantelleria-src/fetch_*.sh + build.py
+/pantelleria-src/data/
+/pantelleria-src/*.blend
+/pantelleria-src/*.blend1
