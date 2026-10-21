@@ -1,0 +1,16 @@
+import { chromium } from 'playwright';
+const [,, out, hour, setup] = process.argv;
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
+const page = await browser.newPage({ viewport: { width: 1200, height: 750 } });
+const errs = []; page.on('pageerror', (e) => errs.push(e.message)); page.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('ERR_FAILED')) errs.push(m.text()); });
+await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
+await page.goto('http://localhost:8765/test.html?lite', { waitUntil: 'load' });
+await page.waitForFunction(() => document.getElementById('go') && !document.getElementById('go').disabled, null, { timeout: 150000 });
+await page.evaluate(() => document.getElementById('go').click());
+await page.evaluate((hh) => { const r = document.getElementById('sunrange'); r.value = hh; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); }, hour);
+await page.evaluate(setup);
+await page.addStyleTag({ content: '#room,#quick,#mapwrap,#hint,#doorTip,#cross,#joyBase,#toast{display:none!important}' });
+await page.waitForTimeout(12000);
+await page.screenshot({ path: out });
+console.log(errs.join('\n') || 'no errors', JSON.stringify(await page.evaluate(() => window.__perf())));
+await browser.close();

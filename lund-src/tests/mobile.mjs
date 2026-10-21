@@ -1,0 +1,17 @@
+import { chromium, devices } from 'playwright';
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
+const ctx = await browser.newContext({ viewport: { width: 390, height: 760 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+const page = await ctx.newPage();
+const errs = []; page.on('pageerror', (e) => errs.push(e.message));
+await page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.abort());
+await page.goto('http://localhost:8765/test.html', { waitUntil: 'load' });
+await page.waitForFunction(() => document.getElementById('go') && !document.getElementById('go').disabled, null, { timeout: 150000 });
+await page.screenshot({ path: '/tmp/m_intro.png' });
+await page.evaluate(() => document.getElementById('go').click());
+await page.waitForTimeout(6000);
+await page.screenshot({ path: '/tmp/m_walk.png' });
+await page.evaluate(() => { const L = window.__lund; L.placeAt(1060, 330, 0.9, 640, 1000); document.querySelector('#qTime').click(); });
+await page.waitForTimeout(6000);
+await page.screenshot({ path: '/tmp/m_living.png' });
+console.log(errs.join('\n') || 'no errors', JSON.stringify(await page.evaluate(() => window.__perf())));
+await browser.close();

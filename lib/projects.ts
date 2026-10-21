@@ -34,6 +34,15 @@ export const PROJECTS: Project[] = [
     blurb: 'The real terrain, roads and every dammuso of the island, cel-shaded and explorable like a map.',
     image: '/projects/pantelleria.jpg',
   },
+  {
+    slug: 'lund-apartment',
+    href: '/lund-apartment',
+    title: 'My old flat in Lund',
+    shortTitle: 'Lund flat',
+    kicker: '3D walkthrough',
+    blurb: 'Rådmansgatan 1A rebuilt from the floor plan and the listing photos: open the doors and the fridge, switch the lamps, watch the day go by.',
+    image: '/projects/lund-apartment.jpg',
+  },
 ]
 
 /** The project whose page this is, if any */

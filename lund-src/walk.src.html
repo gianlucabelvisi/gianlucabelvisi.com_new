@@ -1,0 +1,85 @@
+<title>Lund Apartment 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/*@include src/style.css*/
+/*@include src/lund.css*/
+</style>
+
+<div id="hud3d" aria-label="Interaction points"></div>
+
+<div id="stage"></div>
+<div id="cross" hidden></div>
+
+<div id="room" class="panel" aria-live="polite">
+  <span class="eyebrow">Lund · you are in</span>
+  <span class="da" id="roomDa">Entré</span>
+  <span class="en"><span id="roomEn">Hallway</span><span class="dim" id="roomDim"></span></span>
+</div>
+
+<div id="quick" class="panel" role="group" aria-label="View and show">
+  <button id="qHide" title="Hide the bar (B)" aria-expanded="true" aria-label="Hide the bar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Hide</span></button>
+  <button id="qView" title="View from above (V)" aria-pressed="false"><i>V</i>From above</button>
+  <button id="qMap" title="Mini map (M)" aria-pressed="true"><i>M</i>Map</button>
+  <button id="qLights" title="All lights on or off (L)" aria-pressed="false"><i>L</i>Lights</button>
+  <button id="qRun" title="Run instead of walk (R; Shift also runs while held)" aria-pressed="false"><i>R</i>Run</button>
+  <button id="qTime" title="Time of day (H)" aria-pressed="false" aria-controls="timePop"><i>H</i><span id="qTimeOut">13:00</span></button>
+</div>
+<div id="timePop" class="panel" hidden role="group" aria-label="Time of day">
+  <div id="sun">
+    <input id="sunrange" type="range" min="0" max="23.75" step="0.25" value="13" aria-label="Time of day">
+    <output id="sunout" for="sunrange">13:00</output>
+  </div>
+  <div class="sunmarks"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+  <small id="sunlabel" class="eyebrow">Sun</small>
+</div>
+<div id="hint" class="panel" hidden></div>
+<div id="mapwrap" class="panel"><canvas id="map" aria-label="Floor plan with your position"></canvas><span id="compass">N ↑</span></div>
+<div id="joyBase" hidden aria-hidden="true"><i></i><b>Move</b></div>
+<div id="toast" class="panel" hidden></div>
+<div id="mover" class="panel" hidden role="group" aria-label="Details">
+  <div class="mvtop"><b id="mvName"></b><button id="mvDone" aria-label="Close">Done</button></div>
+  <div id="mvBody"></div>
+  <small id="mvInfo"></small>
+</div>
+<button id="doorTip" class="panel" hidden><kbd class="mouse-only" style="display:inline">E</kbd> <span id="doorTipText">Open door</span></button>
+
+<div id="intro">
+  <div class="card panel">
+    <h1>Rådmansgatan 1A</h1>
+    <p>My two-room flat on the ground floor in Lund, on the corner of Rådmansgatan and Trollebergsvägen. Built from the broker's floor plan, the listing photos and the map. You start on Rådmansgatan at the main door: go through the gateway to the courtyard, and our door is behind the red door in the corner. A white ring marks everything you can use within reach: doors, windows, the fridge and oven, wardrobes, lamps, the TV and a light switch in every room.</p>
+    <dl class="help mouse-only">
+      <dt>W A S D</dt><dd>Walk, with the mouse to look around</dd>
+      <dt>E / click</dt><dd>Use the highlighted ring (doors, cupboards, windows, lamps)</dd>
+      <dt>Esc</dt><dd>Get the mouse pointer back</dd>
+      <dt>V · L · R · H</dt><dd>View from above, all lights, run, time of day</dd>
+    </dl>
+    <dl class="help touch-only">
+      <dt>Joystick</dt><dd>Bottom left: push to walk</dd>
+      <dt>Drag</dt><dd>Anywhere else to look around</dd>
+      <dt>Tap</dt><dd>A door, lamp or cupboard to use it; the floor to walk there</dd>
+      <dt>Right bar</dt><dd>View from above, map, lights, run, time of day</dd>
+    </dl>
+    <button id="go" disabled>Building the flat…</button>
+  </div>
+</div>
+
+<script type="application/json" id="site">__SITE__</script>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+  "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.8.3/build/index.module.js"
+} }
+</script>
+<script type="module">
+/*@include src/js/01-core.js*/
+/*@include src/js/02-flat.js*/
+/*@include src/js/03-site.js*/
+/*@include src/js/04-furniture.js*/
+/*@include src/js/05-lights.js*/
+/*@include src/js/06-interact.js*/
+/*@include src/js/07-player.js*/
+/*@include src/js/08-loop.js*/
+</script>

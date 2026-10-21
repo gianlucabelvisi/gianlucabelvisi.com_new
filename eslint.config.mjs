@@ -12,6 +12,7 @@ export default defineConfig([
     'public/**',
     'apartment-src/**', // walkthrough sources (Blender/three.js build kit), not part of the Next app
     'pantelleria-src/**', // Pantelleria map sources (prep/Blender/three.js build kit), not part of the Next app
+    'lund-src/**', // Lund apartment walkthrough sources (OSM prep + three.js kit), not part of the Next app
     'next-env.d.ts',
   ]),
   {

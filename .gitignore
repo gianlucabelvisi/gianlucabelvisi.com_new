@@ -49,3 +49,9 @@ next-env.d.ts
 /pantelleria-src/data/
 /pantelleria-src/*.blend
 /pantelleria-src/*.blend1
+
+# Lund apartment 3D: listing photos and the raw OSM download stay local (rebuild site.json with lund-src/fetch_osm.sh)
+/lund-src/ref/
+/lund-src/ref_other/
+/lund-src/osm.xml
+/lund-src/_*.tgz
