@@ -65,9 +65,17 @@ inside the zone. town.py is idempotent (it paints from prep/terrain_base.png).
 ## Navigation modes (Map 1 · Car 2 · Plane 3)
 In the viewer (vehicle module in map.src.html). C cycles the camera: Follow (behind, drag to look around), Free orbit (camera
 detached from the vehicle's heading), First person (cockpit, drag = head look). Wheel / +/- zoom, double-click resets the look, Esc = map.
-- Car: arcade Fiat Panda 4x4, free drive. W/S gas and brake/reverse, A/D steer, Space handbrake, Shift boost. Top speed by surface
-  (asphalt main ~80 km/h, streets ~55, cement ~43, dirt ~32, off road ~23). Houses (road/house mask), the sea and steep rock stop it.
+- Car: arcade Fiat Panda 4x4, free drive, spawns wherever the map is centred (button: nearest road). W accelerator and S brake are
+  pedals that ease in (gamepad triggers are analog); S at a standstill reverses; Space handbrake. ~50 kW engine, 5 gears, ~145 km/h
+  top on asphalt; rolling resistance by surface (asphalt, cement, dirt, off road) and slope decide the speed. Houses, the sea, steep
+  rock and the near layer's lava-stone walls are solid (glancing hits scrape along the wall).
 - Plane: arcade Cessna 172. S/↓ pull up, W/↑ push, A/D roll, Q/E rudder, Shift/R throttle up, Ctrl/F down, Space brake, T = start on
-  runway 26 (meta.runway from OSM). Coordinated turns, soft stall below ~47 kt, lands on the runway (sink < 4.5 m/s, wings level);
+  runway 26 (meta.runway from OSM); [ / ] time warp x0.5 to x8. Coordinated turns, soft stall below ~47 kt, lands on the runway (sink < 4.5 m/s, wings level);
   hitting terrain or the sea respawns 300 m up. No collisions with buildings yet.
 - Physics runs in fixed ~20 ms substeps. Test hook: window.__pan.vSim(seconds, keys).
+- Gamepad (standard mapping): RT/LT gas/brake (plane: throttle), left stick steer / roll+pitch, LB/RB rudder, right stick look,
+  A handbrake, Y camera, X respawn/runway, Start = map.
+- Near roads are draped on the 5 m bicubic terrain (3 vertices across, +6 cm); far GLB roads are discarded inside near tiles; the
+  constant part of the depth pull fades in with distance (min(c, 0.025 d)), so nothing floats in close-ups.
+- In car/plane modes the near-detail tiles follow the camera frustum (car 1.1 km, plane 1.6 km ahead, 330 m all around); plane mode
+  draws far trees/buildings 1.6x further.
