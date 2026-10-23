@@ -36,6 +36,26 @@
   #info .en { font-size: 12.5px; color: var(--muted); min-height: 15px; }
   #info .co { font: 400 11.5px/1.2 var(--mono); color: var(--oak); font-variant-numeric: tabular-nums; min-height: 14px; }
 
+  #modes { position: fixed; left: 50%; transform: translateX(-50%); top: calc(var(--gut) + var(--safe-t)); display: flex; gap: 2px; padding: 4px; z-index: 6; }
+  #modes button { font: 500 12.5px/1 var(--ui); color: var(--muted); background: transparent; border: 0; border-radius: 8px; padding: 8px 11px; cursor: pointer; display: flex; align-items: center; gap: 7px; }
+  #modes button i { font: 500 10px/1 var(--mono); font-style: normal; width: 15px; height: 15px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 4px; }
+  #modes button[aria-pressed="true"] { color: var(--ink); background: var(--oak-dim); }
+  #modes button[aria-pressed="true"] i { border-color: var(--oak); color: var(--oak); }
+  #hud { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--gut) + var(--safe-b) + 18px); padding: 10px 14px; z-index: 6; display: grid; gap: 7px; justify-items: center; max-width: min(760px, calc(100vw - 2 * var(--gut))); }
+  #hudMain { display: flex; align-items: baseline; gap: 6px; font: 400 12px/1 var(--mono); color: var(--muted); flex-wrap: wrap; justify-content: center; }
+  #hudMain b { font: 500 22px/1 var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+  #hudMain .sep { width: 1px; height: 14px; background: var(--line); margin: 0 5px; align-self: center; }
+  #hudMain .thr { width: 54px; height: 6px; border: 1px solid var(--line); border-radius: 3px; align-self: center; overflow: hidden; }
+  #hudMain .thr i { display: block; height: 100%; background: var(--oak); }
+  #hudMain .warn { color: #ff9c6e; font-weight: 500; }
+  #hudKeys { font: 400 11px/1.6 var(--ui); color: var(--muted); text-align: center; }
+  #hudKeys b { font: 500 10px/1 var(--mono); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 1px 4px; margin: 0 2px 0 6px; }
+  #hud .hb { display: flex; gap: 6px; }
+  #hud .hb button { font: 500 11.5px/1 var(--ui); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+  #hud .hb button:hover { background: var(--oak-dim); }
+  #vmsg { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); font: 600 15px/1.2 var(--ui); color: #fff; text-shadow: 0 1px 3px #0009, 0 0 12px #0006; z-index: 6; pointer-events: none; text-align: center; }
+  body.vehicle #nav, body.vehicle #scale { display: none; }
+  @media (max-width: 640px) { #modes { top: auto; bottom: calc(var(--gut) + var(--safe-b) + 18px); left: var(--gut); transform: none; } body.vehicle #modes { top: calc(var(--gut) + var(--safe-t) + 50px); bottom: auto; } }
   #quick { position: fixed; right: var(--gut); top: calc(var(--gut) + var(--safe-t)); display: grid; gap: 2px; padding: 4px; z-index: 6; }
   #quick button { font: 500 12px/1 var(--ui); color: var(--muted); background: transparent; border: 0; border-radius: 8px; padding: 9px 8px; cursor: pointer; display: flex; align-items: center; gap: 7px; text-align: left; }
   #quick button i { font: 500 10px/1 var(--mono); font-style: normal; width: 16px; height: 16px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 4px; }
@@ -108,6 +128,17 @@
   <button id="qLabels" aria-pressed="true" title="Names (L)"><i>L</i><span>Names</span></button>
   <button id="qTime" aria-pressed="false" title="Time of day (H)"><i>H</i><span id="qTimeOut">17:00</span></button>
 </div>
+<div id="modes" class="panel" role="toolbar" aria-label="Navigation mode">
+  <button data-m="map" aria-pressed="true" title="Map (1)">Map<i>1</i></button>
+  <button data-m="car" aria-pressed="false" title="Drive a car (2)">Car<i>2</i></button>
+  <button data-m="plane" aria-pressed="false" title="Fly a Cessna (3)">Plane<i>3</i></button>
+</div>
+<div id="hud" class="panel" hidden>
+  <div id="hudMain"></div>
+  <div id="hudKeys"></div>
+  <div class="hb"><button id="hudCam">Follow (C)</button><button id="hudReset">Respawn</button></div>
+</div>
+<div id="vmsg" hidden></div>
 <div id="timePop" class="panel" hidden>
   <div class="eyebrow">Time of day · June</div>
   <input id="sunrange" type="range" min="5" max="22.5" step="0.05" value="17">
@@ -1804,6 +1835,7 @@ renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
 addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT') return;
   const k = e.key.toLowerCase();
+  if (vehKeyDown(e, k)) { if (k !== 'l' && k !== 'h') return; }
   if (k === 'l') $('qLabels').click(); else if (k === 'h') $('qTime').click();
   else if (k === 'n') $('north').click(); else if (k === '+' || k === '=') zoomBy(0.5); else if (k === '-') zoomBy(2);
   if (MOVE_KEYS.has(k)) { HELD.add(k); e.preventDefault(); kick(); }
@@ -1840,6 +1872,7 @@ function keyMove(dt) {
   kick();
 }
 renderer.domElement.addEventListener('dblclick', (e) => {
+  if (VEH.mode !== 'map') return;
   const p = pickGround(new THREE.Vector2(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1));
   if (!p) return;
   const off = camera.position.clone().sub(controls.target).multiplyScalar(0.45);
@@ -1854,6 +1887,357 @@ function kick() { lastInteract = performance.now(); }
 controls.addEventListener('change', kick);
 controls.addEventListener('end', () => writeHash());
 
+// ---------------- vehicles: drive a car on the roads, fly a Cessna ----------------
+// Map (1) · Car (2) · Plane (3). Third person (follow / free orbit) or first person (C cycles).
+// Drag looks around without steering, wheel zooms the camera. Esc goes back to the map.
+// Car: arcade, free drive: fastest on asphalt, slower on cement and dirt, crawling off road; houses and the sea stop it.
+// Plane: arcade Cessna 172: throttle, pitch, roll, rudder; coordinated turns, soft stall, lands on the airport runway.
+const VEH = { mode: 'map', cam: 'follow', yaw: 0, pitch: 0.3, fyaw: 0, fpitch: -0.06, freeAz: 0, dist: { car: 9, plane: 24 },
+  keys: new Set(), car: null, plane: null, group: new THREE.Group(), msgT: 0, hudT: 0 };
+scene.add(VEH.group);
+const VKEYS = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'q', 'e', 'r', 'f', 'shift', 'control', ' ', 'z']);
+const vHas = (...ks) => ks.some((k) => VEH.keys.has(k));
+const _vq = new THREE.Quaternion(), _vq2 = new THREE.Quaternion(), _ve = new THREE.Euler(0, 0, 0, 'YZX'), _vv = new THREE.Vector3(), _vw = new THREE.Vector3();
+const Y_UP = new THREE.Vector3(0, 1, 0), Z_AX = new THREE.Vector3(0, 0, 1), CAM_FIX = new THREE.Quaternion().setFromAxisAngle(Y_UP, -Math.PI / 2);
+const groundAt = (x, y) => Math.max(heightCubic(x, y), 0);
+
+// nearest road segment (from the near-detail road polylines), within the 3x3 tiles around (x, y)
+function nearestRoad(x, y, maxTier = 3) {
+  const tx = Math.floor((x - X0) / DT), ty = Math.floor((y - Y0) / DT);
+  let best = null, bd = 1e9;
+  for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
+    const L = roadIdx.get((tx + a) + ',' + (ty + b)); if (!L) continue;
+    for (let k = 0; k < L.length; k += 2) {
+      const r = ROADS2[L[k]], i = L[k + 1]; if (r.tier > maxTier) continue;
+      const P = r.pts, ax = P[i * 3], ay = P[i * 3 + 1], dx = P[i * 3 + 3] - ax, dy = P[i * 3 + 4] - ay;
+      const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1e-6)));
+      const px = ax + dx * t, py = ay + dy * t, d = Math.hypot(x - px, y - py);
+      if (d < bd) { bd = d; best = { r, d, px, py, ang: Math.atan2(dy, dx) }; }
+    }
+  }
+  return best;
+}
+
+// ---- models (local: +x forward, +y up, +z right; origin on the ground) ----
+function vMesh(geo) { const m = new THREE.Mesh(geo, MAT.Prop.cel); m.userData.mats = MAT.Prop; m.castShadow = true; m.receiveShadow = true; return m; }
+function wheelGeo(r, w) {
+  return mergeGeos([colorize(new THREE.CylinderGeometry(r, r, w, 14).rotateX(Math.PI / 2), '#1e1e1e'),
+    colorize(new THREE.CylinderGeometry(r * 0.55, r * 0.55, w + 0.02, 10).rotateX(Math.PI / 2), '#c8c8c4')]);
+}
+function strut(ax, ay, az, bx, by, bz, t, col) {   // thin box from a to b
+  const a = new THREE.Vector3(ax, ay, az), b = new THREE.Vector3(bx, by, bz), L = a.distanceTo(b);
+  const g = new THREE.BoxGeometry(t, L, t), q = new THREE.Quaternion().setFromUnitVectors(Y_UP, b.clone().sub(a).normalize());
+  g.applyQuaternion(q); g.translate((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2);
+  return colorize(g, col);
+}
+function carModel(col) {   // a boxy little Fiat Panda 4x4, the island's car
+  const glass = '#22303b', dark = '#2a2a2a';
+  const body = mergeGeos([
+    colorize(boxG(3.35, 0.6, 1.5, 0, 0.62, 0), col),
+    colorize(boxG(3.39, 0.16, 1.54, 0, 0.38, 0), dark),                        // bumpers / sills
+    colorize(boxG(1.96, 0.46, 1.38, -0.32, 1.15, 0), glass),                  // windows
+    colorize(boxG(2.06, 0.09, 1.46, -0.32, 1.425, 0), col),                   // roof
+    ...[[0.66, 0.67], [0.66, -0.67], [-1.3, 0.67], [-1.3, -0.67]].map(([x, z]) => colorize(boxG(0.045, 0.47, 0.045, x, 1.15, z), col)),
+    ...[-0.6, 0.6].map((z) => colorize(boxG(1.7, 0.05, 0.05, -0.32, 1.5, z), '#3a3a3a')),   // roof rails
+    ...[-0.52, 0.52].map((z) => colorize(boxG(0.04, 0.16, 0.26, 1.69, 0.74, z), '#fff6cf')),   // headlights
+    ...[-0.6, 0.6].map((z) => colorize(boxG(0.04, 0.2, 0.18, -1.69, 0.76, z), '#c0302a')),     // tail lights
+    colorize(boxG(0.04, 0.22, 0.7, 1.69, 0.56, 0), dark),                      // grille
+  ]);
+  const g = new THREE.Group(); g.add(vMesh(body));
+  const wg = wheelGeo(0.3, 0.2), wheels = [], pivots = [];
+  for (const [x, z] of [[1.1, 0.7], [1.1, -0.7], [-1.1, 0.7], [-1.1, -0.7]]) {
+    const piv = new THREE.Group(); piv.position.set(x, 0.3, z); const w = vMesh(wg); piv.add(w); g.add(piv);
+    wheels.push(w); if (x > 0) pivots.push(piv);
+  }
+  return { group: g, wheels, pivots };
+}
+function cessnaModel() {
+  const W = '#f4f3ee', R = '#b8352b', B = '#27406e', G = '#24313c', D = '#3a3a3a';
+  const boom = new THREE.BoxGeometry(4.4, 0.95, 0.9).translate(-2.3, 1.42, 0);
+  { const p = boom.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i); if (x < -2) { const t = 1 - (-2 - x) / 2.5 * 0.68; p.setY(i, 1.42 + (p.getY(i) - 1.42) * t + (1 - t) * 0.25); p.setZ(i, p.getZ(i) * t); } } boom.computeVertexNormals(); }
+  const body = mergeGeos([
+    colorize(boxG(0.95, 0.78, 0.98, 2.2, 1.04, 0), W),                        // cowling
+    colorize(boxG(2.1, 0.7, 1.12, 0.85, 0.97, 0), W),                         // cabin, lower half
+    colorize(boxG(2.04, 0.56, 1.08, 0.85, 1.6, 0), G),                        // glazing all round (see-through from inside)
+    colorize(boxG(2.1, 0.08, 1.12, 0.85, 1.91, 0), W),                        // cabin roof
+    ...[[1.84, 0.53], [1.84, -0.53], [-0.12, 0.53], [-0.12, -0.53]].map(([x, z]) => colorize(boxG(0.04, 0.56, 0.04, x, 1.6, z), W)),
+    colorize(boom, W),
+    colorize(boxG(2.1, 0.13, 1.15, 0.85, 1.0, 0), R), colorize(boxG(0.97, 0.1, 1.0, 2.2, 1.0, 0), R),   // stripe
+    colorize(boxG(1.55, 0.14, 11.0, 0.8, 1.95, 0), W),                        // high wing
+    ...[-5.4, 5.4].map((z) => colorize(boxG(1.56, 0.15, 0.25, 0.8, 1.95, z), R)),
+    colorize(boxG(1.05, 0.08, 3.5, -4.15, 1.62, 0), W),                       // stabiliser
+    colorize(boxG(1.15, 1.45, 0.08, -4.25, 2.35, 0), W), colorize(boxG(0.9, 0.35, 0.09, -4.35, 2.95, 0), B),   // fin
+    strut(0.95, 0.78, 0.56, 0.95, 1.9, 2.7, 0.07, W), strut(0.95, 0.78, -0.56, 0.95, 1.9, -2.7, 0.07, W),
+    strut(0.5, 0.72, 0.5, 0.45, 0.3, 1.25, 0.09, D), strut(0.5, 0.72, -0.5, 0.45, 0.3, -1.25, 0.09, D),        // main gear
+    strut(2.25, 0.7, 0, 2.3, 0.26, 0, 0.08, D),                                // nose gear
+    colorize(new THREE.ConeGeometry(0.22, 0.4, 10).rotateZ(-Math.PI / 2).translate(2.85, 1.04, 0), W),        // spinner
+  ]);
+  const g = new THREE.Group(); g.add(vMesh(body));
+  const wg = wheelGeo(0.27, 0.16);
+  for (const [x, z] of [[0.45, 1.25], [0.45, -1.25], [2.3, 0]]) { const w = vMesh(wg); w.position.set(x, 0.27, z); g.add(w); }
+  const prop = vMesh(mergeGeos([colorize(boxG(0.05, 1.9, 0.17, 0, 0, 0), '#2b2b2b'), colorize(boxG(0.055, 0.14, 0.18, 0, 0.88, 0), '#e8e2c8'), colorize(boxG(0.055, 0.14, 0.18, 0, -0.88, 0), '#e8e2c8')]));
+  prop.position.set(2.72, 1.04, 0); g.add(prop);
+  return { group: g, prop };
+}
+
+// ---- runway (from meta) ----
+function onRunway(x, y) {
+  const R = META.runway; if (!R) return false;
+  const [ax, ay, bx, by, w] = R, dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+  const t = ((x - ax) * dx + (y - ay) * dy) / L2; if (t < -0.02 || t > 1.02) return false;
+  return Math.hypot(x - ax - dx * t, y - ay - dy * t) < w / 2 + 12;
+}
+
+// ---- spawning ----
+function viewAz() { return Math.PI / 2 - THREE.MathUtils.degToRad(getView().heading); }   // map angle (CCW from east) the camera looks toward
+function spawnCar() {
+  const v = getView(), az = viewAz();
+  let rd = nearestRoad(v.x, v.y, 1) || nearestRoad(v.x, v.y, 3);
+  if (!rd) {   // nothing near: nearest road vertex on the island
+    let bd = 1e18; for (const r of ROADS2) for (let i = 0; i < r.pts.length; i += 3) { const d = (r.pts[i] - v.x) ** 2 + (r.pts[i + 1] - v.y) ** 2; if (d < bd && r.tier <= 1) { bd = d; rd = { px: r.pts[i], py: r.pts[i + 1], ang: 0 }; } }
+  }
+  let h = rd.ang; if (Math.cos(h - az) < 0) h += Math.PI;
+  if (!VEH.car) { VEH.car = { ...carModel('#e9e5dc'), x: 0, y: 0, h: 0, v: 0, steer: 0, roll: 0, wheel: 0 }; VEH.group.add(VEH.car.group); styleMeshes(VEH.car.group); }
+  Object.assign(VEH.car, { x: rd.px, y: rd.py, h, v: 0, steer: 0 });
+}
+function planeState(over) { return { x: 0, y: 0, z: 0, psi: 0, th: 0, ph: 0, v: 0, thr: 0, ground: false, ...over }; }
+function spawnPlane(where) {
+  if (!VEH.plane) { VEH.plane = { ...cessnaModel(), s: planeState() }; VEH.group.add(VEH.plane.group); styleMeshes(VEH.plane.group); }
+  const R = META.runway;
+  if (where === 'runway' && R) {
+    const [ax, ay, bx, by] = R, psi = Math.atan2(by - ay, bx - ax), L = Math.hypot(bx - ax, by - ay);
+    const x = ax + (bx - ax) * 45 / L, y = ay + (by - ay) * 45 / L;
+    VEH.plane.s = planeState({ x, y, z: groundAt(x, y), psi, ground: true });
+    vMsg('Runway 26 · Shift / R throttle up, then S / ↓ to rotate at ~95 km/h');
+  } else {
+    const v = getView(), psi = viewAz();
+    VEH.plane.s = planeState({ x: v.x - Math.cos(psi) * 400, y: v.y - Math.sin(psi) * 400, psi, v: 50, thr: 0.7 });
+    VEH.plane.s.z = Math.max(groundAt(VEH.plane.s.x, VEH.plane.s.y), groundAt(v.x, v.y)) + 320;
+  }
+}
+
+// ---- physics ----
+function stepCar(c, dt) {
+  const thr = vHas('w', 'arrowup') ? 1 : 0, brk = vHas('s', 'arrowdown') ? 1 : 0, hand = vHas(' ');
+  const steerIn = (vHas('a', 'arrowleft') ? 1 : 0) - (vHas('d', 'arrowright') ? 1 : 0);
+  const rd = nearestRoad(c.x, c.y), onRoad = rd && rd.d < rd.r.w / 2 + 0.8;
+  let vmax = 6.5;
+  if (onRoad) vmax = rd.r.surf === 0 ? (rd.r.tier === 0 ? 22 : 15) : rd.r.surf === 2 ? 12 : 9;
+  if (vHas('shift')) vmax *= 1.5;
+  c.surface = onRoad ? ['asphalt', 'dirt', 'cement'][rd.r.surf] || 'road' : 'off road';
+  let a = 0;
+  if (thr) a += c.v < -0.3 ? 9 : 5.0 * Math.max(0.15, 1 - c.v / vmax);
+  if (brk) a -= c.v > 0.3 ? 9 : 3.5 * (c.v > -5 ? 1 : 0);
+  if (hand) a -= Math.sign(c.v) * 7;
+  if (!thr && !brk) c.v *= Math.exp(-0.35 * dt);
+  if (c.v > vmax) a -= 5;
+  const ch = Math.cos(c.h), sh = Math.sin(c.h);
+  const grade = (heightCubic(c.x + ch * 1.6, c.y + sh * 1.6) - heightCubic(c.x - ch * 1.6, c.y - sh * 1.6)) / 3.2;
+  a -= 9.81 * Math.sin(Math.atan(grade)) * 0.8;
+  c.v += a * dt;
+  if (Math.abs(c.v) < 0.05 && !thr && !brk) c.v = 0;
+  c.steer += (steerIn * 0.55 / (1 + Math.abs(c.v) / 12) - c.steer) * Math.min(1, dt * 7);
+  c.h += c.v / 2.2 * Math.tan(c.steer) * dt * (hand ? 1.6 : 1);
+  const nx = c.x + Math.cos(c.h) * c.v * dt, ny = c.y + Math.sin(c.h) * c.v * dt;
+  const nr = nearestRoad(nx, ny), roadish = nr && nr.d < nr.r.w / 2 + 1.8;
+  const probe = Math.sign(c.v) * 1.7, fx = nx + Math.cos(c.h) * probe, fy = ny + Math.sin(c.h) * probe;
+  const hit = clsAt(fx, fy) === 0 && heightCubic(fx, fy) < 0.6 ? 'sea' : (!roadish && blockedAt(fx, fy)) ? 'house'
+    : Math.abs(heightCubic(fx, fy) - heightCubic(nx, ny)) / 1.7 > 0.7 ? 'rock' : null;
+  c.hit = hit;
+  if (hit) { if (Math.abs(c.v) > 6) vMsg(hit === 'sea' ? 'Splash avoided — that is the sea' : 'Bump!'); c.v = -c.v * 0.2; }
+  else { c.x = nx; c.y = ny; }
+  c.wheel -= c.v * dt / 0.3;
+  // pose on the terrain
+  const sx = -sh, sy = ch;                                     // left side
+  const hf = heightCubic(c.x + ch * 1.1, c.y + sh * 1.1), hb = heightCubic(c.x - ch * 1.1, c.y - sh * 1.1);
+  const hl = heightCubic(c.x + sx * 0.7, c.y + sy * 0.7), hr = heightCubic(c.x - sx * 0.7, c.y - sy * 0.7);
+  c.z = Math.max((hf + hb + hl + hr) / 4, 0) + 0.04;
+  const g = c.group;
+  g.position.set(c.x, c.z, -c.y);
+  g.rotation.set(Math.atan2(hl - hr, 1.4), c.h, Math.atan2(hf - hb, 2.2), 'YZX');
+  for (const w of c.wheels) w.rotation.z = c.wheel;
+  for (const p of c.pivots) p.rotation.y = c.steer;
+}
+function crashPlane(why) {
+  const s = VEH.plane.s;
+  vMsg(why + ' — back in the air');
+  Object.assign(s, { z: groundAt(s.x, s.y) + 300, th: 0, ph: 0, v: 46, thr: 0.7, ground: false });
+}
+function stepPlane(P, dt) {
+  const s = P.s, g = 9.81, VS = 24;
+  if (vHas('shift', 'r')) s.thr = Math.min(1, s.thr + 0.45 * dt);
+  if (vHas('control', 'f', 'z')) s.thr = Math.max(0, s.thr - 0.45 * dt);
+  const pitchIn = (vHas('s', 'arrowdown') ? 1 : 0) - (vHas('w', 'arrowup') ? 1 : 0);    // pull back = nose up
+  const rollIn = (vHas('d', 'arrowright') ? 1 : 0) - (vHas('a', 'arrowleft') ? 1 : 0);
+  const yawIn = (vHas('q') ? 1 : 0) - (vHas('e') ? 1 : 0);
+  const thrust = s.thr * 6.4, drag = 6.4 / (63 * 63) * s.v * s.v;
+  if (s.ground) {
+    const gz = groundAt(s.x, s.y), rw = onRunway(s.x, s.y);
+    s.v += (thrust - drag - (rw ? 0.35 : 1.6) - (vHas(' ') ? 4 : 0) * Math.min(1, s.v)) * dt; s.v = Math.max(0, s.v);
+    s.psi += (yawIn - rollIn) * 0.55 * Math.min(1, s.v / 6 + 0.15) * dt;
+    if (pitchIn > 0 && s.v > 21) s.th += 0.35 * dt; else s.th -= 0.4 * dt;
+    s.th = THREE.MathUtils.clamp(s.th, 0, 0.2); s.ph *= Math.exp(-8 * dt);
+    s.x += Math.cos(s.psi) * s.v * dt; s.y += Math.sin(s.psi) * s.v * dt;
+    const gz2 = groundAt(s.x, s.y);
+    if (gz2 < 0.3 && heightCubic(s.x, s.y) < 0.3) return crashPlane('Into the sea');
+    if (!rw && Math.abs(gz2 - gz) / Math.max(s.v * dt, 0.01) > 0.35 && s.v > 4) return crashPlane('Rough ground');
+    s.z = gz2;
+    if (s.th > 0.07 && s.v > 26) { s.ground = false; s.z += 0.3; vMsg('Airborne'); }
+  } else {
+    s.ph += rollIn * 1.35 * dt; if (!rollIn) s.ph -= s.ph * 0.6 * dt;
+    s.ph = THREE.MathUtils.clamp(s.ph, -1.15, 1.15);
+    s.th += pitchIn * 0.7 * dt;
+    if (s.v < VS) s.th -= (VS - s.v) / VS * 0.9 * dt;              // stall: the nose drops
+    s.th = THREE.MathUtils.clamp(s.th, -0.75, 0.45);
+    s.v += (thrust - drag - g * Math.sin(s.th)) * dt; s.v = Math.max(8, s.v);
+    s.psi += (-g * Math.tan(s.ph) / Math.max(s.v, 18) + yawIn * 0.28) * dt;
+    const sink = Math.max(0, VS - s.v) * 0.55;
+    s.x += Math.cos(s.th) * Math.cos(s.psi) * s.v * dt; s.y += Math.cos(s.th) * Math.sin(s.psi) * s.v * dt;
+    s.z += (Math.sin(s.th) * s.v - sink) * dt;
+    s.z = Math.min(s.z, 4500);
+    const gz = groundAt(s.x, s.y);
+    if (s.z <= gz) {
+      const vz = Math.sin(s.th) * s.v - sink;
+      if (onRunway(s.x, s.y) && vz > -4.5 && Math.abs(s.ph) < 0.3 && s.th > -0.15) { s.ground = true; s.z = gz; s.th = Math.max(s.th, 0); vMsg('Touchdown — Space to brake'); }
+      else return crashPlane(heightCubic(s.x, s.y) < 0.3 ? 'Into the sea' : 'Crashed');
+    }
+  }
+  P.group.position.set(s.x, s.z, -s.y);
+  P.group.rotation.set(s.ph, s.psi, s.th, 'YZX');
+  P.prop.rotation.x += (8 + s.thr * 70) * dt;
+}
+
+// ---- camera ----
+function vehCamera(dt, focus, psi, quat, eye, kind) {
+  const near = VEH.cam === 'cockpit' ? (kind === 'car' ? 0.2 : 0.35) : 0.5, fov = VEH.cam === 'cockpit' ? 62 : VEH.fov0;
+  if (camera.near !== near || camera.fov !== fov) { camera.near = near; camera.fov = fov; camera.updateProjectionMatrix(); }
+  if (VEH.cam === 'cockpit') {
+    camera.position.copy(eye);
+    _vq.setFromAxisAngle(Y_UP, VEH.fyaw); _vq2.setFromAxisAngle(Z_AX, VEH.fpitch);
+    camera.quaternion.copy(quat).multiply(_vq).multiply(_vq2).multiply(CAM_FIX);
+    return;
+  }
+  const az = VEH.cam === 'free' ? VEH.freeAz : psi + Math.PI + VEH.yaw, el = VEH.pitch, d = VEH.dist[kind];
+  _vv.set(focus.x + Math.cos(az) * Math.cos(el) * d, focus.y + Math.sin(el) * d + (kind === 'car' ? 1.4 : 2.5), focus.z - Math.sin(az) * Math.cos(el) * d);
+  const gy = groundAt(_vv.x, -_vv.z) + 1.2; if (_vv.y < gy) _vv.y = gy;
+  if (VEH.cam === 'follow' && VEH.snap !== true) camera.position.lerp(_vv, 1 - Math.exp(-dt * (kind === 'car' ? 7 : 4)));
+  else camera.position.copy(_vv);
+  VEH.snap = false;
+  _vw.copy(focus); _vw.y += kind === 'car' ? 1.2 : 1.6;
+  camera.up.copy(Y_UP); camera.lookAt(_vw);
+}
+const _eye = new THREE.Vector3();
+function updateVehicle(dt) {
+  dt = Math.min(dt, VEH.maxDt || 0.25);
+  const n = Math.ceil(dt / 0.02), h = dt / n;              // fixed-ish substeps: same physics at any frame rate
+  let o, psi, kind = VEH.mode;
+  if (kind === 'car') { for (let i = 0; i < n; i++) stepCar(VEH.car, h); o = VEH.car.group; psi = VEH.car.h; _eye.set(-0.3, 1.25, -0.33); }
+  else { for (let i = 0; i < n; i++) stepPlane(VEH.plane, h); o = VEH.plane.group; psi = VEH.plane.s.psi; _eye.set(0.75, 1.7, -0.26); }
+  o.updateMatrixWorld();
+  _eye.applyMatrix4(o.matrixWorld);
+  vehCamera(dt, o.position, psi, o.quaternion, _eye, kind);
+  // what the rest of the map follows (detail tiles, labels, shadows, LOD)
+  const agl = o.position.y - groundAt(o.position.x, -o.position.z);
+  controls.target.set(o.position.x, agl > 80 ? groundAt(o.position.x, -o.position.z) : o.position.y, o.position.z);
+  updateHud(dt);
+}
+
+// ---- UI ----
+function vMsg(t) { const m = $('vmsg'); m.textContent = t; m.hidden = false; VEH.msgT = performance.now() + 2600; }
+const HELP = {
+  car: '<b>W/S</b> gas · brake/reverse <b>A/D</b> steer <b>Space</b> handbrake <b>Shift</b> boost · <b>C</b> camera <b>drag</b> look <b>wheel</b> zoom <b>Esc</b> map',
+  plane: '<b>S/↓</b> pull up <b>W/↑</b> push down <b>A/D</b> roll <b>Q/E</b> rudder · <b>Shift</b>/<b>R</b> throttle + <b>Ctrl</b>/<b>F</b> throttle − <b>Space</b> brake · <b>C</b> camera <b>drag</b> look <b>wheel</b> zoom <b>T</b> runway <b>Esc</b> map',
+};
+const CAM_NAME = { follow: 'Follow', free: 'Free orbit', cockpit: 'First person' };
+function updateHud(dt) {
+  if (performance.now() > VEH.msgT) $('vmsg').hidden = true;
+  if ((VEH.hudT -= dt) > 0) return; VEH.hudT = 0.1;
+  if (VEH.mode === 'car') {
+    const c = VEH.car;
+    $('hudMain').innerHTML = `<b>${Math.round(Math.abs(c.v) * 3.6)}</b><small>km/h</small><span class="sep"></span><span>${c.v < -0.3 ? 'reverse · ' : ''}${c.surface}</span>`;
+  } else {
+    const s = VEH.plane.s, agl = s.z - groundAt(s.x, s.y), hdg = (Math.round(90 - THREE.MathUtils.radToDeg(s.psi)) % 360 + 360) % 360;
+    $('hudMain').innerHTML = `<b>${Math.round(s.v * 1.944)}</b><small>kt</small><span class="sep"></span><b>${Math.round(s.z * 3.281)}</b><small>ft</small>` +
+      `<span class="sep"></span><span>${String(hdg).padStart(3, '0')}°</span><span class="sep"></span><span class="thr"><i style="width:${Math.round(s.thr * 100)}%"></i></span><span>${Math.round(s.thr * 100)}%</span>` +
+      (s.ground ? '<span class="sep"></span><span>on ground</span>' : agl < 60 ? `<span class="sep"></span><span class="warn">${Math.round(agl)} m AGL</span>` : '') +
+      (!s.ground && s.v < 26 ? '<span class="warn"> STALL</span>' : '');
+  }
+}
+function setCam(c) {
+  if (c === VEH.cam) return;
+  if (c === 'free') { const psi = VEH.mode === 'car' ? VEH.car.h : VEH.plane.s.psi; VEH.freeAz = psi + Math.PI + VEH.yaw; }
+  if (c === 'follow') VEH.yaw = 0;
+  if (c === 'cockpit') { VEH.fyaw = 0; VEH.fpitch = -0.06; }
+  VEH.cam = c; VEH.snap = true; $('hudCam').textContent = CAM_NAME[c] + ' (C)';
+}
+function setMode(m) {
+  if (m === VEH.mode) return;
+  if (m !== 'map' && !window.__ready) return;
+  const was = VEH.mode;
+  VEH.mode = m; VEH.keys.clear(); HELD.clear();
+  for (const b of document.querySelectorAll('#modes button')) b.setAttribute('aria-pressed', b.dataset.m === m ? 'true' : 'false');
+  document.body.classList.toggle('vehicle', m !== 'map');
+  $('hud').hidden = m === 'map';
+  if (m === 'map') {
+    if (VEH.car) VEH.car.group.visible = false; if (VEH.plane) VEH.plane.group.visible = false;
+    // hand back to the map camera around where the vehicle is
+    const off = camera.position.clone().sub(controls.target);
+    if (off.length() < 90 || off.y < 20) { off.set(off.x, Math.max(off.y, 0), off.z); if (off.lengthSq() < 1) off.set(0, 1, 1); off.setLength(160); off.y = Math.max(off.y, 90); }
+    camera.position.copy(controls.target).add(off); camera.up.copy(Y_UP);
+    camera.fov = VEH.fov0; camera.updateProjectionMatrix();
+    controls.enabled = true; controls.update(); kick(); return;
+  }
+  controls.enabled = false; anim = null; if (was === 'map') VEH.fov0 = camera.fov;
+  if (was !== 'map') { if (VEH.car) VEH.car.group.visible = false; if (VEH.plane) VEH.plane.group.visible = false; }
+  if (m === 'car') { spawnCar(); VEH.car.group.visible = true; VEH.dist.car = 9; }
+  else { spawnPlane('air'); VEH.plane.group.visible = true; }
+  VEH.yaw = 0; VEH.pitch = m === 'car' ? 0.22 : 0.18; VEH.snap = true;
+  $('hudKeys').innerHTML = HELP[m]; $('hudReset').textContent = m === 'car' ? 'Respawn on nearest road' : 'Start on the runway (T)';
+  $('hudCam').textContent = CAM_NAME[VEH.cam] + ' (C)';
+  vMsg(m === 'car' ? 'Car · W to drive, A/D to steer' : 'Cessna 172 · S/↓ pull up, A/D bank, Shift/R throttle');
+}
+function vehKeyDown(e, k) {   // returns true when handled
+  if (k === '1') { setMode('map'); return true; }
+  if (k === '2') { setMode('car'); return true; }
+  if (k === '3') { setMode('plane'); return true; }
+  if (VEH.mode === 'map') return false;
+  if (k === 'escape') { setMode('map'); return true; }
+  if (k === 'c') { setCam(VEH.cam === 'follow' ? 'free' : VEH.cam === 'free' ? 'cockpit' : 'follow'); return true; }
+  if (k === 't' && VEH.mode === 'plane') { spawnPlane('runway'); VEH.snap = true; return true; }
+  if (k === '+' || k === '=') { VEH.dist[VEH.mode] = Math.max(4, VEH.dist[VEH.mode] * 0.8); return true; }
+  if (k === '-') { VEH.dist[VEH.mode] = Math.min(400, VEH.dist[VEH.mode] * 1.25); return true; }
+  if (VKEYS.has(k)) { VEH.keys.add(k); e.preventDefault(); return true; }
+  return k === 'n';
+}
+
+// test hook: run the vehicle physics for `sec` simulated seconds with these keys held
+function vSim(sec, keys) {
+  VEH.keys = new Set(keys);
+  for (let t = 0; t < sec; t += 0.02) { if (VEH.mode === 'car') stepCar(VEH.car, 0.02); else if (VEH.mode === 'plane') stepPlane(VEH.plane, 0.02); }
+  VEH.keys.clear(); VEH.snap = true; updateVehicle(0.001);
+  const c = VEH.car, s = VEH.plane && VEH.plane.s;
+  return VEH.mode === 'car' ? { x: c.x, y: c.y, v: c.v, h: c.h, surf: c.surface } : { ...s, msg: $('vmsg').textContent };
+}
+addEventListener('keyup', (e) => { VEH.keys.delete(e.key.toLowerCase()); });
+addEventListener('blur', () => VEH.keys.clear());
+{
+  for (const b of document.querySelectorAll('#modes button')) b.addEventListener('click', () => { setMode(b.dataset.m); b.blur(); });
+  $('hudCam').addEventListener('click', (e) => { setCam(VEH.cam === 'follow' ? 'free' : VEH.cam === 'free' ? 'cockpit' : 'follow'); e.currentTarget.blur(); });
+  $('hudReset').addEventListener('click', (e) => { if (VEH.mode === 'car') spawnCar(); else spawnPlane('runway'); VEH.snap = true; e.currentTarget.blur(); });
+  const el = renderer.domElement; let drag = null;
+  el.addEventListener('pointerdown', (e) => { if (VEH.mode === 'map') return; drag = { x: e.clientX, y: e.clientY, id: e.pointerId }; el.setPointerCapture(e.pointerId); });
+  el.addEventListener('pointermove', (e) => {
+    if (!drag || VEH.mode === 'map') return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+    if (VEH.cam === 'cockpit') { VEH.fyaw = THREE.MathUtils.clamp(VEH.fyaw - dx * 0.005, -2.8, 2.8); VEH.fpitch = THREE.MathUtils.clamp(VEH.fpitch - dy * 0.004, -1.2, 1.2); }
+    else { if (VEH.cam === 'free') VEH.freeAz -= dx * 0.006; else VEH.yaw -= dx * 0.006; VEH.pitch = THREE.MathUtils.clamp(VEH.pitch + dy * 0.004, -0.15, 1.45); }
+  });
+  const up = () => { drag = null; };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  el.addEventListener('wheel', (e) => { if (VEH.mode === 'map') return; e.preventDefault(); const k = VEH.mode; VEH.dist[k] = THREE.MathUtils.clamp(VEH.dist[k] * Math.exp(e.deltaY * 0.0012), 4, k === 'car' ? 80 : 400); }, { passive: false });
+  el.addEventListener('dblclick', (e) => { if (VEH.mode === 'map') return; VEH.yaw = 0; VEH.fyaw = 0; VEH.fpitch = -0.06; VEH.pitch = VEH.mode === 'car' ? 0.22 : 0.18; if (VEH.cam === 'free') setCam('follow'); }, true);
+}
+
 // ---------------- render loop ----------------
 const clock = new THREE.Clock();
 let frame = 0, ftimes = [];
@@ -1865,10 +2249,8 @@ function render(now) {
   const t0 = performance.now();
   renderer.info.reset();
   const dtk = Math.min(0.25, (now - (render.last || now)) / 1000); render.last = now;
-  keyMove(dtk);
-  stepAnim(now);
-  controls.update();
-  clampCamera();
+  if (VEH.mode === 'map') { keyMove(dtk); stepAnim(now); controls.update(); clampCamera(); }
+  else { updateVehicle(dtk); kick(); }
   updateTerrainLOD();
   updateCulling();
   updateDetail();
@@ -1929,6 +2311,6 @@ async function boot() {
 }
 boot();
 
-window.__pan = { DETAIL, heightCubic, chunkGeometry: (c, L) => chunkGeometry(c, L), THREE, scene, camera, controls, renderer, chunks, culled, setView, getView, orbitTo, updateSun, setStyle, heightAt, toLatLon, fromLatLon, b2t, STYLE,
+window.__pan = { VEH, vSim, nearestRoad, setMode, setCam, spawnPlane, DETAIL, heightCubic, chunkGeometry: (c, L) => chunkGeometry(c, L), THREE, scene, camera, controls, renderer, chunks, culled, setView, getView, orbitTo, updateSun, setStyle, heightAt, toLatLon, fromLatLon, b2t, STYLE,
   perf: () => ({ ms: ftimes.reduce((a, b) => a + b, 0) / Math.max(1, ftimes.length), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, pr: renderer.getPixelRatio() }) };
 </script>

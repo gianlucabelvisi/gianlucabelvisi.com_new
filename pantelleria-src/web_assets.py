@@ -100,7 +100,8 @@ detail_bin()
 fr = F['frame']
 meta = {'x0': fr['x0'], 'y0': fr['y0'], 'cell': fr['cell'], 'nx': fr['nx'], 'ny': fr['ny'], 'lat0': 36.785, 'lon0': 11.99,
         'labels': F['labels'],
-        'roadLabels': road_labels()}
+        'roadLabels': road_labels(),
+        'runway': (lambda r: [r['pts'][0][0], r['pts'][0][1], r['pts'][-1][0], r['pts'][-1][1], r['w']])(max([r for r in F['runway'] if r['kind'] == 'runway'], key=lambda r: r['w']))}
 json.dump(meta, open(os.path.join(W, 'meta.json'), 'w'), separators=(',', ':'), ensure_ascii=False)
 for f in sorted(os.listdir(W)):
     print(f'{f:16s} {os.path.getsize(os.path.join(W, f)) / 1e6:6.2f} MB')

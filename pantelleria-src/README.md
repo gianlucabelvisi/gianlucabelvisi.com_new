@@ -61,3 +61,13 @@ balconies, parapets, roof tanks), Castello Barbacane (battered lava walls, merlo
 gilded dome, bell tower), boats along the quays and pontoons, the ferry at Molo Karol Wojtyla, palms/lamps on the seafront, café tables,
 paved piazzas, and ~96 labelled places (bars, restaurants, shops, quays) shown when zoomed in. Rural lava walls/terraces are suppressed
 inside the zone. town.py is idempotent (it paints from prep/terrain_base.png).
+
+## Navigation modes (Map 1 · Car 2 · Plane 3)
+In the viewer (vehicle module in map.src.html). C cycles the camera: Follow (behind, drag to look around), Free orbit (camera
+detached from the vehicle's heading), First person (cockpit, drag = head look). Wheel / +/- zoom, double-click resets the look, Esc = map.
+- Car: arcade Fiat Panda 4x4, free drive. W/S gas and brake/reverse, A/D steer, Space handbrake, Shift boost. Top speed by surface
+  (asphalt main ~80 km/h, streets ~55, cement ~43, dirt ~32, off road ~23). Houses (road/house mask), the sea and steep rock stop it.
+- Plane: arcade Cessna 172. S/↓ pull up, W/↑ push, A/D roll, Q/E rudder, Shift/R throttle up, Ctrl/F down, Space brake, T = start on
+  runway 26 (meta.runway from OSM). Coordinated turns, soft stall below ~47 kt, lands on the runway (sink < 4.5 m/s, wings level);
+  hitting terrain or the sea respawns 300 m up. No collisions with buildings yet.
+- Physics runs in fixed ~20 ms substeps. Test hook: window.__pan.vSim(seconds, keys).
