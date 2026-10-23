@@ -73,6 +73,16 @@
   .lb.cape { font: italic 400 10.5px/1.1 var(--ui); color: #24425a; text-shadow: 0 0 3px #e8f6ff, 0 0 2px #e8f6ff; }
   .lb.poi { font: 500 11px/1.1 var(--ui); color: #5a3a1a; }
   .lb.poi::before { content: "● "; font-size: 8px; color: var(--oak); }
+  .lb[class*="town-"] { font: 500 10.5px/1.1 var(--ui); color: #3a2a1a; text-shadow: 0 0 3px #fff8ec, 0 0 2px #fff8ec; }
+  .lb.town-landmark { font: 700 13px/1.1 var(--ui); color: #2a1d12; letter-spacing: .02em; }
+  .lb.town-landmark::before { content: "◆ "; font-size: 9px; color: #8a5a2e; }
+  .lb.town-port, .lb.town-quay { font: italic 600 11px/1.1 var(--ui); color: #12557a; text-shadow: 0 0 3px #e8f6ff, 0 0 2px #e8f6ff; }
+  .lb.town-square { font: 600 11.5px/1.1 var(--ui); color: #4a3220; }
+  .lb.town-food::before { content: "🍴 "; font-size: 9px; }
+  .lb.town-bar::before { content: "☕ "; font-size: 9px; }
+  .lb.town-hotel::before { content: "■ "; font-size: 8px; color: #2d5a8a; }
+  .lb.town-shop::before { content: "● "; font-size: 7px; color: #8a6a4a; }
+  .lb.town-civic::before { content: "▣ "; font-size: 8px; color: #6a4a2e; }
   .lb.road { font: 500 11px/1 var(--ui); color: #4a4540; letter-spacing: .01em; transform-origin: 50% 50%;
     text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff; }
   .lb.road.main { font-weight: 600; color: #3a342d; }
@@ -516,7 +526,20 @@ function buildSea(coastTex) {
       }`,
   });
   mat.uniforms.coast.value = coastTex;
-  sea = new THREE.Mesh(new THREE.PlaneGeometry(4000000, 4000000, 1, 1).rotateX(-Math.PI / 2), mat);
+  // a disk of geometric rings around the camera: small triangles near the eye (a few giant triangles interpolate the
+  // world position too coarsely at grazing angles: the coast texture then slides by tens of metres), edge ~2000 km away
+  const R = [0]; for (let r = 400; r < 2000000; r *= 1.45) R.push(r); R.push(2000000);
+  const SEG = 72, sp = [], si = [];
+  sp.push(0, 0, 0);
+  for (let k = 1; k < R.length; k++) for (let a = 0; a < SEG; a++) { const t = a / SEG * Math.PI * 2; sp.push(Math.cos(t) * R[k], 0, -Math.sin(t) * R[k]); }
+  for (let a = 0; a < SEG; a++) si.push(0, 1 + a, 1 + (a + 1) % SEG);
+  for (let k = 1; k < R.length - 1; k++) for (let a = 0; a < SEG; a++) {
+    const i0 = 1 + (k - 1) * SEG + a, i1 = 1 + (k - 1) * SEG + (a + 1) % SEG, j0 = i0 + SEG, j1 = i1 + SEG;
+    si.push(i0, j0, j1, i0, j1, i1);
+  }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); sg.setIndex(si);
+  sg.computeBoundingSphere();
+  sea = new THREE.Mesh(sg, mat); sea.frustumCulled = false;
   sea.receiveShadow = false; sea.renderOrder = -1;
   scene.add(sea);
 }
@@ -873,6 +896,17 @@ function wallGeometry(segs, capers) {   // segs: [x0,y0,x1,y1,height,thick, ...]
   g.computeBoundingSphere();
   return g;
 }
+// town centre polygon (set by buildTown): no rural walls / terraces inside it
+let TOWNZ = null;
+function inTown(x, y) {
+  const Z = TOWNZ; if (!Z || x < Z.x0 || x > Z.x1 || y < Z.y0 || y > Z.y1) return false;
+  let c = false; const P = Z.p;
+  for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+    const [xi, yi] = P[i], [xj, yj] = P[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
 // walls along both sides of rural roads (most lanes on the island run between lava-stone walls), with gate gaps
 function roadsideWalls(tx, ty, segs) {
   const list = roadIdx.get(tx + ',' + ty); if (!list) return;
@@ -950,10 +984,13 @@ function buildDetailTile(tx, ty) {
   for (const [wi, i] of pairs(wallIdx.get(tx + ',' + ty))) {
     const w = WALLS[wi], ax = w.pts[i], ay = w.pts[i + 1], bx = w.pts[i + 2], by = w.pts[i + 3];
     if (w.ty === 0 && blockedAt((ax + bx) / 2, (ay + by) / 2)) continue;
+    if (TOWNZ && inTown((ax + bx) / 2, (ay + by) / 2)) continue;   // town: plastered garden walls, not lava stone
     segs.push(ax, ay, bx, by, w.ty === 2 ? 2.8 : w.ty === 1 ? 1.4 : 1.05, w.ty === 2 ? 0.9 : 0.6);
   }
+  const nOsm = segs.length;
   terraceSegs(x0, y0, segs);
   roadsideWalls(tx, ty, segs);
+  if (TOWNZ) for (let i = segs.length - 6; i >= nOsm; i -= 6) if (inTown((segs[i] + segs[i + 2]) / 2, (segs[i + 1] + segs[i + 3]) / 2)) segs.splice(i, 6);
   const capers = [];
   const wg = wallGeometry(segs, capers);
   if (wg) { const m = new THREE.Mesh(wg, MAT.Stone.cel); m.userData.mats = MAT.Stone; m.receiveShadow = true; g.add(m); }
@@ -1061,6 +1098,343 @@ function updateDetail(budgetMs = 6) {
     g.traverse((o) => { if (o.isMesh && o.geometry && !Object.values(VEG).includes(o.geometry)) o.geometry.dispose(); if (o.isInstancedMesh) o.dispose(); });
     DETAIL.tiles.delete(key);
   }
+}
+
+// ---------------- town centre (zone 1): Pantelleria paese ----------------
+// Built once from town.json: plastered houses with storeys, windows, shutters, balconies and parapets (one merged mesh,
+// facade pattern in the shader), Castello Barbacane, Chiesa Madre, palms and lamps on the seafront, boats in the two
+// basins, the ferry at the mole, café tables in front of bars and restaurants, paved squares, rooftop water tanks.
+const TOWN = { group: new THREE.Group(), data: null };
+scene.add(TOWN.group);
+const TPAL = ['#f3efe6', '#efe3c6', '#e8c98a', '#ecc6b4', '#e0cfae', '#cfcdc6', '#c9d9de', '#d99a72'].map((h) => new THREE.Color(h));
+MATDEF.Town = { color: '#ffffff', vertexColors: true, pull: [0, 0.0006] };
+MAT.Town = makeMat('Town');
+for (const m of [MAT.Town.cel, MAT.Town.std]) {
+  const prev = m.onBeforeCompile;
+  m.onBeforeCompile = (sh) => {
+    prev(sh);
+    sh.vertexShader = sh.vertexShader.replace('void main() {', 'attribute vec4 fa; varying vec4 vFa;\nvoid main() {\n  vFa = fa;');
+    sh.fragmentShader = sh.fragmentShader.replace('void main() {', `varying vec4 vFa;
+      float th(vec2 p) { return fract(sin(dot(p, vec2(41.31, 289.17))) * 15731.743); }
+      void main() {`).replace('#include <color_fragment>', `#include <color_fragment>
+      {
+        float u = vFa.x, v = vFa.y, st = vFa.z, kind = vFa.w;
+        vec3 c = diffuseColor.rgb;
+        if (kind < 0.5) {                                   // plastered wall
+          float top = st * 3.1 + 0.6;
+          float fl = floor(v / 3.1), fv = v - fl * 3.1;
+          float col = floor(u / 3.3), fu = u - col * 3.3 - 1.65;
+          float hsh = th(vec2(col, fl) + floor(c.rg * 17.0));
+          float shut = th(floor(c.gb * 23.0) + 3.1);        // one shutter colour per building
+          vec3 shutC = shut < 0.45 ? vec3(0.22, 0.42, 0.36) : shut < 0.7 ? vec3(0.36, 0.25, 0.17) : shut < 0.88 ? vec3(0.27, 0.42, 0.56) : vec3(0.85, 0.83, 0.78);
+          bool upper = fl >= 1.0 && fl < st && v < top - 0.7;
+          if (u > 1.2 && upper && hsh > 0.12) {
+            if (abs(fu) < 0.55 && fv > 0.95 && fv < 2.35) c = vec3(0.14, 0.17, 0.21);                    // window
+            else if (abs(fu) < 0.95 && abs(fu) >= 0.55 && fv > 0.95 && fv < 2.35 && hsh > 0.35) c = shutC; // open shutters
+            if (hsh > 0.62 && abs(fu) < 1.25 && fv > 0.78 && fv < 0.95) c *= 0.62;                         // balcony slab
+            if (hsh > 0.62 && abs(fu) < 1.25 && fv > 0.95 && fv < 1.85 && (fract(u * 4.0) < 0.18 || fv > 1.75)) c = vec3(0.18, 0.18, 0.19); // railing
+          }
+          if (u > 1.2 && fl < 0.5 && st >= 1.0 && v < 2.6 && v > 0.25) {
+            float g = th(vec2(col, 7.0) + floor(c.rb * 13.0));
+            if (g < 0.38 && abs(fu) < 0.85) c = vec3(0.24, 0.17, 0.12);                                 // door / shop front
+            else if (g < 0.62 && abs(fu) < 0.5 && v > 0.9 && v < 2.1) c = vec3(0.14, 0.17, 0.21);       // ground-floor window
+          }
+          if (v < 0.45) c *= 0.82;                                                                       // plinth
+          if (v > top - 0.25) c *= 0.9;                                                                  // cornice
+        } else if (kind < 1.5) {                            // flat roof terrace
+          c = vec3(0.80, 0.78, 0.73) * (0.93 + 0.07 * th(floor(vec2(u, v) * 0.5)));
+        } else if (kind < 2.5) {                            // parapet inside / top
+          c *= 0.92;
+        } else if (kind < 3.5) {                            // castle: dark lava ashlar
+          float row = floor(v / 0.55), off = mod(row, 2.0) * 0.6;
+          float bl = floor((u + off) / 1.2);
+          float r = th(vec2(bl, row));
+          c = mix(vec3(0.25, 0.235, 0.22), vec3(0.36, 0.335, 0.31), r);
+          if (fract(v / 0.55) < 0.07 || fract((u + off) / 1.2) < 0.04) c = vec3(0.44, 0.42, 0.39);   // mortar
+          if (st > 0.5 && fract(u / 7.0) > 0.47 && fract(u / 7.0) < 0.53 && fract(v / 6.0) > 0.55 && fract(v / 6.0) < 0.75 && v > 4.0) c = vec3(0.08, 0.08, 0.09); // slits
+        } else if (kind < 4.5) {                            // church: blue-grey lava cladding
+          float row = floor(v / 0.6), bl = floor((u + mod(row, 2.0) * 0.5) / 1.0);
+          c = mix(vec3(0.33, 0.37, 0.44), vec3(0.42, 0.46, 0.53), th(vec2(bl, row)));
+        } else if (kind < 5.5) {                            // gilded dome
+          c = vec3(0.86, 0.69, 0.30);
+        } else {                                            // bell tower: cream stone, opening near the top
+          c = vec3(0.84, 0.79, 0.68);
+          if (v > st - 4.0 && v < st - 1.2 && abs(fract(u / 3.6) - 0.5) < 0.22) c = vec3(0.12, 0.11, 0.1);
+        }
+        diffuseColor.rgb = c;
+      }`);
+  };
+  m.customProgramCacheKey = () => 'town';
+}
+function TB() { return { P: [], N: [], C: [], A: [] }; }
+function tPush(b, x, y, z, n, col, u, v, st, kind) { b.P.push(x, z, -y); b.N.push(n[0], n[2], -n[1]); b.C.push(col.r, col.g, col.b); b.A.push(u, v, st, kind); }
+function tQuad(b, a, c, n, col, ua, ub, va, vb, st, kind) {   // vertical quad from (a.x,a.y) to (c.x,c.y), z range [va, vb] absolute via a.z0/a.z1
+  const v = [[a[0], a[1], a[2], ua, 0], [c[0], c[1], c[2], ub, 0], [c[0], c[1], c[3], ub, c[3] - c[2]], [a[0], a[1], a[3], ua, a[3] - a[2]]];
+  for (const k of [0, 1, 2, 0, 2, 3]) tPush(b, v[k][0], v[k][1], v[k][2], n, col, v[k][3], v[k][4] + va, st, kind);
+}
+function tCap(b, pts, z, col, kind, st = 0) {
+  const shape = pts.map(([x, y]) => new THREE.Vector2(x, y));
+  if (THREE.ShapeUtils.isClockWise(shape)) shape.reverse();
+  const tris = THREE.ShapeUtils.triangulateShape(shape, []);
+  for (const t of tris) for (const k of t) tPush(b, shape[k].x, shape[k].y, z, [0, 0, 1], col, shape[k].x, shape[k].y, st, kind);
+}
+function inset(pts, d) {   // simple miter inset of a CCW polygon
+  const n = pts.length, out = [];
+  for (let i = 0; i < n; i++) {
+    const p = pts[(i - 1 + n) % n], c = pts[i], q = pts[(i + 1) % n];
+    const e1 = [c[0] - p[0], c[1] - p[1]], e2 = [q[0] - c[0], q[1] - c[1]];
+    const l1 = Math.hypot(...e1) || 1, l2 = Math.hypot(...e2) || 1;
+    const n1 = [-e1[1] / l1, e1[0] / l1], n2 = [-e2[1] / l2, e2[0] / l2];
+    let m = [n1[0] + n2[0], n1[1] + n2[1]]; const ml = Math.hypot(...m) || 1; m = [m[0] / ml, m[1] / ml];
+    const k = Math.min(3, 1 / Math.max(0.3, m[0] * n1[0] + m[1] * n1[1]));
+    out.push([c[0] + m[0] * d * k, c[1] + m[1] * d * k]);
+  }
+  return out;
+}
+function ccw(pts) { let a = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; a += p[0] * q[1] - q[0] * p[1]; } return a > 0 ? pts : pts.slice().reverse(); }
+function prism(b, pts, z0, z1, col, st, kind, outward = true) {
+  let u = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], c = pts[(i + 1) % pts.length], L = Math.hypot(c[0] - a[0], c[1] - a[1]); if (L < 0.05) continue;
+    let n = [(c[1] - a[1]) / L, -(c[0] - a[0]) / L, 0]; if (!outward) n = [-n[0], -n[1], 0];
+    const A = [a[0], a[1], z0, z1], C = [c[0], c[1], z0, z1];
+    if (outward) tQuad(b, A, C, n, col, u, u + L, 0, 0, st, kind); else tQuad(b, C, A, n, col, u + L, u, 0, 0, st, kind);
+    u += L;
+  }
+}
+function finishTB(b, mats, cast = true) {
+  if (!b.P.length) return null;
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(b.P, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(b.N, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(b.C, 3)); g.setAttribute('fa', new THREE.Float32BufferAttribute(b.A, 4));
+  g.computeBoundingSphere();
+  const m = new THREE.Mesh(g, mats.cel); m.userData.mats = mats; m.castShadow = cast; m.receiveShadow = true;
+  return m;
+}
+function house(b, d, tanks) {
+  const pts = ccw(d.pts), col = TPAL[Math.max(0, d.col)], top = d.z + d.h;
+  prism(b, pts, d.z, top + 0.85, col, d.st, 0);                           // walls (+ parapet band on the outside)
+  const inn = inset(pts, 0.28);
+  prism(b, inn, top, top + 0.85, col, d.st, 2, false);                    // parapet, inner face
+  // parapet top strip
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], c = pts[(i + 1) % pts.length], ai = inn[i], ci = inn[(i + 1) % pts.length];
+    for (const v of [a, c, ci, a, ci, ai]) tPush(b, v[0], v[1], top + 0.85, [0, 0, 1], col, 0, 0, 0, 2);
+  }
+  tCap(b, inn, top + 0.02, col, 1);
+  // rooftop water tank / solar heater on many roofs
+  const area = Math.abs(inn.reduce((s, p, i) => s + p[0] * inn[(i + 1) % inn.length][1] - inn[(i + 1) % inn.length][0] * p[1], 0) / 2);
+  if (area > 40 && rnd(d.id % 100000, 5) < 0.55) {
+    const cx = inn.reduce((s, p) => s + p[0], 0) / inn.length, cy = inn.reduce((s, p) => s + p[1], 0) / inn.length;
+    const ox = (rnd(d.id % 9973, 1) - 0.5) * Math.sqrt(area) * 0.35, oy = (rnd(d.id % 7919, 2) - 0.5) * Math.sqrt(area) * 0.35;
+    tanks.push(cx + ox, cy + oy, top, rnd(d.id % 1009, 3) < 0.4 ? 1 : 0);
+  }
+}
+function castle(b, d, deco) {
+  const pts = ccw(d.pts), z0 = d.z, H = 15;
+  const top = inset(pts, 1.1);                                            // battered walls: wider at the base
+  let u = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], c = pts[(i + 1) % pts.length], at = top[i], ct = top[(i + 1) % pts.length], L = Math.hypot(c[0] - a[0], c[1] - a[1]);
+    const n = [(c[1] - a[1]) / L, -(c[0] - a[0]) / L, 0.07];
+    const v = [[a[0], a[1], z0, u, 0], [c[0], c[1], z0, u + L, 0], [ct[0], ct[1], z0 + H, u + L, H], [at[0], at[1], z0 + H, u, H]];
+    for (const k of [0, 1, 2, 0, 2, 3]) tPush(b, v[k][0], v[k][1], v[k][2], n, TPAL[0], v[k][3], v[k][4], 1, 3);
+    // merlons along the top
+    const nm = Math.floor(Math.hypot(ct[0] - at[0], ct[1] - at[1]) / 2.4);
+    for (let k = 0; k < nm; k++) {
+      const f0 = (k + 0.15) / nm, f1 = (k + 0.6) / nm;
+      const p0 = [at[0] + (ct[0] - at[0]) * f0, at[1] + (ct[1] - at[1]) * f0], p1 = [at[0] + (ct[0] - at[0]) * f1, at[1] + (ct[1] - at[1]) * f1];
+      const nn = [n[0] * -0.9, n[1] * -0.9];
+      const q = [p0, p1, [p1[0] + nn[0], p1[1] + nn[1]], [p0[0] + nn[0], p0[1] + nn[1]]];
+      prism(b, q, z0 + H, z0 + H + 1.3, TPAL[0], 0, 3); tCap(b, q, z0 + H + 1.3, TPAL[0], 3);
+    }
+    u += L;
+  }
+  tCap(b, top, z0 + H - 0.3, TPAL[0], 3);
+  // round tower with the clock turret, at the corner facing the Chiesa Madre and the piazza
+  let best = 0, bd = 1e9;
+  pts.forEach((p, i) => { const dd = Math.hypot(p[0] + 4085, p[1] - 5185); if (dd < bd) { bd = dd; best = i; } });
+  const tc = pts[best], R = 5.2, TH = 18.5, seg = 18;
+  let uu = 0;
+  for (let k = 0; k < seg; k++) {
+    const a0 = k / seg * Math.PI * 2, a1 = (k + 1) / seg * Math.PI * 2;
+    const A = [tc[0] + Math.cos(a0) * R, tc[1] + Math.sin(a0) * R, z0, z0 + TH], C = [tc[0] + Math.cos(a1) * R, tc[1] + Math.sin(a1) * R, z0, z0 + TH];
+    const am = (a0 + a1) / 2;
+    tQuad(b, A, C, [Math.cos(am), Math.sin(am), 0], TPAL[0], uu, uu + R * 0.35, 0, 0, 1, 3); uu += R * 0.35;
+  }
+  const ring = []; for (let k = 0; k < seg; k++) ring.push([tc[0] + Math.cos(k / seg * 6.283) * R, tc[1] + Math.sin(k / seg * 6.283) * R]);
+  tCap(b, ring, z0 + TH, TPAL[0], 3);
+  for (let k = 0; k < seg; k += 2) {      // merlons on the tower
+    const a0 = k / seg * 6.283, a1 = (k + 0.9) / seg * 6.283;
+    const q = [[tc[0] + Math.cos(a0) * R, tc[1] + Math.sin(a0) * R], [tc[0] + Math.cos(a1) * R, tc[1] + Math.sin(a1) * R],
+      [tc[0] + Math.cos(a1) * (R - 0.9), tc[1] + Math.sin(a1) * (R - 0.9)], [tc[0] + Math.cos(a0) * (R - 0.9), tc[1] + Math.sin(a0) * (R - 0.9)]];
+    prism(b, q, z0 + TH, z0 + TH + 1.2, TPAL[0], 0, 3); tCap(b, q, z0 + TH + 1.2, TPAL[0], 3);
+  }
+  const s = 1.7, cl = [[tc[0] - s, tc[1] - s], [tc[0] + s, tc[1] - s], [tc[0] + s, tc[1] + s], [tc[0] - s, tc[1] + s]];
+  prism(b, cl, z0 + TH, z0 + TH + 5.5, TPAL[0], 0, 3); tCap(b, cl, z0 + TH + 5.5, TPAL[0], 3);
+  deco.clocks.push(tc[0], tc[1], z0 + TH + 3.6, s + 0.03);
+  // a taller square keep at the far end
+  let far = 0, fd = 0; pts.forEach((p, i) => { const dd = Math.hypot(p[0] - tc[0], p[1] - tc[1]); if (dd > fd) { fd = dd; far = i; } });
+  const kc = top[far], kc2 = [kc[0] + (tc[0] - kc[0]) * 5 / fd, kc[1] + (tc[1] - kc[1]) * 5 / fd], ks = 4.2;
+  const kp = [[kc2[0] - ks, kc2[1] - ks], [kc2[0] + ks, kc2[1] - ks], [kc2[0] + ks, kc2[1] + ks], [kc2[0] - ks, kc2[1] + ks]];
+  prism(b, kp, z0 + H - 1, z0 + H + 5, TPAL[0], 1, 3); tCap(b, kp, z0 + H + 5, TPAL[0], 3);
+}
+function church(b, d, deco) {
+  const pts = ccw(d.pts), z0 = d.z, H = 12.5;
+  prism(b, pts, z0, z0 + H, TPAL[0], 0, 4);
+  const inn = inset(pts, 0.5);
+  prism(b, inn, z0 + H, z0 + H + 0.8, TPAL[0], 0, 6, false);
+  tCap(b, inn, z0 + H + 0.02, TPAL[0], 1);
+  prism(b, inset(pts, 0.0), z0 + H, z0 + H + 0.8, TPAL[1], H + 0.8, 6);
+  const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length, cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+  deco.domes.push(cx, cy, z0 + H + 0.8, 5.8);
+  // bell tower at the corner towards Piazza Cavour
+  let best = 0, bd = 1e9; pts.forEach((p, i) => { const dd = Math.hypot(p[0] + 4002, p[1] - 5195); if (dd < bd) { bd = dd; best = i; } });
+  const c = pts[best], w = 1.9, dx = cx - c[0], dy = cy - c[1], l = Math.hypot(dx, dy);
+  const tc = [c[0] + dx / l * 2.6, c[1] + dy / l * 2.6], TH = 23;
+  const tp = [[tc[0] - w, tc[1] - w], [tc[0] + w, tc[1] - w], [tc[0] + w, tc[1] + w], [tc[0] - w, tc[1] + w]];
+  prism(b, tp, z0, z0 + TH, TPAL[0], TH, 6); tCap(b, tp, z0 + TH, TPAL[1], 6, TH);
+}
+// boats, ferry, palms, lamps, cafés: shared geometries
+function hull(L, B, H, bowLift = 0.4) {   // lofted hull: pointed bow at +x, round-ish transom at -x
+  const secs = [[-0.5, 0.82, 1], [-0.25, 1, 1], [0.1, 1, 1], [0.32, 0.8, 1.04], [0.45, 0.42, 1.1], [0.5, 0.02, 1.16]], ring = 7;
+  const P = [], I = [];
+  secs.forEach(([fx, fw, fh]) => {
+    for (let k = 0; k < ring; k++) {
+      const a = -Math.PI / 2 + k / (ring - 1) * Math.PI;           // -90..90 around the keel
+      const yy = Math.sin(a) * B / 2 * fw, zz = -Math.cos(a) * H * 0.55;
+      P.push(fx * L, (zz + H * 0.45) * fh + (fx > 0.3 ? (fx - 0.3) * bowLift * 4 : 0), yy);
+    }
+  });
+  for (let s = 0; s < secs.length - 1; s++) for (let k = 0; k < ring - 1; k++) {
+    const a = s * ring + k, b = a + 1, c = a + ring, d = c + 1; I.push(a, c, b, b, c, d);
+  }
+  // deck
+  const deck = []; secs.forEach((_, s) => { deck.push(s * ring, s * ring + ring - 1); });
+  for (let s = 0; s < secs.length - 1; s++) { const a = deck[s * 2], b = deck[s * 2 + 1], c = deck[s * 2 + 2], d = deck[s * 2 + 3]; I.push(a, b, c, b, d, c); }
+  // transom
+  for (let k = 1; k < ring - 1; k++) I.push(0, k + 1, k);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setIndex(I);
+  const ng = g.toNonIndexed(); ng.computeVertexNormals();
+  return ng;
+}
+function boxG(w, h, d, x, y, z) { return new THREE.BoxGeometry(w, h, d).translate(x, y, z); }
+function colorize(g, hex) { g = g.index ? g.toNonIndexed() : g; if (g.attributes.uv) g.deleteAttribute('uv'); if (!g.attributes.normal) g.computeVertexNormals(); return paint(g, hex, hex, 0, 1); }
+const BOATS = {
+  0: { body: () => mergeGeos([colorize(hull(6.5, 2.3, 1.0), '#f2f0ea'), colorize(boxG(0.25, 1.3, 0.25, -2.2, 1.4, 0), '#6b5a48')]),
+       acc: () => mergeGeos([colorize(hull(6.6, 2.36, 0.35).translate(0, 0.62, 0), '#ffffff')]) },
+  1: { body: () => mergeGeos([colorize(hull(13, 4.2, 1.9, 0.6), '#f2f0ea'), colorize(boxG(3.2, 2.4, 2.8, -1.0, 2.6, 0), '#f6f6f2'),
+         colorize(boxG(3.25, 0.6, 2.85, -1.0, 3.2, 0), '#2a3440'), colorize(new THREE.CylinderGeometry(0.1, 0.12, 6, 5).translate(1.6, 4.5, 0), '#e8e8e8')]),
+       acc: () => mergeGeos([colorize(hull(13.1, 4.3, 0.9, 0.6).translate(0, -0.05, 0), '#ffffff')]) },
+  2: { body: () => mergeGeos([colorize(hull(11, 3.6, 1.4), '#f7f7f4'), colorize(boxG(3.6, 0.7, 2.2, -0.6, 1.75, 0), '#f2f2ee'),
+         colorize(boxG(3.65, 0.25, 2.25, -0.6, 1.75, 0), '#2a3440'), colorize(new THREE.CylinderGeometry(0.07, 0.1, 14, 5).translate(0.8, 8.4, 0), '#d8d8d8'),
+         colorize(new THREE.CylinderGeometry(0.06, 0.06, 4.2, 4).rotateZ(Math.PI / 2).translate(-1.3, 2.6, 0), '#d8d8d8')]),
+       acc: () => mergeGeos([colorize(boxG(4.4, 0.5, 0.75, -1.2, 2.85, 0), '#ffffff')]) },
+  3: { body: () => mergeGeos([colorize(hull(12, 3.9, 1.6, 0.5), '#fbfbf8'), colorize(boxG(5.2, 1.3, 3.0, -0.8, 2.0, 0), '#f7f7f3'),
+         colorize(boxG(5.25, 0.45, 3.05, -0.8, 2.05, 0), '#1f2a35'), colorize(boxG(3.0, 0.9, 2.4, -1.4, 3.05, 0), '#f7f7f3'),
+         colorize(boxG(3.05, 0.3, 2.45, -1.4, 3.1, 0), '#1f2a35')]),
+       acc: () => mergeGeos([colorize(hull(12.1, 3.96, 0.25, 0.5).translate(0, 0.6, 0), '#ffffff')]) },
+};
+const ACC = ['#2f6fb0', '#c2412d', '#3a8a4a', '#e0b030', '#5aa7d6', '#1f3d6b'].map((h) => new THREE.Color(h));
+function ferryGeo() {
+  return mergeGeos([colorize(hull(76, 16, 7, 0.2).translate(0, -1.5, 0), '#f4f4f0'), colorize(hull(76.4, 16.2, 1.4, 0.2).translate(0, 0.2, 0), '#1d4f9c'),
+    colorize(boxG(48, 4.5, 14, -6, 6.6, 0), '#f6f6f2'), colorize(boxG(48.2, 1.1, 14.2, -6, 6.0, 0), '#26323e'),
+    colorize(boxG(30, 3.2, 12, -10, 10.4, 0), '#f6f6f2'), colorize(boxG(30.2, 0.9, 12.2, -10, 10.4, 0), '#26323e'),
+    colorize(boxG(9, 2.5, 13, 10, 10.0, 0), '#f6f6f2'), colorize(boxG(9.2, 0.8, 13.2, 10, 10.3, 0), '#26323e'),
+    colorize(boxG(4, 5, 3, -18, 14.5, 0), '#1d4f9c'), colorize(boxG(4.1, 1.2, 3.1, -18, 16.5, 0), '#c2412d')]);
+}
+function palmGeo() {
+  const parts = [];
+  let x = 0, y = 0, lean = 0;
+  for (let k = 0; k < 6; k++) {   // gently curved trunk
+    const h = 1.35, r0 = 0.24 - k * 0.012, r1 = r0 - 0.012;
+    parts.push(paint(new THREE.CylinderGeometry(r1, r0, h, 6, 1, true).translate(0, h / 2, 0).rotateZ(-lean).translate(x, y, 0), '#6d5a42', '#8a7556', 0, 9));
+    x += Math.sin(lean) * h; y += Math.cos(lean) * h; lean += 0.035;
+  }
+  for (let k = 0; k < 9; k++) {   // drooping fronds
+    const a = k / 9 * Math.PI * 2, g = new THREE.ConeGeometry(0.5, 3.6, 3, 1, true).scale(1, 1, 0.25).translate(0, 1.8, 0).rotateZ(-1.95 + (k % 2) * 0.25).rotateY(a).translate(x, y, 0);
+    parts.push(paint(g, '#3f6a2a', '#7aa648', y - 1.4, y + 0.6));
+  }
+  parts.push(paint(new THREE.IcosahedronGeometry(0.45, 0).translate(x, y - 0.1, 0), '#5a4a32', '#7a6a42', y - 0.5, y + 0.4));
+  return mergeGeos(parts);
+}
+function lampGeo() {
+  return mergeGeos([paint(new THREE.CylinderGeometry(0.07, 0.11, 4.2, 6).translate(0, 2.1, 0), '#1e2a26', '#2c3a35', 0, 4.2),
+    paint(new THREE.CylinderGeometry(0.03, 0.03, 0.8, 4).rotateZ(Math.PI / 2).translate(0.35, 4.1, 0), '#1e2a26', '#1e2a26', 0, 1),
+    paint(new THREE.ConeGeometry(0.28, 0.45, 6).translate(0.72, 3.95, 0), '#e9e3c8', '#fff7d6', 3.7, 4.2)]);
+}
+function cafeGeo() {
+  return mergeGeos([paint(new THREE.CylinderGeometry(0.4, 0.4, 0.05, 10).translate(0, 0.75, 0), '#e8e2d6', '#f2ede2', 0, 1),
+    paint(new THREE.CylinderGeometry(0.04, 0.04, 0.75, 4).translate(0, 0.37, 0), '#3a3a3a', '#3a3a3a', 0, 1),
+    paint(boxG(0.42, 0.45, 0.42, 0.62, 0.22, 0), '#7a5a3a', '#9a7a52', 0, 0.45), paint(boxG(0.42, 0.45, 0.42, -0.62, 0.22, 0), '#7a5a3a', '#9a7a52', 0, 0.45),
+    paint(boxG(0.42, 0.5, 0.06, 0.62, 0.7, 0.2), '#7a5a3a', '#9a7a52', 0, 1), paint(boxG(0.42, 0.5, 0.06, -0.62, 0.7, -0.2), '#7a5a3a', '#9a7a52', 0, 1),
+    paint(new THREE.CylinderGeometry(0.03, 0.03, 2.3, 4).translate(0, 1.15, 0), '#d8d4c8', '#d8d4c8', 0, 1)]);
+}
+const UMB = ['#f3eee2', '#e9e2cf', '#2f6fb0', '#2e7f7a'].map((h) => new THREE.Color(h));
+function instAt(geo, mats, list, stride, fn, colors) {
+  const n = list.length / stride; if (!n) return null;
+  const im = new THREE.InstancedMesh(geo, mats.cel, n);
+  for (let k = 0; k < n; k++) { fn(k, _p, _q, _s); im.setMatrixAt(k, _m4.compose(_p, _q, _s)); if (colors) im.setColorAt(k, colors(k)); }
+  im.userData.mats = mats; im.castShadow = true; im.receiveShadow = true; im.computeBoundingSphere();
+  return im;
+}
+MATDEF.Prop = { color: '#ffffff', vertexColors: true, pull: [0, 0.0006] };
+MAT.Prop = makeMat('Prop');
+function buildTown(T) {
+  TOWN.data = T;
+  { const xs = T.zone.map((p) => p[0]), ys = T.zone.map((p) => p[1]);
+    TOWNZ = { p: T.zone, x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) }; }
+  const b = TB(), deco = { clocks: [], domes: [] }, tanks = [];
+  for (const d of T.blds) {
+    if (d.kind === 'castle') castle(b, d, deco);
+    else if (d.kind === 'church') church(b, d, deco);
+    else house(b, d, tanks);
+  }
+  const m = finishTB(b, MAT.Town); if (m) TOWN.group.add(m);
+  // domes + clocks + tanks
+  const up = new THREE.Vector3(0, 1, 0);
+  const domeG = mergeGeos([paint(new THREE.CylinderGeometry(1, 1, 0.35, 20, 1, true).translate(0, 0.17, 0), '#d8cdb4', '#d8cdb4', 0, 1),
+    paint(new THREE.SphereGeometry(1, 20, 8, 0, 6.283, 0, Math.PI / 2).translate(0, 0.35, 0), '#b8902f', '#e8c45a', 0.3, 1.3),
+    paint(new THREE.CylinderGeometry(0.06, 0.08, 0.45, 5).translate(0, 1.55, 0), '#d8cdb4', '#d8cdb4', 0, 1)]);
+  const add = (o) => { if (o) TOWN.group.add(o); };
+  add(instAt(domeG, MAT.Prop, deco.domes, 4, (k, p, q, s) => { const r = deco.domes[k * 4 + 3]; p.set(deco.domes[k * 4], deco.domes[k * 4 + 2], -deco.domes[k * 4 + 1]); q.identity(); s.set(r, r * 0.9, r); }));
+  const clockG = mergeGeos([0, 1, 2, 3].map((k) => paint(new THREE.CircleGeometry(0.85, 16).translate(0, 0, 1).rotateY(k * Math.PI / 2), '#f4f0e4', '#f4f0e4', 0, 1)));
+  add(instAt(clockG, MAT.Prop, deco.clocks, 4, (k, p, q, s) => { const r = deco.clocks[k * 4 + 3]; p.set(deco.clocks[k * 4], deco.clocks[k * 4 + 2], -deco.clocks[k * 4 + 1]); q.identity(); s.set(r, r, r); }));
+  const tankG = mergeGeos([paint(new THREE.CylinderGeometry(0.62, 0.62, 1.2, 10).translate(0, 0.6, 0), '#c9c9c4', '#efefea', 0, 1.2)]);
+  const solarG = mergeGeos([paint(boxG(2.0, 0.08, 1.1, 0, 0.75, 0).rotateX(-0.6), '#1f2b3e', '#2d3f5a', 0, 1.5), paint(new THREE.CylinderGeometry(0.28, 0.28, 2.0, 8).rotateZ(Math.PI / 2).translate(0, 1.15, -0.45), '#d8d8d4', '#f0f0ec', 0.8, 1.5)]);
+  for (const kind of [0, 1]) {
+    const L = []; for (let k = 0; k < tanks.length; k += 4) if (tanks[k + 3] === kind) L.push(tanks[k], tanks[k + 1], tanks[k + 2]);
+    add(instAt(kind ? solarG : tankG, MAT.Prop, L, 3, (k, p, q, s) => { p.set(L[k * 3], L[k * 3 + 2], -L[k * 3 + 1]); q.setFromAxisAngle(up, rnd(L[k * 3] * 7, L[k * 3 + 1] * 7) * 6.283); s.set(1, 1, 1); }));
+  }
+  // boats: body (white) + accent (instance colour)
+  for (const ty of [0, 1, 2, 3]) {
+    const L = T.boats.filter((bt) => bt[3] === ty); if (!L.length) continue;
+    const place = (k, p, q, s) => { const [x, y, hd] = L[k]; p.set(x, -0.25 + (ty === 1 ? -0.3 : 0), -y); q.setFromAxisAngle(up, hd); s.set(1, 1, 1); };
+    add(instAt(BOATS[ty].body(), MAT.Prop, L.flat(), 5, place));
+    add(instAt(BOATS[ty].acc(), MAT.Prop, L.flat(), 5, place, (k) => ACC[L[k][4] % ACC.length]));
+  }
+  if (T.ferry) {
+    const f = new THREE.Mesh(ferryGeo(), MAT.Prop.cel); f.userData.mats = MAT.Prop; f.castShadow = true; f.receiveShadow = true;
+    f.position.set(T.ferry[0], -0.6, -T.ferry[1]); f.rotation.y = T.ferry[2]; add(f);
+  }
+  add(instAt(palmGeo(), MAT.Prop, T.palms.flat(), 2, (k, p, q, s) => { const x = T.palms[k][0], y = T.palms[k][1]; p.set(x, heightCubic(x, y) - 0.1, -y); q.setFromAxisAngle(up, rnd(x * 3, y * 3) * 6.283); const sc = 0.85 + rnd(y, x) * 0.35; s.set(sc, sc, sc); }));
+  add(instAt(lampGeo(), MAT.Prop, T.lamps.flat(), 2, (k, p, q, s) => { const x = T.lamps[k][0], y = T.lamps[k][1]; p.set(x, heightCubic(x, y), -y); q.setFromAxisAngle(up, rnd(x, y) * 6.283); s.set(1, 1, 1); }));
+  const cafeG = cafeGeo(), umbG = mergeGeos([paint(new THREE.ConeGeometry(1.35, 0.55, 8).translate(0, 2.35, 0), '#ffffff', '#ffffff', 0, 1)]);
+  const cplace = (k, p, q, s) => { const [x, y, a] = T.cafes[k]; p.set(x, heightCubic(x, y) + 0.05, -y); q.setFromAxisAngle(up, a); s.set(1, 1, 1); };
+  add(instAt(cafeG, MAT.Prop, T.cafes.flat(), 4, cplace));
+  add(instAt(umbG, MAT.Prop, T.cafes.flat(), 4, cplace, (k) => UMB[T.cafes[k][3] % UMB.length]));
+  // paved squares
+  const pv = TB();
+  for (const pz of T.piazzas) {
+    const pts = ccw(pz), shape = pts.map(([x, y]) => new THREE.Vector2(x, y));
+    const tris = THREE.ShapeUtils.triangulateShape(shape, []);
+    for (const t of tris) for (const k of t) { const [x, y] = pts[k]; tPush(pv, x, y, heightCubic(x, y) + 0.5, [0, 0, 1], TPAL[0], x, y, 0, 1); }
+  }
+  const pm = finishTB(pv, MAT.Town, false); if (pm) add(pm);
+  styleMeshes(TOWN.group);
+  // town labels: bars, restaurants, squares, quays, landmarks (shown when zoomed in)
+  const KP = { landmark: 3, port: 4, square: 5, quay: 6, civic: 6, hotel: 7, food: 7, bar: 7, shop: 8 };
+  for (const p of T.pois) META.labels.push({ name: p.name, x: p.x, y: p.y, z: p.z + (p.kind === 'landmark' ? 14 : 3), kind: 'town-' + p.kind, prio: KP[p.kind] ?? 7 });
 }
 
 // ---------------- outlines (cel style): depth + normal edges ----------------
@@ -1179,7 +1553,7 @@ const _v = new THREE.Vector3();
 const _ray = new THREE.Raycaster();
 function updateLabels() {
   const dist = camera.position.distanceTo(controls.target);
-  const maxPrio = dist > 16000 ? 1 : dist > 9000 ? 2 : dist > 5000 ? 3 : dist > 2500 ? 5 : 9;
+  const maxPrio = dist > 16000 ? 1 : dist > 9000 ? 2 : dist > 5000 ? 3 : dist > 2500 ? 5 : dist > 700 ? 6 : 9;
   const W = innerWidth, H = innerHeight, placed = [];
   for (const L of labelEls) {
     let show = STYLE.labels && L.l.prio <= maxPrio;
@@ -1233,7 +1607,7 @@ function updateRoadLabels(placed, dist) {
     cand.sort((a, b) => a[0] - b[0]);
     const seenName = new Map();
     for (const [, R] of cand) {
-      if (used >= 70) break;
+      if (used >= 120) break;
       _a.copy(R.p).project(camera);
       if (_a.z > 1 || _a.x < -1.05 || _a.x > 1.05 || _a.y < -1.05 || _a.y > 1.05) continue;
       _b.copy(R.p).addScaledVector(R.d, 12).project(camera);
@@ -1539,7 +1913,9 @@ async function boot() {
     const gltf = await new Promise((res, rej) => gl.load(MEDIA + 'island.glb', res, undefined, rej));
     addGLB(gltf); step('trees');
     buildInstances(await bin(MEDIA + 'instances.bin'));
-    parseDetail(await bin(MEDIA + 'detail.bin')); hookFarTrees(); step('names');
+    parseDetail(await bin(MEDIA + 'detail.bin')); hookFarTrees(); step('town');
+    try { buildTown(await (await fetch(MEDIA + 'town.json')).json()); } catch (e) { console.warn('town', e); }
+    step('names');
     buildLabels(); buildRoadLabels();
     setupPost();
     updateSun(STYLE.hour);

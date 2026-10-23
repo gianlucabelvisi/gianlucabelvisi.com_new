@@ -15,10 +15,16 @@ subprocess.run(['gltf-transform', 'meshopt', 'out/pantelleria.glb', os.path.join
 Image.open('prep/terrain.png').save(os.path.join(W, 'terrain.webp'), quality=84, method=6)
 Image.open('prep/terrain_photo.png').save(os.path.join(W, 'terrain_photo.webp'), quality=82, method=6)
 shutil.copy('prep/coast.png', os.path.join(W, 'coast.png'))
+if os.path.exists('prep/town.json'):
+    TZ = json.load(open('prep/town.json')); json.dump(TZ, open(os.path.join(W, 'town.json'), 'w'), separators=(',', ':'), ensure_ascii=False)
+else: TZ = None
 hm = np.clip(np.round((z.astype(np.float64) + 50.0) * 50.0), 0, 65535).astype('<u2')
 open(os.path.join(W, 'height.bin'), 'wb').write(gzip.compress(hm.tobytes(), 9))
 open(os.path.join(W, 'instances.bin'), 'wb').write(gzip.compress(open('out/instances.bin', 'rb').read(), 9))
 import math
+from shapely.geometry import shape as _shape, LineString
+from shapely.geometry import Polygon as _Poly
+TZONE = _Poly(TZ['zone']).buffer(60) if TZ else None
 def road_labels():
     """Anchors for road names along the roads: [name, x, y, z, angle, tier]. tier 0 main, 1 street, 2 track/path."""
     TIER = {'secondary': 0, 'tertiary': 0, 'primary': 0, 'trunk': 0, 'unclassified': 1, 'residential': 1, 'service': 1,
@@ -34,7 +40,9 @@ def road_labels():
         for a, b in zip(P, P[1:]): cum.append(cum[-1] + math.dist(a[:2], b[:2]))
         L = cum[-1]
         if L < 45: continue
-        n = max(1, int(L // STEP[t]))
+        st_ = STEP[t]
+        if TZONE is not None and TZONE.intersects(LineString([p[:2] for p in P])): st_ = 85.0
+        n = max(1, int(L // st_))
         for k in range(n):
             s_ = L * (k + 0.5) / n
             def at(d):
@@ -47,7 +55,7 @@ def road_labels():
             c = at(s_); p0 = at(s_ - 18); p1 = at(s_ + 18)
             ang = math.atan2(p1[1] - p0[1], p1[0] - p0[0])
             key = nm
-            if any(math.dist(c[:2], q) < STEP[t] * 0.6 for q in seen.get(key, [])): continue
+            if any(math.dist(c[:2], q) < st_ * 0.6 for q in seen.get(key, [])): continue
             seen.setdefault(key, []).append(c[:2])
             out.append([nm, round(c[0], 1), round(c[1], 1), round(c[2] + 1.0, 1), round(ang, 3), t])
     print('road labels', len(out))

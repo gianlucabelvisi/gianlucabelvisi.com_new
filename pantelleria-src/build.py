@@ -243,7 +243,9 @@ def finish(bm, name, material, smooth=False):
 from shapely.geometry import Polygon as SPoly
 DOMES = []
 tiles = {}
+TOWN_IDS = set(b['id'] for b in json.load(open('prep/town.json'))['blds']) if os.path.exists('prep/town.json') else set()
 for b in F['buildings']:
+    if b['id'] in TOWN_IDS: continue      # the town centre is built by the viewer (facades, landmarks)
     pts = b['pts']; poly = SPoly(pts)
     c = poly.centroid
     t = tile_of(c.x, c.y)
