@@ -241,7 +241,7 @@ function updatePlayer(dt) {
     let s = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + joy.x;
     if (Math.abs(f) + Math.abs(s) > 0.05) autoTarget = null;
     fwd.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw)); right.set(-fwd.z, 0, fwd.x);
-    const speed = (running || keys.ShiftLeft || keys.ShiftRight ? 3.4 : 1.55) * dt;
+    const speed = (running || keys.ShiftLeft || keys.ShiftRight ? 4.6 : 2.5) * dt;
     if (autoTarget) {
       const d = _v2.set(autoTarget.x - player.pos.x, 0, autoTarget.z - player.pos.z); const l = d.length();
       if (l < 0.15) autoTarget = null; else { d.normalize(); if (!tryMove(d.x * Math.min(l, speed), d.z * Math.min(l, speed))) autoTarget = null; }

@@ -53,6 +53,42 @@ def road_labels():
     print('road labels', len(out))
     return out
 
+# near-detail data: class raster (10 m), road/house mask (2.5 m, bit-packed rows), walls and pantesco gardens
+def detail_bin():
+    import struct
+    C = np.load('prep/classes.npy').astype(np.uint8)
+    RMp = np.load('prep/roadmask.npy')
+    D = json.load(open('prep/detail.json'))
+    out = bytearray()
+    out += struct.pack('<4I', C.shape[1], C.shape[0], RMp.shape[1] * 8, RMp.shape[0])
+    out += C.tobytes(); out += RMp.tobytes()
+    walls = D['walls']
+    out += struct.pack('<I', len(walls))
+    for ty, pts in walls:
+        out += struct.pack('<BH', ty, len(pts))
+        out += np.round(np.array(pts) * 4).astype('<i2').tobytes()
+    if len(out) % 2: out += b'\0'
+    g = np.array(D['gardens'], dtype=np.float64).reshape(-1, 3)
+    out += struct.pack('<I', len(g)); out += np.round(g * 4).astype('<i2').tobytes()
+    # roads for the near layer: tier (0 main, 1 street, 2 track/path, 3 steps/footway), surface (0 asphalt, 1 unpaved, 2 paved),
+    # width*10, n, then n x (x*4, y*4, z*10) int16. Resampled to ~6 m (the near layer interpolates).
+    TIER = {'secondary': 0, 'tertiary': 0, 'primary': 0, 'trunk': 0, 'unclassified': 1, 'residential': 1, 'service': 1,
+            'pedestrian': 1, 'living_street': 1, 'track': 2, 'path': 3, 'footway': 3, 'steps': 3, 'cycleway': 3}
+    SC = {'asphalt': 0, 'unpaved': 1, 'paved': 2}
+    rs = [r for r in F['roads'] if len(r['pts']) > 1]
+    out += struct.pack('<I', len(rs))
+    for r in rs:
+        P = np.array(r['pts'])
+        keep = [0]
+        for i in range(1, len(P) - 1):
+            if math.dist(P[i, :2], P[keep[-1], :2]) >= 6: keep.append(i)
+        keep.append(len(P) - 1)
+        P = P[keep]
+        out += struct.pack('<BBBH', TIER.get(r['cls'], 2), SC.get(r.get('surface'), 0), min(255, int(round(r['w'] * 10))), len(P))
+        out += np.column_stack([np.round(P[:, 0] * 4), np.round(P[:, 1] * 4), np.round(P[:, 2] * 10)]).astype('<i2').tobytes()
+    open(os.path.join(W, 'detail.bin'), 'wb').write(gzip.compress(bytes(out), 9))
+detail_bin()
+
 fr = F['frame']
 meta = {'x0': fr['x0'], 'y0': fr['y0'], 'cell': fr['cell'], 'nx': fr['nx'], 'ny': fr['ny'], 'lat0': 36.785, 'lon0': 11.99,
         'labels': F['labels'],

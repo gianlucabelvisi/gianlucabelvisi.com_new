@@ -29,6 +29,24 @@
   background-color: transparent;
 }
 
+/* Over the hero images: a soft dark scrim fading down from the top edge, so the nav reads without an opaque bar.
+   It fades out once the header gets its own blurred background on scroll. */
+.homepage::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 7.5rem;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.32) 50%, rgba(0, 0, 0, 0) 100%);
+  pointer-events: none;
+  z-index: -1;
+  transition: opacity 0.35s ease;
+}
+
+.homepage.scrolled::before,
+.homepage.hidden::before {
+  opacity: 0;
+}
+
 .homepage.scrolled {
   background-color: rgba(13, 13, 13, 0.82);
   backdrop-filter: blur(14px);
@@ -190,9 +208,10 @@
   color: var(--color-text-primary);
 }
 
-/* Homepage: always light text */
+/* Homepage: always light text, with a shadow so it holds up over bright hero images */
 .homepage .navLink {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), 0 0 12px rgba(0, 0, 0, 0.35);
 }
 
 .homepage .navLink:hover,
@@ -224,13 +243,17 @@
 }
 
 .homepage .iconButton {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(255, 255, 255, 0.92);
+  background-color: rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4));
 }
 
 .homepage .iconButton:hover,
 .homepage .iconButton.active {
   color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.16);
 }
 
 .iconButton:focus-visible,

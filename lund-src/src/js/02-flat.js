@@ -9,7 +9,7 @@ const ROOMS = [
   { id: 'entry', sv: 'Entré', en: 'Entrance', poly: [[247, 1257], [636, 1257], [636, 1523], [247, 1523]] },
   { id: 'bath', sv: 'WC/Dusch', en: 'Bathroom', poly: [[185, 855], [440, 855], [440, 1241], [185, 1241]] },
   { id: 'bedroom', sv: 'Sovrum', en: 'Bedroom', poly: [[652, 849], [1173, 849], [1173, 1523], [652, 1523]] },
-  { id: 'stair', sv: 'Trapphus', en: 'Stairwell', poly: [[-620, 1262], [247, 1262], [247, 1665], [-620, 1665]] },
+  { id: 'stair', sv: 'Trapphus', en: 'Stairwell', poly: [[-800, 1262], [-310, 1262], [-310, 820], [0, 820], [0, 1262], [247, 1262], [247, 1665], [-800, 1665]] },
 ];
 const PLANPT = (p) => P(p[0], p[1]);
 const roomArea = (r) => { let a = 0; const q = r.poly; for (let i = 0; i < q.length; i++) { const [x1, y1] = q[i], [x2, y2] = q[(i + 1) % q.length]; a += x1 * y2 - x2 * y1; } return Math.abs(a) / 2 / PXM / PXM; };
@@ -177,60 +177,145 @@ MATS.stairwall = std({ color: 0xe2ddd2, roughness: 0.85 });
 MATS.stairdado = std({ color: 0x7d8e7f, roughness: 0.5 });
 MATS.riser = std({ color: 0x5f5c58, roughness: 0.6 });
 MATS.handrail = std({ color: 0x8a6a46, roughness: 0.5 });
-const STAIR = { x0: -620, x1: 247, y0: 1262, y1: 1665 };
-planPoly([[STAIR.x0, STAIR.y0], [STAIR.x1, STAIR.y0], [STAIR.x1, STAIR.y1], [STAIR.x0, STAIR.y1]], FZ, MATS.terrazzo, FLOORF);
-planBox(-635, 1247, 163, 1262, FZ, FZ + 2 * STOREY, MATS.stairwall, WALLF);        // back wall (neighbour flat)
-planBox(-635, 1247, -620, 1685, FZ, FZ + 2 * STOREY, MATS.stairwall, WALLF);       // end wall
-// courtyard wall with the red door (x -600..-470): plaster inside, brick outside, on the courtyard facade line (plan y 1685)
-for (const [y0, y1, m] of [[1665, 1670, MATS.stairwall], [1670, 1685, MATS.brick]]) {
-  planBox(-635, y0, -600, y1, FZ, FZ + 2 * STOREY, m, WALLF);
-  planBox(-470, y0, -459, y1, FZ, FZ + 2 * STOREY, m, WALLF);
-  planBox(-600, y0, -470, y1, FZ + 2.15, FZ + 2 * STOREY, m, WALLF);
+// Rebuilt from Gianluca's photo of the hall: a corridor of light-blue tiles (floor with navy border stripes, a subway-tile
+// dado, cream plaster above, an acoustic-tile ceiling with round lamps). Our oak door at the end; on the left the lift and
+// the opening to the stairs (one flight down to the cellar, one up); a neighbour's oak door on the left at the near end;
+// the courtyard door, mailboxes and a radiator on the right. The up stair is a dog-leg in a core behind the left wall and
+// arrives on a first-floor landing above our end of the corridor, with the upstairs door. Nothing further up is built.
+const STAIR = { x0: -800, x1: 247, y0: 1262, y1: 1665 };
+const S2 = FZ + 2 * STOREY, CEIL = FZ + 2.55;
+MATS.stairwall = std({ color: 0xeee6d6, roughness: 0.85 });
+MATS.hallFloor = std({ map: canvasTex(512, 512, (g, W) => { const r = rng(71), tw = W / 4, th = W / 8; g.fillStyle = '#7d8a99'; g.fillRect(0, 0, W, W);
+  for (let j = 0; j < 8; j++) for (let i = -1; i < 4; i++) { const v = 0.94 + r() * 0.1, x = i * tw + (j % 2) * tw / 2; g.fillStyle = `rgb(${[156, 190, 226].map((c) => Math.round(c * v))})`; g.fillRect(x + 2, j * th + 2, tw - 4, th - 4); } }, [0.96, 0.96]), roughness: 0.35 });
+MATS.hallTile = std({ map: canvasTex(512, 512, (g, W) => { const r = rng(73), tw = W / 4, th = W / 9; g.fillStyle = '#dfe6ee'; g.fillRect(0, 0, W, W);
+  for (let j = 0; j < 9; j++) for (let i = -1; i < 5; i++) { const v = 0.93 + r() * 0.12, x = i * tw + (j % 2) * tw / 2; g.fillStyle = `rgb(${[138, 172, 212].map((c) => Math.round(c * v))})`; g.fillRect(x + 3, j * th + 3, tw - 6, th - 6); } }, [0.96, 0.96]), roughness: 0.18 });
+MATS.navyStripe = std({ color: 0x1d2a4a, roughness: 0.3 });
+MATS.acoustic = std({ map: canvasTex(512, 512, (g, W) => { const r = rng(79); g.fillStyle = '#efece6'; g.fillRect(0, 0, W, W);
+  for (let i = 0; i < 9000; i++) { const v = 150 + r() * 90; g.fillStyle = `rgba(${v},${v - 4},${v - 8},.45)`; g.fillRect(r() * W, r() * W, 1.6, 1.6); }
+  g.fillStyle = '#c9c5bd'; g.fillRect(0, 0, W, 4); g.fillRect(0, 0, 4, W); }, [0.6, 0.6]), roughness: 0.95 });
+// floors: corridor and the courtyard threshold
+planPoly([[STAIR.x0, STAIR.y0], [STAIR.x1, STAIR.y0], [STAIR.x1, STAIR.y1], [STAIR.x0, STAIR.y1]], FZ, MATS.hallFloor, FLOORF);
+planPoly([[-600, 1660], [-470, 1660], [-470, 1690], [-600, 1690]], FZ + 0.003, MATS.hallFloor, FLOORF);
+// The stair opening is in the left wall at x -300..0; the flights run straight away from the corridor (you step onto them
+// from the hall): the up flight on the right of the opening, the cellar flight on the left, under the second up flight.
+const OPEN = { x0: -300, x1: 0 };
+// navy border stripes in the floor, ~20 cm in from the walls, jogging round the stair opening
+for (const [x0, y0, x1, y1] of [[-770, 1292, -315, 1307], [15, 1292, 225, 1307], [-330, 1262, -315, 1307], [15, 1262, 30, 1307], [-770, 1620, 225, 1635], [-785, 1292, -770, 1635], [210, 1307, 225, 1620]])
+  planBox(x0, y0, x1, y1, FZ, FZ + 0.004, MATS.navyStripe, { noShadow: true });
+// walls of the corridor
+planBox(-815, 1247, OPEN.x0, 1262, FZ, S2, MATS.stairwall, WALLF);             // left wall up to the stair opening
+planBox(OPEN.x0, 1247, OPEN.x1, 1262, CEIL, FZ + STOREY - 0.2, MATS.stairwall, WALLF);   // lintel over the opening
+planBox(OPEN.x1, 1247, 163, 1262, FZ, S2, MATS.stairwall, WALLF);              // left wall from the opening to our end
+planBox(-815, 1247, -800, 1685, FZ, S2, MATS.stairwall, WALLF);                 // near end wall
+planBox(-800, 1665, -635, 1678, FZ, S2, MATS.stairwall, WALLF);                 // courtyard side, inside the facade
+for (const [y0, y1, m] of [[1665, 1680, MATS.stairwall], [1680, 1685, MATS.brick]]) {
+  planBox(-635, y0, -600, y1, FZ, S2, m, WALLF);
+  planBox(-470, y0, -459, y1, FZ, S2, m, WALLF);
+  planBox(-600, y0, -470, y1, FZ + 2.15, S2, m, WALLF);
 }
-planBox(-459, 1665, 247, 1680, FZ, FZ + 2 * STOREY, MATS.stairwall, WALLF);
+planBox(-459, 1665, 247, 1680, FZ, S2, MATS.stairwall, WALLF);
 planBox(-635, 1670, -459, 1687, 0, FZ, MATS.plinth, WALLF);
-planPoly([[-600, 1660], [-470, 1660], [-470, 1690], [-600, 1690]], FZ + 0.003, MATS.terrazzo, FLOORF);   // threshold, level with the courtyard
 planBox(247, 1544, 269, 1665, FZ, FZ + STOREY, MATS.stairwall, WALLF);
-planBox(163, 1257, 247, 1262, FZ, FZ + 2 * STOREY, MATS.stairwall, WALLF);
-// dado band
-for (const [x0, y0, x1, y1] of [[-620, 1262, 163, 1266], [-620, 1661, 247, 1665]]) planBox(x0, y0, x1, y1, FZ, FZ + 1.1, MATS.stairdado);
-// the flight: 16 risers of 17.5 cm, 26 cm treads, from beside our door (bottom) up towards the end wall
-const FLIGHT = { n: 16, run: 0.26 * PXM, xb: 140, y0: 1262, y1: 1412 };
-{
-  const { n, run, xb, y0, y1 } = FLIGHT, rise = STOREY / n;
-  for (let i = 0; i < n; i++) {
-    const xa = xb - (i + 1) * run, xc = xb - i * run, zt = FZ + (i + 1) * rise;
-    planBox(xa, y0, xc, y1, zt - 0.045, zt, MATS.terrazzo, { floor: false, collide: false });                    // tread
-    planBox(xc - 3, y0, xc, y1, zt - rise, zt - 0.045, MATS.riser, {});                                           // riser
-  }
-  // closed underneath (a cupboard under the stairs), painted like the walls
-  for (let i = 0; i < n; i++) { const xa = xb - (i + 1) * run, xc = xb - i * run; planBox(xa, y0, xc, y1 - 2, FZ, FZ + (i + 1) * rise - 0.045, MATS.stairwall, WALLF); }
-  // a smooth painted side panel under the flight on the corridor side (floor to the tread line)
-  { const a = P(xb, y1 + 0.5), b2 = P(xb - n * run, y1 + 0.5), za = FZ + rise - 0.05, zb = FZ + STOREY - 0.05;
-    const pos = [a[0], FZ, -a[1], b2[0], FZ, -b2[1], b2[0], zb, -b2[1], a[0], FZ, -a[1], b2[0], zb, -b2[1], a[0], za, -a[1]];
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals(); worldUV(g);
-    addStatic(g, std({ color: 0xe2ddd2, roughness: 0.85, side: THREE.DoubleSide }), {}); }
-  planBox(233, 1262, 247, 1665, FZ + STOREY - 0.2, FZ + 2 * STOREY, MATS.stairwall, { layer: 'above' });   // end of the stair void on our side
-  // the floor-1 wall above the flight's open side (closes the stair void)
-  planBox(xb - n * run, y1, 247, y1 + 3, FZ + STOREY - 0.2, FZ + 2 * STOREY, MATS.stairwall, { layer: 'above' });
-  // balustrade: square steel posts + oak handrail along the open side
-  for (let i = 0; i <= n; i += 2) { const x = xb - i * run - run / 2; planBox(x - 2, y1 - 3, x + 2, y1 + 1, FZ + (i + 1) * rise, FZ + (i + 1) * rise + 0.9, MATS.steel); }
-  const r0 = P(xb, y1 - 1), r1 = P(xb - n * run, y1 - 1);
-  const rail = new THREE.CylinderGeometry(0.025, 0.025, Math.hypot(r1[0] - r0[0], r1[1] - r0[1], STOREY), 10);
-  const dir = new THREE.Vector3(r1[0] - r0[0], STOREY, -(r1[1] - r0[1])).normalize();
-  rail.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir));
-  rail.translate((r0[0] + r1[0]) / 2, FZ + rise + 0.9 + STOREY / 2, -(r0[1] + r1[1]) / 2);
-  addStatic(rail, MATS.handrail, {});
-  // landing on the first floor at the top (x -620..-276), seen through the stair void; ceiling over the rest
-  planBox(-620, 1262, xb - n * run, 1665, FZ + STOREY - 0.2, FZ + STOREY, MATS.concrete, { layer: 'above' });
-  planPoly([[-620, 1262], [xb - n * run, 1262], [xb - n * run, 1665], [-620, 1665]], FZ + STOREY - 0.2, MATS.ceiling, { layer: 'above' }, true);
-  planPoly([[xb - n * run, y1], [247, y1], [247, 1665], [xb - n * run, 1665]], FZ + STOREY - 0.05, MATS.ceiling, { layer: 'above' }, true);
-  planPoly([[xb, y0], [247, y0], [247, y1], [xb, y1]], FZ + STOREY - 0.05, MATS.ceiling, { layer: 'above' }, true);
-  // the next flight up (floor 1 → 2) above, rising back towards our end
-  for (let i = 0; i < n; i++) { const xa = xb - n * run + i * run; planBox(xa, y0, xa + run, y1, FZ + STOREY + (i + 1) * rise - 0.2, FZ + STOREY + (i + 1) * rise, MATS.terrazzo, { layer: 'above' }); }
-  planPoly([[xb - n * run, y0], [247, y0], [247, 1665], [xb - n * run, 1665]], FZ + 2 * STOREY - 0.05, MATS.ceiling, { layer: 'above' }, true);
+planBox(163, 1257, 247, 1262, FZ, FZ + STOREY - 0.2, MATS.stairwall, WALLF);
+planBox(245, 1262, 262, 1665, FZ + 2.3, FZ + STOREY, MATS.stairwall, {});      // closes the strip over our door wall
+// tiled dado (1.25 m), skipping the doors and openings
+const DADO = FZ + 1.25;
+for (const [x0, x1] of [[-800, -780], [-650, -560], [-420, OPEN.x0], [OPEN.x1, 245]]) planBox(x0, 1262, x1, 1264, FZ, DADO, MATS.hallTile, {});
+for (const [x0, x1] of [[-800, -600], [-470, -205], [-60, 247]]) planBox(x0, 1663, x1, 1665, FZ, DADO, MATS.hallTile, {});
+planBox(-800, 1262, -798, 1665, FZ, DADO, MATS.hallTile, {});
+for (const [y0, y1] of [[1262, 1291], [1428, 1665]]) planBox(245, y0, 247, y1, FZ, DADO, MATS.hallTile, {});
+for (const x of [OPEN.x0, OPEN.x1]) planBox(x - 3, 1250, x + 3, 1264, FZ, CEIL, MATS.hallTile, {});
+// acoustic ceiling over the corridor (the first-floor landing's underside covers the part by the stairs)
+planPoly([[STAIR.x0, 1262], [-310, 1262], [-310, 1665], [STAIR.x0, 1665]], CEIL, MATS.acoustic, { layer: 'above' }, true);
+planPoly([[10, 1262], [247, 1262], [247, 1665], [10, 1665]], CEIL, MATS.acoustic, { layer: 'above' }, true);
+// the lift: navy door with a slim window, chrome pull handle, call button; and the neighbour's oak door at the near end
+MATS.liftNavy = std({ color: 0x1c2440, roughness: 0.18, metalness: 0.3 });
+planBox(-560, 1258, -420, 1263, FZ, FZ + 2.12, MATS.liftNavy, WALLF);
+planBox(-470, 1263, -455, 1264, FZ + 1.2, FZ + 1.9, MATS.darkglass || MATS.glass); planBox(-474, 1263, -451, 1265, FZ + 1.18, FZ + 1.2, MATS.white); planBox(-474, 1263, -451, 1265, FZ + 1.9, FZ + 1.92, MATS.white);
+planBox(-474, 1263, -472, 1265, FZ + 1.18, FZ + 1.92, MATS.white); planBox(-453, 1263, -451, 1265, FZ + 1.18, FZ + 1.92, MATS.white);
+planBox(-498, 1263, -494, 1272, FZ + 0.9, FZ + 1.25, MATS.steel); planBox(-406, 1262, -398, 1264, FZ + 1.0, FZ + 1.14, MATS.steel);
+planBox(-566, 1262, -414, 1265, FZ + 2.12, FZ + 2.17, MATS.liftNavy);
+const oakDoor = std({ color: 0xc08a50, roughness: 0.45 });
+// an oak flat door: in the left wall (side +1: faces +y) or the right wall (side -1: faces -y), x0..x1, at floor level z
+function flatDoor(x0, x1, side, z = FZ) {
+  const yw = side > 0 ? 1262 : 1665, d = side > 0 ? 1 : -1, yi = (o) => yw + d * o;
+  const box = (a, b, o0, o1, z0, z1, m, f = {}) => planBox(a, Math.min(yi(o0), yi(o1)), b, Math.max(yi(o0), yi(o1)), z0, z1, m, f);
+  box(x0, x1, -4, 0, z, z + 2.05, oakDoor, WALLF);
+  box(x0 - 10, x0, 0, 4, z, z + 2.11, MATS.casing); box(x1, x1 + 10, 0, 4, z, z + 2.11, MATS.casing); box(x0 - 10, x1 + 10, 0, 4, z + 2.05, z + 2.11, MATS.casing);
+  box(x1 - 18, x1 - 13, 0, 10, z + 0.98, z + 1.0, MATS.steel); box(x0 + 45, x1 - 45, 0, 1, z + 1.45, z + 1.5, MATS.white);
 }
-// mailboxes beside the courtyard door, a doormat and a name plate at our door
-MATS.mailbox = std({ color: 0x5e6b62, roughness: 0.5, metalness: 0.4 });
-planBox(-430, 1650, -250, 1665, FZ + 0.95, FZ + 1.55, MATS.mailbox, WALLF);
-planBox(150, 1305, 240, 1415, FZ, FZ + 0.012, std({ color: 0x3a3836, roughness: 1 }), {});
+flatDoor(-780, -650, 1);          // near end, left (not in the photo)
+flatDoor(-195, -70, -1);          // right wall, opposite the stairs
+// the post boxes, on the right wall by our end of the corridor (two grey name panels over white mail boxes) and a radiator
+MATS.mailbox = std({ color: 0x8c9196, roughness: 0.4, metalness: 0.5 });
+for (const [x0, x1] of [[-40, 80], [95, 205]]) {
+  planBox(x0, 1652, x1, 1663, FZ + 1.42, FZ + 1.84, MATS.mailbox, WALLF);
+  for (let k = 0; k < 4; k++) planBox(x0 + 6, 1650, x1 - 6, 1652, FZ + 1.47 + k * 0.09, FZ + 1.49 + k * 0.09, std({ color: 0xe8e8e4, roughness: 0.5 }));
+  planBox(x0 - 4, 1638, x1 + 4, 1663, FZ + 0.98, FZ + 1.36, MATS.white, WALLF);
+  planBox((x0 + x1) / 2 - 25, 1637, (x0 + x1) / 2 + 25, 1638, FZ + 1.12, FZ + 1.3, std({ color: 0xd9dcdf, roughness: 0.4 }));
+}
+for (let k = 0; k < 20; k++) planBox(-420 + k * 9, 1650, -414 + k * 9, 1662, FZ + 0.18, FZ + 0.75, MATS.radiator || MATS.white, {});
+planBox(150, 1305, 240, 1415, FZ, FZ + 0.012, std({ color: 0x3a3836, roughness: 1 }), {});   // doormat at our door
+// ---- the stair core behind the left wall: 16 risers of 17.5 cm in two flights of 8 with a half landing, 26 cm treads
+const CORE = { x0: -310, x1: 0, y0: 820, y1: 1262 };
+const FLIGHT = { run: 0.26 * PXM, rise: STOREY / 16 };
+{
+  const { run, rise } = FLIGHT, STEP = { floor: true }, YH = 1262 - 7 * run, XM = -150;   // YH: where the half landing starts; XM: between the flights
+  for (const [x0, y0, x1, y1] of [[CORE.x0 - 15, CORE.y0 - 15, CORE.x0, 1262], [CORE.x1, CORE.y0 - 15, CORE.x1 + 11, 1262], [CORE.x0 - 15, CORE.y0 - 15, CORE.x1 + 11, CORE.y0]])
+    planBox(x0, y0, x1, y1, FZ - 1.6, S2, MATS.stairwall, WALLF);
+  // up flight 1 (right of the opening): straight in from the corridor, away from it
+  for (let i = 0; i < 7; i++) {
+    const y1 = 1262 - i * run, y0 = 1262 - (i + 1) * run, zt = FZ + (i + 1) * rise;
+    planBox(XM, y0, CORE.x1, y1, FZ - 0.02, zt - 0.04, MATS.stairwall, STEP);
+    planBox(XM, y0, CORE.x1, y1 + 3, zt - 0.04, zt, MATS.terrazzo, STEP);
+  }
+  // half landing at the back of the core
+  planBox(CORE.x0, CORE.y0, CORE.x1, YH, FZ - 1.6, FZ + 8 * rise - 0.04, MATS.stairwall, STEP);
+  planBox(CORE.x0, CORE.y0, CORE.x1, YH, FZ + 8 * rise - 0.04, FZ + 8 * rise, MATS.terrazzo, STEP);
+  // up flight 2 (left), back towards the corridor, over the cellar flight
+  for (let j = 0; j < 7; j++) {
+    const y0 = YH + j * run, y1 = YH + (j + 1) * run, zt = FZ + 8 * rise + (j + 1) * rise;
+    planBox(CORE.x0, y0, XM, y1, zt - rise - 0.08, zt - 0.04, MATS.stairwall, STEP);
+    planBox(CORE.x0, y0 - 3, XM, y1, zt - 0.04, zt, MATS.terrazzo, STEP);
+  }
+  // down to the cellar (left of the opening): six steps, then it turns out of sight behind a wall
+  for (let k = 0; k < 6; k++) {
+    const y1 = 1262 - k * run, y0 = 1262 - (k + 1) * run, zt = FZ - (k + 1) * rise;
+    planBox(CORE.x0, y0, XM, y1, FZ - 1.6, zt - 0.04, MATS.stairwall, STEP);
+    planBox(CORE.x0, y0, XM, y1 + 3, zt - 0.04, zt, MATS.terrazzo, STEP);
+  }
+  planBox(CORE.x0, 1262 - 6 * run - 18, XM, 1262 - 6 * run, FZ - 1.6, FZ + 8 * rise - 0.3, MATS.stairwall, WALLF);
+  // black steel mesh balustrade between the up flight and the cellar flight, its top following flight 1 (as in the photo)
+  MATS.mesh = std({ map: canvasTex(128, 128, (g, S) => { g.clearRect(0, 0, S, S); g.strokeStyle = '#141414'; g.lineWidth = 5; for (let k = -S; k < 2 * S; k += S / 4) { g.beginPath(); g.moveTo(k, 0); g.lineTo(k + S, S); g.stroke(); g.beginPath(); g.moveTo(k + S, 0); g.lineTo(k, S); g.stroke(); } }, [0.12, 0.12]), alphaTest: 0.5, roughness: 0.6, side: THREE.DoubleSide });
+  { const a = P(XM, 1262), b = P(XM, YH), za0 = FZ - 1.1, za1 = FZ + 0.95, zb0 = FZ - 1.1, zb1 = FZ + 7 * rise + 0.95;
+    const pos = [a[0], za0, -a[1], b[0], zb0, -b[1], b[0], zb1, -b[1], a[0], za0, -a[1], b[0], zb1, -b[1], a[0], za1, -a[1]];
+    const L = Math.hypot(b[0] - a[0], b[1] - a[1]), uv = [0, 0, L, 0, L, zb1 - zb0, 0, 0, L, zb1 - zb0, 0, za1 - za0];
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals();
+    addStatic(g, MATS.mesh, WALLF);
+    for (const [y, k] of [[1262, 0], [(YH + 1262) / 2, 3.5], [YH, 7]]) planBox(XM - 2, y - 2, XM + 2, y + 2, FZ - 1.1, FZ + k * rise + 0.97, MATS.matblack, {}); }
+  const slopeRail = (ya, yb, za, zb, x, mat = MATS.matblack) => {
+    const r0 = P(x, ya), r1 = P(x, yb), L = Math.hypot(r1[0] - r0[0], r1[1] - r0[1], zb - za);
+    const g = new THREE.CylinderGeometry(0.016, 0.016, L, 10);
+    g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(r1[0] - r0[0], zb - za, -(r1[1] - r0[1])).normalize()));
+    g.translate((r0[0] + r1[0]) / 2, (za + zb) / 2, -(r0[1] + r1[1]) / 2); addStatic(g, mat, {});
+  };
+  slopeRail(1262, YH, FZ + 0.97, FZ + 7 * rise + 0.97, XM);
+  slopeRail(YH, 1262, FZ + 8 * rise + 0.95, FZ + STOREY + 0.95, XM - 3);
+  slopeRail(1262, YH, FZ + 0.95, FZ + 7 * rise + 0.95, CORE.x1 - 6);
+  slopeRail(1262, 1262 - 6 * run, FZ + 0.95, FZ - 6 * rise + 0.95, CORE.x0 + 6);
+  // first-floor landing over the corridor in front of the stairs, the upstairs flat door, a railing over flight 1
+  const LX = [-310, 10];
+  planBox(LX[0], 1262, LX[1], 1665, CEIL, FZ + STOREY - 0.04, MATS.concrete, {});
+  planBox(LX[0], 1262, LX[1], 1665, FZ + STOREY - 0.04, FZ + STOREY, MATS.hallFloor, { floor: true, noShadow: true });
+  planPoly([[LX[0], 1262], [LX[1], 1262], [LX[1], 1665], [LX[0], 1665]], CEIL - 0.002, MATS.acoustic, {}, true);
+  for (const x of LX) planBox(x - (x < 0 ? 14 : 0), 1262, x + (x < 0 ? 0 : 14), 1665, CEIL, S2, MATS.stairwall, { ...WALLF, layer: 'above' });
+  for (let x = XM + 6; x <= CORE.x1 - 4; x += 22) planBox(x - 2, 1260, x + 2, 1264, FZ + STOREY, FZ + STOREY + 0.92, MATS.matblack, {});
+  planBox(XM, 1258, CORE.x1, 1266, FZ + STOREY + 0.92, FZ + STOREY + 0.96, MATS.matblack, WALLF);
+  planBox(XM, 1258, CORE.x1, 1266, FZ + STOREY, FZ + STOREY + 0.9, std({ visible: false }), WALLF);
+  flatDoor(-200, -70, -1, FZ + STOREY);
+  planBox(-200, 1590, -70, 1655, FZ + STOREY, FZ + STOREY + 0.012, std({ color: 0x45403a, roughness: 1 }), {});
+  // ceilings over the core and the landing
+  planPoly([[CORE.x0, CORE.y0], [CORE.x1, CORE.y0], [CORE.x1, 1262], [CORE.x0, 1262]], S2 - 0.05, MATS.acoustic, { layer: 'above' }, true);
+  planPoly([[LX[0], 1262], [LX[1], 1262], [LX[1], 1665], [LX[0], 1665]], S2 - 0.05, MATS.acoustic, { layer: 'above' }, true);
+  planBox(-290, CORE.y0, -170, CORE.y0 + 2, FZ + 1.9, FZ + 3.6, std({ color: 0xf4f6f6, emissive: 0xdfe8ee, emissiveIntensity: 0.25, roughness: 0.3 }));
+}

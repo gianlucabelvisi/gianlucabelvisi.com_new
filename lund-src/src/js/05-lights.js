@@ -5,6 +5,7 @@ const LIGHTS = {};
 const lightObjs = [];          // three.js lights we created (hidden by day when off)
 // a lamp's light: a source in the pool (see 01-core); .intensity works like a three.js light's
 function mkPoint(px, py, z, color, dist) { const c = P(px, py), s = lightSrc(c[0], c[1], z, color, dist); return { visible: true, get intensity() { return s.level; }, set intensity(v) { s.level = v; poolDirty = true; } }; }
+function mkPointW(x, y, z, color, dist) { const s = lightSrc(x, y, z, color, dist); return { get intensity() { return s.level; }, set intensity(v) { s.level = v; poolDirty = true; } }; }
 function mkSpot(px, py, z, tx, ty, tz, color, dist, angle, pen = 0.6, shadow = false) {
   const L = new THREE.SpotLight(color, 0, dist, angle, pen, 1.6); const c = P(px, py), t = P(tx, ty);
   L.position.set(c[0], z, -c[1]); L.target.position.set(t[0], tz, -t[1]); L.visible = true;   // spots stay in the scene (intensity 0 when off)
@@ -33,7 +34,18 @@ const LUM = {};   // emissive materials by light id
   const sp = mkSpot(tip[0], tip[1], FZ + 2.0, tip[0], tip[1], FZ, warm, 7, 1.1, 0.7);
   const fill = mkPoint(tip[0], tip[1], FZ + 1.8, warm, 6);
   addLight('arc', { name: 'Arc floor lamp', room: 'living', evening: true, bri: 0.9, pick: () => w2t(t[0], t[1], FZ + 2.0), apply: (lv) => { sp.intensity = 18 * lv; fill.intensity = 2.2 * lv; LUM.arc.emissiveIntensity = 1.4 * lv; LUM.arcBulb.emissiveIntensity = 3 * lv; } });
+}// ---- LED strip along the head of the corner window in the living room (Gianluca)
+{
+  const w = windows.find((x) => x.id === 'win_corner');
+  if (w) {
+    LUM.cstrip = std({ color: 0xf3f1ec, emissive: 0xffd6a0, emissiveIntensity: 0, roughness: 0.4 });
+    const mid = (w.s0 + w.s1) / 2, c = w.at(mid, -0.05), L = w.s1 - w.s0 - 0.06;
+    sbox(L, 0.018, 0.012, c[0], c[1], w.z1 - 0.03, w.ang, LUM.cstrip, { noShadow: true });
+    const q = w.at(mid, -0.35), pl = mkPointW(q[0], q[1], w.z1 - 0.25, 0xffc98a, 4);
+    addLight('cstrip', { name: 'Window LED strip', room: 'living', evening: true, bri: 0.7, pick: () => w2t(c[0], c[1], w.z1 - 0.05), apply: (lv) => { pl.intensity = 1.2 * lv; LUM.cstrip.emissiveIntensity = 3 * lv; } });
+  }
 }
+
 // ---- dining: the PH 5 style pendant over the table (white shades, grey-lilac undersides)
 {
   const c = [215, 205], z0 = FZ + 1.5;
@@ -110,14 +122,16 @@ const LUM = {};   // emissive materials by light id
     } }
   const L2 = mkPoint(1135, 1030, FZ + WIN.sill + 0.35, warm2, 3);
   addLight('twig', { name: 'Twig lamp on the sill', room: 'bedroom', evening: true, bri: 0.7, pick: () => { const q = P(1150, 1030); return w2t(q[0], q[1], FZ + WIN.sill + 0.25); }, apply: (lv) => { L2.intensity = 0.8 * lv; LUM.twig.emissiveIntensity = 4 * lv; } });
-  // bedside lamp on the left nightstand: white fabric drum on a slim chrome stem
-  LUM.bedlamp = std({ color: 0xf3efe6, emissive: 0xffd8a8, emissiveIntensity: 0, roughness: 0.9, side: THREE.DoubleSide });
-  { const g = pg(735, 890, 0, FZ + 0.585);
-    lcyl(g, 0.07, 0.08, 0.02, 0, 0, 0, MATS.chrome, 20); lcyl(g, 0.008, 0.008, 0.3, 0, 0.02, 0, MATS.chrome, 8);
-    const sh = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.14, 0.18, 32, 1, true), LUM.bedlamp); sh.position.set(0, 0.36, 0); g.add(sh);
+  // bedside lamp on the left nightstand: an opal glass bowl that glows (as in the bedroom photo)
+  LUM.bedlamp = std({ color: 0xf6f4ef, emissive: 0xffdcb0, emissiveIntensity: 0, roughness: 0.25, side: THREE.DoubleSide });
+  { const g = pg(735, 890, 0, FZ + 0.575);
+    const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.1, 32, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), LUM.bedlamp);
+    bowl.scale.y = 0.55; bowl.position.set(-0.1, 0.056, -0.06); g.add(bowl);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.099, 0.004, 6, 40), LUM.bedlamp); rim.rotation.x = Math.PI / 2; rim.position.set(-0.1, 0.056, -0.06); g.add(rim);
+    lcyl(g, 0.045, 0.05, 0.006, -0.1, 0, -0.06, MATS.white, 20);
     bake(g, { noShadow: true }); }
-  const L3 = mkPoint(735, 890, FZ + 0.95, warm, 3.5);
-  addLight('bedlamp', { name: 'Bedside lamp', room: 'bedroom', evening: true, bri: 0.75, pick: () => { const q = P(735, 890); return w2t(q[0], q[1], FZ + 0.95); }, apply: (lv) => { L3.intensity = 1.6 * lv; LUM.bedlamp.emissiveIntensity = 1.4 * lv; } });
+  const L3 = mkPoint(728, 884, FZ + 0.8, warm, 3.5);
+  addLight('bedlamp', { name: 'Bedside lamp', room: 'bedroom', evening: true, bri: 0.75, pick: () => { const q = P(722, 882); return w2t(q[0], q[1], FZ + 0.63); }, apply: (lv) => { L3.intensity = 1.4 * lv; LUM.bedlamp.emissiveIntensity = 1.4 * lv; } });
   // LED strip along the top of the headboard, washing the wall behind the bed
   LUM.strip = std({ color: 0xffffff, emissive: 0xffe3c0, emissiveIntensity: 0, roughness: 0.4 });
   { const g = pg(900, 849); lb(g, 1.56, 0.012, 0.012, 0, 1.0, 0.065, LUM.strip, { shadow: false }); bake(g, { noShadow: true }); }
@@ -127,11 +141,11 @@ const LUM = {};   // emissive materials by light id
 // ---- stairwell and gateway: motion-sensor lights (come on when you are there, after dark)
 {
   LUM.stair = glowMat(0xffffff);
-  for (const [x, y, z] of [[-150, 1540, FZ + STOREY - 0.08], [200, 1540, FZ + STOREY - 0.08]]) { const c = P(x, y); addStatic(new THREE.CylinderGeometry(0.16, 0.16, 0.06, 24).translate(c[0], z, -c[1]), LUM.stair, { noShadow: true, layer: 'above' }); }
-  const L1 = mkPoint(-150, 1540, FZ + 2.5, 0xf3f6ff, 8), L2 = mkPoint(200, 1540, FZ + 2.5, 0xf3f6ff, 7);
+  for (const [x, y, z] of [[-560, 1460, FZ + 2.52], [130, 1460, FZ + 2.52], [-150, 1000, FZ + 2 * STOREY - 0.08], [-150, 1460, FZ + 2 * STOREY - 0.08]]) { const c = P(x, y); addStatic(new THREE.CylinderGeometry(0.16, 0.16, 0.06, 24).translate(c[0], z, -c[1]), LUM.stair, { noShadow: true, layer: 'above' }); }
+  const L1 = mkPoint(-560, 1460, FZ + 2.4, 0xfff3e2, 8), L2 = mkPoint(130, 1460, FZ + 2.4, 0xfff3e2, 7), L4 = mkPoint(-150, 1050, FZ + 2 * STOREY - 0.4, 0xfff3e2, 9);
   let L3 = { intensity: 0 };
   if (GATEWAY.at) { const sc = (GATEWAY.s0 + GATEWAY.s1) / 2, c = GATEWAY.at(sc, -GATEWAY.L / 2); addStatic(new THREE.CylinderGeometry(0.16, 0.16, 0.06, 24).translate(c[0], 2.95, -c[1]), LUM.stair, { noShadow: true }); const sL = lightSrc(c[0], c[1], 2.7, 0xf3f6ff, 8); L3 = { set intensity(v) { sL.level = v; poolDirty = true; } }; }
-  addLight('stair', { name: 'Stairwell (motion sensor)', room: 'stair', auto: true, apply: (lv) => { L1.intensity = L2.intensity = 5 * lv; L3.intensity = 5 * lv; LUM.stair.emissiveIntensity = 1.6 * lv; } });
+  addLight('stair', { name: 'Stairwell (motion sensor)', room: 'stair', auto: true, apply: (lv) => { L1.intensity = L2.intensity = 5 * lv; L4.intensity = 6 * lv; L3.intensity = 5 * lv; LUM.stair.emissiveIntensity = 1.6 * lv; } });
 }
 // ---- the TV: a click turns it on (a slow picture of Lund's cathedral towers at dusk) and lights the room in blue
 {
@@ -160,7 +174,7 @@ const LUM = {};   // emissive materials by light id
 // ---- switches by the doors (white rocker plates); a click opens that room's lamps
 MATS.switchPlate = std({ color: 0xf7f7f5, roughness: 0.35 });
 const SWITCHES = [
-  { room: 'living', name: 'Living room', px: 662, py: 834, face: [0, -1], ids: ['arc'] },
+  { room: 'living', name: 'Living room', px: 662, py: 834, face: [0, -1], ids: ['arc', 'cstrip'] },
   { room: 'dining', name: 'Kitchen and dining', px: 440, py: 600, face: [-1, 0], ids: ['ph', 'kceil', 'kspot'] },
   { room: 'hall', name: 'Hall and entrance', px: 269, py: 1450, face: [1, 0], ids: ['entry', 'hall'] },
   { room: 'bath', name: 'Bathroom', px: 456, py: 975, face: [1, 0], ids: ['bath'] },
@@ -209,37 +223,88 @@ $('qLights').addEventListener('click', () => {
   applyLights(); syncPanel(); showToast(anyOn ? 'All lights off' : 'All lights on', 900);
 });
 
-// ---- the switch panel: each lamp on/off with a dimmer, plus Auto
-let panelFor = null;
+// ---- the switch panel, Apple Home style like the Copenhagen walkthrough: a summary with "Turn all on/off", Auto, scenes,
+// a tile per lamp (the round icon switches it, the name opens its controls: a big brightness pill with a power button)
+const BULB_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.2h5c0-.9.4-1.7 1.1-2.2A6 6 0 0 0 12 3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const STRIP_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="10" width="18" height="4" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6 7l1 1.5M12 6v2M18 7l-1 1.5M6 17l1-1.5M12 18v-2M18 17l-1-1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const POWER_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8M6.3 6.6a8 8 0 1 0 11.4 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const LUND_SCENES = [
+  { name: 'Bright', sw: 'linear-gradient(135deg,#fff7e8,#dfe9ff)', set: (ids) => Object.fromEntries(ids.map((id) => [id, 1])) },
+  { name: 'Relax', sw: 'linear-gradient(135deg,#ffb35c,#ffd9a6)', set: (ids) => Object.fromEntries(ids.map((id) => [id, LIGHTS[id].evening ? 0.5 : 0])) },
+  { name: 'Night light', sw: 'linear-gradient(135deg,#c2410c,#7c2d12)', set: (ids) => { const k = ids.find((id) => /strip|twig|bedlamp|arc/.test(id)) || ids[0]; return { [k]: 0.12 }; } },
+];
+let panelFor = null, panelSync = null;
 function openLightPanel(s) {
   panelFor = s;
   if (document.pointerLockElement) document.exitPointerLock();
-  $('mvName').textContent = `${s.name} lights`;
+  $('mvName').textContent = `${s.name}`;
   const body = $('mvBody'); body.innerHTML = '';
-  for (const id of s.ids) {
-    const L = LIGHTS[id];
-    const row = document.createElement('div'); row.className = 'lrow'; row.dataset.id = id;
-    row.innerHTML = `<button type="button" class="ltog" aria-pressed="false"><i></i></button><span class="lname">${L.name}</span><input type="range" min="5" max="100" step="1" aria-label="${L.name} brightness"><b class="lpct"></b>`;
-    row.querySelector('.ltog').addEventListener('click', () => { L.on = !L.on; L.manual = true; if (L.on && L.bri < 0.05) L.bri = 0.6; applyLights(); syncPanel(); });
-    row.querySelector('input').addEventListener('input', (e) => { L.bri = +e.target.value / 100; L.on = true; L.manual = true; applyLights(); syncPanel(); });
-    body.appendChild(row);
+  const ids = s.ids, mark = (L) => { L.manual = true; };
+  const root = document.createElement('div'); root.className = 'hk';
+  root.innerHTML = `<div class="hk-head"><span class="hk-sum"></span><button type="button" class="hk-all"></button></div>
+    <button type="button" class="hk-auto" aria-pressed="false"><i></i><span>Auto: on at dusk, off at 00:30</span></button>
+    <div class="hk-scenes">${LUND_SCENES.map((x, i) => `<button type="button" data-s="${i}"><i style="background:${x.sw}"></i>${x.name}</button>`).join('')}</div>
+    <div class="hk-grid"></div><div class="hk-det" hidden></div>`;
+  const grid = root.querySelector('.hk-grid'), det = root.querySelector('.hk-det'), sum = root.querySelector('.hk-sum'), all = root.querySelector('.hk-all'), auto = root.querySelector('.hk-auto');
+  let open = ids.length === 1 ? ids[0] : null;
+  const tiles = {};
+  for (const id of ids) {
+    const L = LIGHTS[id], t = document.createElement('div'); t.className = 'hk-tile';
+    t.innerHTML = `<button type="button" class="hk-ic" aria-label="Turn ${L.name} on or off">${/strip|twig/.test(id) ? STRIP_SVG : BULB_SVG}</button>
+      <button type="button" class="hk-tx" aria-label="${L.name} settings"><b>${L.name}</b><span></span></button>`;
+    t.querySelector('.hk-ic').addEventListener('click', () => { L.on = !L.on; mark(L); if (L.on && L.bri < 0.05) L.bri = 0.6; applyLights(); sync(); });
+    t.querySelector('.hk-tx').addEventListener('click', () => { open = open === id ? null : id; renderDetail(); sync(); });
+    grid.appendChild(t); tiles[id] = t;
   }
-  const auto = document.createElement('button'); auto.type = 'button'; auto.className = 'lauto';
-  auto.innerHTML = '<i></i><span>Auto: lamps on at dusk, off at 00:30</span>';
-  auto.addEventListener('click', () => { autoLights = !autoLights; if (autoLights) for (const L of Object.values(LIGHTS)) L.manual = false; updateSun(clockHour, false); syncPanel(); });
-  body.appendChild(auto);
-  $('mover').hidden = false; syncPanel();
-}
-function syncPanel() {
-  if ($('mover').hidden) return;
-  for (const row of $('mvBody').querySelectorAll('.lrow')) {
-    const L = LIGHTS[row.dataset.id];
-    row.querySelector('.ltog').setAttribute('aria-pressed', L.on); row.classList.toggle('on', L.on);
-    row.querySelector('input').value = Math.round(L.bri * 100); row.querySelector('.lpct').textContent = L.on ? `${Math.round(L.bri * 100)}%` : 'Off';
+  let dSync = null;
+  function renderDetail() {
+    det.innerHTML = ''; det.hidden = !open; dSync = null; if (!open) return;
+    const L = LIGHTS[open];
+    det.innerHTML = `<div class="hk-dh"><span><b>${L.name}</b><small>Dimmable · warm white</small></span><button type="button" class="hk-x" aria-label="Close">✕</button></div>
+      <div class="hk-body">
+        <div class="hk-bri" role="slider" tabindex="0" aria-label="Brightness" aria-valuemin="1" aria-valuemax="100"><div class="hk-fill"></div><span class="hk-pct"></span><button type="button" class="hk-pow" aria-label="On or off">${POWER_SVG}</button></div>
+        <div class="hk-side"><div class="hk-seg">${[10, 25, 50, 75, 100].map((v) => `<button type="button" data-v="${v}">${v}</button>`).join('')}</div>
+          <div class="hk-glow" aria-hidden="true"></div></div>
+      </div>`;
+    det.querySelector('.hk-x').addEventListener('click', () => { open = null; renderDetail(); sync(); });
+    const bri = det.querySelector('.hk-bri'), fill = det.querySelector('.hk-fill'), pct = det.querySelector('.hk-pct'), pow = det.querySelector('.hk-pow'), glowEl = det.querySelector('.hk-glow');
+    pow.addEventListener('click', (e) => { e.stopPropagation(); L.on = !L.on; mark(L); if (L.on && L.bri < 0.05) L.bri = 0.6; applyLights(); sync(); });
+    pow.addEventListener('pointerdown', (e) => e.stopPropagation());
+    const setBri = (e) => { const r = bri.getBoundingClientRect(); L.bri = THREE.MathUtils.clamp((r.bottom - e.clientY) / r.height, 0.01, 1); L.on = true; mark(L); applyLights(); sync(); };
+    bri.addEventListener('pointerdown', (e) => { bri.setPointerCapture(e.pointerId); bri.classList.add('drag'); setBri(e); });
+    bri.addEventListener('pointermove', (e) => { if (bri.hasPointerCapture(e.pointerId)) setBri(e); });
+    const endB = () => bri.classList.remove('drag'); bri.addEventListener('pointerup', endB); bri.addEventListener('pointercancel', endB);
+    bri.addEventListener('keydown', (e) => { const d = { ArrowUp: 0.05, ArrowRight: 0.05, ArrowDown: -0.05, ArrowLeft: -0.05 }[e.key]; if (d === undefined) return;
+      e.preventDefault(); e.stopPropagation(); L.bri = THREE.MathUtils.clamp(L.bri + d, 0.01, 1); L.on = true; mark(L); applyLights(); sync(); });
+    det.querySelectorAll('.hk-seg button').forEach((b) => b.addEventListener('click', () => { L.bri = +b.dataset.v / 100; L.on = true; mark(L); applyLights(); sync(); }));
+    dSync = () => {
+      bri.classList.toggle('off', !L.on); fill.style.height = `${(L.on ? L.bri : 0) * 100}%`;
+      pct.textContent = L.on ? `${Math.round(L.bri * 100)}%` : 'Off'; bri.setAttribute('aria-valuenow', String(Math.round(L.bri * 100)));
+      det.querySelectorAll('.hk-seg button').forEach((b) => b.classList.toggle('on', L.on && Math.abs(+b.dataset.v / 100 - L.bri) < 0.03));
+      glowEl.style.opacity = L.on ? String(0.25 + 0.75 * L.bri) : '0.08';
+    };
   }
-  const a = $('mvBody').querySelector('.lauto'); if (a) a.classList.toggle('on', autoLights);
+  function sync() {
+    for (const id of ids) { const L = LIGHTS[id], t = tiles[id]; t.classList.toggle('on', L.on); t.classList.toggle('open', open === id); t.querySelector('.hk-tx span').textContent = L.on ? `${Math.round(L.bri * 100)}%` : 'Off'; }
+    const n = ids.filter((id) => LIGHTS[id].on).length;
+    sum.textContent = n ? `${n} of ${ids.length} on` : 'All off';
+    all.textContent = n ? 'Turn all off' : 'Turn all on'; all.classList.toggle('on', !!n);
+    auto.classList.toggle('on', autoLights); auto.setAttribute('aria-pressed', String(autoLights));
+    if (dSync) dSync();
+  }
+  all.addEventListener('click', () => { const n = ids.some((id) => LIGHTS[id].on); for (const id of ids) { const L = LIGHTS[id]; L.on = !n; mark(L); if (L.on && L.bri < 0.05) L.bri = 0.6; } applyLights(); sync(); });
+  auto.addEventListener('click', () => { autoLights = !autoLights; if (autoLights) for (const L of Object.values(LIGHTS)) L.manual = false; updateSun(clockHour, false); sync(); });
+  root.querySelectorAll('.hk-scenes button').forEach((b) => b.addEventListener('click', () => {
+    const S = LUND_SCENES[+b.dataset.s], m = S.set(ids);
+    for (const id of ids) { const L = LIGHTS[id], v = m[id]; L.on = !!v; if (v) L.bri = v; mark(L); }
+    applyLights(); sync(); showToast(`Scene: ${S.name}`, 900);
+  }));
+  for (const inp of root.querySelectorAll('button,[tabindex]')) inp.addEventListener('keydown', (e) => { if (e.key !== 'Tab' && e.key !== 'Escape') e.stopPropagation(); });
+  body.appendChild(root); renderDetail(); sync(); panelSync = sync;
+  $('mover').hidden = false;
 }
-function closePanel() { $('mover').hidden = true; panelFor = null; }
+function syncPanel() { if (!$('mover').hidden && panelSync) panelSync(); }
+function closePanel() { $('mover').hidden = true; panelFor = null; panelSync = null; }
 $('mvDone').addEventListener('click', closePanel);
 function stepLights() {}
 lightsReady = true;

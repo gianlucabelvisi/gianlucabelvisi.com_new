@@ -94,6 +94,7 @@ ROADW = {'trunk': 8, 'primary': 7.5, 'secondary': 7, 'tertiary': 6, 'unclassifie
          'living_street': 4, 'pedestrian': 4, 'service': 3.5, 'track': 3, 'footway': 1.6, 'path': 1.4,
          'steps': 1.6, 'cycleway': 2}
 roads = []
+SURF = json.load(open(os.path.join(D, 'road_surface.json'))) if os.path.exists(os.path.join(D, 'road_surface.json')) else {}
 for e in json.load(open(os.path.join(D, 'osm_roads.json')))['elements']:
     t = e['tags']; hw = t.get('highway')
     if hw not in ROADW or e['type'] != 'way': continue
@@ -109,7 +110,7 @@ for e in json.load(open(os.path.join(D, 'osm_roads.json')))['elements']:
     zz = zat(res[:, 0], res[:, 1])
     if len(zz) > 5:   # roads are graded: smooth along the line
         zz = ndimage.gaussian_filter1d(zz, 2.0, mode='nearest')
-    roads.append({'id': e['id'], 'cls': hw, 'w': float(t.get('width', ROADW[hw])) if str(t.get('width', '')).replace('.', '').isdigit() else ROADW[hw],
+    roads.append({'id': e['id'], 'surface': SURF.get(str(e['id'])) or ('asphalt' if hw in ('secondary', 'tertiary', 'unclassified', 'residential') else 'unpaved'), 'cls': hw, 'w': float(t.get('width', ROADW[hw])) if str(t.get('width', '')).replace('.', '').isdigit() else ROADW[hw],
                   'name': t.get('name', ''), 'ref': t.get('ref', ''), 'bridge': t.get('bridge') == 'yes', 'tunnel': t.get('tunnel') == 'yes',
                   'pts': [[round(p[0], 2), round(p[1], 2), round(float(h), 2)] for p, h in zip(res, zz)]})
 feat['roads'] = roads
@@ -185,6 +186,19 @@ for e in json.load(open(os.path.join(D, 'osm_buildings.json')))['elements']:
             kind = 'town' if in_town else 'dammuso'
         blds.append({'id': e['id'], 'kind': kind, 'h': round(h, 2), 'zmin': round(float(zz.min()), 2), 'zmax': round(float(zz.max()), 2),
                      'name': t.get('name', ''), 'pts': p})
+# houses OSM misses, found on Esri imagery by detect_houses.py (white roofs, high-confidence only)
+xb_path = os.path.join(D, 'extra_buildings.json')
+n_extra = 0
+if os.path.exists(xb_path):
+    for k_, xb in enumerate(json.load(open(xb_path))):
+        p = xb['pts']
+        if Polygon(p).exterior.is_ccw is False: p = p[::-1]
+        arr = np.array(p); zz = zat(arr[:, 0], arr[:, 1]); c = Polygon(p).centroid
+        in_town = (town is not None and town.contains(c)) or dens(c.x, c.y) >= 14
+        blds.append({'id': -(k_ + 1), 'kind': 'town' if in_town else 'dammuso', 'h': 3.8 if in_town else 3.6,
+                     'zmin': round(float(zz.min()), 2), 'zmax': round(float(zz.max()), 2), 'name': '', 'src': 'esri', 'pts': p})
+        n_extra += 1
+print('extra buildings from imagery', n_extra)
 feat['buildings'] = blds
 print('buildings', len(blds), 'town', sum(b['kind'] == 'town' for b in blds))
 
@@ -277,6 +291,8 @@ def paint(im):
         dr.line([T(p) for p in rw['pts']], fill=(120, 120, 118), width=max(1, int(rw['w'] * sc)), joint='curve')
     for rd in sorted(roads, key=lambda r: r['w']):
         c = ROADC.get(rd['cls'], (140, 132, 120))
+        if rd.get('surface') == 'unpaved': c = (184, 158, 118) if rd['cls'] not in ('path', 'footway') else (190, 168, 134)
+        elif rd.get('surface') == 'paved': c = (176, 172, 162)
         dr.line([T(p) for p in rd['pts']], fill=c, width=max(1, int(round((rd['w'] + 1.0) * sc))), joint='curve')
     for p in pools:
         dr.polygon([T(q) for q in p], fill=(70, 190, 215))
@@ -353,6 +369,85 @@ if os.path.exists(poi_path):
         print('poi skipped', ex)
 feat['labels'] = labels
 print('labels', len(labels))
+
+# ---------- lake: keep the terrain under the water surface ----------
+from rasterio.features import rasterize as _rz2
+from affine import Affine as _Af2
+GRID_T = _Af2(CELL, 0, X0 - CELL / 2, 0, CELL, Y0 - CELL / 2)     # row 0 = south
+for wv in water:
+    if len(wv['pts']) < 4: continue
+    m = _rz2([(Polygon(wv['pts']).buffer(0), 1)], out_shape=(NY, NX), transform=GRID_T, fill=0, dtype='uint8').astype(bool)
+    wz = max(wv['z'], 0.2) + 0.25
+    z[m] = np.minimum(z[m], wz - 0.8)
+
+# ---------- detail layer (used only near the camera) ----------
+# class raster at 10 m: 0 sea, 1 built, 2 vineyard, 3 orchard, 4 field, 5 macchia (scrub/heath), 6 wood, 7 bare rock, 8 garden, 9 mixed terraces
+CLS = np.zeros((NY, NX), np.uint8)
+# fallback from the satellite palette: dark greens = macchia, mid = mixed field/macchia, light tan = field, very light = bare/built
+labg = lab[::-1]                                      # texture rows -> south-up
+ri = np.clip(((gy - Y0) / (Y1 - Y0) * (TEX - 1)).round().astype(int), 0, TEX - 1)
+ci = np.clip(((gx - X0) / (X1 - X0) * (TEX - 1)).round().astype(int), 0, TEX - 1)
+labc = labg[np.ix_(ri, ci)]
+cg = cent[:, 1] - (cent[:, 0] + cent[:, 2]) / 2
+cls_of = np.where(cl < 78, 5, np.where((cl < 118) & (cg > 2), 9, np.where(cl > 190, 7, 4))).astype(np.uint8)   # 9 = mixed terraces/low macchia
+CLS[:] = cls_of[labc]
+def burn(polys, v):
+    shapes = [(Polygon(p).buffer(0), 1) for p in polys if len(p) > 3]
+    shapes = [s_ for s_ in shapes if not s_[0].is_empty]
+    if shapes:
+        m = _rz2(shapes, out_shape=(NY, NX), transform=GRID_T, fill=0, dtype='uint8').astype(bool); CLS[m] = v
+orchard_polys, field_polys, garden_polys, rock_polys, built_polys = [], [], [], [], []
+walls = []        # [type, [[x,y],...]]  type 0 field wall (dry stone, 1.1 m), 1 OSM wall/retaining wall, 2 garden (giardino pantesco, 3 m)
+AG = ('vineyard', 'orchard', 'farmland', 'meadow', 'grass', 'farmyard')
+for e in land_el:
+    t = e['tags']
+    lu = t.get('landuse')
+    if lu == 'orchard': orchard_polys += polys_of(e)
+    if lu in ('farmland', 'meadow', 'grass', 'farmyard') or t.get('natural') == 'grassland': field_polys += polys_of(e)
+    if t.get('leisure') == 'garden': garden_polys += polys_of(e)
+    if t.get('natural') in ('bare_rock', 'scree', 'cliff') and e['type'] != 'node': rock_polys += [p for p in polys_of(e) if len(p) > 3 and p[0] == p[-1]]
+    if lu in ('residential', 'industrial') : built_polys += polys_of(e)
+    if lu in AG:
+        for p in polys_of(e):
+            if len(p) > 3: walls.append([0, p])
+    if t.get('barrier') in ('wall', 'retaining_wall') and e['type'] == 'way':
+        g = geom(e)
+        if len(g) > 1: walls.append([1, g])
+burn(field_polys, 4); burn(scrub_polys, 5); burn(tree_polys, 6); burn(rock_polys, 7)
+burn(vine_polys, 2); burn(orchard_polys, 3); burn(built_polys, 1)
+gardens = []
+for p in garden_polys:
+    if len(p) < 4: continue
+    P_ = Polygon(p).buffer(0)
+    if P_.is_empty or P_.area > 2500: continue          # big 'gardens' are yards, not pantesco enclosures
+    walls.append([2, [list(c) for c in P_.exterior.coords]])
+    gardens.append([round(P_.centroid.x, 1), round(P_.centroid.y, 1), round(math.sqrt(P_.area / math.pi), 1)])
+burn([g for g in garden_polys if len(g) > 3 and Polygon(g).buffer(0).area <= 2500], 8)
+CLS[~land] = 0
+for wv in water:                                       # no shrubs in the lake
+    if len(wv['pts']) > 3:
+        m = _rz2([(Polygon(wv['pts']).buffer(0), 1)], out_shape=(NY, NX), transform=GRID_T, fill=0, dtype='uint8').astype(bool); CLS[m] = 0
+# built-up: around buildings, no vegetation scatter
+bm_ = _rz2([(Polygon(b['pts']).buffer(4), 1) for b in blds], out_shape=(NY, NX), transform=GRID_T, fill=0, dtype='uint8').astype(bool)
+CLS[bm_ & (CLS != 8)] = 1
+print('classes', np.bincount(CLS.ravel(), minlength=10).tolist(), 'walls', len(walls), 'gardens', len(gardens))
+# simplify wall polylines to 1 m and store
+from shapely.geometry import LineString as _LS2
+wall_out = []
+for ty_, pts_ in walls:
+    ls = _LS2(pts_).simplify(0.8)
+    c = [[round(x, 1), round(y, 1)] for x, y in ls.coords]
+    if len(c) > 1: wall_out.append([ty_, c])
+np.save(os.path.join(O, 'classes.npy'), CLS)
+# road + building mask at 2.5 m (same grid as the coast raster): no shrubs or terraces on roads or in houses
+rshapes = [(LineString([p[:2] for p in r['pts']]).buffer(r['w'] / 2 + 0.8), 1) for r in roads if len(r['pts']) > 1]
+rshapes += [(Polygon(b['pts']).buffer(1.0), 1) for b in blds]
+rshapes += [(LineString(rw['pts']).buffer(rw['w'] / 2 + 3), 1) for rw in runway + aprons if len(rw['pts']) > 1]
+RM = _rz2(rshapes, out_shape=(NY * F4, NX * F4), transform=_Af2(RES, 0, X0 - CELL / 2, 0, RES, Y0 - CELL / 2), fill=0, dtype='uint8')
+np.save(os.path.join(O, 'roadmask.npy'), np.packbits(RM.astype(bool), axis=1))
+print('road mask', RM.shape, RM.mean())
+json.dump({'walls': wall_out, 'gardens': gardens}, open(os.path.join(O, 'detail.json'), 'w'), separators=(',', ':'))
+print('wall km', round(sum(_LS2(c).length for _, c in wall_out) / 1000, 1))
 
 np.savez_compressed(os.path.join(O, 'grid.npz'), z=z.astype(np.float32), land=land, x0=X0, y0=Y0, cell=CELL)
 json.dump(feat, open(os.path.join(O, 'features.json'), 'w'), separators=(',', ':'))

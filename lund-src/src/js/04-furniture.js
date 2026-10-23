@@ -131,19 +131,38 @@ for (const w of windows) {
     const g = new THREE.Group(); g.position.set(hp[0], w.z0 + fw, -hp[1]); g.rotation.y = Math.atan2(u[1], u[0]); scene.add(g);
     const piv = new THREE.Group(); g.add(piv); pivs.push(piv);
     const dir = side ? -1 : 1, x = (v) => dir * v;
-    const sf = 0.05;
-    parts.push(lb(piv, sf, Hh, 0.05, x(sf / 2), 0, 0, MATS.frame), lb(piv, sf, Hh, 0.05, x(sw - sf / 2), 0, 0, MATS.frame));
-    parts.push(lb(piv, sw, sf, 0.05, x(sw / 2), 0, 0, MATS.frame), lb(piv, sw, sf, 0.05, x(sw / 2), Hh - sf, 0, MATS.frame));
-    parts.push(lb(piv, sw - 2 * sf, Hh * 0.42, 0.012, x(sw / 2), sf, 0.006, MATS.frosted, { shadow: false }));
-    parts.push(lb(piv, sw - 2 * sf, Hh - 2 * sf, 0.008, x(sw / 2), sf, -0.008, MATS.glass, { shadow: false }));
-    // handle on the inner sash edge
-    if (!side) { winHandle = lb(piv, 0.02, 0.14, 0.03, x(sw - 0.03), Hh * 0.5, -0.045, MATS.chrome); parts.push(winHandle); }
+    const sf = 0.05, sd = 0.085;      // coupled sash (two panes ~5 cm apart, as in Swedish "kopplade bågar")
+    parts.push(lb(piv, sf, Hh, sd, x(sf / 2), 0, 0, MATS.frame), lb(piv, sf, Hh, sd, x(sw - sf / 2), 0, 0, MATS.frame));
+    parts.push(lb(piv, sw, sf, sd, x(sw / 2), 0, 0, MATS.frame), lb(piv, sw, sf, sd, x(sw / 2), Hh - sf, 0, MATS.frame));
+    parts.push(lb(piv, sw - 2 * sf, Hh * 0.42, 0.006, x(sw / 2), sf, 0.03, MATS.frosted, { shadow: false }));
+    parts.push(lb(piv, sw - 2 * sf, Hh - 2 * sf, 0.006, x(sw / 2), sf, 0.022, MATS.glass, { shadow: false }));
+    parts.push(lb(piv, sw - 2 * sf, Hh - 2 * sf, 0.006, x(sw / 2), sf, -0.03, MATS.glass, { shadow: false }));
+    // the coupling strip between the two panes, seen in the gap
+    parts.push(lb(piv, sw - 2 * sf, 0.012, 0.05, x(sw / 2), sf, -0.004, MATS.frame, { shadow: false }));
+    // handle on the room side of the meeting edge
+    if (!side) { winHandle = lb(piv, 0.02, 0.13, 0.025, x(sw - 0.035), Hh * 0.5, 0.07, MATS.chrome); parts.push(winHandle); lb(piv, 0.03, 0.05, 0.02, x(sw - 0.035), Hh * 0.5 + 0.05, 0.05, MATS.chrome); }
+    else { const h2 = lb(piv, 0.02, 0.13, 0.025, x(sw - 0.035), Hh * 0.5, 0.07, MATS.chrome); parts.push(h2); }
   }
-  // venetian blind head rail (white, as in the photos)
-  { const c = w.at((w.s0 + w.s1) / 2, oF - 0.07); sbox(w.s1 - w.s0 - 0.12, 0.04, 0.04, c[0], c[1], w.z1 - 0.1, w.ang, MATS.white, {}); }
+  if (w.id === 'win_bed') {
+    // dark grey roller blind across the top, pulled down by its cord (the bedroom photo)
+    const c = w.at((w.s0 + w.s1) / 2, -0.07);
+    const g = new THREE.Group(); g.position.set(c[0], w.z1 + 0.14, -c[1]); g.rotation.y = w.ang; scene.add(g);
+    const Wb = w.s1 - w.s0 + 0.16;
+    const cas = lcyl(g, 0.04, 0.04, Wb, 0, -Wb / 2, 0, MATS.blind || (MATS.blind = std({ color: 0x3c3e42, roughness: 0.7 })), 20, { rz: Math.PI / 2 });
+    cas.position.y = 0;
+    const fab = new THREE.Mesh(new THREE.BoxGeometry(Wb - 0.04, 1, 0.004).translate(0, -0.5, 0), std({ color: 0x45474b, roughness: 0.95, side: THREE.DoubleSide }));
+    fab.position.set(0, -0.03, 0.035); fab.scale.y = 0.001; fab.castShadow = true; g.add(fab);
+    const bar = lb(g, Wb - 0.03, 0.025, 0.02, 0, -0.06, 0.035, MATS.matblack);
+    const drop = w.z1 + 0.14 - w.z0 - 0.08;
+    inter({ name: 'roller blind', parts: [cas, bar, fab], handle: bar, dur: 1.4, label: function () { return (this.target ? 'Raise ' : 'Lower ') + 'the roller blind'; },
+      apply: (t) => { fab.scale.y = Math.max(0.001, t * drop); bar.position.y = -0.06 - t * drop; } });
+  } else {
+    // venetian blind head rail (white, as in the photos)
+    const c = w.at((w.s0 + w.s1) / 2, oF - 0.07); sbox(w.s1 - w.s0 - 0.12, 0.04, 0.04, c[0], c[1], w.z1 - 0.1, w.ang, MATS.white, {});
+  }
   const inward = 1;   // sashes swing into the room (n points outward, so negative local z)
   inter({ name: 'window', parts, handle: winHandle, dur: 0.9, anchor: (v) => { const c = w.at((w.s0 + w.s1) / 2, 0); return v.set(c[0], w.z0 + 0.6, -c[1]); },
-    apply: (t) => { pivs[0].rotation.y = t * 80 * D2R * inward * Math.sign(n[0] * u[1] - n[1] * u[0]) * -1; pivs[1].rotation.y = -pivs[0].rotation.y; } });
+    apply: (t) => { pivs[0].rotation.y = -t * 80 * D2R * inward; pivs[1].rotation.y = -pivs[0].rotation.y; } });   // local +z is the room side
 }
 
 // ============================================================ materials for the furniture
@@ -255,32 +274,61 @@ function coffeeKit(par, x, zWall, top) {
   lcyl(g, 0.16, 0.1, 0.06, 0.32, 0.91, pw(690 - 357), MATS.white);
   for (const [dx, dz] of [[0, 0], [0.07, 0.05], [-0.06, 0.06], [0.02, -0.07], [-0.05, -0.04]]) lsph(g, 0.042, 0.32 + dx, 0.99, pw(690 - 357) + dz, MATS.apple);
   bake(g, STATIC_C);
-  // the dishwasher (black Bosch), its door folds down
+  // the dishwasher (black Bosch): a steel tub with two racks that roll out when the door folds down
   const gd = pg(32, 357); scene.add(gd);
-  lb(gd, D - 0.02, 0.76, pw(91) - 0.01, (D - 0.02) / 2, 0.11, pw(91) / 2, MATS.blackgloss);
-  const piv = new THREE.Group(); piv.position.set(D, 0.11, pw(91) / 2); gd.add(piv);
-  const door = lb(piv, 0.03, 0.74, pw(91) - 0.012, 0.015, 0, 0, MATS.blackgloss);
-  const panel = lb(piv, 0.031, 0.05, pw(91) - 0.08, 0.015, 0.66, 0, std({ color: 0x2a2c2f, roughness: 0.3, metalness: 0.6 }));
-  // racks with plates
-  const rack = lb(gd, 0.5, 0.01, pw(91) - 0.08, 0.3, 0.4, pw(91) / 2, MATS.steel, { shadow: false });
-  for (let k = 0; k < 8; k++) lcyl(gd, 0.11, 0.11, 0.01, 0.32, 0.42 + 0.0, 0.08 + k * 0.055, MATS.white, 24, { rx: Math.PI / 2 });
+  const DW = pw(91) - 0.01, DD = D - 0.02;
+  MATS.tub = MATS.tub || std({ color: 0xbfc3c6, roughness: 0.3, metalness: 0.8 });
+  MATS.rackGrey = MATS.rackGrey || std({ color: 0x8d9296, roughness: 0.5, metalness: 0.4 });
+  lb(gd, 0.02, 0.76, DW, 0.01, 0.11, DW / 2, MATS.tub);                                      // back
+  for (const z of [0.01, DW - 0.01]) lb(gd, DD, 0.76, 0.02, DD / 2, 0.11, z, MATS.tub);    // sides
+  lb(gd, DD, 0.02, DW, DD / 2, 0.85, DW / 2, MATS.tub); lb(gd, DD, 0.03, DW, DD / 2, 0.11, DW / 2, MATS.tub);
+  lcyl(gd, 0.025, 0.025, 0.03, DD / 2, 0.14, DW / 2, MATS.rackGrey, 12);                    // spray arm hub
+  lb(gd, 0.04, 0.012, DW * 0.8, DD / 2, 0.16, DW / 2, MATS.rackGrey, { ry: 0.6 });
+  const piv = new THREE.Group(); piv.position.set(D, 0.11, DW / 2 + 0.005); gd.add(piv);
+  const door = lb(piv, 0.03, 0.74, DW - 0.002, 0.015, 0, 0, MATS.blackgloss);
+  const doorIn = lb(piv, 0.004, 0.68, DW - 0.06, -0.002, 0.03, 0, MATS.tub, { shadow: false });
+  const panel = lb(piv, 0.031, 0.05, DW - 0.07, 0.015, 0.66, 0, std({ color: 0x2a2c2f, roughness: 0.3, metalness: 0.6 }));
+  // wire racks: a frame of thin rods with plates (lower) and cups + glasses (upper), and a cutlery basket
+  const rack = (y, h) => { const r = new THREE.Group(); r.position.set(0, y, 0); gd.add(r);
+    const W2 = DW - 0.06, L2 = DD - 0.06;
+    for (const z of [0.03, 0.03 + W2]) { lb(r, L2, 0.008, 0.008, 0.03 + L2 / 2, 0, z, MATS.rackGrey, { shadow: false }); lb(r, L2, 0.008, 0.008, 0.03 + L2 / 2, h, z, MATS.rackGrey, { shadow: false }); }
+    for (const x of [0.03, 0.03 + L2]) { lb(r, 0.008, 0.008, W2, x, 0, 0.03 + W2 / 2, MATS.rackGrey, { shadow: false }); lb(r, 0.008, 0.008, W2, x, h, 0.03 + W2 / 2, MATS.rackGrey, { shadow: false }); }
+    for (let k = 1; k < 9; k++) lb(r, 0.005, 0.005, W2, 0.03 + L2 * k / 9, 0, 0.03 + W2 / 2, MATS.rackGrey, { shadow: false });
+    for (const x of [0.03, 0.03 + L2]) for (const z of [0.03, 0.03 + W2]) lb(r, 0.008, h, 0.008, x, 0, z, MATS.rackGrey, { shadow: false });
+    return r; };
+  const low = rack(0.2, 0.12), up = rack(0.52, 0.1);
+  MATS.plate = MATS.plate || std({ color: 0xf6f6f2, roughness: 0.25 });
+  for (let k = 0; k < 9; k++) lcyl(low, 0.12, 0.12, 0.012, 0.12 + k * 0.035, 0.125, DW * 0.36, MATS.plate, 28, { rz: Math.PI / 2 });
+  for (let k = 0; k < 6; k++) lcyl(low, 0.1, 0.1, 0.01, 0.15 + k * 0.045, 0.105, DW * 0.78, MATS.plate, 24, { rz: Math.PI / 2 });
+  lb(low, 0.12, 0.13, 0.1, DD - 0.12, 0.008, DW * 0.62, MATS.rackGrey);                     // cutlery basket
+  for (let k = 0; k < 7; k++) lb(low, 0.006, 0.08, 0.012, DD - 0.16 + (k % 4) * 0.025, 0.12, DW * 0.6 + Math.floor(k / 4) * 0.03, MATS.steel);
+  for (let k = 0; k < 4; k++) { lcyl(up, 0.04, 0.035, 0.08, 0.1 + k * 0.1, 0.01, 0.12, MATS.plate, 18); lcyl(up, 0.032, 0.025, 0.12, 0.1 + k * 0.1, 0.01, DW - 0.13, MATS.glass, 16, { shadow: false }); }
+  for (let k = 0; k < 3; k++) lcyl(up, 0.07, 0.03, 0.06, 0.13 + k * 0.14, 0.012, DW / 2, MATS.plate, 22);
   collidables.push(door);
-  inter({ name: 'dishwasher', parts: [door, panel], handle: panel, dur: 0.7, apply: (t) => { piv.rotation.z = -t * 88 * D2R; } });
+  inter({ name: 'dishwasher', parts: [door, panel, doorIn], handle: panel, dur: 0.9, apply: (t) => { piv.rotation.z = -Math.min(1, t * 1.25) * 88 * D2R; const r = Math.max(0, t - 0.45) / 0.55; low.position.x = r * 0.32; up.position.x = r * 0.18; } });
 }
 {
   // run B along the bathroom wall: cabinets, oven + hob + hood, narrow drawers, cabinets up to the fridge wall
   const g = pg(125, 834), L = pw(440 - 125), D = 0.62;
   lb(g, L, 0.1, D - 0.05, L / 2, 0, -(D - 0.05) / 2, MATS.matblack, { shadow: false });
-  lb(g, L, 0.76, D, L / 2, 0.11, -D / 2, MATS.cab);
+  const xo0 = pw(214 - 125), xo1 = pw(305 - 125);
+  // carcass with a real oven cavity: black enamel inside, a steel control strip above the door
+  lb(g, xo0, 0.76, D, xo0 / 2, 0.11, -D / 2, MATS.cab); lb(g, L - xo1, 0.76, D, (xo1 + L) / 2, 0.11, -D / 2, MATS.cab);
+  { const ow = xo1 - xo0, xc = (xo0 + xo1) / 2, en = std({ color: 0x141416, roughness: 0.35 });
+    lb(g, ow, 0.09, D, xc, 0.11, -D / 2, MATS.cab); lb(g, ow, 0.18, D, xc, 0.69, -D / 2, MATS.cab);
+    for (const sx of [-1, 1]) lb(g, 0.02, 0.5, D - 0.05, xc + sx * (ow / 2 - 0.02), 0.2, -(D - 0.05) / 2 - 0.0, en);
+    lb(g, ow - 0.04, 0.02, D - 0.05, xc, 0.2, -(D - 0.05) / 2, en); lb(g, ow - 0.04, 0.02, D - 0.05, xc, 0.68, -(D - 0.05) / 2, en);
+    lb(g, ow - 0.04, 0.48, 0.02, xc, 0.2, -0.06, en);
+    for (const zz of [-0.25, -0.4]) lb(g, ow - 0.06, 0.006, 0.006, xc, 0.36, zz, MATS.steel, { shadow: false });
+    const lampIn = new THREE.Mesh(new THREE.CircleGeometry(0.02, 12), std({ color: 0xfff0d0, emissive: 0xffd9a0, emissiveIntensity: 0.4 })); lampIn.position.set(xc + ow / 2 - 0.05, 0.6, -0.08); g.add(lampIn); }
   lb(g, L + 0.62, 0.03, D + 0.02, (L - 0.62) / 2, 0.88, -(D + 0.02) / 2, MATS.worktop);
   const doorsAt = (x0, x1, kind) => { const w = x1 - x0, xc = (x0 + x1) / 2;
     if (kind === 'drawers') { for (const [y0, hh] of [[0.12, 0.22], [0.36, 0.22], [0.6, 0.26]]) { lb(g, w - 0.006, hh - 0.01, 0.02, xc, y0, -D - 0.01, MATS.cab); lsph(g, 0.014, xc, y0 + hh / 2, -D - 0.03, MATS.knob); } return; }
     lb(g, w - 0.006, 0.74, 0.02, xc, 0.12, -D - 0.01, MATS.cab); lsph(g, 0.014, x1 - 0.06, 0.75, -D - 0.03, MATS.knob); };
-  const xo0 = pw(214 - 125), xo1 = pw(305 - 125);
   doorsAt(0, xo0); doorsAt(xo1, pw(348 - 125), 'drawers'); doorsAt(pw(348 - 125), L);
-  // oven body (steel) — the door is separate
-  lb(g, xo1 - xo0 - 0.01, 0.6, 0.02, (xo0 + xo1) / 2, 0.2, -D - 0.005, MATS.steel);
-  lb(g, xo1 - xo0 - 0.01, 0.12, 0.02, (xo0 + xo1) / 2, 0.74, -D - 0.006, MATS.steel);
+  // oven fascia: a steel frame round the door and the control strip with its knobs
+  lb(g, xo1 - xo0 - 0.01, 0.16, 0.02, (xo0 + xo1) / 2, 0.71, -D - 0.006, MATS.steel);
+  for (const sx of [-1, 1]) lb(g, 0.02, 0.52, 0.02, (xo0 + xo1) / 2 + sx * ((xo1 - xo0) / 2 - 0.015), 0.19, -D - 0.005, MATS.steel);
   for (let k = 0; k < 4; k++) lcyl(g, 0.016, 0.016, 0.015, xo0 + 0.08 + k * 0.05, 0.78, -D - 0.02, MATS.matblack, 12, { rx: Math.PI / 2 });
   lb(g, xo1 - xo0 - 0.02, 0.006, 0.52, (xo0 + xo1) / 2, 0.912, -0.3, MATS.hob);               // ceramic hob
   for (const [dx, dz, r] of [[-0.12, -0.15, 0.09], [0.12, -0.15, 0.07], [-0.12, -0.42, 0.07], [0.12, -0.42, 0.09]]) { const m = lcyl(g, r, r, 0.001, (xo0 + xo1) / 2 + dx, 0.918, dz, std({ color: 0x3a1a14, roughness: 0.2 }), 24); m.castShadow = false; }
@@ -300,8 +348,6 @@ function coffeeKit(par, x, zWall, top) {
   // the coffee corner: Fellow Espresso Series 1 and the Niche Zero grinder (the same pair as in Copenhagen), kettle by the hob
   coffeeKit(g, 0.18, -0.03, 0.91);
   lcyl(g, 0.07, 0.08, 0.22, xo1 + 0.15, 0.91, -0.35, MATS.matblack);
-  // the green tea towel on the oven handle
-  lb(g, 0.2, 0.36, 0.012, (xo0 + xo1) / 2, 0.42, -D - 0.045, MATS.limeTowel);
   bake(g, STATIC_C);
   // oven door (drops down)
   const go = pg(125, 834); scene.add(go);
@@ -309,10 +355,15 @@ function coffeeKit(par, x, zWall, top) {
   const od = lb(piv, xo1 - xo0 - 0.02, 0.5, 0.04, 0, 0, 0, MATS.steel);
   const ogl = lb(piv, xo1 - xo0 - 0.14, 0.3, 0.042, 0, 0.1, 0, MATS.blackgloss, { shadow: false });
   const oh = lb(piv, xo1 - xo0 - 0.1, 0.025, 0.025, 0, 0.44, -0.05, MATS.steel);
-  lb(go, xo1 - xo0 - 0.06, 0.01, 0.48, (xo0 + xo1) / 2, 0.35, -0.3, MATS.steel, { shadow: false });     // shelf inside
-  lb(go, xo1 - xo0 - 0.04, 0.5, 0.01, (xo0 + xo1) / 2, 0.2, -0.05, MATS.matblack, { shadow: false });   // back
+  for (const sx of [-1, 1]) lb(piv, 0.02, 0.025, 0.04, sx * ((xo1 - xo0) / 2 - 0.06), 0.44, -0.03, MATS.steel);
+  // the green tea towel folded over the oven handle: it rides on the door
+  MATS.teaTowel = MATS.teaTowel || std({ map: canvasTex(128, 128, (c, S) => { c.fillStyle = '#9cb03a'; c.fillRect(0, 0, S, S); c.fillStyle = 'rgba(255,255,255,.45)'; for (let k = 0; k < S; k += 32) { c.fillRect(0, k + 4, S, 5); } c.fillStyle = 'rgba(40,60,20,.25)'; for (let k = 0; k < S; k += 16) c.fillRect(k, 0, 2, S); }, [0.22, 0.22]), roughness: 1 });
+  const tw1 = lb(piv, 0.2, 0.36, 0.008, -0.07, 0.085, -0.074, MATS.teaTowel, { round: 0.003 });
+  const tw2 = lb(piv, 0.2, 0.3, 0.008, -0.07, 0.15, -0.026, MATS.teaTowel, { round: 0.003 });
+  const tw3 = lcyl(piv, 0.026, 0.026, 0.2, -0.07, 0.355, -0.05, MATS.teaTowel, 14, { rz: Math.PI / 2 }); tw3.position.y = 0.448;
+  lb(go, xo1 - xo0 - 0.06, 0.012, 0.46, (xo0 + xo1) / 2, 0.35, -0.32, std({ color: 0x2a2b2e, roughness: 0.4, metalness: 0.5 }), { shadow: false });     // baking tray
   collidables.push(od);
-  inter({ name: 'oven', parts: [od, ogl, oh], handle: oh, dur: 0.7, apply: (t) => { piv.rotation.x = -t * 85 * D2R; } });
+  inter({ name: 'oven', parts: [od, ogl, oh, tw1, tw2, tw3], handle: oh, dur: 0.7, apply: (t) => { piv.rotation.x = -t * 85 * D2R; } });
 }
 {
   // fridge (K) and freezer (F), side by side against the fridge wall, doors opening like French doors
@@ -464,7 +515,7 @@ function pillow(px, py, size, mat, rot = 0, tilt = 0) {
 }
 // ---- the desk in the corner window: white top on sled legs, monitor on an arm, mic, black shell chair, red round storage and thermos
 {
-  const cx = 532, cy = 31 + 0.36 * PXM, rot = 0;    // along the Rådmansgatan wall, right of the book tower
+  const cx = 615, cy = 31 + 0.36 * PXM, rot = 0;    // along the Rådmansgatan wall, towards the corner window
   const g = pg(cx, cy, rot);
   lb(g, 1.4, 0.03, 0.7, 0, 0.72, 0, MATS.gloss);
   for (const x of [-0.66, 0.66]) { lb(g, 0.035, 0.72, 0.035, x, 0, -0.31, MATS.white); lb(g, 0.035, 0.72, 0.035, x, 0, 0.31, MATS.white); lb(g, 0.035, 0.035, 0.66, x, 0, 0, MATS.white); }
@@ -473,17 +524,49 @@ function pillow(px, py, size, mat, rot = 0, tilt = 0) {
   lb(g, 0.02, 0.4, 0.02, -0.55, 0.75, -0.28, MATS.matblack, { rz: -0.4 }); lsph(g, 0.04, -0.47, 1.18, -0.2, MATS.matblack, { sy: 1.5 });
   lcyl(g, 0.035, 0.035, 0.05, 0.4, 0.75, 0.05, std({ color: 0xf2f0ea, roughness: 0.5 }), 10);
   bake(g, STATIC_C);
-  shellChair(532, 31 + 0.98 * PXM, Math.PI);
-  const r = pg(662, 62); lcyl(r, 0.16, 0.16, 0.58, 0, 0, 0, MATS.redGloss, 28); lcyl(r, 0.04, 0.045, 0.28, 0.02, 0.58, 0, MATS.redGloss, 16); bake(r, STATIC_C);
+  shellChair(615, 31 + 0.98 * PXM, Math.PI);
+  // red Kartell Componibili (3 round modules, Ø 42 cm) with the red Stelton EM77 vacuum jug on top (living-room photo)
+  { const r = pg(737, 66), R = 0.205, hm = 0.19, dark = std({ color: 0x7a1010, roughness: 0.6 }), hole = std({ color: 0x220606, roughness: 0.9 });
+    lcyl(r, R - 0.015, R - 0.015, 0.012, 0, 0, 0, dark, 40);
+    for (let k = 0; k < 3; k++) {
+      const y0 = 0.012 + k * hm;
+      lcyl(r, R, R, hm - 0.006, 0, y0, 0, MATS.redGloss, 48);
+      lcyl(r, R - 0.006, R - 0.006, 0.006, 0, y0 + hm - 0.006, 0, dark, 48);           // the seam between modules
+      const hd = new THREE.Mesh(new THREE.CircleGeometry(0.019, 20), hole); hd.position.set(0, y0 + hm * 0.62, R + 0.001); r.add(hd);
+      for (const a of [-0.95, 0.95]) lb(r, 0.004, hm - 0.03, 0.004, Math.sin(a) * (R + 0.0005), y0 + 0.012, Math.cos(a) * (R + 0.0005), dark, { ry: a, shadow: false });
+    }
+    const top = 0.012 + 3 * hm;
+    lcyl(r, R - 0.004, R, 0.014, 0, top - 0.006, 0, MATS.redGloss, 48);
+    // EM77: cylinder body, a slightly waisted neck, the rocker stopper on a tilt, a loop handle
+    const j = new THREE.Group(); j.position.set(-0.02, top + 0.008, -0.03); r.add(j);
+    lcyl(j, 0.057, 0.057, 0.215, 0, 0, 0, MATS.redGloss, 36);
+    lcyl(j, 0.052, 0.057, 0.02, 0, 0.215, 0, MATS.redGloss, 36);
+    const cap = lcyl(j, 0.048, 0.05, 0.03, 0, 0.226, 0, MATS.redGloss, 32, { rz: 0.18 });
+    lcyl(j, 0.012, 0.012, 0.01, 0.0, 0.258, 0, MATS.redGloss, 12);
+    lb(j, 0.03, 0.012, 0.03, 0.05, 0.218, 0, MATS.redGloss, { rz: -0.35 });                 // spout lip
+    const hdl = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.009, 10, 28, Math.PI), MATS.redGloss); hdl.rotation.z = Math.PI / 2; hdl.scale.set(1, 1.15, 1); hdl.position.set(-0.052, 0.15, 0); j.add(hdl);
+    bake(r, STATIC_C); }
 }
 // ---- the white shelving along the hall (open shelves, boxes, books), as in the hall photos
 {
+  // three bays; the one nearest the front door is shorter (two shelves fewer) with keys and little boxes on top
   const g = pg(636, 1050), D = 0.4, Lz = pw(1240 - 865), r = rng(41);
-  const xs = -D / 2;
-  for (const z of [-Lz / 2, -Lz / 6, Lz / 6, Lz / 2]) for (const x of [xs - D / 2 + 0.02, xs + D / 2 - 0.02]) lb(g, 0.025, 2.0, 0.025, x, 0, z, MATS.white);
-  for (const y of [0.1, 0.45, 0.8, 1.15, 1.5, 1.85]) lb(g, D, 0.02, Lz, xs, y, 0, y > 1 ? MATS.white : std({ color: 0xe6c9a0, roughness: 0.6 }));
+  const xs = -D / 2, ZB = [-Lz / 2, -Lz / 6, Lz / 6, Lz / 2], FULL = [0.1, 0.45, 0.8, 1.15, 1.5, 1.85], SHORT = FULL.slice(0, 4);
+  ZB.forEach((z, i) => { const h = i === 3 ? 1.19 : 2.0; for (const x of [xs - D / 2 + 0.02, xs + D / 2 - 0.02]) lb(g, 0.025, h, 0.025, x, 0, z, MATS.white); });
   const bc = ['#3d6b4a', '#d64a5c', '#f2efe9', '#c9c3b6', '#2f5d83', '#e3a33c', '#7a2e38'];
-  for (const y of [0.12, 0.47, 0.82, 1.17, 1.52]) for (let z = -Lz / 2 + 0.1; z < Lz / 2 - 0.2; z += 0.32 + r() * 0.1) if (r() < 0.7) lb(g, 0.32, 0.18 + r() * 0.1, 0.28, xs, y, z + 0.14, stdc({ color: new THREE.Color(bc[Math.floor(r() * bc.length)]), roughness: 0.7 }));
+  for (let b = 0; b < 3; b++) {
+    const z0 = ZB[b], z1 = ZB[b + 1], lv = b === 2 ? SHORT : FULL;
+    for (const y of lv) lb(g, D, 0.02, z1 - z0, xs, y, (z0 + z1) / 2, y > 1 && b < 2 ? MATS.white : std({ color: 0xe6c9a0, roughness: 0.6 }));
+    for (const y of lv.slice(0, -1)) for (let z = z0 + 0.06; z < z1 - 0.32; z += 0.32 + r() * 0.08) if (r() < 0.7) lb(g, 0.32, 0.18 + r() * 0.1, 0.28, xs, y + 0.02, z + 0.14, stdc({ color: new THREE.Color(bc[Math.floor(r() * bc.length)]), roughness: 0.7 }));
+  }
+  // on top of the short bay: a key tray with keys, a few small boxes and a little dish
+  { const top = 1.17, zc = (ZB[2] + ZB[3]) / 2;
+    lb(g, 0.16, 0.02, 0.22, xs, top, zc + 0.18, std({ color: 0x2b2b2d, roughness: 0.5 }), { round: 0.008 });
+    for (let k = 0; k < 3; k++) { lb(g, 0.02, 0.004, 0.06, xs - 0.04 + k * 0.035, top + 0.02, zc + 0.12 + k * 0.04, MATS.brass, { ry: 0.4 * k }); lcyl(g, 0.012, 0.012, 0.004, xs - 0.04 + k * 0.035, top + 0.02, zc + 0.09 + k * 0.04, MATS.steel, 12); }
+    lb(g, 0.18, 0.12, 0.14, xs, top, zc - 0.08, std({ color: 0xd8c3a0, roughness: 0.8 }), { round: 0.005 });
+    lb(g, 0.14, 0.09, 0.12, xs + 0.02, top + 0.12, zc - 0.08, std({ color: 0xf2efe9, roughness: 0.6 }), { round: 0.005 });
+    lb(g, 0.12, 0.08, 0.1, xs, top, zc - 0.3, std({ color: 0x2f5d83, roughness: 0.6 }), { round: 0.005 });
+    lcyl(g, 0.06, 0.045, 0.03, xs, top, zc + 0.42, std({ color: 0xe9e2d6, roughness: 0.4 }), 18); }
   bake(g, STATIC_C);
   // drawer tower at the living-room end
   const t = pg(705, 804, Math.PI);
@@ -563,10 +646,34 @@ wardrobe(652, 1173, 1523, 'wardrobe', 6);
   for (const x of [-0.4, 0.4]) lb(g, 0.62, 0.16, 0.4, x, 0.58, 0.28, MATS.pillow, { round: 0.07 });
   bake(g, STATIC_C);
   // round bedside drawers (three stacked drums), a book and a little lamp
-  for (const nx of [735, 1065]) { const n = pg(nx, 890); for (let k = 0; k < 3; k++) lcyl(n, 0.2, 0.2, 0.18, 0, 0.005 + k * 0.19, 0, MATS.gloss, 28); lb(n, 0.18, 0.03, 0.12, 0.02, 0.575, 0.03, MATS.navy); bake(n, STATIC_C); }
+  // oval bedside tables in three white lacquer tiers; the middle one swivels out on a pin at the back corner
+  const ovalTier = (par, h, y, mat) => { const m = lcyl(par, 0.25, 0.25, h, 0, y, 0, mat, 48); m.scale.z = 0.76; return m; };
+  for (const [nx, sd] of [[735, -1], [1065, 1]]) {
+    const n = pg(nx, 888); scene.add(n);
+    ovalTier(n, 0.185, 0, MATS.gloss); ovalTier(n, 0.185, 0.39, MATS.gloss);
+    lb(n, 0.18, 0.025, 0.13, sd * 0.06, 0.575, 0.05, MATS.navy, { ry: 0.1 * sd });       // a book
+    const piv = new THREE.Group(); piv.position.set(sd * 0.2, 0, -0.1); n.add(piv);
+    const mid = ovalTier(piv, 0.185, 0.195, MATS.gloss); mid.position.x -= sd * 0.2; mid.position.z += 0.1;
+    const inner = ovalTier(piv, 0.004, 0.375, std({ color: 0xe4e2dd, roughness: 0.6 })); inner.scale.x = 0.9; inner.scale.z = 0.66; inner.position.x -= sd * 0.2; inner.position.z += 0.1;
+    const lip = lb(piv, 0.12, 0.02, 0.06, -sd * 0.2, 0.378, 0.15, std({ color: 0x2d3440, roughness: 0.8 }));       // glasses case in the drawer
+    for (const m of n.children.slice(0, 3)) collidables.push(m);
+    collidables.push(mid);
+    inter({ name: 'bedside drawer', parts: [mid, inner, lip], handle: mid, dur: 0.6, anchor: (v) => mid.getWorldPosition(v).setY(FZ + 0.29),
+      label: function () { return (this.target ? 'Close ' : 'Swivel out ') + 'the bedside drawer'; }, apply: (t) => { piv.rotation.y = sd * t * 75 * D2R; } });
+  }
   // valet stand
-  const v = pg(700, 1380); lb(v, 0.03, 1.5, 0.03, 0, 0, 0, MATS.white); lb(v, 0.4, 0.03, 0.03, 0, 1.45, 0, MATS.white, { round: 0.01 }); lb(v, 0.36, 0.02, 0.3, 0, 0, 0, MATS.white);
-  lb(v, 0.02, 0.9, 0.12, 0.05, 0.55, 0.0, MATS.matblack); bake(v, STATIC_C);
+  // white valet stand by the window wall (bedroom photo): two splayed legs, a column, a curved shoulder hanger,
+  // a trouser bar, and the black coat and trousers hanging on it
+  const v = pg(1128, 1300, Math.PI / 2);
+  for (const a of [-1, 1]) lb(v, 0.025, 0.025, 0.42, a * 0.13, 0, 0, MATS.white, { ry: a * 0.25 });
+  lcyl(v, 0.014, 0.016, 1.32, 0, 0, 0.0, MATS.white, 12);
+  const hang = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.014, 8, 24, 1.0), MATS.white); hang.rotation.z = Math.PI / 2 - 0.5; hang.position.set(0, 0.92, 0); v.add(hang);
+  lb(v, 0.36, 0.022, 0.022, 0, 0.62, 0.03, MATS.white, { round: 0.01 });
+  const coat = std({ color: 0x18191b, roughness: 0.95 });
+  lb(v, 0.44, 0.7, 0.1, 0, 0.6, 0.01, coat, { round: 0.04 }); lb(v, 0.4, 0.06, 0.12, 0, 1.24, 0.01, coat, { round: 0.03 });
+  for (const a of [-1, 1]) lb(v, 0.08, 0.62, 0.08, a * 0.2, 0.66, 0.03, coat, { round: 0.03, rz: a * 0.05 });
+  lb(v, 0.3, 0.42, 0.03, 0, 0.22, 0.05, std({ color: 0x232427, roughness: 1 }));
+  bake(v, STATIC_C);
 }
 pottedPlant(1165, 972, FZ + WIN.sill, 0.85);
 

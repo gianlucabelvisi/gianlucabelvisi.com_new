@@ -41,6 +41,7 @@ M = {
     'RoadMain': mat('RoadMain', srgb('#5d5b58')),
     'RoadMinor': mat('RoadMinor', srgb('#77726b')),
     'Track': mat('Track', srgb('#a48b6a')),
+    'RoadPaved': mat('RoadPaved', srgb('#a9a59c')),
     'Path': mat('Path', srgb('#b9a17c')),
     'Runway': mat('Runway', srgb('#55575a')),
     'Lava': mat('Lava', srgb('#4b4541')),
@@ -156,11 +157,14 @@ TMAT = {'A': 'RoadMain', 'B': 'RoadMinor'}
 groups = {}
 for rd in F['roads']:
     tier = TIER.get(rd['cls'], 'C')
-    mname = TMAT.get(tier) or ('Track' if rd['cls'] == 'track' else 'Path')
+    surf = rd.get('surface', 'asphalt')
+    if surf == 'unpaved': mname = 'Path' if rd['cls'] in ('path', 'footway') else 'Track'
+    elif surf == 'paved': mname = 'RoadPaved'
+    else: mname = TMAT.get(tier, 'RoadMinor')
     V, Q = ribbon(rd['pts'], rd['w'], 0.35 if tier == 'A' else 0.3)
     if V is None: continue
     p = rd['pts'][len(rd['pts']) // 2]
-    key = 'roadA' if tier == 'A' else f'road{tier}_{mname}_%d_%d' % tile_of(p[0], p[1])
+    key = f'roadA_{mname}' if tier == 'A' else f'road{tier}_{mname}_%d_%d' % tile_of(p[0], p[1])
     g = groups.setdefault((key, mname), [[], [], 0])
     g[0].append(V); g[1].append(Q + g[2]); g[2] += len(V)
 for (key, mname), (Vs, Qs, _) in groups.items():
@@ -183,6 +187,21 @@ if Vs:
                                     np.stack([(V[:, 0] - X0) / (X1 - X0), (V[:, 1] - Y0) / (Y1 - Y0)], -1))
 
 # ---------- extruded polygons (buildings, piers, water) ----------
+from shapely import constrained_delaunay_triangles as _cdt
+from shapely.geometry import Polygon as _SP
+def cap(bm, pts, z):
+    """Flat cap over a (possibly concave) footprint: constrained Delaunay, so nothing spills outside the outline
+    (bmesh's ngon triangulation leaked e.g. the lake across Via del Lago)."""
+    poly = _SP(pts)
+    if not poly.is_valid: poly = poly.buffer(0)
+    if poly.is_empty: return
+    for tri in getattr(_cdt(poly), 'geoms', []):
+        c = list(tri.exterior.coords)[:3]
+        if _SP(c).area < 1e-4: continue
+        if _SP(c).exterior.is_ccw is False: c = c[::-1]
+        try: bm.faces.new([bm.verts.new((x, y, z)) for x, y in c])
+        except ValueError: pass
+
 def poly_prism(bm, pts, zb, zt, cap=True):
     """Add a vertical prism to bm; returns top face."""
     bot = [bm.verts.new((x, y, zb)) for x, y in pts]
@@ -194,8 +213,7 @@ def poly_prism(bm, pts, zb, zt, cap=True):
         except ValueError: pass
     f = None
     if cap:
-        try: f = bm.faces.new(top)
-        except ValueError: f = None
+        globals()['cap'](bm, pts, zt)
     return f
 
 def dome(bm, cx, cy, zb, r, hgt, seg=10, rings=3):
@@ -239,8 +257,7 @@ for b in F['buildings']:
     top = poly_prism(bw, pts, zb, zt, cap=(roof == wall or roof is None))
     if roof and roof != wall:
         br = T.setdefault(roof, bmesh.new())
-        try: br.faces.new([br.verts.new((x, y, zt)) for x, y in pts])
-        except ValueError: pass
+        cap(br, pts, zt)
         if kind == 'dammuso' and poly.area < 400:
             # the white cupola: one per ~45 m2 room, along the long axis
             mrr = poly.minimum_rotated_rectangle
@@ -299,8 +316,7 @@ for wv in F['water']:
     q = wv['pts'][:-1] if wv['pts'][0] == wv['pts'][-1] else wv['pts']
     if len(q) < 3: continue
     if SPoly(q).exterior.is_ccw is False: q = q[::-1]
-    try: bm.faces.new([bm.verts.new((x, y, max(wv['z'], 0.2) + 0.25)) for x, y in q])
-    except ValueError: pass
+    cap(bm, q, max(wv['z'], 0.2) + 0.25)
 finish(bm, 'water', M['Lake'])
 
 bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(os.path.join(OUT, 'pantelleria.blend')), compress=True)
