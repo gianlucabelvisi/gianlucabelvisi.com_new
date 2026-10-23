@@ -56,6 +56,28 @@
   #hud .hb button:hover { background: var(--oak-dim); }
   #vmsg { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); font: 600 15px/1.2 var(--ui); color: #fff; text-shadow: 0 1px 3px #0009, 0 0 12px #0006; z-index: 6; pointer-events: none; text-align: center; }
   body.vehicle #nav, body.vehicle #scale { display: none; }
+  /* touch: on-screen stick, pedals and throttle; HUD moves to the top */
+  #touch .tpad { position: fixed; left: calc(var(--gut) + 6px); bottom: calc(var(--gut) + var(--safe-b) + 14px); width: 136px; height: 136px; border-radius: 50%;
+    background: rgba(20, 18, 15, 0.35); border: 1.5px solid rgba(255, 255, 255, 0.35); touch-action: none; z-index: 7; }
+  #touch .knob { position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px; border-radius: 50%; background: rgba(255, 255, 255, 0.78); box-shadow: 0 2px 8px #0006; pointer-events: none; }
+  #touch .tside { position: fixed; right: calc(var(--gut) + 6px); bottom: calc(var(--gut) + var(--safe-b) + 14px); display: flex; gap: 10px; align-items: flex-end; z-index: 7; }
+  #touch .tside[hidden] { display: none; }
+  #touch .tbtn { width: 74px; height: 96px; border-radius: 16px; border: 1.5px solid rgba(255, 255, 255, 0.4); background: rgba(20, 18, 15, 0.45); color: #fff;
+    font: 600 13px/1.1 var(--ui); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+  #touch .tbtn.gas { height: 136px; background: rgba(70, 120, 60, 0.5); }
+  #touch .tbtn.sm { width: 66px; height: 54px; font-size: 11.5px; }
+  #touch .tbtn.on { background: rgba(207, 145, 82, 0.8); }
+  #touch .tcol { display: grid; gap: 8px; }
+  #touch .tthr { width: 66px; height: 156px; border-radius: 14px; border: 1.5px solid rgba(255, 255, 255, 0.4); background: rgba(20, 18, 15, 0.45); position: relative; overflow: hidden; touch-action: none; }
+  #touch .tthr .fill { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: rgba(207, 145, 82, 0.75); }
+  #touch .tthr span { position: absolute; top: 7px; width: 100%; text-align: center; font: 600 10.5px/1 var(--ui); color: #fff; pointer-events: none; }
+  body.touch #hudKeys { display: none; }
+  body.touch.vehicle #info { display: none; }
+  body.touch.vehicle #modes { top: calc(var(--gut) + var(--safe-t)); bottom: auto; left: 50%; transform: translateX(-50%); }
+  body.touch.vehicle #hud { top: calc(var(--gut) + var(--safe-t) + 50px); bottom: auto; padding: 7px 10px; gap: 6px; }
+  body.touch #hudMain b { font-size: 18px; }
+  body.touch #hud .hb button { padding: 8px 12px; }
+  canvas { touch-action: none; }
   @media (max-width: 640px) { #modes { top: auto; bottom: calc(var(--gut) + var(--safe-b) + 18px); left: var(--gut); transform: none; } body.vehicle #modes { top: calc(var(--gut) + var(--safe-t) + 50px); bottom: auto; } }
   #quick { position: fixed; right: var(--gut); top: calc(var(--gut) + var(--safe-t)); display: grid; gap: 2px; padding: 4px; z-index: 6; }
   #quick button { font: 500 12px/1 var(--ui); color: var(--muted); background: transparent; border: 0; border-radius: 8px; padding: 9px 8px; cursor: pointer; display: flex; align-items: center; gap: 7px; text-align: left; }
@@ -140,6 +162,18 @@
   <div class="hb"><button id="hudCam">Follow (C)</button><button id="hudReset">Respawn</button></div>
 </div>
 <div id="vmsg" hidden></div>
+<div id="touch" hidden>
+  <div id="tStick" class="tpad" aria-label="Steering"><div class="knob"></div></div>
+  <div id="tCar" class="tside">
+    <button id="tHand" class="tbtn sm">Hand&shy;brake</button>
+    <button id="tBrake" class="tbtn">Brake</button>
+    <button id="tGas" class="tbtn gas">Gas</button>
+  </div>
+  <div id="tPlane" class="tside" hidden>
+    <div class="tcol"><button id="tSpdUp" class="tbtn sm">Speed +</button><button id="tSpdDn" class="tbtn sm">Speed −</button></div>
+    <div id="tThr" class="tthr" aria-label="Throttle"><div class="fill"></div><span>Throttle</span></div>
+  </div>
+</div>
 <div id="timePop" class="panel" hidden>
   <div class="eyebrow">Time of day · June</div>
   <input id="sunrange" type="range" min="5" max="22.5" step="0.05" value="17">
@@ -303,7 +337,7 @@ function makeMat(key, extra = {}) {
       m.userData.pull = d.pull;
       m.onBeforeCompile = (sh) => {
         sh.vertexShader = sh.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>
-          { float l_ = length(mvPosition.xyz); mvPosition.xyz *= max(0.05, 1.0 - (min(${d.pull[0].toFixed(4)}, 0.025 * l_) + ${d.pull[1].toFixed(5)} * l_) / l_);
+          { float l_ = length(mvPosition.xyz); mvPosition.xyz *= max(0.05, 1.0 - (min(${d.pull[0].toFixed(4)}, 0.004 * l_) + ${d.pull[1].toFixed(5)} * l_) / l_);
             gl_Position = projectionMatrix * mvPosition; }`);
       };
       m.customProgramCacheKey = () => 'pull' + d.pull.join('_');
@@ -1528,9 +1562,9 @@ function setupPost() {
   post.nmat = new THREE.MeshNormalMaterial();
   post.mat = new THREE.ShaderMaterial({
     uniforms: { tColor: { value: post.color.texture }, tNrm: { value: post.nrm.texture }, tDepth: { value: post.nrm.depthTexture },
-      texel: { value: new THREE.Vector2(1 / w, 1 / h) }, near: { value: 1 }, far: { value: 1000 }, ink: { value: new THREE.Color('#2a2119') }, amount: { value: 0.85 } },
+      texel: { value: new THREE.Vector2(1 / w, 1 / h) }, near: { value: 1 }, far: { value: 1000 }, ink: { value: new THREE.Color('#2a2119') }, amount: { value: 0.85 }, lapMin: { value: 0.012 } },
     vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
-    fragmentShader: `uniform sampler2D tColor, tNrm, tDepth; uniform vec2 texel; uniform float near, far, amount; uniform vec3 ink; varying vec2 vUv;
+    fragmentShader: `uniform sampler2D tColor, tNrm, tDepth; uniform vec2 texel; uniform float near, far, amount, lapMin; uniform vec3 ink; varying vec2 vUv;
       float vz(vec2 uv){ float d = texture2D(tDepth, uv).r; float z = d * 2.0 - 1.0; return 2.0 * near * far / (far + near - z * (far - near)); }
       void main(){
         vec4 c = texture2D(tColor, vUv);
@@ -1538,7 +1572,7 @@ function setupPost() {
         float d0 = vz(vUv), dl = vz(vUv - vec2(t.x, 0.)), dr = vz(vUv + vec2(t.x, 0.)), du = vz(vUv + vec2(0., t.y)), dd = vz(vUv - vec2(0., t.y));
         float i0 = 1.0 / d0;
         float lap = abs(4.0 * i0 - 1.0/dl - 1.0/dr - 1.0/du - 1.0/dd) / i0;
-        float e1 = smoothstep(0.012, 0.05, lap);
+        float e1 = smoothstep(lapMin, lapMin * 4.0, lap);
         vec3 n0 = texture2D(tNrm, vUv).xyz * 2. - 1.;
         vec3 n1 = texture2D(tNrm, vUv + vec2(t.x, 0.)).xyz * 2. - 1., n2 = texture2D(tNrm, vUv + vec2(0., t.y)).xyz * 2. - 1.;
         vec3 n3 = texture2D(tNrm, vUv - vec2(t.x, 0.)).xyz * 2. - 1., n4 = texture2D(tNrm, vUv - vec2(0., t.y)).xyz * 2. - 1.;
@@ -1634,10 +1668,15 @@ const _v = new THREE.Vector3();
 const _ray = new THREE.Raycaster();
 function updateLabels() {
   const dist = camera.position.distanceTo(controls.target);
-  const maxPrio = dist > 16000 ? 1 : dist > 9000 ? 2 : dist > 5000 ? 3 : dist > 2500 ? 5 : dist > 700 ? 6 : 9;
+  let maxPrio = dist > 16000 ? 1 : dist > 9000 ? 2 : dist > 5000 ? 3 : dist > 2500 ? 5 : dist > 700 ? 6 : 9, near = null;
+  if (VEH.mode === 'plane') { const agl = camera.position.y - Math.max(0, heightAt(camera.position.x, -camera.position.z)); maxPrio = agl > 900 ? 3 : agl > 350 ? 4 : 5; }
+  else if (VEH.mode === 'car') {                       // driving: only the handful of places right around you
+    const tg = controls.target;
+    near = new Set(labelEls.filter((L) => L.l.prio <= 8).map((L) => [Math.hypot(L.p.x - tg.x, L.p.z - tg.z), L]).filter((a) => a[0] < 450).sort((a, b) => a[0] - b[0]).slice(0, 5).map((a) => a[1]));
+  }
   const W = innerWidth, H = innerHeight, placed = [];
   for (const L of labelEls) {
-    let show = STYLE.labels && L.l.prio <= maxPrio;
+    let show = STYLE.labels && L.l.prio <= maxPrio && (!near || near.has(L));
     let sx = 0, sy = 0;
     if (show) {
       _v.copy(L.p).project(camera);
@@ -1677,10 +1716,10 @@ function updateRoadLabels(placed, dist) {
   let used = 0;
   if (STYLE.labels && dist < ROAD_MAX[0]) {
     const W = innerWidth, H = innerHeight, cp = camera.position, tg = controls.target;
-    const reach = Math.max(600, dist * 1.6);
+    const reach = VEH.mode === 'car' ? 220 : Math.max(600, dist * 1.6), cap = VEH.mode === 'car' ? 4 : VEH.mode === 'plane' ? 14 : 120;
     const cand = [];
     for (const R of ROADS) {
-      if (dist > ROAD_MAX[R.t]) continue;
+      if (dist > ROAD_MAX[R.t] || (VEH.mode === 'plane' && R.t > 0)) continue;
       const dt = Math.hypot(R.p.x - tg.x, R.p.z - tg.z);
       if (dt > reach) continue;
       cand.push([R.t * 1e6 + dt, R]);
@@ -1688,7 +1727,7 @@ function updateRoadLabels(placed, dist) {
     cand.sort((a, b) => a[0] - b[0]);
     const seenName = new Map();
     for (const [, R] of cand) {
-      if (used >= 120) break;
+      if (used >= cap) break;
       _a.copy(R.p).project(camera);
       if (_a.z > 1 || _a.x < -1.05 || _a.x > 1.05 || _a.y < -1.05 || _a.y > 1.05) continue;
       _b.copy(R.p).addScaledVector(R.d, 12).project(camera);
@@ -1945,7 +1984,7 @@ controls.addEventListener('end', () => writeHash());
 // Car: arcade, free drive: fastest on asphalt, slower on cement and dirt, crawling off road; houses and the sea stop it.
 // Plane: arcade Cessna 172: throttle, pitch, roll, rudder; coordinated turns, soft stall, lands on the airport runway.
 const VEH = { mode: 'map', cam: 'follow', yaw: 0, pitch: 0.3, fyaw: 0, fpitch: -0.06, freeAz: 0, dist: { car: 9, plane: 24 },
-  keys: new Set(), car: null, plane: null, group: new THREE.Group(), msgT: 0, hudT: 0, pad: {}, warp: 1 };
+  keys: new Set(), car: null, plane: null, group: new THREE.Group(), msgT: 0, hudT: 0, pad: {}, touch: {}, pspd: 1 };
 scene.add(VEH.group);
 const VKEYS = new Set(['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'q', 'e', 'r', 'f', 'shift', 'control', ' ', 'z']);
 const vHas = (...ks) => ks.some((k) => VEH.keys.has(k));
@@ -1972,63 +2011,174 @@ function nearestRoad(x, y, maxTier = 3) {
 
 // ---- models (local: +x forward, +y up, +z right; origin on the ground) ----
 function vMesh(geo) { const m = new THREE.Mesh(geo, MAT.Prop.cel); m.userData.mats = MAT.Prop; m.castShadow = true; m.receiveShadow = true; return m; }
-function wheelGeo(r, w) {
-  return mergeGeos([colorize(new THREE.CylinderGeometry(r, r, w, 14).rotateX(Math.PI / 2), '#1e1e1e'),
-    colorize(new THREE.CylinderGeometry(r * 0.55, r * 0.55, w + 0.02, 10).rotateX(Math.PI / 2), '#c8c8c4')]);
+// lofted bodies: sections along x, each a superellipse profile in (z, y). Section = { x, w, h, y, p = 4, top = 1, z = 0 }
+// (w across, h tall, y centre, p roundness: 2 ellipse … 8 nearly a box, top: width at the top relative to the bottom,
+// z: profile centre offset). Smooth normals, then one colour per triangle from colorFn(centroid) — crisp windows and stripes.
+function loftGeo(secs, around, colorFn, step = 0) {
+  if (step) {   // resample along x so per-triangle colours (pillars, stripes) have somewhere to land
+    const out = [];
+    for (let i = 0; i < secs.length - 1; i++) {
+      const a = secs[i], b = secs[i + 1], n = Math.max(1, Math.round(Math.abs(b.x - a.x) / step));
+      for (let k = 0; k < n; k++) { const t = k / n, m = {}; for (const key of ['x', 'w', 'h', 'y', 'p', 'top', 'z']) m[key] = (a[key] ?? LOFT_DEF[key]) + ((b[key] ?? LOFT_DEF[key]) - (a[key] ?? LOFT_DEF[key])) * t; out.push(m); }
+    }
+    out.push(secs[secs.length - 1]); secs = out;
+  }
+  const P = [], I = [];
+  for (const s of secs) {
+    const p = s.p ?? 4, top = s.top ?? 1;
+    // superellipse, resampled to equal arc length (flat sides get vertices too, not just the corners)
+    const D = [], N = 240; let L = 0;
+    for (let k = 0; k <= N; k++) {
+      const t = k / N * Math.PI * 2, c = Math.cos(t), sn = Math.sin(t);
+      const yy = Math.sign(sn) * Math.pow(Math.abs(sn), 2 / p), zz = Math.sign(c) * Math.pow(Math.abs(c), 2 / p);
+      const wf = 1 + (top - 1) * (yy + 1) / 2, py = yy * s.h / 2, pz = zz * s.w / 2 * wf;
+      if (k) L += Math.hypot(py - D[D.length - 1][0], pz - D[D.length - 1][1]);
+      D.push([py, pz, L]);
+    }
+    for (let k = 0, j = 0; k < around; k++) {
+      const want = k / around * L; while (j < N - 1 && D[j + 1][2] < want) j++;
+      const a = D[j], b = D[j + 1], f = (want - a[2]) / Math.max(b[2] - a[2], 1e-9);
+      P.push(s.x, (s.y ?? 0) + a[0] + (b[0] - a[0]) * f, (s.z ?? 0) + a[1] + (b[1] - a[1]) * f);
+    }
+  }
+  const S = secs.length;
+  for (let i = 0; i < S - 1; i++) for (let k = 0; k < around; k++) {
+    const a = i * around + k, b = i * around + (k + 1) % around, c = a + around, d = b + around;
+    if (secs[i + 1].x > secs[i].x) I.push(a, d, b, a, c, d); else I.push(a, b, d, a, d, c);   // outward-facing
+  }
+  // caps
+  const cap = (i, flip) => { const c0 = P.length / 3, s = secs[i]; P.push(s.x, s.y ?? 0, s.z ?? 0); for (let k = 0; k < around; k++) { const a = i * around + k, b = i * around + (k + 1) % around; flip ? I.push(c0, b, a) : I.push(c0, a, b); } };
+  const fwd = secs[S - 1].x > secs[0].x;
+  cap(0, !fwd); cap(S - 1, fwd);
+  let g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setIndex(I);
+  g.computeVertexNormals(); g = g.toNonIndexed();
+  const pos = g.attributes.position, col = new Float32Array(pos.count * 3), c = new THREE.Color();
+  const sideTris = (S - 1) * around * 2;
+  for (let i = 0; i < pos.count; i += 3) {
+    // the two triangles of a side quad share one colour (taken at the quad's centre): clean edges, no saw teeth
+    const t = i / 3, i0 = t < sideTris ? (t - (t % 2)) * 3 : i, nv = t < sideTris ? 6 : 3;
+    let cx = 0, cy = 0, cz = 0; for (let j = 0; j < nv; j++) { cx += pos.getX(i0 + j); cy += pos.getY(i0 + j); cz += pos.getZ(i0 + j); }
+    cx /= nv; cy /= nv; cz /= nv;
+    c.set(colorFn(cx, cy, cz));
+    for (let j = 0; j < 3; j++) c.toArray(col, (i + j) * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
 }
-function strut(ax, ay, az, bx, by, bz, t, col) {   // thin box from a to b
+const LOFT_DEF = { p: 4, top: 1, z: 0, y: 0 };
+function tireGeo(r, w) {
+  return mergeGeos([colorize(new THREE.TorusGeometry(r - w * 0.42, w * 0.45, 8, 18), '#1c1c1c').scale(1, 1, w / (w * 0.9)),
+    colorize(new THREE.CylinderGeometry(r * 0.58, r * 0.58, w * 0.8, 14).rotateX(Math.PI / 2), '#c9c6bf'),
+    colorize(new THREE.CylinderGeometry(r * 0.2, r * 0.2, w * 0.86, 8).rotateX(Math.PI / 2), '#5a5a58')]);
+}
+function strut(ax, ay, az, bx, by, bz, t, col) {   // thin rod from a to b
   const a = new THREE.Vector3(ax, ay, az), b = new THREE.Vector3(bx, by, bz), L = a.distanceTo(b);
-  const g = new THREE.BoxGeometry(t, L, t), q = new THREE.Quaternion().setFromUnitVectors(Y_UP, b.clone().sub(a).normalize());
+  const g = new THREE.CylinderGeometry(t / 2, t / 2, L, 6), q = new THREE.Quaternion().setFromUnitVectors(Y_UP, b.clone().sub(a).normalize());
   g.applyQuaternion(q); g.translate((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2);
   return colorize(g, col);
 }
-function carModel(col) {   // a boxy little Fiat Panda 4x4, the island's car
-  const glass = '#22303b', dark = '#2a2a2a';
-  const body = mergeGeos([
-    colorize(boxG(3.35, 0.6, 1.5, 0, 0.62, 0), col),
-    colorize(boxG(3.39, 0.16, 1.54, 0, 0.38, 0), dark),                        // bumpers / sills
-    colorize(boxG(1.96, 0.46, 1.38, -0.32, 1.15, 0), glass),                  // windows
-    colorize(boxG(2.06, 0.09, 1.46, -0.32, 1.425, 0), col),                   // roof
-    ...[[0.66, 0.67], [0.66, -0.67], [-1.3, 0.67], [-1.3, -0.67]].map(([x, z]) => colorize(boxG(0.045, 0.47, 0.045, x, 1.15, z), col)),
-    ...[-0.6, 0.6].map((z) => colorize(boxG(1.7, 0.05, 0.05, -0.32, 1.5, z), '#3a3a3a')),   // roof rails
-    ...[-0.52, 0.52].map((z) => colorize(boxG(0.04, 0.16, 0.26, 1.69, 0.74, z), '#fff6cf')),   // headlights
-    ...[-0.6, 0.6].map((z) => colorize(boxG(0.04, 0.2, 0.18, -1.69, 0.76, z), '#c0302a')),     // tail lights
-    colorize(boxG(0.04, 0.22, 0.7, 1.69, 0.56, 0), dark),                      // grille
-  ]);
-  const g = new THREE.Group(); g.add(vMesh(body));
-  const wg = wheelGeo(0.3, 0.2), wheels = [], pivots = [];
-  for (const [x, z] of [[1.1, 0.7], [1.1, -0.7], [-1.1, 0.7], [-1.1, -0.7]]) {
-    const piv = new THREE.Group(); piv.position.set(x, 0.3, z); const w = vMesh(wg); piv.add(w); g.add(piv);
+function carModel(col) {   // Fiat Panda 4x4 (first series): upright, flat glass, dark plastic cladding — the island's car
+  const BODY = col, DARK = '#2b2b2b', GLASS = '#26343f', LIGHT = '#fff3c4', RED = '#c0302a';
+  const wheelsAt = [[1.1, 0.7], [1.1, -0.7], [-1.1, 0.7], [-1.1, -0.7]];
+  const body = loftGeo([
+    { x: -1.70, w: 1.36, h: 0.50, y: 0.62, p: 5 },
+    { x: -1.64, w: 1.50, h: 0.64, y: 0.64, p: 7 },
+    { x: 0.70, w: 1.52, h: 0.66, y: 0.645, p: 7 },
+    { x: 1.58, w: 1.50, h: 0.56, y: 0.60, p: 7 },
+    { x: 1.70, w: 1.36, h: 0.46, y: 0.58, p: 5 },
+  ], 44, (x, y, z) => {
+    for (const [wx] of wheelsAt) if (Math.hypot(x - wx, y - 0.3) < 0.43 && Math.abs(z) > 0.55) return DARK;   // wheel arches
+    if (y < 0.42) return DARK;                                                                                   // sills
+    if (Math.abs(x) > 1.6 && y < 0.6) return DARK;                                                              // bumpers
+    if (x > 1.66 && Math.abs(z) > 0.36 && Math.abs(z) < 0.66 && y > 0.66 && y < 0.82) return LIGHT;            // headlights
+    if (x > 1.66 && Math.abs(z) < 0.33 && y > 0.66 && y < 0.82) return DARK;                                    // grille
+    if (x < -1.66 && Math.abs(z) > 0.5 && y > 0.66 && y < 0.86) return RED;                                     // tail lights
+    return BODY;
+  }, 0.08);
+  const cabin = loftGeo([
+    { x: -1.58, w: 1.40, h: 0.08, y: 0.96, p: 6, top: 0.92 },
+    { x: -1.55, w: 1.42, h: 0.60, y: 1.23, p: 7, top: 0.9 },
+    { x: 0.10, w: 1.42, h: 0.60, y: 1.23, p: 7, top: 0.9 },
+    { x: 0.74, w: 1.40, h: 0.08, y: 0.97, p: 6, top: 0.95 },
+  ], 40, (x, y, z) => {
+    if (y > 1.47) return BODY;                                                       // roof
+    const pillar = Math.abs(x - 0.08) < 0.05 || Math.abs(x + 0.62) < 0.035 || Math.abs(x + 1.5) < 0.06;
+    if (y > 1.0 && !(pillar && Math.abs(z) > 0.45)) return GLASS;
+    return BODY;
+  }, 0.05);
+  const bits = [
+    ...[-1, 1].map((s) => colorize(boxG(0.1, 0.09, 0.12, 0.66, 1.03, s * 0.78), DARK)),                    // mirrors
+    ...[-0.55, 0.55].map((z) => colorize(boxG(1.6, 0.04, 0.04, -0.4, 1.56, z), '#3a3a3a')),               // roof rails
+    ...[[-1.2, 0.55], [-1.2, -0.55], [0.4, 0.55], [0.4, -0.55]].map(([x, z]) => colorize(boxG(0.05, 0.05, 0.05, x, 1.535, z), '#3a3a3a')),
+    colorize(boxG(0.03, 0.12, 0.42, -1.71, 0.78, 0), '#e8e2cf'),                                           // number plate
+    colorize(boxG(0.03, 0.12, 0.42, 1.71, 0.5, 0), '#e8e2cf'),
+  ];
+  const g = new THREE.Group(); g.add(vMesh(mergeGeos([body, cabin, ...bits])));
+  const wg = tireGeo(0.31, 0.2), wheels = [], pivots = [];
+  for (const [x, z] of wheelsAt) {
+    const piv = new THREE.Group(); piv.position.set(x, 0.31, z); const w = vMesh(wg); piv.add(w); g.add(piv);
     wheels.push(w); if (x > 0) pivots.push(piv);
   }
   return { group: g, wheels, pivots };
 }
-function cessnaModel() {
-  const W = '#f4f3ee', R = '#b8352b', B = '#27406e', G = '#24313c', D = '#3a3a3a';
-  const boom = new THREE.BoxGeometry(4.4, 0.95, 0.9).translate(-2.3, 1.42, 0);
-  { const p = boom.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i); if (x < -2) { const t = 1 - (-2 - x) / 2.5 * 0.68; p.setY(i, 1.42 + (p.getY(i) - 1.42) * t + (1 - t) * 0.25); p.setZ(i, p.getZ(i) * t); } } boom.computeVertexNormals(); }
-  const body = mergeGeos([
-    colorize(boxG(0.95, 0.78, 0.98, 2.2, 1.04, 0), W),                        // cowling
-    colorize(boxG(2.1, 0.7, 1.12, 0.85, 0.97, 0), W),                         // cabin, lower half
-    colorize(boxG(2.04, 0.56, 1.08, 0.85, 1.6, 0), G),                        // glazing all round (see-through from inside)
-    colorize(boxG(2.1, 0.08, 1.12, 0.85, 1.91, 0), W),                        // cabin roof
-    ...[[1.84, 0.53], [1.84, -0.53], [-0.12, 0.53], [-0.12, -0.53]].map(([x, z]) => colorize(boxG(0.04, 0.56, 0.04, x, 1.6, z), W)),
-    colorize(boom, W),
-    colorize(boxG(2.1, 0.13, 1.15, 0.85, 1.0, 0), R), colorize(boxG(0.97, 0.1, 1.0, 2.2, 1.0, 0), R),   // stripe
-    colorize(boxG(1.55, 0.14, 11.0, 0.8, 1.95, 0), W),                        // high wing
-    ...[-5.4, 5.4].map((z) => colorize(boxG(1.56, 0.15, 0.25, 0.8, 1.95, z), R)),
-    colorize(boxG(1.05, 0.08, 3.5, -4.15, 1.62, 0), W),                       // stabiliser
-    colorize(boxG(1.15, 1.45, 0.08, -4.25, 2.35, 0), W), colorize(boxG(0.9, 0.35, 0.09, -4.35, 2.95, 0), B),   // fin
-    strut(0.95, 0.78, 0.56, 0.95, 1.9, 2.7, 0.07, W), strut(0.95, 0.78, -0.56, 0.95, 1.9, -2.7, 0.07, W),
-    strut(0.5, 0.72, 0.5, 0.45, 0.3, 1.25, 0.09, D), strut(0.5, 0.72, -0.5, 0.45, 0.3, -1.25, 0.09, D),        // main gear
-    strut(2.25, 0.7, 0, 2.3, 0.26, 0, 0.08, D),                                // nose gear
-    colorize(new THREE.ConeGeometry(0.22, 0.4, 10).rotateZ(-Math.PI / 2).translate(2.85, 1.04, 0), W),        // spinner
+function cessnaModel() {   // Cessna 172: high strut-braced wing, tapered outer panels, swept fin, wheel pants
+  const W = '#f5f4ef', R = '#b9342a', B = '#25406f', G = '#25333e', D = '#3a3a3a';
+  const fus = loftGeo([
+    { x: 2.72, w: 0.74, h: 0.64, y: 1.04, p: 2.8 },
+    { x: 2.45, w: 0.96, h: 0.84, y: 1.06, p: 3.2 },
+    { x: 1.95, w: 1.08, h: 1.0, y: 1.10, p: 3.6 },
+    { x: 1.62, w: 1.12, h: 1.30, y: 1.25, p: 4, top: 0.86 },
+    { x: 1.15, w: 1.14, h: 1.44, y: 1.30, p: 4.5, top: 0.86 },
+    { x: 0.0, w: 1.12, h: 1.42, y: 1.30, p: 4.5, top: 0.9 },
+    { x: -0.65, w: 1.0, h: 1.22, y: 1.38, p: 3.8, top: 0.9 },
+    { x: -1.5, w: 0.80, h: 0.94, y: 1.46, p: 3.2 },
+    { x: -2.7, w: 0.56, h: 0.70, y: 1.54, p: 2.8 },
+    { x: -3.9, w: 0.34, h: 0.48, y: 1.62, p: 2.5 },
+    { x: -4.55, w: 0.14, h: 0.30, y: 1.68, p: 2.2 },
+  ], 36, (x, y, z) => {
+    if (x > -0.8 && x < 1.62 && y > 1.42 && y < 1.92 && !(Math.abs(x - 0.55) < 0.05 && Math.abs(z) > 0.4)) return G;   // glazing (door pillar)
+    if (x > 1.45 && x < 1.72 && y > 1.32 && Math.abs(z) < 0.5) return G;                                                  // windscreen
+    if (Math.abs(y - (1.02 + Math.max(0, -x) * 0.11)) < 0.06 && x < 2.6) return R;                                        // cheat line
+    if (Math.abs(y - (1.12 + Math.max(0, -x) * 0.11)) < 0.02 && x < 2.6) return B;
+    if (x > 2.55 && y < 0.95) return D;                                                                                   // cowl inlet
+    return W;
+  }, 0.07);
+  const wingSecs = (span, root, tip, th, yc, le, inner) => [
+    { x: -span - 0.05, w: tip * 0.85, h: th * 0.3, y: yc + span * 0.03, z: -(le - tip * 0.85 / 2), p: 2.3 },
+    { x: -span, w: tip, h: th * 0.65, y: yc + span * 0.03, z: -(le - tip / 2), p: 2.3 },
+    { x: -inner, w: root, h: th, y: yc + inner * 0.03, z: -(le - root / 2), p: 2.3 },
+    { x: 0, w: root, h: th, y: yc, z: -(le - root / 2), p: 2.3 },
+    { x: inner, w: root, h: th, y: yc + inner * 0.03, z: -(le - root / 2), p: 2.3 },
+    { x: span, w: tip, h: th * 0.65, y: yc + span * 0.03, z: -(le - tip / 2), p: 2.3 },
+    { x: span + 0.05, w: tip * 0.85, h: th * 0.3, y: yc + span * 0.03, z: -(le - tip * 0.85 / 2), p: 2.3 },
+  ];
+  // built with span along x, then turned so span runs along z and chord along x (z offset = chord centre)
+  const wing = loftGeo(wingSecs(5.45, 1.6, 1.12, 0.2, 2.0, 1.62, 2.5), 14, (x) => Math.abs(x) > 5.05 ? R : W, 0.5).rotateY(-Math.PI / 2);
+  const stab = loftGeo(wingSecs(1.7, 1.0, 0.62, 0.09, 1.64, -3.62, 0.3), 12, (x) => W, 0).rotateY(-Math.PI / 2);
+  const finShape = new THREE.Shape([new THREE.Vector2(-3.7, 1.72), new THREE.Vector2(-4.62, 1.66), new THREE.Vector2(-4.78, 3.02), new THREE.Vector2(-4.42, 3.08), new THREE.Vector2(-4.12, 2.25)]);
+  let fin = new THREE.ExtrudeGeometry(finShape, { depth: 0.07, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 1 }).translate(0, 0, -0.035).toNonIndexed();
+  fin.computeVertexNormals();
+  { const p = fin.attributes.position, col = new Float32Array(p.count * 3), c = new THREE.Color();
+    for (let i = 0; i < p.count; i += 3) { const cy = (p.getY(i) + p.getY(i + 1) + p.getY(i + 2)) / 3; c.set(cy > 2.72 ? B : cy > 2.6 ? R : W); for (let j = 0; j < 3; j++) c.toArray(col, (i + j) * 3); }
+    fin.setAttribute('color', new THREE.BufferAttribute(col, 3)); if (fin.attributes.uv) fin.deleteAttribute('uv'); }
+  const pant = (x, z) => loftGeo([{ x: x + 0.42, w: 0.04, h: 0.06, y: 0.3, z, p: 2 }, { x: x + 0.3, w: 0.2, h: 0.34, y: 0.3, z, p: 2.2 }, { x: x - 0.05, w: 0.24, h: 0.42, y: 0.32, z, p: 2.4 }, { x: x - 0.45, w: 0.1, h: 0.2, y: 0.36, z, p: 2 }], 12, (cx, cy) => cy < 0.2 ? R : W);
+  const body = mergeGeos([fus, wing, stab, fin,
+    strut(0.95, 0.82, 0.52, 1.05, 1.92, 2.65, 0.07, W), strut(0.95, 0.82, -0.52, 1.05, 1.92, -2.65, 0.07, W),
+    strut(0.55, 0.72, 0.45, 0.45, 0.32, 1.22, 0.07, D), strut(0.55, 0.72, -0.45, 0.45, 0.32, -1.22, 0.07, D),     // spring-steel main gear
+    strut(2.25, 0.72, 0, 2.3, 0.3, 0, 0.07, D),                                                                        // nose gear
+    pant(0.45, 1.25), pant(0.45, -1.25), pant(2.3, 0),
+    colorize(new THREE.ConeGeometry(0.24, 0.42, 14).rotateZ(-Math.PI / 2).translate(2.93, 1.04, 0), W),                // spinner
+    colorize(new THREE.CylinderGeometry(0.02, 0.02, 0.5, 4).translate(-0.2, 2.05, 0), D),                             // antenna
   ]);
   const g = new THREE.Group(); g.add(vMesh(body));
-  const wg = wheelGeo(0.27, 0.16);
-  for (const [x, z] of [[0.45, 1.25], [0.45, -1.25], [2.3, 0]]) { const w = vMesh(wg); w.position.set(x, 0.27, z); g.add(w); }
-  const prop = vMesh(mergeGeos([colorize(boxG(0.05, 1.9, 0.17, 0, 0, 0), '#2b2b2b'), colorize(boxG(0.055, 0.14, 0.18, 0, 0.88, 0), '#e8e2c8'), colorize(boxG(0.055, 0.14, 0.18, 0, -0.88, 0), '#e8e2c8')]));
-  prop.position.set(2.72, 1.04, 0); g.add(prop);
+  const wg = tireGeo(0.26, 0.15);
+  for (const [x, z] of [[0.45, 1.25], [0.45, -1.25], [2.3, 0]]) { const w = vMesh(wg); w.position.set(x, 0.26, z); g.add(w); }
+  const blade = new THREE.BoxGeometry(0.04, 0.95, 0.16).translate(0, 0.5, 0);
+  { const p = blade.attributes.position; for (let i = 0; i < p.count; i++) { const t = p.getY(i) / 0.98; p.setZ(i, p.getZ(i) * (1 - t * 0.45)); p.setX(i, p.getX(i) + p.getZ(i) * t * 0.6); } blade.computeVertexNormals(); }
+  const bl = (r) => colorize(blade.clone().rotateX(r), '#2b2b2b');
+  const tips = (r) => colorize(new THREE.BoxGeometry(0.045, 0.1, 0.1).translate(0, 0.9, 0).rotateX(r), '#e8e2c8');
+  const prop = vMesh(mergeGeos([bl(0), bl(Math.PI), tips(0), tips(Math.PI)]));
+  prop.position.set(2.75, 1.04, 0); g.add(prop);
   return { group: g, prop };
 }
 
@@ -2159,7 +2309,7 @@ function stepPlane(P, dt) {
   const pitchIn = pick((vHas('s', 'arrowdown') ? 1 : 0) - (vHas('w', 'arrowup') ? 1 : 0), pad.pitch);    // pull back = nose up
   const rollIn = pick((vHas('d', 'arrowright') ? 1 : 0) - (vHas('a', 'arrowleft') ? 1 : 0), pad.steer);
   const yawIn = pick((vHas('q') ? 1 : 0) - (vHas('e') ? 1 : 0), pad.rudder);
-  const thrust = s.thr * 6.4, drag = 6.4 / (63 * 63) * s.v * s.v;
+  const m = VEH.pspd, thrust = s.thr * 6.4 * m * m, drag = 6.4 / (63 * 63) * s.v * s.v;   // speed ×m: same plane, m× the top speed
   if (s.ground) {
     const gz = groundAt(s.x, s.y), rw = onRunway(s.x, s.y);
     s.v += (thrust - drag - (rw ? 0.35 : 1.6) - (vHas(' ') ? 4 : 0) * Math.min(1, s.v)) * dt; s.v = Math.max(0, s.v);
@@ -2179,7 +2329,7 @@ function stepPlane(P, dt) {
     if (s.v < VS) s.th -= (VS - s.v) / VS * 0.9 * dt;              // stall: the nose drops
     s.th = THREE.MathUtils.clamp(s.th, -0.75, 0.45);
     s.v += (thrust - drag - g * Math.sin(s.th)) * dt; s.v = Math.max(8, s.v);
-    s.psi += (-g * Math.tan(s.ph) / Math.max(s.v, 18) + yawIn * 0.28) * dt;
+    s.psi += (-g * Math.tan(s.ph) / Math.max(s.v / Math.sqrt(m), 18) + yawIn * 0.28) * dt;
     const sink = Math.max(0, VS - s.v) * 0.55;
     s.x += Math.cos(s.th) * Math.cos(s.psi) * s.v * dt; s.y += Math.cos(s.th) * Math.sin(s.psi) * s.v * dt;
     s.z += (Math.sin(s.th) * s.v - sink) * dt;
@@ -2199,6 +2349,11 @@ function stepPlane(P, dt) {
 // ---- gamepad (standard mapping): RT gas / throttle up, LT brake / throttle down, left stick steer · roll & pitch,
 // LB/RB rudder, right stick look, A handbrake, Y camera, X runway, Start → map ----
 function readPad() {
+  readGamepad();
+  const P = VEH.pad, T = VEH.touch;                     // on-screen stick (touch)
+  if (T.x) P.steer = T.x; if (T.y) P.pitch = T.y;
+}
+function readGamepad() {
   const P = VEH.pad; P.on = false;
   const gp = navigator.getGamepads ? [...navigator.getGamepads()].find((g) => g && g.connected && g.mapping === 'standard') : null;
   if (!gp) { P.gas = P.brake = P.steer = P.pitch = P.rudder = P.lookX = P.lookY = 0; P.hand = false; return; }
@@ -2237,7 +2392,7 @@ function updateVehicle(dt) {
   dt = Math.min(dt, VEH.maxDt || 0.25);
   readPad();
   let o, psi, kind = VEH.mode;
-  const sim = kind === 'plane' ? dt * VEH.warp : dt;       // time warp: the island goes by faster (plane only)
+  const sim = dt;
   const n = Math.ceil(sim / 0.02), h = sim / n;              // fixed-ish substeps: same physics at any frame rate
   if (kind === 'car') { for (let i = 0; i < n; i++) stepCar(VEH.car, h); o = VEH.car.group; psi = VEH.car.h; _eye.set(-0.3, 1.25, -0.33); }
   else { for (let i = 0; i < n; i++) stepPlane(VEH.plane, h); o = VEH.plane.group; psi = VEH.plane.s.psi; _eye.set(0.75, 1.7, -0.26); }
@@ -2259,7 +2414,7 @@ function updateVehicle(dt) {
 function vMsg(t) { const m = $('vmsg'); m.textContent = t; m.hidden = false; VEH.msgT = performance.now() + 2600; }
 const HELP = {
   car: '<b>W</b> accelerator <b>S</b> brake · reverse <b>A/D</b> steer <b>Space</b> handbrake · <b>C</b> camera <b>drag</b> look <b>wheel</b> zoom <b>Esc</b> map · gamepad: triggers + stick',
-  plane: '<b>S/↓</b> pull up <b>W/↑</b> push down <b>A/D</b> roll <b>Q/E</b> rudder · <b>Shift</b>/<b>R</b> throttle + <b>Ctrl</b>/<b>F</b> throttle − <b>Space</b> brake · <b>C</b> camera <b>drag</b> look <b>wheel</b> zoom <b>T</b> runway <b>[ ]</b> time ×½…×8 <b>Esc</b> map · gamepad: stick, triggers = throttle',
+  plane: '<b>S/↓</b> pull up <b>W/↑</b> push down <b>A/D</b> roll <b>Q/E</b> rudder · <b>Shift</b>/<b>R</b> throttle + <b>Ctrl</b>/<b>F</b> throttle − <b>Space</b> brake · <b>C</b> camera <b>drag</b> look <b>wheel</b> zoom <b>T</b> runway <b>[ ]</b> speed ×1…×4 <b>Esc</b> map · gamepad: stick, triggers = throttle',
 };
 const CAM_NAME = { follow: 'Follow', free: 'Free orbit', cockpit: 'First person' };
 function updateHud(dt) {
@@ -2272,11 +2427,12 @@ function updateHud(dt) {
       `<small>gas</small><span class="thr"><i style="width:${Math.round(gas * 100)}%"></i></span><small>brake</small><span class="thr brk"><i style="width:${Math.round(brk * 100)}%"></i></span>` +
       `<span class="sep"></span><span>${c.surface}</span>`;
   } else {
+    $('tThr').firstElementChild.style.height = Math.round(VEH.plane.s.thr * 100) + '%';
     const s = VEH.plane.s, agl = s.z - groundAt(s.x, s.y), hdg = (Math.round(90 - THREE.MathUtils.radToDeg(s.psi)) % 360 + 360) % 360;
     $('hudMain').innerHTML = `<b>${Math.round(s.v * 1.944)}</b><small>kt</small><span class="sep"></span><b>${Math.round(s.z * 3.281)}</b><small>ft</small>` +
       `<span class="sep"></span><span>${String(hdg).padStart(3, '0')}°</span><span class="sep"></span><span class="thr"><i style="width:${Math.round(s.thr * 100)}%"></i></span><span>${Math.round(s.thr * 100)}%</span>` +
       (s.ground ? '<span class="sep"></span><span>on ground</span>' : agl < 60 ? `<span class="sep"></span><span class="warn">${Math.round(agl)} m AGL</span>` : '') +
-      (!s.ground && s.v < 26 ? '<span class="warn"> STALL</span>' : '') + (VEH.warp !== 1 ? `<span class="sep"></span><span class="warn">time ×${VEH.warp}</span>` : '');
+      (!s.ground && s.v < 26 ? '<span class="warn"> STALL</span>' : '') + (VEH.pspd !== 1 ? `<span class="sep"></span><span class="warn">speed ×${VEH.pspd}</span>` : '');
   }
 }
 function setCam(c) {
@@ -2293,7 +2449,7 @@ function setMode(m) {
   VEH.mode = m; VEH.keys.clear(); HELD.clear();
   for (const b of document.querySelectorAll('#modes button')) b.setAttribute('aria-pressed', b.dataset.m === m ? 'true' : 'false');
   document.body.classList.toggle('vehicle', m !== 'map');
-  $('hud').hidden = m === 'map';
+  $('hud').hidden = m === 'map'; touchUI();
   if (m === 'map') {
     if (VEH.car) VEH.car.group.visible = false; if (VEH.plane) VEH.plane.group.visible = false;
     // hand back to the map camera around where the vehicle is
@@ -2312,6 +2468,11 @@ function setMode(m) {
   $('hudCam').textContent = CAM_NAME[VEH.cam] + ' (C)';
   vMsg(m === 'car' ? 'Car · W accelerator, S brake, A/D steer' : 'Cessna 172 · S/↓ pull up, A/D bank, Shift/R throttle');
 }
+const PSPD = [1, 1.5, 2, 3, 4];
+function planeSpeed(d) {
+  VEH.pspd = PSPD[THREE.MathUtils.clamp(PSPD.indexOf(VEH.pspd) + d, 0, PSPD.length - 1)];
+  vMsg('Speed ×' + VEH.pspd + ' · top ≈ ' + Math.round(63 * VEH.pspd * 1.944) + ' kt');
+}
 function vehKeyDown(e, k) {   // returns true when handled
   if (k === '1') { setMode('map'); return true; }
   if (k === '2') { setMode('car'); return true; }
@@ -2321,8 +2482,7 @@ function vehKeyDown(e, k) {   // returns true when handled
   if (k === 'c') { setCam(VEH.cam === 'follow' ? 'free' : VEH.cam === 'free' ? 'cockpit' : 'follow'); return true; }
   if (k === 't' && VEH.mode === 'plane') { spawnPlane('runway'); VEH.snap = true; return true; }
   if ((k === ']' || k === '[') && VEH.mode === 'plane') {
-    const W = [0.5, 1, 2, 4, 8], i = W.indexOf(VEH.warp); VEH.warp = W[THREE.MathUtils.clamp(i + (k === ']' ? 1 : -1), 0, W.length - 1)];
-    vMsg('Time ×' + VEH.warp); return true;
+    planeSpeed(k === ']' ? 1 : -1); return true;
   }
   if (k === '+' || k === '=') { VEH.dist[VEH.mode] = Math.max(4, VEH.dist[VEH.mode] * 0.8); return true; }
   if (k === '-') { VEH.dist[VEH.mode] = Math.min(400, VEH.dist[VEH.mode] * 1.25); return true; }
@@ -2338,21 +2498,70 @@ function vSim(sec, keys) {
   const c = VEH.car, s = VEH.plane && VEH.plane.s;
   return VEH.mode === 'car' ? { x: c.x, y: c.y, v: c.v, h: c.h, surf: c.surface } : { ...s, msg: $('vmsg').textContent };
 }
+// ---- touch controls ----
+function touchUI() {
+  const on = document.body.classList.contains('touch') && VEH.mode !== 'map';
+  $('touch').hidden = !on; $('tCar').hidden = VEH.mode !== 'car'; $('tPlane').hidden = VEH.mode !== 'plane';
+}
+{
+  if (matchMedia('(pointer: coarse)').matches) document.body.classList.add('touch');
+  const st = $('tStick'), kn = st.querySelector('.knob'); let sid = null;
+  const set = (e) => {
+    const r = st.getBoundingClientRect(), R = r.width / 2;
+    let dx = (e.clientX - r.left - R) / R, dy = (e.clientY - r.top - R) / R; const L = Math.hypot(dx, dy); if (L > 1) { dx /= L; dy /= L; }
+    if (VEH.mode === 'car') dy = 0;
+    VEH.touch.x = dx; VEH.touch.y = dy; kn.style.transform = `translate(${(dx * R * 0.62).toFixed(1)}px, ${(dy * R * 0.62).toFixed(1)}px)`;
+  };
+  st.addEventListener('pointerdown', (e) => { e.preventDefault(); sid = e.pointerId; st.setPointerCapture(sid); set(e); });
+  st.addEventListener('pointermove', (e) => { if (e.pointerId === sid) set(e); });
+  const end = (e) => { if (e.pointerId !== sid) return; sid = null; VEH.touch.x = VEH.touch.y = 0; kn.style.transform = ''; };
+  st.addEventListener('pointerup', end); st.addEventListener('pointercancel', end);
+  const hold = (id, key) => {
+    const b = $(id), off = () => { VEH.keys.delete(key); b.classList.remove('on'); };
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); b.setPointerCapture(e.pointerId); VEH.keys.add(key); b.classList.add('on'); });
+    b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('lostpointercapture', off);
+    b.addEventListener('contextmenu', (e) => e.preventDefault());
+  };
+  hold('tGas', 'w'); hold('tBrake', 's'); hold('tHand', ' ');
+  $('tSpdUp').addEventListener('click', () => planeSpeed(1)); $('tSpdDn').addEventListener('click', () => planeSpeed(-1));
+  const th = $('tThr'); let tid = null;
+  const setT = (e) => { const r = th.getBoundingClientRect(); if (VEH.plane) VEH.plane.s.thr = THREE.MathUtils.clamp(1 - (e.clientY - r.top) / r.height, 0, 1); };
+  th.addEventListener('pointerdown', (e) => { e.preventDefault(); tid = e.pointerId; th.setPointerCapture(tid); setT(e); });
+  th.addEventListener('pointermove', (e) => { if (e.pointerId === tid) setT(e); });
+  th.addEventListener('pointerup', () => { tid = null; }); th.addEventListener('pointercancel', () => { tid = null; });
+}
 addEventListener('keyup', (e) => { VEH.keys.delete(e.key.toLowerCase()); });
 addEventListener('blur', () => VEH.keys.clear());
 {
   for (const b of document.querySelectorAll('#modes button')) b.addEventListener('click', () => { setMode(b.dataset.m); b.blur(); });
   $('hudCam').addEventListener('click', (e) => { setCam(VEH.cam === 'follow' ? 'free' : VEH.cam === 'free' ? 'cockpit' : 'follow'); e.currentTarget.blur(); });
   $('hudReset').addEventListener('click', (e) => { if (VEH.mode === 'car') spawnCar(true); else spawnPlane('runway'); VEH.snap = true; e.currentTarget.blur(); });
-  const el = renderer.domElement; let drag = null;
-  el.addEventListener('pointerdown', (e) => { if (VEH.mode === 'map') return; drag = { x: e.clientX, y: e.clientY, id: e.pointerId }; el.setPointerCapture(e.pointerId); });
-  el.addEventListener('pointermove', (e) => {
-    if (!drag || VEH.mode === 'map') return;
-    const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+  const el = renderer.domElement, ptrs = new Map(); let pinch0 = 0, twist0 = null;
+  const look = (dx, dy) => {
     if (VEH.cam === 'cockpit') { VEH.fyaw = THREE.MathUtils.clamp(VEH.fyaw - dx * 0.005, -2.8, 2.8); VEH.fpitch = THREE.MathUtils.clamp(VEH.fpitch - dy * 0.004, -1.2, 1.2); }
     else { if (VEH.cam === 'free') VEH.freeAz -= dx * 0.006; else VEH.yaw -= dx * 0.006; VEH.pitch = THREE.MathUtils.clamp(VEH.pitch + dy * 0.004, -0.15, 1.45); }
+  };
+  el.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'touch' && !document.body.classList.contains('touch')) { document.body.classList.add('touch'); touchUI(); }
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, t: e.pointerType }); pinch0 = 0; twist0 = null;
+    if (VEH.mode !== 'map') el.setPointerCapture(e.pointerId);
   });
-  const up = () => { drag = null; };
+  el.addEventListener('pointermove', (e) => {
+    const p = ptrs.get(e.pointerId); if (!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+    if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()], d = Math.hypot(b.x - a.x, b.y - a.y), ang = Math.atan2(b.y - a.y, b.x - a.x);
+      if (VEH.mode !== 'map') { if (pinch0) { const k = VEH.mode; VEH.dist[k] = THREE.MathUtils.clamp(VEH.dist[k] * pinch0 / d, 4, k === 'car' ? 80 : 400); } pinch0 = d; }
+      else if (a.t === 'touch') {                         // map: two-finger twist rotates (pinch zoom and pan are the map controls')
+        if (twist0 !== null) { let da = ang - twist0; da = Math.atan2(Math.sin(da), Math.cos(da));
+          const off = camera.position.clone().sub(controls.target).applyAxisAngle(Y_UP, da); camera.position.copy(controls.target).add(off); kick(); }
+        twist0 = ang;
+      }
+      return;
+    }
+    if (VEH.mode !== 'map' && ptrs.size === 1) look(dx * (p.t === 'touch' ? 1.4 : 1), dy * (p.t === 'touch' ? 1.4 : 1));
+  });
+  const up = (e) => { ptrs.delete(e.pointerId); pinch0 = 0; twist0 = null; };
   el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
   el.addEventListener('wheel', (e) => { if (VEH.mode === 'map') return; e.preventDefault(); const k = VEH.mode; VEH.dist[k] = THREE.MathUtils.clamp(VEH.dist[k] * Math.exp(e.deltaY * 0.0012), 4, k === 'car' ? 80 : 400); }, { passive: false });
   el.addEventListener('dblclick', (e) => { if (VEH.mode === 'map') return; VEH.yaw = 0; VEH.fyaw = 0; VEH.fpitch = -0.06; VEH.pitch = VEH.mode === 'car' ? 0.22 : 0.18; if (VEH.cam === 'free') setCam('follow'); }, true);
@@ -2387,7 +2596,7 @@ function render(now) {
     // pass 2: colour
     renderer.setRenderTarget(post.color); renderer.render(scene, camera);
     renderer.setRenderTarget(null);
-    post.mat.uniforms.near.value = camera.near; post.mat.uniforms.far.value = camera.far;
+    post.mat.uniforms.near.value = camera.near; post.mat.uniforms.far.value = camera.far; post.mat.uniforms.lapMin.value = VEH.mode === 'car' ? 0.03 : 0.012;
     renderer.render(post.scene, post.cam);
   } else {
     renderer.setRenderTarget(null); renderer.render(scene, camera);

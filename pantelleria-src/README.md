@@ -70,7 +70,7 @@ detached from the vehicle's heading), First person (cockpit, drag = head look). 
   top on asphalt; rolling resistance by surface (asphalt, cement, dirt, off road) and slope decide the speed. Houses, the sea, steep
   rock and the near layer's lava-stone walls are solid (glancing hits scrape along the wall).
 - Plane: arcade Cessna 172. S/↓ pull up, W/↑ push, A/D roll, Q/E rudder, Shift/R throttle up, Ctrl/F down, Space brake, T = start on
-  runway 26 (meta.runway from OSM); [ / ] time warp x0.5 to x8. Coordinated turns, soft stall below ~47 kt, lands on the runway (sink < 4.5 m/s, wings level);
+  runway 26 (meta.runway from OSM); [ / ] speed x1, 1.5, 2, 3, 4 (thrust scales with the square, so top speed scales x; turns widen less than physics would). Coordinated turns, soft stall below ~47 kt, lands on the runway (sink < 4.5 m/s, wings level);
   hitting terrain or the sea respawns 300 m up. No collisions with buildings yet.
 - Physics runs in fixed ~20 ms substeps. Test hook: window.__pan.vSim(seconds, keys).
 - Gamepad (standard mapping): RT/LT gas/brake (plane: throttle), left stick steer / roll+pitch, LB/RB rudder, right stick look,
@@ -79,3 +79,11 @@ detached from the vehicle's heading), First person (cockpit, drag = head look). 
   constant part of the depth pull fades in with distance (min(c, 0.025 d)), so nothing floats in close-ups.
 - In car/plane modes the near-detail tiles follow the camera frustum (car 1.1 km, plane 1.6 km ahead, 330 m all around); plane mode
   draws far trees/buildings 1.6x further.
+- Models: lofted bodies (loftGeo: superellipse sections resampled by arc length, smooth normals, one colour per quad from its
+  centre). Panda 4x4 with dark cladding, arches, glass with pillars, rails, mirrors, round tyres; Cessna 172 with tapered
+  fuselage and outer wing panels, cheat line, swept extruded fin, wheel pants, struts, two-blade prop.
+- Mobile / touch: map = one finger pan, pinch zoom, two-finger twist rotates, two-finger drag tilts. Car and plane show an
+  on-screen stick (steer; plane roll + pitch, drag down = pull up), Gas / Brake / Handbrake pedals, plane throttle slider and
+  Speed +/-; one finger on the scene looks around, pinch zooms the camera. Page zoom is disabled (viewport user-scalable=no).
+- Car mode: only the 5 nearest place labels (< 450 m) and 4 street names (< 220 m); plane: labels by height above ground,
+  main road names only. Depth outlines use a higher threshold in the car; the depth pull near the camera is 0.4% of the distance.

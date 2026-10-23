@@ -12,7 +12,7 @@ open(os.path.join(W, 'test.html'), 'w').write('<!doctype html><html lang="en"><h
 if len(sys.argv) > 2:
     D = sys.argv[2]; os.makedirs(D, exist_ok=True)
     b = s.replace('data-media="media/"', 'data-media="/pantelleria-3d/"')
-    b = '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body style="margin:0">\n' + b + '\n</body></html>\n'
+    b = '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"></head><body style="margin:0">\n' + b + '\n</body></html>\n'
     open(os.path.join(D, 'index.html'), 'w').write(b)
     for f in os.listdir(os.path.join(W, 'assets')):
         shutil.copy(os.path.join(W, 'assets', f), os.path.join(D, f))
