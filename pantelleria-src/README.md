@@ -110,3 +110,9 @@ detached from the vehicle's heading), First person (cockpit, drag = head look). 
   (Gaussian ~34 m + 9% grade limit) written into the road points, terrain graded to it in a 6 m + 18 m corridor; detail.bin road z
   now in 2 cm steps; the car drives on the road profile. Vegetation near the sea is sparser, with more dry grass.
   Home: pink dammuso turned 90 degrees right and three rooms long, ruin tower turned with it; brown and pink have two cupolas each.
+- 2026-10-24 (3): wall sides were wound inward (one face culled) - fixed. Roadside walls are continuous: offsets from vertex
+  normals so the pieces meet, gaps only at side roads/drives, houses, town, woods; the sea side is open only on the town-end
+  stretch (west of Bue Marino), per Street View. coast_overlay.py (after town.py): 1 m/px overlay (web/assets/coast_detail.webp,
+  meta.coastDetail bounds) for the strip seaward of the Perimetrale from town to Campobello, from Esri imagery: lava rock on a
+  posterised dark ramp (real shelf/inlet outlines), green made summer-dry, dark wet rock at the waterline, the Bue Marino gravel
+  car park (Cicci's Bistrot); those cells become class 7 (no macchia). Sea: shallow band narrowed, foam thinner.

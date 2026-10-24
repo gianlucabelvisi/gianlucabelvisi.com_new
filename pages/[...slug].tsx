@@ -73,6 +73,7 @@ const Reddit = dynamic(() => import('../components/mdx/Reddit'))
 const Song = dynamic(() => import('../components/mdx/Song'))
 const ProfitBox = dynamic(() => import('../components/ProfitBox'))
 const TvCard = dynamic(() => import('../components/mdx/TvCard'))
+const ApartmentPipeline = dynamic(() => import('../components/mdx/ApartmentPipeline'))
 
 interface NavPost {
   frontmatter: {
@@ -181,6 +182,7 @@ const components = {
   TvCard,
   SpicyTake,
   LinkButton,
+  ApartmentPipeline,
 }
 
 export default function PostPage({

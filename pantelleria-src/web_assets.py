@@ -119,6 +119,7 @@ fr = F['frame']
 meta = {'x0': fr['x0'], 'y0': fr['y0'], 'cell': fr['cell'], 'nx': fr['nx'], 'ny': fr['ny'], 'lat0': 36.785, 'lon0': 11.99,
         'labels': F['labels'],
         'roadLabels': road_labels(),
+        'coastDetail': json.load(open('prep/coast_detail.json')) if os.path.exists('prep/coast_detail.json') else None,
         'runway': (lambda r: [r['pts'][0][0], r['pts'][0][1], r['pts'][-1][0], r['pts'][-1][1], r['w']])(max([r for r in F['runway'] if r['kind'] == 'runway'], key=lambda r: r['w']))}
 json.dump(meta, open(os.path.join(W, 'meta.json'), 'w'), separators=(',', ':'), ensure_ascii=False)
 for f in sorted(os.listdir(W)):
