@@ -87,3 +87,26 @@ detached from the vehicle's heading), First person (cockpit, drag = head look). 
   Speed +/-; one finger on the scene looks around, pinch zooms the camera. Page zoom is disabled (viewport user-scalable=no).
 - Car mode: only the 5 nearest place labels (< 450 m) and 4 street names (< 220 m); plane: labels by height above ground,
   main road names only. Depth outlines use a higher threshold in the car; the depth pull near the camera is 0.4% of the distance.
+
+## Close-up buildings and walls (2026-10-24)
+- Walls: only real ones (OSM barrier=wall/retaining_wall, giardini panteschi); the procedural roadside walls, contour terraces and
+  landuse field edges are gone. Everything the car can hit is visible: building footprints (bld.bin), these walls, the sea.
+- bld.bin (web_assets.py): every footprint with kind, zmin/zmax/h and a seed. Near-detail tiles redraw the buildings they own
+  (by centroid): dammusi with lava-rubble or plastered walls (white / ochre / pink / red / grey, ~55% bare stone), lime coping,
+  whitewashed rounded-square cupolas (one per room along the long axis), cannolo chimneys, arched door on the south-most long
+  wall with lime frame, small windows, dukkena benches, reed pergolas; white houses as in town; ruins; greenhouses.
+- build.py writes each building's centroid into the GLB UVs (export_texcoords=True; glTF flips V) and dome owners at the end of
+  instances.bin; the viewer discards the far copy of any building whose owner tile is drawn up close.
+- data/ref/dammuso: reference thumbnails; data/osm_campo.json: Campobello OSM extract (no house numbers on Via Posta Vecchia).
+- Via Posta Vecchia, Campobello (HOME in map.src.html): hand-placed from Gianluca's photos and the aerial view — brown flat-roofed
+  dammuso at the fork, lava shed with terracotta roof by the lane, pink dammuso with a dark timber veranda (white curtains, raised
+  terrace) on its north front and a garden, a two-storey ruined dammuso beside it and low ruins behind, a tall date palm, lava walls
+  round the property (two gates) and the walled citrus garden across Via Campobello Alto. Buildings are matched by OSM centroid.
+- The outline (normal) pass applies the same far-copy masks (aOwn for buildings/domes, aFar for far roads/trees), so hidden far
+  copies leave no ink lines inside close-up tiles.
+- 2026-10-24 (2): roadside walls, contour terraces and field walls are back (they reflect reality), drawn as continuous dry-stone
+  walls with the rubble shader (no more loose dark blocks) and solid for the car; the coast side of the Perimetrale is open where
+  the sea is within ~260 m. roads_smooth.py (run after prep.py, before town.py) grades the main roads: smoothed elevation profile
+  (Gaussian ~34 m + 9% grade limit) written into the road points, terrain graded to it in a 6 m + 18 m corridor; detail.bin road z
+  now in 2 cm steps; the car drives on the road profile. Vegetation near the sea is sparser, with more dry grass.
+  Home: pink dammuso turned 90 degrees right and three rooms long, ruin tower turned with it; brown and pink have two cupolas each.

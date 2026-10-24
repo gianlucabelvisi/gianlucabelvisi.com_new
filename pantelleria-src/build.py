@@ -255,11 +255,19 @@ for b in F['buildings']:
     zb = b['zmin'] - 1.2
     zt = b['zmin'] + 0.5 * (b['zmax'] - b['zmin']) + b['h']
     T = tiles.setdefault(t, {})
+    # every face of this building carries its centroid in UV (normalised to the island frame): the viewer hides the
+    # whole building, by owner, where the close-up layer redraws it
+    own = ((c.x - X0) / (X1 - X0), (c.y - Y0) / (Y1 - Y0))
+    def owned(bm_, f):
+        n0 = len(bm_.faces); f()
+        uvl = bm_.loops.layers.uv.verify(); bm_.faces.ensure_lookup_table()
+        for i in range(n0, len(bm_.faces)):
+            for l in bm_.faces[i].loops: l[uvl].uv = own
     bw = T.setdefault(wall, bmesh.new())
-    top = poly_prism(bw, pts, zb, zt, cap=(roof == wall or roof is None))
+    owned(bw, lambda: poly_prism(bw, pts, zb, zt, cap=(roof == wall or roof is None)))
     if roof and roof != wall:
         br = T.setdefault(roof, bmesh.new())
-        cap(br, pts, zt)
+        owned(br, lambda: cap(br, pts, zt))
         if kind == 'dammuso' and poly.area < 400:
             # the white cupola: one per ~45 m2 room, along the long axis
             mrr = poly.minimum_rotated_rectangle
@@ -274,14 +282,14 @@ for b in F['buildings']:
                 for k in range(nd):
                     off = (k + 0.5) / nd - 0.5
                     cx, cy = c.x + ax[0] * off * long_, c.y + ax[1] * off * long_
-                    DOMES.append((cx, cy, zt, r, r * 0.42))
+                    DOMES.append((cx, cy, zt, r, r * 0.42, c.x, c.y))
 nb = 0
 for t, mats in tiles.items():
     for mname, bm in mats.items():
         if finish(bm, f'bld_{mname}_{t[0]}_{t[1]}', M[mname], smooth=False): nb += 1
 print('building meshes', nb, 'domes', len(DOMES))
 bm = bmesh.new()
-for d_ in DOMES: dome(bm, *d_, seg=10, rings=3)
+for d_ in DOMES: dome(bm, *d_[:5], seg=10, rings=3)
 finish(bm, 'domes', M['Roof'], smooth=True)
 # instances for the web viewer: domes (x,y,z,r,h) and trees (x,y,z,kind,scale) as int16/uint8
 dm = np.array(DOMES, dtype=np.float64)
@@ -292,6 +300,7 @@ with open(os.path.join(OUT, 'instances.bin'), 'wb') as fh:
     fh.write(np.round(dm[:, 3:5] * 20).astype(np.uint8).tobytes())                 # r*20, h*20
     fh.write(np.round(tr[:, :3] * [2, 2, 10]).astype(np.int16).tobytes())
     fh.write(np.stack([tk, np.round(tr[:, 3] * 100).astype(np.uint8)], -1).tobytes())
+    fh.write(np.round(dm[:, 5:7] * 2).astype(np.int16).tobytes())                 # dome owner (building centroid) x*2, y*2
 
 bm = bmesh.new()
 for p in F['piers']:
@@ -327,7 +336,7 @@ bpy.ops.object.select_all(action='DESELECT')
 for ob in scene.objects:
     ob.select_set(not ob.name.startswith(('terrain_', 'domes')))
 bpy.ops.export_scene.gltf(use_selection=True, filepath=os.path.abspath(os.path.join(OUT, 'pantelleria.glb')), export_format='GLB',
-                          export_materials='PLACEHOLDER', export_normals=True, export_texcoords=False, export_yup=True,
+                          export_materials='PLACEHOLDER', export_normals=True, export_texcoords=True, export_yup=True,
                           export_cameras=False, export_lights=False, export_apply=False,
 )
 print('exported', os.path.getsize(os.path.join(OUT, 'pantelleria.glb')) / 1e6, 'MB')

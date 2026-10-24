@@ -79,7 +79,7 @@ def detail_bin():
     g = np.array(D['gardens'], dtype=np.float64).reshape(-1, 3)
     out += struct.pack('<I', len(g)); out += np.round(g * 4).astype('<i2').tobytes()
     # roads for the near layer: tier (0 main, 1 street, 2 track/path, 3 steps/footway), surface (0 asphalt, 1 unpaved, 2 paved),
-    # width*10, n, then n x (x*4, y*4, z*10) int16. Resampled to ~6 m (the near layer interpolates).
+    # width*10, n, then n x (x*4, y*4 int16, (z+50)*50 uint16). Resampled to ~6 m (the near layer interpolates).
     TIER = {'secondary': 0, 'tertiary': 0, 'primary': 0, 'trunk': 0, 'unclassified': 1, 'residential': 1, 'service': 1,
             'pedestrian': 1, 'living_street': 1, 'track': 2, 'path': 3, 'footway': 3, 'steps': 3, 'cycleway': 3}
     SC = {'asphalt': 0, 'unpaved': 1, 'paved': 2}
@@ -93,9 +93,27 @@ def detail_bin():
         keep.append(len(P) - 1)
         P = P[keep]
         out += struct.pack('<BBBH', TIER.get(r['cls'], 2), SC.get(r.get('surface'), 0), min(255, int(round(r['w'] * 10))), len(P))
-        out += np.column_stack([np.round(P[:, 0] * 4), np.round(P[:, 1] * 4), np.round(P[:, 2] * 10)]).astype('<i2').tobytes()
+        xy = np.column_stack([np.round(P[:, 0] * 4), np.round(P[:, 1] * 4)]).astype('<i2')
+        zq = np.clip(np.round((P[:, 2] + 50) * 50), 0, 65535).astype('<u2')            # 2 cm steps (z*10 made 10 cm stairs on the graded roads)
+        out += b''.join(xy[i].tobytes() + zq[i:i + 1].tobytes() for i in range(len(P)))
     open(os.path.join(W, 'detail.bin'), 'wb').write(gzip.compress(bytes(out), 9))
 detail_bin()
+
+# building footprints for the close-up layer and the car: kind, flags, n, zmin, zmax, h, seed, then n x (x*4, y*4) int16
+def bld_bin():
+    import struct, zlib
+    TIDS = set(b['id'] for b in TZ['blds']) if TZ else set()
+    KC = {'dammuso': 0, 'greenhouse': 2, 'ruins': 3, 'church': 4, 'chapel': 4}
+    out = bytearray(); bl = F['buildings']
+    out += struct.pack('<I', len(bl))
+    for b in bl:
+        pts = b['pts'][:-1] if b['pts'][0] == b['pts'][-1] else b['pts']
+        seed = zlib.crc32(str(b['id']).encode()) & 0xffffffff
+        out += struct.pack('<BBHhhHI', KC.get(b['kind'], 1), 1 if b['id'] in TIDS else 0, len(pts),
+                           int(round(b['zmin'] * 10)), int(round(b['zmax'] * 10)), int(round(b['h'] * 10)), seed)
+        out += np.round(np.array(pts) * 4).astype('<i2').tobytes()
+    open(os.path.join(W, 'bld.bin'), 'wb').write(gzip.compress(bytes(out), 9))
+bld_bin()
 
 fr = F['frame']
 meta = {'x0': fr['x0'], 'y0': fr['y0'], 'cell': fr['cell'], 'nx': fr['nx'], 'ny': fr['ny'], 'lat0': 36.785, 'lon0': 11.99,

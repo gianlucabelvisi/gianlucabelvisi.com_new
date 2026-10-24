@@ -142,6 +142,27 @@
     #timePop { right: calc(var(--gut) + 52px); }
     #info .da { font-size: 17px; }
   }
+  /* phones: smaller, lighter panels so the island gets the screen */
+  @media (max-width: 640px), (pointer: coarse) and (max-height: 520px) {
+    :root { --panel: rgba(22, 20, 16, 0.42); --gut: 8px; }
+    .panel { border-radius: 10px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+    #info { padding: 6px 9px 7px; gap: 1px; }
+    #info .da { font-size: 14px; } #info .en { font-size: 10.5px; min-height: 0; } #info .co { display: none; }
+    #quick { padding: 2px; } #quick button { padding: 6px; } #quick button i { width: 14px; height: 14px; font-size: 9px; }
+    #modes { padding: 2px; } #modes button { font-size: 11.5px; padding: 6px 8px; gap: 5px; } #modes button i { display: none; }
+    #nav { padding: 2px; } #nav button { width: 34px; height: 34px; font-size: 17px; }
+    #scale { padding: 4px 7px 5px; } #scale .lab { font-size: 9.5px; }
+    #hud { padding: 5px 8px !important; gap: 4px !important; }
+    #hudMain { gap: 4px; font-size: 10px; } #hudMain b { font-size: 15px !important; } #hudMain b.gear { font-size: 14px; }
+    #hudMain .sep { margin: 0 2px; height: 11px; } #hudMain .thr { width: 34px; height: 5px; } #hudMain .thr.rpm { width: 40px; }
+    #hud .hb button { font-size: 10.5px; padding: 5px 9px !important; border-radius: 6px; }
+    #vmsg { font-size: 13px; top: 22%; }
+    body.touch.vehicle #hud { top: calc(var(--gut) + var(--safe-t) + 38px); }
+    #touch .tpad { width: 116px; height: 116px; opacity: 0.85; } #touch .knob { width: 48px; height: 48px; margin: -24px; }
+    #touch .tbtn { width: 62px; height: 82px; font-size: 12px; background: rgba(20, 18, 15, 0.3); } #touch .tbtn.gas { height: 116px; background: rgba(70, 120, 60, 0.4); }
+    #touch .tbtn.sm { width: 58px; height: 44px; font-size: 10.5px; } #touch .tthr { width: 58px; height: 132px; background: rgba(20, 18, 15, 0.3); }
+    .lb { font-size: 10px !important; }
+  }
 </style>
 
 <div id="stage" data-media="media/"></div>
@@ -627,6 +648,8 @@ function addGLB(gltf) {
     const key = matKey(name);
     const mats = MAT[key] || MAT.Concrete;
     o.userData.mats = mats; o.material = mats.cel;
+    if (name.startsWith('bld_') && o.geometry.attributes.uv) o.geometry.setAttribute('aOwn', o.geometry.attributes.uv);
+    if (/^road[ABC]/.test(name)) o.geometry.setAttribute('aFar', new THREE.BufferAttribute(new Float32Array(o.geometry.attributes.position.count).fill(1), 1));
     o.geometry.computeBoundingSphere();
     features.attach(o);
     o.updateMatrixWorld(true);
@@ -648,7 +671,8 @@ function buildInstances(buf) {
   const dxyz = new Int16Array(buf, o, nd * 3); o += nd * 6;
   const drh = new Uint8Array(buf, o, nd * 2); o += nd * 2;
   const txyz = new Int16Array(buf, o, nt * 3); o += nt * 6;
-  const tks = new Uint8Array(buf, o, nt * 2);
+  const tks = new Uint8Array(buf, o, nt * 2); o += nt * 2;
+  const down = o + nd * 4 <= buf.byteLength ? new Int16Array(buf, o, nd * 2) : null;   // dome owner (building centroid)
   TREES = { xyz: txyz, ks: tks, n: nt };
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
 
@@ -659,6 +683,9 @@ function buildInstances(buf) {
   for (const key in dt) {
     const ks = dt[key];
     const im = new THREE.InstancedMesh(domeGeo, MAT.Roof.cel, ks.length);
+    const own = new Float32Array(ks.length * 2);
+    ks.forEach((k, n) => { const ox = down ? down[k * 2] / 2 : dxyz[k * 3] / 2, oy = down ? down[k * 2 + 1] / 2 : dxyz[k * 3 + 1] / 2; own[n * 2] = (ox - X0) / (X1 - X0); own[n * 2 + 1] = 1 - (oy - Y0) / (Y1 - Y0); });
+    im.geometry = domeGeo.clone(); im.geometry.setAttribute('aOwn', new THREE.InstancedBufferAttribute(own, 2));
     ks.forEach((k, n) => {
       const r = drh[k * 2] / 20, h = drh[k * 2 + 1] / 20;
       p.set(dxyz[k * 3] / 2, dxyz[k * 3 + 2] / 10 - 0.05, -dxyz[k * 3 + 1] / 2); s.set(r, h, r);
@@ -690,7 +717,8 @@ function buildInstances(buf) {
   for (let k = 0; k < nt; k++) { const x = txyz[k * 3] / 2, y = txyz[k * 3 + 1] / 2; (tt[tks[k * 2] + ':' + tileKey(x, y)] ||= []).push(k); }
   for (const key in tt) {
     const ks = tt[key], kind = +key[0];
-    const im = new THREE.InstancedMesh(kind === 0 ? pine : shrub, MAT.Tree.cel, ks.length);
+    const im = new THREE.InstancedMesh((kind === 0 ? pine : shrub).clone(), MAT.Tree.cel, ks.length);
+    im.geometry.setAttribute('aFar', new THREE.InstancedBufferAttribute(new Float32Array(ks.length).fill(1), 1));
     ks.forEach((k, n) => {
       const sc = tks[k * 2 + 1] / 100;
       p.set(txyz[k * 3] / 2, txyz[k * 3 + 2] / 10 - 0.3, -txyz[k * 3 + 1] / 2);
@@ -748,7 +776,9 @@ function parseDetail(buf) {
     for (let k = 0; k < nr; k++) {
       const tier = dv.getUint8(o), surf = dv.getUint8(o + 1), w = dv.getUint8(o + 2) / 10, n = dv.getUint16(o + 3, true); o += 5;
       const pts = new Float32Array(n * 3);
-      for (let i = 0; i < n; i++) { pts[i * 3] = dv.getInt16(o, true) / 4; pts[i * 3 + 1] = dv.getInt16(o + 2, true) / 4; pts[i * 3 + 2] = dv.getInt16(o + 4, true) / 10; o += 6; }
+      for (let i = 0; i < n; i++) { pts[i * 3] = dv.getInt16(o, true) / 4; pts[i * 3 + 1] = dv.getInt16(o + 2, true) / 4; pts[i * 3 + 2] = dv.getUint16(o + 4, true) / 50 - 50; o += 6; }
+      if (tier === 0) for (let it = 0; it < 4; it++) { const z = []; for (let i = 0; i < n; i++) z.push(pts[i * 3 + 2]);   // main roads: iron out the vertex kinks
+        for (let i = 1; i < n - 1; i++) pts[i * 3 + 2] = 0.25 * z[i - 1] + 0.5 * z[i] + 0.25 * z[i + 1]; }
       ROADS2.push({ tier, surf, w, pts });
     }
   }
@@ -905,9 +935,9 @@ function roadMeshFor(tx, ty) {
         let dx = pts[kn * 3] - pts[kp * 3], dy = pts[kn * 3 + 1] - pts[kp * 3 + 1]; const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
         if (k > 0) vlen += Math.hypot(pts[k * 3] - pts[k * 3 - 3], pts[k * 3 + 1] - pts[k * 3 - 2]);
         const x = pts[k * 3], y = pts[k * 3 + 1];
-        for (const sgn of [1, 0, -1]) {   // edge, centre, edge: draped on the 5 m terrain
+        for (const sgn of [1, 0, -1]) {   // edge, centre, edge: draped on the 5 m terrain (main roads: their graded profile)
           const ex = x - dy * half * sgn, ey = y + dx * half * sgn;
-          P.push(ex, heightCubic(ex, ey) + 0.06, -ey); N.push(0, 1, 0); R.push(sgn, vlen, r.surf, r.tier === 0 ? 1 : 0);
+          P.push(ex, r.tier === 0 ? Math.max(pts[k * 3 + 2] + 0.06, heightCubic(ex, ey) + 0.04) : heightCubic(ex, ey) + 0.06, -ey); N.push(0, 1, 0); R.push(sgn, vlen, r.surf, r.tier === 0 ? 1 : 0);
         }
         if (k > 0) for (let c = 0; c < 2; c++) { const l = base + (k - 1) * 3 + c, rr = l + 1; I.push(l, rr, rr + 3, l, rr + 3, l + 3); }
       }
@@ -924,40 +954,42 @@ function roadMeshFor(tx, ty) {
 
 // ---- chunky lava-stone walls ----
 const STONE = ['#3a3430', '#4a413a', '#2e2a27', '#5a4f46', '#433b35'].map((h) => new THREE.Color(h));
-function wallGeometry(segs, capers) {   // segs: [x0,y0,x1,y1,height,thick, ...]
-  const P = [], Nn = [], C = [];
-  const push = (x, y, z, nx, ny, nz, c, k) => { P.push(x, z, -y); Nn.push(nx, nz, -ny); C.push(c.r * k, c.g * k, c.b * k); };
+function wallGeometry(segs, capers) {   // segs: [x0,y0,x1,y1,height,thick, ...] -> dry-stone walls (rubble shader, kind 7)
+  // continuous walls (no more loose dark blocks): a battered section following the ground in ~2 m steps, a gently
+  // irregular top, stone courses from the shader, capers here and there
+  const b = TB(), col = DPAL.grey;
   for (let s = 0; s < segs.length; s += 6) {
-    const ax0 = segs[s], ay0 = segs[s + 1], bx0 = segs[s + 2], by0 = segs[s + 3], h0 = segs[s + 4], t0 = segs[s + 5] / 2;
-    const L0 = Math.hypot(bx0 - ax0, by0 - ay0); if (L0 < 0.3) continue;
-    const nb = Math.max(1, Math.round(L0 / 1.15));
-    for (let b = 0; b < nb; b++) {   // one 'block' per ~1.15 m: own height, colour and a slight wobble
-      const f0 = b / nb, f1 = (b + 1) / nb;
-      const ax = ax0 + (bx0 - ax0) * f0, ay = ay0 + (by0 - ay0) * f0, bx = ax0 + (bx0 - ax0) * f1, by = ay0 + (by0 - ay0) * f1;
-      const L = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / L, uy = (by - ay) / L, nx = -uy, ny = ux;
-      const r1 = rnd(ax * 13, ay * 13), r2 = rnd(ay * 7, ax * 7, 3);
-      const h = h0 * (0.85 + r1 * 0.3), t = t0 * (0.9 + r2 * 0.25), tt = t * 0.75, wob = (r2 - 0.5) * 0.12;
-      const za = heightCubic(ax, ay) - 0.25, zb = heightCubic(bx, by) - 0.25;
-      const col = STONE[Math.floor(r1 * STONE.length)];
-      const ox = nx * wob, oy = ny * wob;
-      const q = [[ax + nx * t + ox, ay + ny * t + oy, za], [bx + nx * t + ox, by + ny * t + oy, zb], [bx - nx * t + ox, by - ny * t + oy, zb], [ax - nx * t + ox, ay - ny * t + oy, za]];
-      const tq = [[ax + nx * tt + ox, ay + ny * tt + oy, za + h], [bx + nx * tt + ox, by + ny * tt + oy, zb + h * (0.92 + r2 * 0.16)],
-                  [bx - nx * tt + ox, by - ny * tt + oy, zb + h * (0.92 + r2 * 0.16)], [ax - nx * tt + ox, ay - ny * tt + oy, za + h]];
-      const quad = (a, b2, c, d, n, k) => { for (const v of [a, b2, c, a, c, d]) push(v[0], v[1], v[2], n[0], n[1], n[2], col, k); };
-      const bat = (t - tt) / Math.max(h, 0.3);
-      quad(q[0], tq[0], tq[1], q[1], [nx, ny, bat], 1);
-      quad(q[2], tq[2], tq[3], q[3], [-nx, -ny, bat], 1);
-      quad(tq[0], tq[3], tq[2], tq[1], [0, 0, 1], 1.18);
-      quad(q[3], tq[3], tq[0], q[0], [-ux, -uy, 0], 0.9);            // block ends: the jagged top reads as stacked stones
-      quad(q[1], tq[1], tq[2], q[2], [ux, uy, 0], 0.9);
-      if (capers && r1 > 0.93) capers.push((ax + bx) / 2, (ay + by) / 2, (za + zb) / 2 + h + 0.25);
+    const ax = segs[s], ay = segs[s + 1], bx = segs[s + 2], by = segs[s + 3], h0 = segs[s + 4], t = segs[s + 5] / 2, tt = t * 0.72;
+    const L = Math.hypot(bx - ax, by - ay); if (L < 0.3) continue;
+    const ux = (bx - ax) / L, uy = (by - ay) / L, nx = -uy, ny = ux, n = Math.max(1, Math.round(L / 2));
+    const u0 = (ax * 0.37 + ay * 0.61) % 50;                                   // stone pattern phase
+    const P = [];
+    for (let k = 0; k <= n; k++) {
+      const f = k / n, x = ax + (bx - ax) * f, y = ay + (by - ay) * f;
+      const g = heightCubic(x, y), hh = h0 * (0.93 + 0.14 * vnoise(x / 3.1, y / 3.1));
+      P.push({ x, y, z0: g - 0.3, z1: g + hh, u: u0 + L * f });
+    }
+    const bat = (t - tt) / Math.max(h0, 0.3);
+    for (const sg of [1, -1]) for (let k = 0; k < n; k++) {
+      const A = P[k], B = P[k + 1];
+      const q = [[A.x + nx * t * sg, A.y + ny * t * sg, A.z0, A.u, A.z0 - A.z0 - 0.3], [B.x + nx * t * sg, B.y + ny * t * sg, B.z0, B.u, -0.3],
+                 [B.x + nx * tt * sg, B.y + ny * tt * sg, B.z1, B.u, B.z1 - B.z0 - 0.3], [A.x + nx * tt * sg, A.y + ny * tt * sg, A.z1, A.u, A.z1 - A.z0 - 0.3]];
+      const order = sg > 0 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2];
+      for (const i of order) tPush(b, q[i][0], q[i][1], q[i][2], [nx * sg, ny * sg, bat], col, q[i][3], q[i][4], -2, 7);
+    }
+    for (let k = 0; k < n; k++) {                                                // top
+      const A = P[k], B = P[k + 1];
+      const q = [[A.x + nx * tt, A.y + ny * tt, A.z1], [B.x + nx * tt, B.y + ny * tt, B.z1], [B.x - nx * tt, B.y - ny * tt, B.z1], [A.x - nx * tt, A.y - ny * tt, A.z1]];
+      for (const i of [0, 2, 1, 0, 3, 2]) tPush(b, q[i][0], q[i][1], q[i][2], [0, 0, 1], col, A.u + (i === 1 || i === 2 ? 2 : 0), (i < 2 ? 0 : 0.6) + 3, -2, 7);
+      if (capers && rnd(A.x * 13, A.y * 13) > 0.94) capers.push((A.x + B.x) / 2, (A.y + B.y) / 2, (A.z1 + B.z1) / 2 + 0.2);
+    }
+    for (const [E, sg] of [[P[0], -1], [P[n], 1]]) {                              // ends
+      const q = [[E.x - nx * t, E.y - ny * t, E.z0], [E.x + nx * t, E.y + ny * t, E.z0], [E.x + nx * tt, E.y + ny * tt, E.z1], [E.x - nx * tt, E.y - ny * tt, E.z1]];
+      const order = sg > 0 ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2];
+      for (const i of order) tPush(b, q[i][0], q[i][1], q[i][2], [ux * sg, uy * sg, 0], col, (i === 1 || i === 2) ? 1.2 : 0, q[i][2] - E.z0, -2, 7);
     }
   }
-  if (!P.length) return null;
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(Nn, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
-  g.computeBoundingSphere();
-  return g;
+  return b.P.length ? b : null;
 }
 // town centre polygon (set by buildTown): no rural walls / terraces inside it
 let TOWNZ = null;
@@ -983,6 +1015,8 @@ function roadsideWalls(tx, ty, segs) {
     for (const sgn of [1, -1]) {
       const mx = (ax + bx) / 2 + nx * off * sgn, my = (ay + by) / 2 + ny * off * sgn;
       const cl = clsAt(mx, my); if (cl === 1 || cl === 0 || cl === 6) continue;          // town / sea / woods: no walls
+      // the coast side of the coastal stretches is open (low rock and dry grass down to the sea)
+      if (r.tier === 0 && [25, 50, 90, 140, 200, 260].some((d) => clsAt(mx + nx * d * sgn, my + ny * d * sgn) === 0)) continue;
       if (rnd(Math.round(mx), Math.round(my), 21) < (r.tier === 0 ? 0.35 : 0.22)) continue;   // gates, gaps, collapsed bits
       // trim the ends where the wall would run into another road or a house
       const pa = [ax + nx * off * sgn + ux * 0.6, ay + ny * off * sgn + uy * 0.6], pb = [bx + nx * off * sgn - ux * 0.6, by + ny * off * sgn - uy * 0.6];
@@ -1046,18 +1080,22 @@ function buildDetailTile(tx, ty) {
   const segs = [];
   for (const [wi, i] of pairs(wallIdx.get(tx + ',' + ty))) {
     const w = WALLS[wi], ax = w.pts[i], ay = w.pts[i + 1], bx = w.pts[i + 2], by = w.pts[i + 3];
-    if (w.ty === 0 && blockedAt((ax + bx) / 2, (ay + by) / 2)) continue;
+    if (w.ty === 0 && blockedAt((ax + bx) / 2, (ay + by) / 2)) continue;   // field edges: dry-stone walls round the plots
     if (TOWNZ && inTown((ax + bx) / 2, (ay + by) / 2)) continue;   // town: plastered garden walls, not lava stone
     segs.push(ax, ay, bx, by, w.ty === 2 ? 2.8 : w.ty === 1 ? 1.4 : 1.05, w.ty === 2 ? 0.9 : 0.6);
   }
-  const nOsm = segs.length;
+  homeWallSegs(tx, ty, segs);
   terraceSegs(x0, y0, segs);
   roadsideWalls(tx, ty, segs);
-  if (TOWNZ) for (let i = segs.length - 6; i >= nOsm; i -= 6) if (inTown((segs[i] + segs[i + 2]) / 2, (segs[i + 1] + segs[i + 3]) / 2)) segs.splice(i, 6);
+  if (TOWNZ) for (let i = segs.length - 6; i >= 0; i -= 6) if (inTown((segs[i] + segs[i + 2]) / 2, (segs[i + 1] + segs[i + 3]) / 2)) segs.splice(i, 6);
+  // every wall drawn here is also solid for the car (and nothing else is)
   g.userData.walls = new Float32Array(segs);          // for the car: walls are solid
+  // buildings owned by this tile, redrawn up close (the far GLB copy is hidden by owner)
+  { const bm = buildingsMeshFor(tx, ty); if (bm) g.add(bm); }
+  homeExtras(g, tx, ty);
   const capers = [];
-  const wg = wallGeometry(segs, capers);
-  if (wg) { const m = new THREE.Mesh(wg, MAT.Stone.cel); m.userData.mats = MAT.Stone; m.receiveShadow = true; g.add(m); }
+  const wb = wallGeometry(segs, capers);
+  if (wb) { const m = finishTB(wb, MAT.Town); if (m) { m.castShadow = false; g.add(m); } }
   // trees from the island-wide set, re-drawn as puffy maritime pines / macchia (the far ones are hidden here)
   const pines = [], bigShrubs = [];
   for (const k of treeIdx.get(tx + ',' + ty) || []) {
@@ -1065,7 +1103,9 @@ function buildDetailTile(tx, ty) {
     (TREES.ks[k * 2] === 0 ? pines : bigShrubs).push(x, y, sc);
   }
   const shA = [], shB = [], shC = [], olives = [], citrus = [];
-  const dens = (x, y) => vnoise(x / 23, y / 23) * 0.65 + vnoise(x / 7, y / 7) * 0.35;     // patches and clearings
+  // patches and clearings; much sparser near the sea (wind, salt: low rock and dry grass, a few cushions)
+  const coast = (x, y) => [[110, 0], [-110, 0], [0, 110], [0, -110], [60, 60], [-60, -60], [60, -60], [-60, 60]].some(([a, c]) => clsAt(x + a, y + c) === 0) ? 0.3 : 1;
+  const dens = (x, y) => (vnoise(x / 23, y / 23) * 0.65 + vnoise(x / 7, y / 7) * 0.35) * 0.55 * coast(x, y);
   scatter(shA, x0, y0, 3.4, (x, y, r) => { const c = clsAt(x, y), d = dens(x, y); return (c === 5 && r < d * 1.1) || (c === 6 && r < 0.25) || (c === 9 && r < d * 0.6 - 0.1) ? 1 : 0; }, 0.95, 3);
   scatter(shB, x0, y0, 5.0, (x, y, r) => { const c = clsAt(x, y), d = dens(x + 50, y); return (c === 5 && r < d) || (c === 9 && r < d * 0.5) || (c === 4 && r < 0.05) ? 1 : 0; }, 0.95, 4);
   scatter(shC, x0, y0, 6.5, (x, y, r) => { const c = clsAt(x, y), d = dens(x, y + 80); return (c === 5 && r < d * 0.8) || (c === 6 && r < 0.2) ? 1 : 0; }, 0.95, 6);
@@ -1085,7 +1125,7 @@ function buildDetailTile(tx, ty) {
     const small = new THREE.Group();
     const vines = [], tufts = [], pears = [];
     scatter(vines, x0, y0, 2.3, (x, y) => clsAt(x, y) === 2 ? 1 : 0, 0.35, 1);
-    scatter(tufts, x0, y0, 2.6, (x, y, r) => { const c = clsAt(x, y); return ((c === 4 || c === 7) && r < 0.55) || (c === 9 && r < 0.35) || (c === 2 && r < 0.12) ? 1 : 0; }, 1, 5);
+    scatter(tufts, x0, y0, 2.2, (x, y, r) => { const c = clsAt(x, y); return ((c === 4 || c === 7 || c === 5) && r < 0.6) || (c === 9 && r < 0.45) || (c === 2 && r < 0.12) ? 1 : 0; }, 1, 5);
     scatter(pears, x0, y0, 9, (x, y, r) => clsAt(x, y) === 1 && r < 0.16 ? 1 : 0, 0.9, 8);
     add(small, VEG.vine, vines, () => 0.85);
     add(small, VEG.tuft, tufts, (k, i, x, y) => 0.8 + rnd(x, y, 13) * 0.7);
@@ -1121,6 +1161,255 @@ function hookFarTrees() {
     m.customProgramCacheKey = () => 'farTrees';
     m.needsUpdate = true;
   }
+}
+// ---- buildings (bld.bin): footprints for the close-up layer and for the car ----
+const BLD = [], bldIdx = new Map(), bldOwn = new Map();
+function parseBld(buf) {
+  const dv = new DataView(buf); let o = 4; const n = dv.getUint32(0, true);
+  for (let k = 0; k < n; k++) {
+    const kind = dv.getUint8(o), town = dv.getUint8(o + 1), np = dv.getUint16(o + 2, true), zmin = dv.getInt16(o + 4, true) / 10,
+      zmax = dv.getInt16(o + 6, true) / 10, h = dv.getUint16(o + 8, true) / 10, seed = dv.getUint32(o + 10, true); o += 14;
+    const pts = []; let cx = 0, cy = 0, x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    for (let i = 0; i < np; i++) { const x = dv.getInt16(o, true) / 4, y = dv.getInt16(o + 2, true) / 4; o += 4; pts.push([x, y]); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    // area-weighted centroid, as shapely computes it in build.py (the owner of the far copy)
+    let A = 0; for (let i = 0; i < np; i++) { const [ax, ay] = pts[i], [bx, by] = pts[(i + 1) % np], c = ax * by - bx * ay; A += c; cx += (ax + bx) * c; cy += (ay + by) * c; }
+    if (Math.abs(A) > 1e-6) { cx /= 3 * A; cy /= 3 * A; } else { cx = (x0 + x1) / 2; cy = (y0 + y1) / 2; }
+    const b = { kind, town: !!town, pts, zmin, zmax, h, seed, cx, cy, x0, x1, y0, y1, i: BLD.length };
+    { const role = homeRole(b), o = role && HOME.over[role];   // hand-corrected footprints (Via Posta Vecchia)
+      if (o) { b.pts = o.map((q) => q.slice()); b.x0 = Math.min(...o.map((q) => q[0])); b.x1 = Math.max(...o.map((q) => q[0])); b.y0 = Math.min(...o.map((q) => q[1])); b.y1 = Math.max(...o.map((q) => q[1])); x0 = b.x0; x1 = b.x1; y0 = b.y0; y1 = b.y1; } }
+    BLD.push(b);
+    addIdx(bldOwn, tkey(cx, cy), b.i);
+    for (let a = Math.floor((x0 - X0) / DT); a <= Math.floor((x1 - X0) / DT); a++) for (let c = Math.floor((y0 - Y0) / DT); c <= Math.floor((y1 - Y0) / DT); c++) addIdx(bldIdx, a + ',' + c, b.i);
+  }
+}
+function inPoly(P, x, y) { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const [xi, yi] = P[i], [xj, yj] = P[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+function buildingAt(x, y) {
+  const L = bldIdx.get(tkey(x, y)); if (!L) return null;
+  for (const i of L) { const b = BLD[i]; if (x < b.x0 || x > b.x1 || y < b.y0 || y > b.y1) continue; if (inPoly(b.pts, x, y)) return b; }
+  return null;
+}
+// far buildings (GLB walls/roofs, instanced domes) disappear where the close-up layer owns them: by building centroid,
+// so a building is always either all far or all near
+function hookFarBuildings() {
+  for (const k of ['Lava', 'Plaster', 'Roof', 'Glasshouse', 'Ruin', 'Church']) for (const m of [MAT[k].cel, MAT[k].std]) {
+    const prev = m.onBeforeCompile, prevKey = m.customProgramCacheKey;
+    m.onBeforeCompile = (sh) => {
+      prev && prev(sh);
+      sh.uniforms.uDetMask = { value: detMask }; sh.uniforms.uDetGrid = { value: new THREE.Vector4(X0, Y0, DT, 0) }; sh.uniforms.uDetSize = { value: new THREE.Vector2(TW, TH) };
+      sh.uniforms.uIsl = { value: new THREE.Vector4(X0, Y0, X1, Y1) };
+      sh.vertexShader = sh.vertexShader.replace('void main() {', 'attribute vec2 aOwn; varying vec2 vOwn;\nvoid main() {\n  vOwn = aOwn;');
+      sh.fragmentShader = sh.fragmentShader.replace('void main() {', `uniform sampler2D uDetMask; uniform vec4 uDetGrid, uIsl; uniform vec2 uDetSize; varying vec2 vOwn;
+        void main() {
+          if (vOwn.x > 0.0) { vec2 w = uIsl.xy + vec2(vOwn.x, 1.0 - vOwn.y) * (uIsl.zw - uIsl.xy); /* glTF flips V */ vec2 t = floor((w - uDetGrid.xy) / uDetGrid.z) + 0.5; if (texture2D(uDetMask, t / uDetSize).r > 0.5) discard; }`);
+    };
+    m.customProgramCacheKey = () => (prevKey ? prevKey.call(m) : '') + '_own';
+    m.needsUpdate = true;
+  }
+}
+// ---- close-up buildings: dammusi (lava rubble or lime/plaster walls, whitewashed cupolas, arched doors, chimneys,
+// benches, reed pergolas), plastered houses, greenhouses, ruins, chapels ----
+const DPAL = { white: new THREE.Color('#f1eee6'), ochre: new THREE.Color('#e2c28c'), pink: new THREE.Color('#e9bfae'), red: new THREE.Color('#c96a52'), grey: new THREE.Color('#d6d3cc'), lime: new THREE.Color('#ffffff'), reed: new THREE.Color('#ffffff') };
+function hrand(seed, k) { return rnd(seed % 99991, k * 7.13 + (seed >>> 17) % 97); }
+function obb(pts) {   // minimum-area rectangle of the convex hull: centre, axis (unit), length (along axis), width
+  const P = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const lo = [], hi = [];
+  for (const p of P) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (const p of P.slice().reverse()) { while (hi.length >= 2 && cr(hi[hi.length - 2], hi[hi.length - 1], p) <= 0) hi.pop(); hi.push(p); }
+  const H = lo.slice(0, -1).concat(hi.slice(0, -1));
+  let best = null;
+  for (let i = 0; i < H.length; i++) {
+    const a = H[i], b = H[(i + 1) % H.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 1e-6) continue;
+    const ux = (b[0] - a[0]) / L, uy = (b[1] - a[1]) / L;
+    let s0 = 1e9, s1 = -1e9, t0 = 1e9, t1 = -1e9;
+    for (const p of H) { const s = p[0] * ux + p[1] * uy, t = -p[0] * uy + p[1] * ux; s0 = Math.min(s0, s); s1 = Math.max(s1, s); t0 = Math.min(t0, t); t1 = Math.max(t1, t); }
+    const area = (s1 - s0) * (t1 - t0);
+    if (!best || area < best.area) { const sm = (s0 + s1) / 2, tm = (t0 + t1) / 2; best = { area, cx: sm * ux - tm * uy, cy: sm * uy + tm * ux, ux, uy, L: s1 - s0, W: t1 - t0 }; }
+  }
+  if (best && best.W > best.L) { const { ux, uy } = best; Object.assign(best, { ux: -uy, uy: ux, L: best.W, W: best.L }); }
+  return best;
+}
+function cupola(b, cx, cy, ux, uy, a, w, z0, hd, col) {   // rounded-square dome over an a x w room (a along u)
+  const R = 5, S = 20, P = (ri, si) => {
+    const t = si / S * Math.PI * 2, r = ri / R, c = Math.cos(t), s = Math.sin(t), p = 3.2;
+    const ex = Math.sign(c) * Math.pow(Math.abs(c), 2 / p) * a / 2 * r, ey = Math.sign(s) * Math.pow(Math.abs(s), 2 / p) * w / 2 * r;
+    return [cx + ux * ex - uy * ey, cy + uy * ex + ux * ey, z0 + hd * Math.sqrt(Math.max(0, 1 - r * r)) ** 0.8, ex, ey];
+  };
+  const nrm = (p) => { const r2 = (p[3] / (a / 2)) ** 2 + (p[4] / (w / 2)) ** 2, k = Math.min(1, Math.sqrt(r2));
+    const gx = p[3] / (a * a / 4), gy = p[4] / (w * w / 4); let nx = (ux * gx - uy * gy) * hd * 0.6, ny = (uy * gx + ux * gy) * hd * 0.6; const L = Math.hypot(nx, ny, 1); return [nx / L, ny / L, 1 / L]; };
+  for (let ri = 0; ri < R; ri++) for (let si = 0; si < S; si++) {
+    const q = [P(ri, si), P(ri, si + 1), P(ri + 1, si + 1), P(ri + 1, si)];
+    for (const k of [0, 2, 1, 0, 3, 2]) { const v = q[k]; tPush(b, v[0], v[1], v[2], nrm(v), col, v[3], v[4], -1, 9); }
+  }
+}
+function boxAt(b, cx, cy, ux, uy, a, w, z0, z1, col, kind, st = -1) {   // oriented box (a along u, w across)
+  const c = [[-a / 2, -w / 2], [a / 2, -w / 2], [a / 2, w / 2], [-a / 2, w / 2]].map(([s, t]) => [cx + ux * s - uy * t, cy + uy * s + ux * t]);
+  prism(b, c, z0, z1, col, st, kind); tCap(b, c, z1, col, kind, st);
+}
+function cylAt(b, cx, cy, r, z0, z1, col, kind, seg = 10) {
+  for (let i = 0; i < seg; i++) {
+    const t0 = i / seg * Math.PI * 2, t1 = (i + 1) / seg * Math.PI * 2, a = [cx + Math.cos(t0) * r, cy + Math.sin(t0) * r], c = [cx + Math.cos(t1) * r, cy + Math.sin(t1) * r];
+    tQuad(b, [a[0], a[1], z0, z1], [c[0], c[1], z0, z1], [Math.cos((t0 + t1) / 2), Math.sin((t0 + t1) / 2), 0], col, 0, 1, 0, 0, -1, kind);
+  }
+}
+function dammuso(b, d, opt = {}) {
+  const pts = ccw(d.pts), g = d.zmin, zb = g - 1.0, zt = g + 0.5 * (d.zmax - d.zmin) + (opt.h ?? d.h), n = pts.length;
+  const r = hrand(d.seed, 1);
+  const variant = opt.variant || (r < 0.55 ? 'stone' : r < 0.8 ? 'white' : r < 0.88 ? 'ochre' : r < 0.94 ? 'pink' : r < 0.98 ? 'red' : 'grey');
+  const wallKind = variant === 'stone' ? 7 : 8, wallCol = opt.col || (variant === 'stone' ? DPAL.grey : DPAL[variant]);
+  // door: on the longest wall facing most to the south (sun, view, lee of the wind)
+  let best = -1e9, doorU = -1, u = 0, door = null;
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], c = pts[(i + 1) % n], L = Math.hypot(c[0] - a[0], c[1] - a[1]);
+    const ny = -(c[0] - a[0]) / (L || 1), score = L * (1.2 - ny) * (L > 2.6 ? 1 : 0.1);
+    if (score > best) { best = score; doorU = u + L / 2; door = { a, c, L, nx: (c[1] - a[1]) / L, ny }; }
+    u += L;
+  }
+  // battered walls: a little thicker at the foot
+  const top = inset(pts, 0.1);
+  u = 0;
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], c = pts[(i + 1) % n], at = top[i], ct = top[(i + 1) % n], L = Math.hypot(c[0] - a[0], c[1] - a[1]); if (L < 0.05) continue;
+    const nn = [(c[1] - a[1]) / L, -(c[0] - a[0]) / L, 0.03], z1 = zt - 0.28;
+    const v = [[a[0], a[1], zb, u, zb - g], [c[0], c[1], zb, u + L, zb - g], [ct[0], ct[1], z1, u + L, z1 - g], [at[0], at[1], z1, u, z1 - g]];
+    for (const k of [0, 1, 2, 0, 2, 3]) tPush(b, v[k][0], v[k][1], v[k][2], nn, wallCol, v[k][3], v[k][4], doorU, wallKind);
+    // lime coping where the roof wraps over the wall top
+    tQuad(b, [at[0], at[1], z1, zt], [ct[0], ct[1], z1, zt], nn, DPAL.lime, u, u + L, 0, 0, -1, 9);
+    u += L;
+  }
+  tCap(b, top, zt, opt.roofCol || DPAL.lime, opt.roofCol ? 2 : 9);
+  if (opt.flat) {   // flat terrace roof behind a low lime parapet
+    const inn = inset(top, 0.25), z2 = zt + (opt.parapet ?? 0.35);
+    prism(b, top, zt, z2, DPAL.lime, -1, 9); prism(b, inn, zt, z2, DPAL.lime, -1, 9, false);
+    for (let i = 0; i < n; i++) { const a = top[i], c = top[(i + 1) % n], ai = inn[i], ci = inn[(i + 1) % n]; for (const v of [a, c, ci, a, ci, ai]) tPush(b, v[0], v[1], z2, [0, 0, 1], DPAL.lime, 0, 0, -1, 9); }
+  }
+  // cupolas: one per room along the long axis (as the far model), rounded-square domes
+  const o = obb(pts), area = Math.abs(pts.reduce((s, p, i) => s + p[0] * pts[(i + 1) % n][1] - pts[(i + 1) % n][0] * p[1], 0) / 2);
+  if (o && area < 420 && !opt.flat) {
+    const nd = Math.max(1, Math.min(5, Math.round(o.L / Math.max(o.W, 4.2))));
+    const ra = o.L / nd - 0.7, rw = o.W - 0.9;
+    if (rw > 1.6) for (let k = 0; k < nd; k++) {
+      const off = ((k + 0.5) / nd - 0.5) * o.L, cx = o.cx + o.ux * off, cy = o.cy + o.uy * off;
+      if (!inPoly(pts, cx, cy)) continue;
+      cupola(b, cx, cy, o.ux, o.uy, ra, rw, zt - 0.02, Math.min(1.5, 0.35 + Math.min(ra, rw) * 0.2), DPAL.lime);
+    }
+    // the cannolo chimney on a third of them
+    if (hrand(d.seed, 2) < 0.35) {
+      const s = (hrand(d.seed, 3) < 0.5 ? -1 : 1) * (o.L / 2 - 0.55), t = (hrand(d.seed, 4) < 0.5 ? -1 : 1) * (o.W / 2 - 0.55);
+      const cx = o.cx + o.ux * s - o.uy * t, cy = o.cy + o.uy * s + o.ux * t;
+      if (inPoly(pts, cx, cy)) { cylAt(b, cx, cy, 0.22, zt - 0.1, zt + 1.15, DPAL.lime, 9); cupola(b, cx, cy, 1, 0, 0.5, 0.5, zt + 1.15, 0.2, DPAL.lime); }
+    }
+  }
+  if (door && door.L > 2.6 && !opt.plain) {
+    const ex = (door.c[0] - door.a[0]) / door.L, ey = (door.c[1] - door.a[1]) / door.L, mx = (door.a[0] + door.c[0]) / 2, my = (door.a[1] + door.c[1]) / 2;
+    // the dukkena: a whitewashed stone bench along the wall beside the door
+    if (hrand(d.seed, 5) < 0.55 && door.L > 4.5) {
+      const off = Math.min(door.L / 2 - 1.3, 1.9) * (hrand(d.seed, 6) < 0.5 ? -1 : 1);
+      boxAt(b, mx + ex * off + door.nx * 0.33, my + ey * off + door.ny * 0.33, ex, ey, 2.0, 0.55, g - 0.3, g + 0.45, DPAL.lime, 9);
+    }
+    // a reed pergola (cannizzato) in front of the door on plastered ones and some others
+    if (hrand(d.seed, 7) < (variant === 'stone' ? 0.15 : 0.45)) {
+      const D = 2.8, Wd = Math.min(door.L - 0.4, 4.2), px = mx + door.nx * (D / 2 + 0.1), py = my + door.ny * (D / 2 + 0.1), gz = heightCubic(px, py);
+      for (const [s, t] of [[-1, 1], [1, 1]]) { const qx = px + ex * s * (Wd / 2 - 0.15) + door.nx * t * (D / 2 - 0.15), qy = py + ey * s * (Wd / 2 - 0.15) + door.ny * t * (D / 2 - 0.15); boxAt(b, qx, qy, ex, ey, 0.24, 0.24, gz - 0.3, g + 2.45, DPAL.lime, 9); }
+      boxAt(b, px, py, ex, ey, Wd, D + 0.2, g + 2.45, g + 2.55, DPAL.reed, 10);
+    }
+  }
+}
+function ruin(b, d, H = 0, doorU = -1) {
+  const pts = ccw(d.pts), g = d.zmin, top = g + (H || 1.2 + hrand(d.seed, 1) * 1.2);
+  let u = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], c = pts[(i + 1) % pts.length], L = Math.hypot(c[0] - a[0], c[1] - a[1]); if (L < 0.05) continue;
+    const t0 = top - (i % 2) * hrand(d.seed + i, 3) * (H ? 1.6 : 0.4), t1 = top - hrand(d.seed + i, 2) * (H ? 2.4 : 1.0);   // broken, stepped tops
+    const nn = [(c[1] - a[1]) / L, -(c[0] - a[0]) / L, 0];
+    tQuad(b, [a[0], a[1], g - 1, t0], [c[0], c[1], g - 1, t1], nn, DPAL.grey, u, u + L, -1, -1, doorU, 7);
+    // inner face (it's open to the sky)
+    tQuad(b, [c[0] - nn[0] * 0.6, c[1] - nn[1] * 0.6, g - 1, t1], [a[0] - nn[0] * 0.6, a[1] - nn[1] * 0.6, g - 1, t0], [-nn[0], -nn[1], 0], DPAL.grey, u + L, u, -1, -1, -1, 7);
+    u += L;
+  }
+}
+// ---- Via Posta Vecchia, Campobello: Gianluca's place (from his photos and the aerial view) ----
+// brown dammuso at the fork, a small shed by the lane, the pink dammuso with its veranda and garden, a two-storey dammuso
+// in ruins next to it with lower ruined rooms, a tall date palm, lava-stone walls round the property, and the walled
+// garden across Via Campobello Alto
+const HOME = {
+  bld: [[-1471.6, 4700.4, 'brown'], [-1478.6, 4685.1, 'shed'], [-1468.7, 4688.7, 'pink'], [-1463.9, 4688.5, 'tower'], [-1467.1, 4674.4, 'ruin'], [-1471.3, 4676.4, 'ruin']],
+  wall: [[-1473.2, 4709.1], [-1461.7, 4703.7], [-1448.1, 4688.6], [-1443.4, 4681.4], [-1451.3, 4669.5], [-1465.7, 4666.3], [-1479.2, 4669.5], [-1485.2, 4675.0], [-1480.0, 4688.6], [-1475.2, 4703.7]],
+  gates: [0, 7],                                                     // openings: by the fork, and on the lane past the shed
+  garden: [[-1471.4, 4726.0], [-1467.3, 4727.2], [-1461.7, 4726.4], [-1456.1, 4722.8], [-1452.1, 4716.5], [-1452.5, 4712.9], [-1455.7, 4711.7], [-1460.9, 4708.9], [-1464.9, 4712.9], [-1468.4, 4718.1], [-1470.8, 4722.4]],
+  palm: [-1461.4, 4694.2],
+  shrubs: [[-1465.2, 4697.6, 1.1], [-1458.7, 4696.4, 0.9], [-1456.2, 4692.4, 1.2], [-1453.6, 4688.9, 1.0], [-1466.9, 4695.2, 0.8], [-1460.2, 4699.5, 1.0], [-1455.0, 4685.0, 0.9]],
+};
+function homeRole(d) { for (const [x, y, r] of HOME.bld) if (Math.hypot(d.cx - x, d.cy - y) < 1.6) return r; return null; }
+function homeRect(cx, cy, ux, uy, hl, hw) { const vx = -uy, vy = ux; return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => [cx + ux * hl * a + vx * hw * b, cy + uy * hl * a + vy * hw * b]); }
+HOME.over = {
+  pink: homeRect(-1468.2, 4688.7, 0.977, -0.211, 6.9, 2.85),     // ~13.8 x 5.7 m: three rooms, two cupolas
+  tower: homeRect(-1468.9, 4683.85, 0.977, -0.211, 3.2, 1.9),
+};
+const WOOD = new THREE.Color('#3b2a20'), CLOTH = new THREE.Color('#f4efe4'), TERRA = new THREE.Color('#a9573a');
+function veranda(b, d, toward) {   // dark timber pergola on the garden front, white curtains tied at the posts, a raised terrace
+  const pts = ccw(d.pts), g = d.zmin, n = pts.length;
+  let e = null;
+  for (let i = 0; i < n; i++) { const a = pts[i], c = pts[(i + 1) % n], L = Math.hypot(c[0] - a[0], c[1] - a[1]);
+    const nx = (c[1] - a[1]) / L, ny = -(c[0] - a[0]) / L, mx = (a[0] + c[0]) / 2, my = (a[1] + c[1]) / 2;
+    const sc = L * ((toward[0] - mx) * nx + (toward[1] - my) * ny); if (!e || sc > e.s) e = { a, c, L, s: sc, nx, ny }; }
+  const ux = (e.c[0] - e.a[0]) / e.L, uy = (e.c[1] - e.a[1]) / e.L, D = 2.6, H = 2.65;
+  // the half of the front nearer the palm (the other half faces the brown dammuso, too close for a veranda)
+  const sgn = (toward[0] - (e.a[0] + e.c[0]) / 2) * ux + (toward[1] - (e.a[1] + e.c[1]) / 2) * uy > 0 ? 1 : -1, W = Math.min(e.L - 0.2, 7.6);
+  const mx = (e.a[0] + e.c[0]) / 2 + ux * sgn * (e.L - W) / 2 - ux * sgn * 0.1, my = (e.a[1] + e.c[1]) / 2 + uy * sgn * (e.L - W) / 2 - uy * sgn * 0.1, at = (s, t) => [mx + ux * s + e.nx * t, my + uy * s + e.ny * t];
+  { const [cx, cy] = at(0, D / 2 + 0.1); boxAt(b, cx, cy, ux, uy, W + 0.6, D + 0.6, g - 0.4, g + 0.3, DPAL.white, 9); }        // terrace
+  const k = Math.max(2, Math.ceil(W / 2.6) + 1);
+  for (let i = 0; i < k; i++) {
+    const s = -W / 2 + W * i / (k - 1), [px, py] = at(s, D);
+    boxAt(b, px, py, ux, uy, 0.16, 0.16, g + 0.3, g + H, WOOD, 2);                                                           // posts
+    for (const side of [-1, 1]) { if ((i === 0 && side < 0) || (i === k - 1 && side > 0)) continue;
+      const [qx, qy] = at(s + side * 0.32, D); boxAt(b, qx, qy, ux, uy, 0.42, 0.06, g + 1.15, g + H - 0.12, CLOTH, 9);           // tied-back curtains
+      const [rx, ry] = at(s + side * 0.18, D); boxAt(b, rx, ry, ux, uy, 0.16, 0.07, g + 0.75, g + 1.15, CLOTH, 9); }
+    const [bx, by] = at(s, D / 2); boxAt(b, bx, by, ux, uy, 0.12, D, g + H - 0.12, g + H + 0.06, WOOD, 2);                    // rafters
+  }
+  { const [cx, cy] = at(0, D); boxAt(b, cx, cy, ux, uy, W + 0.3, 0.18, g + H - 0.2, g + H + 0.06, WOOD, 2); }                   // front beam
+  for (let i = 0; i < Math.floor(W / 0.5); i++) { const [cx, cy] = at(-W / 2 + 0.25 + i * 0.5, D / 2); boxAt(b, cx, cy, ux, uy, 0.05, D, g + H + 0.06, g + H + 0.12, WOOD, 2); }   // slats
+}
+function homeBuilding(b, d, role) {
+  if (role === 'brown') dammuso(b, d, { variant: 'brown', col: new THREE.Color('#9c7257'), plain: true });
+  else if (role === 'shed') dammuso(b, d, { variant: 'stone', h: 2.3, flat: true, parapet: 0.12, roofCol: TERRA, plain: true });
+  else if (role === 'pink') { dammuso(b, d, { variant: 'pink', col: new THREE.Color('#f1a68a'), plain: true }); veranda(b, d, HOME.palm); }
+  else if (role === 'tower') ruin(b, d, 6.6);
+  else ruin(b, d, 2.8, 2.2);
+}
+function homeWallSegs(tx, ty, segs) {   // property walls (1.4 m) and the walled garden (2.2 m): real, visible, solid
+  const add = (P, gates, h, t) => { for (let i = 0; i < P.length; i++) { if (gates && gates.includes(i)) continue; const a = P[i], c = P[(i + 1) % P.length];
+    if (tkey((a[0] + c[0]) / 2, (a[1] + c[1]) / 2) === tx + ',' + ty) segs.push(a[0], a[1], c[0], c[1], h, t); } };
+  add(HOME.wall, HOME.gates, 1.4, 0.65); add(HOME.garden, null, 2.2, 0.85);
+}
+let PALM_GEO = null;
+function homeExtras(g, tx, ty) {
+  const key = tx + ',' + ty;
+  if (tkey(...HOME.palm) === key) { PALM_GEO ||= palmGeo(); const [x, y] = HOME.palm;
+    const m = instAt(PALM_GEO, MAT.Prop, [x, y], 2, (k, p, q, s) => { p.set(x, heightCubic(x, y) - 0.1, -y); q.identity(); s.set(1.45, 1.45, 1.45); }); if (m) g.add(m); }
+  const sh = HOME.shrubs.filter(([x, y]) => tkey(x, y) === key).flat();
+  if (sh.length) { const m = instanced(VEG.shrubC, sh, (k) => k); if (m) g.add(m); }
+  // citrus and olives inside the walled garden
+  const P = HOME.garden, xs = [];
+  for (let x = -1470; x < -1452; x += 3.2) for (let y = 4710; y < 4727; y += 3.2) if (inPoly(P, x, y) && tkey(x, y) === key) xs.push(x + rnd(x, y) * 0.8, y + rnd(y, x) * 0.8, 0.8 + rnd(x, y, 3) * 0.3);
+  if (xs.length) { const m = instanced(VEG.citrus, xs, (k) => k); if (m) g.add(m); }
+}
+function buildingsMeshFor(tx, ty) {
+  const L = bldOwn.get(tx + ',' + ty); if (!L) return null;
+  const b = TB();
+  for (const i of L) {
+    const d = BLD[i]; if (d.town) continue;
+    const role = homeRole(d);
+    if (role) homeBuilding(b, d, role);
+    else if (d.kind === 0) dammuso(b, d);
+    else if (d.kind === 3) ruin(b, d);
+    else if (d.kind === 2) { const pts = ccw(d.pts); prism(b, pts, d.zmin - 1, d.zmin + 2.8, new THREE.Color('#dfe9e5'), 0, 2); tCap(b, pts, d.zmin + 2.8, new THREE.Color('#e8f0ec'), 2); }
+    else {
+      const ht = 0.5 * (d.zmax - d.zmin) + d.h, st = Math.max(1, Math.round((ht - 0.6) / 3.1));
+      const r = hrand(d.seed, 9), col = r < 0.7 ? 0 : r < 0.82 ? 1 : r < 0.9 ? 4 : r < 0.95 ? 3 : 2;
+      house(b, { pts: d.pts, z: d.zmin - 0.6, h: ht + 0.6, st, col, id: d.seed }, []);
+    }
+  }
+  return finishTB(b, MAT.Town);
 }
 // far road ribbons (GLB): hidden inside the tiles where the near layer redraws the roads on the 5 m terrain
 function hookFarRoads() {
@@ -1272,6 +1561,45 @@ for (const m of [MAT.Town.cel, MAT.Town.std]) {
           c = mix(vec3(0.33, 0.37, 0.44), vec3(0.42, 0.46, 0.53), th(vec2(bl, row)));
         } else if (kind < 5.5) {                            // gilded dome
           c = vec3(0.86, 0.69, 0.30);
+        } else if (kind > 6.5) {                            // dammusi
+          float doorU = st;
+          if (kind < 8.5) {
+            // rubble courses: rows ~0.3 m with jittered stones
+            float row = floor(v / 0.31 + th(vec2(floor(u / 2.3), 3.0)) * 0.4);
+            float off = th(vec2(row, 1.7)) * 0.6, w = 0.34 + th(vec2(row, 9.1)) * 0.3;
+            float bl = floor((u + off) / w), r = th(vec2(bl, row)), fr = fract((u + off) / w), fv = fract(v / 0.31 + th(vec2(floor(u / 2.3), 3.0)) * 0.4);
+            float gap = step(fr, 0.07) + step(fv, 0.09);
+            if (kind < 7.5) {
+              c = mix(vec3(0.2, 0.19, 0.18), vec3(0.38, 0.35, 0.32), r) * (0.92 + 0.12 * th(vec2(bl * 1.3, row * 0.7)));
+              if (r > 0.86) c = mix(c, vec3(0.42, 0.30, 0.24), 0.5);                       // a few rusty stones
+              c = mix(c, vec3(0.13, 0.12, 0.11), min(gap, 1.0) * 0.9);
+              if (doorU < -1.5) c *= 0.78;                                                  // field / roadside walls: weathered, darker than house walls
+            } else {
+              c *= 0.95 + 0.07 * r - 0.07 * min(gap, 1.0);                                 // lime over the rubble
+            }
+          } else if (kind < 9.5) {                          // whitewash: roofs, domes, copings, benches
+            c = vec3(0.94, 0.93, 0.90) * (0.965 + 0.035 * th(floor(vec2(u, v) * 1.7)));
+          } else {                                          // cannizzato: reed shade
+            c = vec3(0.62, 0.50, 0.33) * (0.85 + 0.15 * step(0.5, fract(u * 6.0)));
+          }
+          if (kind < 8.5 && doorU > -1.5) {
+            // arched door (st = its position along the walls), small windows, lime frames on stone walls
+            float du = u - doorU, frame = kind < 7.5 ? 0.13 : 0.0;
+            float dh = 1.75, rad = 0.52;
+            bool inDoor = doorU >= 0.0 && ((abs(du) < rad && v > 0.0 && v < dh) || (du * du + (v - dh) * (v - dh) < rad * rad));
+            bool inFrame = doorU >= 0.0 && !inDoor && ((abs(du) < rad + frame && v > 0.0 && v < dh) || (du * du + (v - dh) * (v - dh) < (rad + frame) * (rad + frame)));
+            float dc = th(vec2(floor(doorU * 7.0), 4.4));
+            vec3 doorC = dc < 0.35 ? vec3(0.16, 0.36, 0.30) : dc < 0.6 ? vec3(0.18, 0.34, 0.55) : dc < 0.85 ? vec3(0.38, 0.25, 0.15) : vec3(0.2, 0.5, 0.52);
+            if (inDoor) c = doorC * (0.9 + 0.1 * step(0.5, fract(du * 5.0)));
+            else if (inFrame) c = vec3(0.9, 0.89, 0.86);
+            float wc = floor(u / 3.4), fu = u - wc * 3.4 - 1.7, wh = th(vec2(wc, floor(doorU) + 2.0));
+            if (wh > 0.45 && abs(du) > 1.5 && v > 1.2 && v < 1.95) {
+              if (abs(fu) < 0.3 && v > 1.3 && v < 1.85) c = vec3(0.12, 0.14, 0.17);
+              else if (abs(fu) < 0.42 && kind < 7.5) c = vec3(0.9, 0.89, 0.86);
+              else if (abs(fu) < 0.62 && kind > 7.5 && wh > 0.7) c = doorC;                // open shutters on plastered houses
+            }
+            if (v < 0.0) c *= 0.8;                                                         // below grade: darker footing
+          }
         } else {                                            // bell tower: cream stone, opening near the top
           c = vec3(0.84, 0.79, 0.68);
           if (v > st - 4.0 && v < st - 1.2 && abs(fract(u / 3.6) - 0.5) < 0.22) c = vec3(0.12, 0.11, 0.1);
@@ -1560,6 +1888,25 @@ function setupPost() {
   post.nrm = new THREE.WebGLRenderTarget(w, h, { type: THREE.UnsignedByteType });
   post.nrm.depthTexture = new THREE.DepthTexture(w, h, THREE.UnsignedIntType);
   post.nmat = new THREE.MeshNormalMaterial();
+  // the outline pass draws everything with this one material: give it the far-copy masks too, or the hidden far roads,
+  // trees and buildings would still leave their ink lines inside the close-up tiles
+  post.nmat.onBeforeCompile = (sh) => {
+    sh.uniforms.uDetMask = { value: detMask }; sh.uniforms.uDetGrid = { value: new THREE.Vector4(X0, Y0, DT, 0) }; sh.uniforms.uDetSize = { value: new THREE.Vector2(TW, TH) };
+    sh.uniforms.uIsl = { value: new THREE.Vector4(X0, Y0, X1, Y1) };
+    sh.vertexShader = sh.vertexShader.replace('void main() {', 'attribute vec2 aOwn; attribute float aFar; varying vec2 vOwn; varying float vFar; varying vec2 vW;\nvoid main() {\n  vOwn = aOwn; vFar = aFar;')
+      .replace('#include <project_vertex>', `#include <project_vertex>
+        #ifdef USE_INSTANCING
+          vW = (modelMatrix * instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xz;
+        #else
+          vW = (modelMatrix * vec4(transformed, 1.0)).xz;
+        #endif`);
+    sh.fragmentShader = sh.fragmentShader.replace('void main() {', `uniform sampler2D uDetMask; uniform vec4 uDetGrid, uIsl; uniform vec2 uDetSize; varying vec2 vOwn; varying float vFar; varying vec2 vW;
+      void main() {
+        { vec2 w = vec2(-1e9);
+          if (vOwn.x > 0.0) w = uIsl.xy + vec2(vOwn.x, 1.0 - vOwn.y) * (uIsl.zw - uIsl.xy);
+          else if (vFar > 0.5) w = vec2(vW.x, -vW.y);
+          if (w.x > -1e8) { vec2 t = floor((w - uDetGrid.xy) / uDetGrid.z) + 0.5; if (texture2D(uDetMask, t / uDetSize).r > 0.5) discard; } }`);
+  };
   post.mat = new THREE.ShaderMaterial({
     uniforms: { tColor: { value: post.color.texture }, tNrm: { value: post.nrm.texture }, tDepth: { value: post.nrm.depthTexture },
       texel: { value: new THREE.Vector2(1 / w, 1 / h) }, near: { value: 1 }, far: { value: 1000 }, ink: { value: new THREE.Color('#2a2119') }, amount: { value: 0.85 }, lapMin: { value: 0.012 } },
@@ -2003,7 +2350,7 @@ function nearestRoad(x, y, maxTier = 3) {
       const P = r.pts, ax = P[i * 3], ay = P[i * 3 + 1], dx = P[i * 3 + 3] - ax, dy = P[i * 3 + 4] - ay;
       const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1e-6)));
       const px = ax + dx * t, py = ay + dy * t, d = Math.hypot(x - px, y - py);
-      if (d < bd) { bd = d; best = { r, d, px, py, ang: Math.atan2(dy, dx) }; }
+      if (d < bd) { bd = d; best = { r, d, px, py, pz: P[i * 3 + 2] + (P[i * 3 + 5] - P[i * 3 + 2]) * t, ang: Math.atan2(dy, dx) }; }
     }
   }
   return best;
@@ -2192,14 +2539,10 @@ function onRunway(x, y) {
 
 // ---- spawning ----
 function viewAz() { return Math.PI / 2 - THREE.MathUtils.degToRad(getView().heading); }   // map angle (CCW from east) the camera looks toward
-function spawnCar(onRoad = false) {
+function spawnCar() {
   const v = getView(), az = viewAz();
   if (!VEH.car) { VEH.car = { ...carModel('#e9e5dc'), x: 0, y: 0, h: 0, v: 0, steer: 0, roll: 0, wheel: 0, gas: 0, brk: 0, gear: 'N', rpm: 900 }; VEH.group.add(VEH.car.group); styleMeshes(VEH.car.group); }
-  // right where the map is centred, facing where you look (unless that's the sea or inside a house)
-  const near = nearestRoad(v.x, v.y);
-  if (!onRoad && heightCubic(v.x, v.y) > 0.6 && !(blockedAt(v.x, v.y) && !(near && near.d < near.r.w / 2 + 1.8))) {
-    Object.assign(VEH.car, { x: v.x, y: v.y, h: az, v: 0, steer: 0, gas: 0, brk: 0 }); return;
-  }
+  // always on the road nearest to where the map is centred, pointing the way you look
   let rd = nearestRoad(v.x, v.y, 1) || nearestRoad(v.x, v.y, 3);
   if (!rd) {   // nothing near: nearest road vertex on the island
     let bd = 1e18; for (const r of ROADS2) for (let i = 0; i < r.pts.length; i += 3) { const d = (r.pts[i] - v.x) ** 2 + (r.pts[i + 1] - v.y) ** 2; if (d < bd && r.tier <= 1) { bd = d; rd = { px: r.pts[i], py: r.pts[i + 1], ang: 0 }; } }
@@ -2242,6 +2585,12 @@ function wallHit(x, y, r) {
 // rolling resistance by surface (m/s²): the engine is the same everywhere, the ground decides how fast you go
 const CAR_ROLL = { asphalt: [0.14, 0], cement: [0.22, 0.004], dirt: [0.5, 0.045], 'off road': [1.2, 0.09] };   // base + per m/s (bumps)
 const CAR_GEARS = [0, 7, 13, 20, 28, 99];
+function carZ(x, y) {   // ground under the car: main roads use their smooth profile, blended out at the verge
+  const h = heightCubic(x, y), r = nearestRoad(x, y, 0);
+  if (!r) return h;
+  const t = THREE.MathUtils.clamp((r.d - r.r.w / 2) / 2.5, 0, 1);
+  return Math.max(h, r.pz) * t + r.pz * (1 - t);
+}
 function stepCar(c, dt) {
   const P = VEH.pad, kGas = vHas('w', 'arrowup'), kBrk = vHas('s', 'arrowdown');
   // pedals: keys ease in (like pressing a pedal down), a gamepad's triggers are analog
@@ -2257,7 +2606,7 @@ function stepCar(c, dt) {
   let a = drive > 0 ? drive * Math.min(3.4, 30 / Math.max(c.v, 1)) : drive * (c.v > -6 ? 2.4 : 0);   // ~50 kW in a 1 t Panda, ~145 km/h top
   a -= Math.sign(c.v) * (brake * 8.5 + (hand ? 6 : 0) + (CAR_ROLL[c.surface][0] + CAR_ROLL[c.surface][1] * Math.abs(c.v)) * Math.min(1, Math.abs(c.v)) + 0.00033 * c.v * c.v);
   const ch = Math.cos(c.h), sh = Math.sin(c.h);
-  const grade = (heightCubic(c.x + ch * 1.6, c.y + sh * 1.6) - heightCubic(c.x - ch * 1.6, c.y - sh * 1.6)) / 3.2;
+  const grade = (carZ(c.x + ch * 1.6, c.y + sh * 1.6) - carZ(c.x - ch * 1.6, c.y - sh * 1.6)) / 3.2;
   a -= 9.81 * Math.sin(Math.atan(grade)) * 0.85;
   const v0 = c.v; c.v += a * dt;
   if (brake + (hand ? 1 : 0) > 0.05 && Math.sign(c.v) !== Math.sign(v0) && v0 !== 0) c.v = 0;    // brakes stop, they don't reverse
@@ -2268,8 +2617,8 @@ function stepCar(c, dt) {
   const nr = nearestRoad(nx, ny), roadish = nr && nr.d < nr.r.w / 2 + 1.8;
   const dir = c.v >= 0 ? 1 : -1, fx = nx + Math.cos(c.h) * 1.75 * dir, fy = ny + Math.sin(c.h) * 1.75 * dir;
   const lx = -Math.sin(c.h) * 0.62, ly = Math.cos(c.h) * 0.62;
-  let hit = clsAt(fx, fy) === 0 && heightCubic(fx, fy) < 0.6 ? 'sea' : (!roadish && blockedAt(fx, fy)) ? 'house'
-    : Math.abs(heightCubic(fx, fy) - heightCubic(nx, ny)) / 1.75 > 0.7 ? 'rock' : null, wall = null;
+  let hit = clsAt(fx, fy) === 0 && carZ(fx, fy) < 0.6 ? 'sea' : null, wall = null;
+  if (!hit) for (const k of [0, 1, -1]) if (buildingAt(fx + lx * k, fy + ly * k)) { hit = 'house'; break; }   // real footprints only
   if (!hit && Math.abs(c.v) > 0.01) for (const k of [0, 1, -1]) { wall = wallHit(fx + lx * k, fy + ly * k, 0.12); if (wall) { hit = 'wall'; break; } }
   c.hit = hit;
   if (hit) {
@@ -2285,8 +2634,8 @@ function stepCar(c, dt) {
   { const gi = Math.max(1, +c.gear || 1), lo = CAR_GEARS[gi - 1], hi = Math.min(CAR_GEARS[gi], 42); c.rpm = c.gear === 'N' ? 900 + gas * 4000 : 1100 + 5200 * Math.min(1, (av - lo * 0.6) / Math.max(hi - lo * 0.6, 1)); }
   // pose on the terrain
   const sx = -sh, sy = ch;                                     // left side
-  const hf = heightCubic(c.x + ch * 1.1, c.y + sh * 1.1), hb = heightCubic(c.x - ch * 1.1, c.y - sh * 1.1);
-  const hl = heightCubic(c.x + sx * 0.7, c.y + sy * 0.7), hr = heightCubic(c.x - sx * 0.7, c.y - sy * 0.7);
+  const hf = carZ(c.x + ch * 1.1, c.y + sh * 1.1), hb = carZ(c.x - ch * 1.1, c.y - sh * 1.1);
+  const hl = carZ(c.x + sx * 0.7, c.y + sy * 0.7), hr = carZ(c.x - sx * 0.7, c.y - sy * 0.7);
   c.z = Math.max((hf + hb + hl + hr) / 4, 0) + 0.06;
   const g = c.group;
   g.position.set(c.x, c.z, -c.y);
@@ -2362,7 +2711,7 @@ function readGamepad() {
   P.rudder = (B(4) ? 1 : 0) - (B(5) ? 1 : 0); P.lookX = dz(gp.axes[2] || 0); P.lookY = dz(gp.axes[3] || 0); P.hand = B(0);
   const edge = (i, f) => { const was = P['b' + i]; P['b' + i] = B(i); if (B(i) && !was) f(); };
   edge(3, () => setCam(VEH.cam === 'follow' ? 'free' : VEH.cam === 'free' ? 'cockpit' : 'follow'));
-  edge(2, () => { if (VEH.mode === 'plane') { spawnPlane('runway'); VEH.snap = true; } else spawnCar(true); });
+  edge(2, () => { if (VEH.mode === 'plane') { spawnPlane('runway'); VEH.snap = true; } else spawnCar(); });
   edge(9, () => setMode('map'));
   if (P.on && !P.seen) { P.seen = true; vMsg('Gamepad connected'); }
 }
@@ -2464,7 +2813,7 @@ function setMode(m) {
   if (m === 'car') { spawnCar(); VEH.car.group.visible = true; VEH.dist.car = 9; }
   else { spawnPlane('air'); VEH.plane.group.visible = true; }
   VEH.yaw = 0; VEH.pitch = m === 'car' ? 0.22 : 0.18; VEH.snap = true;
-  $('hudKeys').innerHTML = HELP[m]; $('hudReset').textContent = m === 'car' ? 'Respawn on nearest road' : 'Start on the runway (T)';
+  $('hudKeys').innerHTML = HELP[m]; $('hudReset').textContent = m === 'car' ? 'Back on the road' : 'Start on the runway (T)';
   $('hudCam').textContent = CAM_NAME[VEH.cam] + ' (C)';
   vMsg(m === 'car' ? 'Car · W accelerator, S brake, A/D steer' : 'Cessna 172 · S/↓ pull up, A/D bank, Shift/R throttle');
 }
@@ -2535,7 +2884,7 @@ addEventListener('blur', () => VEH.keys.clear());
 {
   for (const b of document.querySelectorAll('#modes button')) b.addEventListener('click', () => { setMode(b.dataset.m); b.blur(); });
   $('hudCam').addEventListener('click', (e) => { setCam(VEH.cam === 'follow' ? 'free' : VEH.cam === 'free' ? 'cockpit' : 'follow'); e.currentTarget.blur(); });
-  $('hudReset').addEventListener('click', (e) => { if (VEH.mode === 'car') spawnCar(true); else spawnPlane('runway'); VEH.snap = true; e.currentTarget.blur(); });
+  $('hudReset').addEventListener('click', (e) => { if (VEH.mode === 'car') spawnCar(); else spawnPlane('runway'); VEH.snap = true; e.currentTarget.blur(); });
   const el = renderer.domElement, ptrs = new Map(); let pinch0 = 0, twist0 = null;
   const look = (dx, dy) => {
     if (VEH.cam === 'cockpit') { VEH.fyaw = THREE.MathUtils.clamp(VEH.fyaw - dx * 0.005, -2.8, 2.8); VEH.fpitch = THREE.MathUtils.clamp(VEH.fpitch - dy * 0.004, -1.2, 1.2); }
@@ -2622,7 +2971,8 @@ async function boot() {
     const gltf = await new Promise((res, rej) => gl.load(MEDIA + 'island.glb', res, undefined, rej));
     addGLB(gltf); step('trees');
     buildInstances(await bin(MEDIA + 'instances.bin'));
-    parseDetail(await bin(MEDIA + 'detail.bin')); hookFarTrees(); hookFarRoads(); step('town');
+    parseDetail(await bin(MEDIA + 'detail.bin')); hookFarTrees(); hookFarRoads();
+    try { parseBld(await bin(MEDIA + 'bld.bin')); hookFarBuildings(); } catch (e) { console.warn('bld', e); } step('town');
     try { buildTown(await (await fetch(MEDIA + 'town.json')).json()); } catch (e) { console.warn('town', e); }
     step('names');
     buildLabels(); buildRoadLabels();
@@ -2640,6 +2990,6 @@ async function boot() {
 }
 boot();
 
-window.__pan = { VEH, vSim, nearestRoad, setMode, setCam, spawnPlane, DETAIL, heightCubic, chunkGeometry: (c, L) => chunkGeometry(c, L), THREE, scene, camera, controls, renderer, chunks, culled, setView, getView, orbitTo, updateSun, setStyle, heightAt, toLatLon, fromLatLon, b2t, STYLE,
+window.__pan = { carZ, BLD, VEH, vSim, nearestRoad, setMode, setCam, spawnPlane, DETAIL, heightCubic, chunkGeometry: (c, L) => chunkGeometry(c, L), THREE, scene, camera, controls, renderer, chunks, culled, setView, getView, orbitTo, updateSun, setStyle, heightAt, toLatLon, fromLatLon, b2t, STYLE,
   perf: () => ({ ms: ftimes.reduce((a, b) => a + b, 0) / Math.max(1, ftimes.length), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, pr: renderer.getPixelRatio() }) };
 </script>
