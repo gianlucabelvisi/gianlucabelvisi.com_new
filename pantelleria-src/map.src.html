@@ -1107,7 +1107,10 @@ function buildDetailTile(tx, ty) {
   homeWallSegs(tx, ty, segs);
   terraceSegs(x0, y0, segs);
   roadsideWalls(tx, ty, segs);
-  if (TOWNZ) for (let i = segs.length - 6; i >= 0; i -= 6) if (inTown((segs[i] + segs[i + 2]) / 2, (segs[i + 1] + segs[i + 3]) / 2)) segs.splice(i, 6);
+  // town: no rural dry-stone walls in it or within ~150 m of it, and never along the harbour (the Lungomare is a promenade)
+  const nearTown = (x, y) => TOWNZ && [[0, 0], [150, 0], [-150, 0], [0, 150], [0, -150], [106, 106], [-106, -106], [106, -106], [-106, 106]].some(([a, c]) => inTown(x + a, y + c));
+  for (let i = segs.length - 6; i >= 0; i -= 6) { const mx = (segs[i] + segs[i + 2]) / 2, my = (segs[i + 1] + segs[i + 3]) / 2;
+    if (nearTown(mx, my) || PROM.some((P) => inPoly(P, mx, my))) segs.splice(i, 6); }
   // every wall drawn here is also solid for the car (and nothing else is)
   g.userData.walls = new Float32Array(segs);          // for the car: walls are solid
   // buildings owned by this tile, redrawn up close (the far GLB copy is hidden by owner)
@@ -1573,14 +1576,30 @@ for (const m of [MAT.Town.cel, MAT.Town.std]) {
           float row = floor(v / 0.55), off = mod(row, 2.0) * 0.6;
           float bl = floor((u + off) / 1.2);
           float r = th(vec2(bl, row));
-          c = mix(vec3(0.25, 0.235, 0.22), vec3(0.36, 0.335, 0.31), r);
-          if (fract(v / 0.55) < 0.07 || fract((u + off) / 1.2) < 0.04) c = vec3(0.44, 0.42, 0.39);   // mortar
+          c = mix(vec3(0.13, 0.125, 0.12), vec3(0.24, 0.225, 0.21), r);
+          if (fract(v / 0.55) < 0.06 || fract((u + off) / 1.2) < 0.035) c = vec3(0.34, 0.33, 0.31);   // mortar
           if (st > 0.5 && fract(u / 7.0) > 0.47 && fract(u / 7.0) < 0.53 && fract(v / 6.0) > 0.55 && fract(v / 6.0) < 0.75 && v > 4.0) c = vec3(0.08, 0.08, 0.09); // slits
         } else if (kind < 4.5) {                            // church: blue-grey lava cladding
           float row = floor(v / 0.6), bl = floor((u + mod(row, 2.0) * 0.5) / 1.0);
           c = mix(vec3(0.33, 0.37, 0.44), vec3(0.42, 0.46, 0.53), th(vec2(bl, row)));
         } else if (kind < 5.5) {                            // gilded dome
           c = vec3(0.86, 0.69, 0.30);
+        } else if (kind > 12.5 && kind < 13.5) {            // promenade: light stone slabs, staggered courses
+          float row = floor(v / 0.6), off = mod(row, 2.0) * 0.45;
+          float r = th(vec2(floor((u + off) / 0.9), row));
+          c = mix(vec3(0.80, 0.77, 0.70), vec3(0.88, 0.86, 0.80), r);
+          if (fract(v / 0.6) < 0.05 || fract((u + off) / 0.9) < 0.035) c = vec3(0.62, 0.60, 0.55);
+        } else if (kind > 10.5 && kind < 11.5) {            // lava-stone shop front with big arches (Gelateria Katia)
+          float row = floor(v / 0.42), off = mod(row, 2.0) * 0.3;
+          float r = th(vec2(floor((u + off) / 0.75), row));
+          c = mix(vec3(0.15, 0.145, 0.14), vec3(0.27, 0.25, 0.235), r);
+          if (fract(v / 0.42) < 0.07 || fract((u + off) / 0.75) < 0.05) c = vec3(0.36, 0.35, 0.33);
+          float cu = mod(u, 4.2) - 2.1, rad = 1.05;
+          bool arch = (abs(cu) < rad && v > 0.0 && v < 2.2) || (cu * cu + (v - 2.2) * (v - 2.2) < rad * rad);
+          bool frame = !arch && ((abs(cu) < rad + 0.18 && v > 0.0 && v < 2.2) || (cu * cu + (v - 2.2) * (v - 2.2) < (rad + 0.18) * (rad + 0.18)));
+          if (arch) c = v < 2.25 ? vec3(0.10, 0.11, 0.12) : vec3(0.85, 0.83, 0.78);
+          else if (frame) c = vec3(0.9, 0.88, 0.84);
+          if (v > st - 0.35) c = vec3(0.85, 0.83, 0.79);                                  // lime coping
         } else if (kind > 6.5) {                            // dammusi
           float doorU = st;
           if (kind < 8.5) {
@@ -1624,6 +1643,8 @@ for (const m of [MAT.Town.cel, MAT.Town.std]) {
           c = vec3(0.84, 0.79, 0.68);
           if (v > st - 4.0 && v < st - 1.2 && abs(fract(u / 3.6) - 0.5) < 0.22) c = vec3(0.12, 0.11, 0.1);
         }
+        // the stone/lime palettes above are authored as sRGB: take them to linear (they looked washed out, e.g. a beige castle)
+        if (kind > 2.5 && !(kind > 7.5 && kind < 8.5)) c = pow(max(c, vec3(0.0)), vec3(2.2));
         diffuseColor.rgb = c;
       }`);
   };
@@ -1783,20 +1804,38 @@ function hull(L, B, H, bowLift = 0.4) {   // lofted hull: pointed bow at +x, rou
 }
 function boxG(w, h, d, x, y, z) { return new THREE.BoxGeometry(w, h, d).translate(x, y, z); }
 function colorize(g, hex) { g = g.index ? g.toNonIndexed() : g; if (g.attributes.uv) g.deleteAttribute('uv'); if (!g.attributes.normal) g.computeVertexNormals(); return paint(g, hex, hex, 0, 1); }
+function boatHull(L, B, D, anti, top = '#f4f2ec', deckC = '#d9cfbd') {   // bow at +x, waterline y = 0
+  const st = [[-0.5, 0.80, -0.20, 0.55], [-0.35, 0.96, -0.42, 0.55], [-0.1, 1.0, -0.47, 0.56], [0.15, 0.95, -0.45, 0.6], [0.32, 0.72, -0.36, 0.68], [0.44, 0.38, -0.22, 0.78], [0.5, 0.04, -0.05, 0.86]];
+  const secs = st.map(([t, w, k, d]) => ({ x: t * L, w: w * B, h: (d - k) * D, y: (d + k) / 2 * D, p: 2.4, top: 1.18 }));
+  return loftGeo(secs, 20, (x, y, z) => { const t = x / L; const dk = (st.reduce((a, s_) => (Math.abs(s_[0] - t) < Math.abs(a[0] - t) ? s_ : a))[3]) * D;
+    if (y > dk - 0.03 && Math.abs(z) < B * 0.42) return deckC; return y < 0.06 ? anti : top; }, 0.25);
+}
+function boatBand(L, B, D, y0, y1) {   // a painted band (instance colour) on the topsides, y0..y1 x D above the waterline
+  const st = [[-0.5, 0.80], [-0.35, 0.96], [-0.1, 1.0], [0.15, 0.95], [0.32, 0.72], [0.44, 0.38], [0.48, 0.16]];
+  const f = (y0 + y1) / 2 / 0.55;   // flare: wider higher up
+  return loftGeo(st.map(([t, w]) => ({ x: t * L, w: w * B * (1 + 0.18 * Math.min(1, f)) + 0.04, h: (y1 - y0) * D, y: (y0 + y1) / 2 * D, p: 2.4 })), 20, () => '#ffffff', 0);
+}
 const BOATS = {
-  0: { body: () => mergeGeos([colorize(hull(6.5, 2.3, 1.0), '#f2f0ea'), colorize(boxG(0.25, 1.3, 0.25, -2.2, 1.4, 0), '#6b5a48')]),
-       acc: () => mergeGeos([colorize(hull(6.6, 2.36, 0.35).translate(0, 0.62, 0), '#ffffff')]) },
-  1: { body: () => mergeGeos([colorize(hull(13, 4.2, 1.9, 0.6), '#f2f0ea'), colorize(boxG(3.2, 2.4, 2.8, -1.0, 2.6, 0), '#f6f6f2'),
-         colorize(boxG(3.25, 0.6, 2.85, -1.0, 3.2, 0), '#2a3440'), colorize(new THREE.CylinderGeometry(0.1, 0.12, 6, 5).translate(1.6, 4.5, 0), '#e8e8e8')]),
-       acc: () => mergeGeos([colorize(hull(13.1, 4.3, 0.9, 0.6).translate(0, -0.05, 0), '#ffffff')]) },
-  2: { body: () => mergeGeos([colorize(hull(11, 3.6, 1.4), '#f7f7f4'), colorize(boxG(3.6, 0.7, 2.2, -0.6, 1.75, 0), '#f2f2ee'),
-         colorize(boxG(3.65, 0.25, 2.25, -0.6, 1.75, 0), '#2a3440'), colorize(new THREE.CylinderGeometry(0.07, 0.1, 14, 5).translate(0.8, 8.4, 0), '#d8d8d8'),
-         colorize(new THREE.CylinderGeometry(0.06, 0.06, 4.2, 4).rotateZ(Math.PI / 2).translate(-1.3, 2.6, 0), '#d8d8d8')]),
-       acc: () => mergeGeos([colorize(boxG(4.4, 0.5, 0.75, -1.2, 2.85, 0), '#ffffff')]) },
-  3: { body: () => mergeGeos([colorize(hull(12, 3.9, 1.6, 0.5), '#fbfbf8'), colorize(boxG(5.2, 1.3, 3.0, -0.8, 2.0, 0), '#f7f7f3'),
-         colorize(boxG(5.25, 0.45, 3.05, -0.8, 2.05, 0), '#1f2a35'), colorize(boxG(3.0, 0.9, 2.4, -1.4, 3.05, 0), '#f7f7f3'),
-         colorize(boxG(3.05, 0.3, 2.45, -1.4, 3.1, 0), '#1f2a35')]),
-       acc: () => mergeGeos([colorize(hull(12.1, 3.96, 0.25, 0.5).translate(0, 0.6, 0), '#ffffff')]) },
+  // gozzo pantesco: small open wooden boat, painted hull, stem post, a little cuddy at the bow
+  0: { body: () => mergeGeos([boatHull(6.4, 2.2, 1.0, '#7a2b22', '#f1efe8', '#a8865f'), colorize(boxG(0.12, 0.7, 0.12, 3.05, 0.95, 0), '#f1efe8'),
+         colorize(boxG(1.1, 0.35, 1.3, 1.6, 0.68, 0), '#f1efe8'), colorize(boxG(0.5, 0.06, 1.6, -0.6, 0.48, 0), '#8a6a4a')]),
+       acc: () => boatBand(6.4, 2.2, 1.0, 0.2, 0.5) },
+  // fishing boat: wheelhouse with windows, mast and gantry
+  1: { body: () => mergeGeos([boatHull(13, 4.2, 1.9, '#26324a', '#f1efe8', '#b7ab96'), colorize(boxG(3.2, 2.2, 2.6, -1.0, 2.3, 0), '#f6f6f2'),
+         colorize(boxG(3.22, 0.55, 2.62, -1.0, 2.9, 0), '#22303c'), colorize(boxG(3.4, 0.12, 2.8, -1.0, 3.45, 0), '#f6f6f2'),
+         colorize(new THREE.CylinderGeometry(0.09, 0.11, 5.5, 6).translate(1.4, 4.2, 0), '#e8e8e8'), colorize(new THREE.CylinderGeometry(0.06, 0.06, 3.4, 5).rotateZ(1.2).translate(2.4, 3.2, 0), '#e8e8e8'),
+         colorize(boxG(0.1, 2.6, 0.1, -4.6, 2.2, 1.6), '#d8d8d8'), colorize(boxG(0.1, 2.6, 0.1, -4.6, 2.2, -1.6), '#d8d8d8'), colorize(boxG(0.12, 0.12, 3.3, -4.6, 3.5, 0), '#d8d8d8')]),
+       acc: () => boatBand(13, 4.2, 1.9, 0.3, 0.5) },
+  // sailboat: low coachroof, tall mast, boom
+  2: { body: () => mergeGeos([boatHull(11, 3.6, 1.4, '#1d2a44', '#fafaf7', '#c9b99a'), colorize(boxG(3.8, 0.55, 2.3, -0.4, 1.55, 0), '#f6f6f2'),
+         colorize(boxG(3.82, 0.18, 2.32, -0.4, 1.55, 0), '#22303c'), colorize(new THREE.CylinderGeometry(0.07, 0.1, 14, 6).translate(0.9, 8.3, 0), '#d8d8d8'),
+         colorize(new THREE.CylinderGeometry(0.06, 0.06, 4.4, 5).rotateZ(Math.PI / 2).translate(-1.3, 2.4, 0), '#d8d8d8'), colorize(boxG(4.2, 0.35, 0.4, -1.3, 2.65, 0), '#e8e2d4')]),
+       acc: () => boatBand(11, 3.6, 1.4, 0.42, 0.52) },
+  // motor cruiser: white with a coloured boot stripe, raked windscreen, flybridge
+  3: { body: () => mergeGeos([boatHull(12, 3.9, 1.6, '#1f2a35', '#fbfbf8', '#e9e4da'), colorize(boxG(5.0, 1.2, 3.0, -0.9, 1.85, 0), '#f7f7f3'),
+         colorize(boxG(5.02, 0.42, 3.02, -0.9, 1.95, 0), '#1f2a35'), colorize(boxG(2.6, 0.08, 2.6, -1.4, 2.5, 0), '#f7f7f3'),
+         colorize(boxG(0.08, 0.9, 2.4, -2.5, 2.95, 0), '#d8d8d8'), colorize(boxG(1.0, 0.5, 2.0, 1.9, 1.35, 0), '#f7f7f3')]),
+       acc: () => boatBand(12, 3.9, 1.6, 0.08, 0.2) },
 };
 const ACC = ['#2f6fb0', '#c2412d', '#3a8a4a', '#e0b030', '#5aa7d6', '#1f3d6b'].map((h) => new THREE.Color(h));
 function ferryGeo() {
@@ -1843,7 +1882,9 @@ function instAt(geo, mats, list, stride, fn, colors) {
 }
 MATDEF.Prop = { color: '#ffffff', vertexColors: true, pull: [0, 0.0006] };
 MAT.Prop = makeMat('Prop');
+let PROM = [];
 function buildTown(T) {
+  PROM = (T.promenade || []);
   TOWN.data = T;
   { const xs = T.zone.map((p) => p[0]), ys = T.zone.map((p) => p[1]);
     TOWNZ = { p: T.zone, x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) }; }
@@ -1851,6 +1892,7 @@ function buildTown(T) {
   for (const d of T.blds) {
     if (d.kind === 'castle') castle(b, d, deco);
     else if (d.kind === 'church') church(b, d, deco);
+    else if (d.kind === 'lava') { const pts = ccw(d.pts), top = d.z + d.h; prism(b, pts, d.z, top, TPAL[0], d.h, 11); tCap(b, inset(pts, 0.05), top, new THREE.Color('#e9e6de'), 1); }
     else house(b, d, tanks);
   }
   const m = finishTB(b, MAT.Town); if (m) TOWN.group.add(m);
@@ -1872,7 +1914,7 @@ function buildTown(T) {
   // boats: body (white) + accent (instance colour)
   for (const ty of [0, 1, 2, 3]) {
     const L = T.boats.filter((bt) => bt[3] === ty); if (!L.length) continue;
-    const place = (k, p, q, s) => { const [x, y, hd] = L[k]; p.set(x, -0.25 + (ty === 1 ? -0.3 : 0), -y); q.setFromAxisAngle(up, hd); s.set(1, 1, 1); };
+    const place = (k, p, q, s) => { const [x, y, hd] = L[k]; p.set(x, -0.08, -y); q.setFromAxisAngle(up, hd); s.set(1, 1, 1); };
     add(instAt(BOATS[ty].body(), MAT.Prop, L.flat(), 5, place));
     add(instAt(BOATS[ty].acc(), MAT.Prop, L.flat(), 5, place, (k) => ACC[L[k][4] % ACC.length]));
   }
@@ -1886,14 +1928,43 @@ function buildTown(T) {
   const cplace = (k, p, q, s) => { const [x, y, a] = T.cafes[k]; p.set(x, heightCubic(x, y) + 0.05, -y); q.setFromAxisAngle(up, a); s.set(1, 1, 1); };
   add(instAt(cafeG, MAT.Prop, T.cafes.flat(), 4, cplace));
   add(instAt(umbG, MAT.Prop, T.cafes.flat(), 4, cplace, (k) => UMB[T.cafes[k][3] % UMB.length]));
-  // paved squares
-  const pv = TB();
-  for (const pz of T.piazzas) {
-    const pts = ccw(pz), shape = pts.map(([x, y]) => new THREE.Vector2(x, y));
-    const tris = THREE.ShapeUtils.triangulateShape(shape, []);
-    for (const t of tris) for (const k of t) { const [x, y] = pts[k]; tPush(pv, x, y, heightCubic(x, y) + 0.5, [0, 0, 1], TPAL[0], x, y, 0, 1); }
+  // paved squares and the banchina: draped on the ground in 1 m cells (big flat triangles floated or sank)
+  const pv = TB(), slab = new THREE.Color('#ffffff');
+  const drape = (poly, lift, kind) => {
+    const xs = poly.map((p) => p[0]), ys = poly.map((p) => p[1]);
+    const G = 0.5;   // 0.5 m cells: the quay edge follows the outline closely
+    for (let x = Math.floor(Math.min(...xs)); x < Math.max(...xs); x += G) for (let y = Math.floor(Math.min(...ys)); y < Math.max(...ys); y += G) {
+      if (!inPoly(poly, x + G / 2, y + G / 2)) continue;
+      const z = (a, c) => Math.max(heightCubic(a, c), 0.6) + lift;
+      const q = [[x, y, z(x, y)], [x + G, y, z(x + G, y)], [x + G, y + G, z(x + G, y + G)], [x, y + G, z(x, y + G)]];
+      for (const i of [0, 1, 2, 0, 2, 3]) tPush(pv, q[i][0], q[i][1], q[i][2], [0, 0, 1], slab, q[i][0], q[i][1], 0, kind);
+    }
+  };
+  for (const pz of T.piazzas) drape(pz, 0.1, 13);
+  const quay = TB();
+  for (const pr of T.promenade || []) {
+    drape(pr, 0.16, 13);
+    // the quay wall: dark ashlar dropping into the water along the sea side of the promenade
+    const P = ccw(pr);
+    for (let i = 0; i < P.length; i++) {
+      const a = P[i], c = P[(i + 1) % P.length], L = Math.hypot(c[0] - a[0], c[1] - a[1]); if (L < 0.2) continue;
+      const nx = (c[1] - a[1]) / L, ny = -(c[0] - a[0]) / L, mx = (a[0] + c[0]) / 2, my = (a[1] + c[1]) / 2;
+      const sea = heightCubic(mx + nx * 2.5, my + ny * 2.5) < 0.3 || clsAt(mx + nx * 3, my + ny * 3) === 0;
+      const za = Math.max(heightCubic(a[0], a[1]), 0.6) + 0.16, zc = Math.max(heightCubic(c[0], c[1]), 0.6) + 0.16;
+      if (sea) tQuad(quay, [a[0], a[1], -1.5, za], [c[0], c[1], -1.5, zc], [nx, ny, 0], TPAL[0], 0, L, 0, 0, 0, 3);
+      else tQuad(quay, [a[0], a[1], za - 0.5, za], [c[0], c[1], zc - 0.5, zc], [nx, ny, 0], slab, 0, L, 0, 0, 0, 13);   // kerb
+    }
   }
   const pm = finishTB(pv, MAT.Town, false); if (pm) add(pm);
+  const qm = finishTB(quay, MAT.Town, false); if (qm) add(qm);
+  // bollards, benches, raised planters round the palms
+  const bollG = mergeGeos([paint(new THREE.CylinderGeometry(0.16, 0.2, 0.55, 8).translate(0, 0.27, 0), '#2a2a2c', '#3a3a3e', 0, 0.55), paint(new THREE.CylinderGeometry(0.24, 0.24, 0.08, 8).translate(0, 0.58, 0), '#2a2a2c', '#3a3a3e', 0, 1)]);
+  add(instAt(bollG, MAT.Prop, (T.bollards || []).flat(), 2, (k, p, q, s) => { const x = T.bollards[k][0], y = T.bollards[k][1]; p.set(x, Math.max(heightCubic(x, y), 0.6) + 0.16, -y); q.identity(); s.set(1, 1, 1); }));
+  const benchG = mergeGeos([paint(boxG(0.45, 0.06, 1.8, 0, 0.45, 0), '#7a5a3a', '#9a7a52', 0, 1), paint(boxG(0.06, 0.4, 1.8, -0.22, 0.68, 0), '#7a5a3a', '#9a7a52', 0, 1),
+    paint(boxG(0.4, 0.42, 0.08, 0, 0.21, 0.8), '#2c2c2e', '#2c2c2e', 0, 1), paint(boxG(0.4, 0.42, 0.08, 0, 0.21, -0.8), '#2c2c2e', '#2c2c2e', 0, 1)]);
+  add(instAt(benchG, MAT.Prop, (T.benches || []).flat(), 3, (k, p, q, s) => { const [x, y, a] = T.benches[k]; p.set(x, Math.max(heightCubic(x, y), 0.6) + 0.16, -y); q.setFromAxisAngle(up, a); s.set(1, 1, 1); }));
+  const plG = mergeGeos([paint(boxG(1.9, 0.5, 1.9, 0, 0.25, 0), '#c9c3b6', '#ddd8cc', 0, 0.5), paint(boxG(1.6, 0.06, 1.6, 0, 0.5, 0), '#5a4a36', '#5a4a36', 0, 1)]);
+  add(instAt(plG, MAT.Prop, (T.planters || []).flat(), 2, (k, p, q, s) => { const [x, y] = T.planters[k]; p.set(x, Math.max(heightCubic(x, y), 0.6) + 0.16, -y); q.identity(); s.set(1, 1, 1); }));
   styleMeshes(TOWN.group);
   // town labels: bars, restaurants, squares, quays, landmarks (shown when zoomed in)
   const KP = { landmark: 3, port: 4, square: 5, quay: 6, civic: 6, hotel: 7, food: 7, bar: 7, shop: 8 };
@@ -2609,7 +2680,7 @@ function carZ(x, y) {   // ground under the car: main roads use their smooth pro
   const h = heightCubic(x, y), r = nearestRoad(x, y, 0);
   if (!r) return h;
   const t = THREE.MathUtils.clamp((r.d - r.r.w / 2) / 2.5, 0, 1);
-  return Math.max(h, r.pz) * t + r.pz * (1 - t);
+  return t >= 1 ? h : r.pz * (1 - t) + Math.max(h, r.pz) * t * (1 - t) + h * t * t;   // away from the main road: the ground (max() here made the car fly)
 }
 function stepCar(c, dt) {
   const P = VEH.pad, kGas = vHas('w', 'arrowup'), kBrk = vHas('s', 'arrowdown');
@@ -2637,7 +2708,8 @@ function stepCar(c, dt) {
   const nr = nearestRoad(nx, ny), roadish = nr && nr.d < nr.r.w / 2 + 1.8;
   const dir = c.v >= 0 ? 1 : -1, fx = nx + Math.cos(c.h) * 1.75 * dir, fy = ny + Math.sin(c.h) * 1.75 * dir;
   const lx = -Math.sin(c.h) * 0.62, ly = Math.cos(c.h) * 0.62;
-  let hit = clsAt(fx, fy) === 0 && carZ(fx, fy) < 0.6 ? 'sea' : null, wall = null;
+  const onQuay = (x, y) => PROM.some((P) => inPoly(P, x, y));
+  let hit = heightCubic(fx, fy) < 0.25 && !onQuay(fx, fy) ? 'sea' : null, wall = null;
   if (!hit) for (const k of [0, 1, -1]) if (buildingAt(fx + lx * k, fy + ly * k)) { hit = 'house'; break; }   // real footprints only
   if (!hit && Math.abs(c.v) > 0.01) for (const k of [0, 1, -1]) { wall = wallHit(fx + lx * k, fy + ly * k, 0.12); if (wall) { hit = 'wall'; break; } }
   c.hit = hit;
@@ -2656,7 +2728,7 @@ function stepCar(c, dt) {
   const sx = -sh, sy = ch;                                     // left side
   const hf = carZ(c.x + ch * 1.1, c.y + sh * 1.1), hb = carZ(c.x - ch * 1.1, c.y - sh * 1.1);
   const hl = carZ(c.x + sx * 0.7, c.y + sy * 0.7), hr = carZ(c.x - sx * 0.7, c.y - sy * 0.7);
-  c.z = Math.max((hf + hb + hl + hr) / 4, 0) + 0.06;
+  c.z = Math.max((hf + hb + hl + hr) / 4, onQuay(c.x, c.y) ? 0.76 : 0) + 0.06;
   const g = c.group;
   g.position.set(c.x, c.z, -c.y);
   g.rotation.set(Math.atan2(hl - hr, 1.4), c.h, Math.atan2(hf - hb, 2.2), 'YZX');

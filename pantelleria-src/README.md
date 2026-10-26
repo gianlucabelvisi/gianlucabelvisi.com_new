@@ -116,3 +116,9 @@ detached from the vehicle's heading), First person (cockpit, drag = head look). 
   meta.coastDetail bounds) for the strip seaward of the Perimetrale from town to Campobello, from Esri imagery: lava rock on a
   posterised dark ramp (real shelf/inlet outlines), green made summer-dry, dark wet rock at the waterline, the Bue Marino gravel
   car park (Cicci's Bistrot); those cells become class 7 (no macchia). Sea: shallow band narrowed, foam thinner.
+- 2026-10-25 town centre: carZ no longer lifts the car near main roads (the max() made it fly); sea collisions only where the
+  terrain is under water and not on the banchina; no rural walls within ~150 m of town or on the promenade (the invisible-ish
+  walls near the castle). town.py adds the banchina (paved promenade between the seafront roads and the quay edge, quay walls,
+  bollards every 7 m, benches, planters round the palms) and the lava-stone Gelateria/Pasticceria Katia (single storey, arches);
+  the castle is near-black lava ashlar (authored shader palettes are now converted sRGB->linear); piazzas draped on the ground;
+  boats re-modelled as lofted hulls with flare, sheer, antifouling and a coloured band (gozzi, fishing, sail, motor).

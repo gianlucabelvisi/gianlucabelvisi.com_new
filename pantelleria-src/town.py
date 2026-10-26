@@ -61,7 +61,10 @@ zp = sprep(zone)
 print('town zone km2', round(zone.area / 1e6, 2))
 
 # ---------- landmarks ----------
-SPECIAL = {28519982: 'castle', 310343616: 'church'}
+SPECIAL = {28519982: 'castle', 310343616: 'church', 238924049: 'lava'}
+# hand corrections from Street View: Pasticceria/Gelateria Katia on the Lungomare is a single-storey lava-stone building
+# with big arched openings (the hotel behind it is a separate building)
+STOREYS = {238924049: 1}
 townhall_pt = None; pois = []
 KIND = {'restaurant': 'food', 'bar': 'bar', 'cafe': 'bar', 'pub': 'bar', 'ice_cream': 'bar', 'fast_food': 'food', 'pharmacy': 'shop',
         'bank': 'shop', 'townhall': 'civic', 'ferry_terminal': 'port', 'post_office': 'shop', 'police': 'civic'}
@@ -116,13 +119,15 @@ for b, c in zip(blds, cents):
         if dcen < 380 and area > 150: st += 1
         if t.get('building') == 'apartments': st = max(st, 4)
     st = int(min(st, 6))
+    st = STOREYS.get(b['id'], st)
     zmin = min(zat(x, y) for x, y in b['pts'])
     zmax = max(zat(x, y) for x, y in b['pts'])
     h = st * 3.1 + 0.6
     if kind == 'castle': h = 15.0
     if kind == 'church': h = 13.0
     col = int(rng.choice(len(PAL), p=PW))
-    if kind in ('castle', 'church'): col = -1
+    if kind in ('castle', 'church', 'lava'): col = -1
+    if kind == 'lava': h = 4.6
     out_b.append({'id': b['id'], 'kind': kind, 'pts': [[round(x, 2), round(y, 2)] for x, y in b['pts']], 'z': round(zmin - 0.4, 2),
                   'zt': round(zmax, 2), 'h': round(h, 2), 'st': st, 'col': col})
 print('town buildings', len(out_b), {k: sum(b['kind'] == k for b in out_b) for k in ('castle', 'church', 'townhall', 'hotel')})
@@ -313,6 +318,36 @@ for e in TE:
 for x, y in ((-4062.0, 5196.0), (-4052.0, 5192.0)):      # the two palms in front of the Chiesa Madre
     palms.append([x, y])
 print('palms', len(palms), 'lamps', len(lamps), 'piazzas', len(piazzas))
+# ---------- the banchina: paved promenade between the seafront road and the quay edge ----------
+# (Street View, Lungomare Borsellino / Banchina Castello: light stone slabs, raised planters round the palms, double lamps,
+# benches, bollards on the quay edge)
+road_buf = unary_union([LineString([p_[:2] for p_ in r['pts']]).buffer(r['w'] / 2 + 0.2) for r in F['roads']
+                        if len(r['pts']) > 1 and r['cls'] not in ('footway', 'path', 'steps', 'pedestrian')])
+sea_lines = unary_union(road_lines(SEA)).buffer(40)
+prom = land.intersection(harbour.buffer(26)).intersection(sea_lines).difference(road_buf).difference(bld_union.buffer(-0.8))
+prom = prom.intersection(zone.buffer(250))
+promenade, bollards, benches, planters = [], [], [], []
+for g in getattr(prom, 'geoms', [prom]):
+    if g.geom_type != 'Polygon' or g.area < 60 or g.distance(harbour) > 2.5: continue
+    g = g.simplify(0.4)
+    promenade.append([[round(x, 2), round(y, 2)] for x, y in g.exterior.coords[:-1]])
+    # quay edge = the part of the outline next to the water: bollards every 7 m, benches facing the sea every ~26 m
+    ring = g.exterior
+    for d in np.arange(2, ring.length, 7.0):
+        q = ring.interpolate(d)
+        if harbour.distance(q) < 1.6:
+            a_ = ring.interpolate(d - 0.5); b_ = ring.interpolate(d + 0.5)
+            ang = math.atan2(b_.y - a_.y, b_.x - a_.x)
+            # step 0.6 m inland from the edge
+            nx, ny = -math.sin(ang), math.cos(ang)
+            if not g.contains(Point(q.x + nx * 0.6, q.y + ny * 0.6)): nx, ny = -nx, -ny
+            bollards.append([round(q.x + nx * 0.6, 2), round(q.y + ny * 0.6, 2)])
+            if int(d) % 26 < 7 and g.contains(Point(q.x + nx * 3.2, q.y + ny * 3.2)):
+                benches.append([round(q.x + nx * 3.2, 2), round(q.y + ny * 3.2, 2), round(math.atan2(-ny, -nx), 3)])
+promu = unary_union([Polygon(p_) for p_ in promenade]) if promenade else None
+for pp in palms:
+    if promu is not None and promu.buffer(0.5).contains(Point(pp)): planters.append(pp)
+print('promenade', len(promenade), 'm2', round(sum(Polygon(p_).area for p_ in promenade)), 'bollards', len(bollards), 'benches', len(benches), 'planters', len(planters))
 
 cafes = []
 road_lines_all = [LineString([p[:2] for p in r['pts']]) for r in roads if len(r['pts']) > 1 and r['cls'] not in ('track', 'path')]
@@ -340,7 +375,8 @@ for po in pois:
 print('cafe sets', len(cafes))
 
 json.dump({'zone': [[round(x, 1), round(y, 1)] for x, y in zone.exterior.coords[:-1]], 'blds': out_b, 'pois': pois, 'boats': boats,
-           'ferry': ferry, 'palms': palms, 'lamps': lamps, 'cafes': cafes, 'piazzas': piazzas},
+           'ferry': ferry, 'palms': palms, 'lamps': lamps, 'cafes': cafes, 'piazzas': piazzas,
+           'promenade': promenade, 'bollards': bollards, 'benches': benches, 'planters': planters},
           open('prep/town.json', 'w'), separators=(',', ':'), ensure_ascii=False)
 
 # ---------- harbour basins read as deep water ----------
