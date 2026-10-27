@@ -58,6 +58,31 @@ w = np.clip(1 - (d - HW) / BL, 0, 1); w = w * w * (3 - 2 * w)
 land = G['land'][ci, cj] if 'land' in G else np.ones(len(ci), bool)
 w = np.where(land, w, 0)
 Z[ci, cj] = Z[ci, cj] * (1 - w) + (PZ[k] - 0.12) * w
+# Via Giovanni Falcone (Street View): a ramp on an embankment from the Lungomare up to Via Napoli, stone parapet on the
+# harbour side, rubble bank on the other. The 10 m DEM has it at ~4%; the road climbs ~7.5% and meets Via Napoli ~1.6 m
+# higher than the DEM, so the road is lifted off the ground there (retaining walls: town.py) and Via Napoli eases back down.
+JF, ZJ = (-4223.4, 5062.0), 7.0
+Z0 = G0 = np.load('prep/grid_prep.npz')['z'].astype(np.float64)
+def znat(x, y): return float(ndimage.map_coordinates(Z0, [[(y - Y0) / CELL], [(x - X0) / CELL]], order=1, mode='nearest')[0])
+zj_nat = znat(*JF)
+nlift = 0
+for r in F['roads']:
+    if r['name'] == 'Via Giovanni Falcone':
+        P_ = r['pts']; dj = [math.dist(p[:2], JF) for p in P_]
+        if min(dj) > 3: continue
+        if dj[0] > dj[-1]: P_ = P_[::-1]                       # walk from the junction
+        arc = np.concatenate([[0], np.cumsum([math.dist(P_[i][:2], P_[i + 1][:2]) for i in range(len(P_) - 1)])])
+        z_end = znat(*P_[-1][:2])
+        for p, a in zip(P_, arc): p[2] = round(ZJ + (z_end - ZJ) * a / arc[-1], 2)
+        r['lift'] = True; nlift += 1
+    elif r['name'] == 'Via Napoli':
+        hit = False
+        for p in r['pts']:
+            d = math.dist(p[:2], JF)
+            if d < 40:
+                p[2] = round(max(znat(*p[:2]), znat(*p[:2]) + (ZJ - zj_nat) * (1 - d / 40) ** 1.5), 2); hit = True
+        if hit: r['lift'] = True; nlift += 1
+print('lifted roads', nlift)
 G['z'] = Z.astype(G['z'].dtype) if 'z' in G else Z
 np.savez('prep/grid.npz', **G)
 F['roads_smoothed'] = True

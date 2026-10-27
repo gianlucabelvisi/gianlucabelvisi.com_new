@@ -199,6 +199,28 @@ if os.path.exists(xb_path):
                      'zmin': round(float(zz.min()), 2), 'zmax': round(float(zz.max()), 2), 'name': '', 'src': 'esri', 'pts': p})
         n_extra += 1
 print('extra buildings from imagery', n_extra)
+# town buildings OSM misses, hand-traced on the imagery (town_extra.py); they replace mapped parts they contain
+xt_path = os.path.join(D, 'extra_town.json')
+if os.path.exists(xt_path):
+    XT = json.load(open(xt_path))
+    # traced by eye on imagery: keep them off the carriageways (trim where they overlap a road, drop slivers)
+    _rb = _uu([_LS([p[:2] for p in r['pts']]).buffer(r['w'] / 2 + 0.8) for r in roads
+                       if len(r['pts']) > 1 and r['cls'] not in ('footway', 'path', 'steps', 'track')])
+    XT2 = []
+    for x in XT:
+        q = Polygon(x['pts']).difference(_rb)
+        if q.geom_type == 'MultiPolygon': q = max(q.geoms, key=lambda g: g.area)
+        if q.is_empty or q.area < 20 or q.area < 0.55 * Polygon(x['pts']).area: continue
+        q = q.simplify(0.3)
+        XT2.append({'pts': [[round(a, 2), round(b, 2)] for a, b in q.exterior.coords[:-1]], 'st': x['st']})
+    XT = XT2; polys_xt = [Polygon(x['pts']) for x in XT]
+    blds = [b for b in blds if not any(q.contains(Polygon(b['pts']).centroid) for q in polys_xt)]
+    for k_, (xb, q) in enumerate(zip(XT, polys_xt)):
+        p = xb['pts'] if q.exterior.is_ccw else xb['pts'][::-1]
+        arr = np.array(p); zz = zat(arr[:, 0], arr[:, 1])
+        blds.append({'id': -(100000 + k_), 'kind': 'town', 'h': round(xb['st'] * LEVEL_H + 0.6, 2), 'st': xb['st'],
+                     'zmin': round(float(zz.min()), 2), 'zmax': round(float(zz.max()), 2), 'name': '', 'src': 'hand', 'pts': p})
+    print('hand-traced town buildings', len(XT))
 feat['buildings'] = blds
 print('buildings', len(blds), 'town', sum(b['kind'] == 'town' for b in blds))
 

@@ -122,3 +122,35 @@ detached from the vehicle's heading), First person (cockpit, drag = head look). 
   bollards every 7 m, benches, planters round the palms) and the lava-stone Gelateria/Pasticceria Katia (single storey, arches);
   the castle is near-black lava ashlar (authored shader palettes are now converted sRGB->linear); piazzas draped on the ground;
   boats re-modelled as lofted hulls with flare, sheer, antifouling and a coloured band (gozzi, fishing, sail, motor).
+
+## Town centre pass 3 (2026-10-27, Street View + imagery)
+
+- `town_extra.py` (new): 23 buildings OSM misses, traced by hand on Esri z18 with a 10 m grid (Conad City / Via Cavallotti, Emporio del Gusto / Via Napoli, around Katia, behind the castle) → `data/extra_town.json`. `prep.py` adds them as town buildings and drops any OSM part whose centroid falls inside one. An automatic roof detector was tried first and dropped: in the dense town it returned slivers of mapped roofs, paving and cars.
+- The "empty field" behind Conad is real on both Esri and Google imagery. It is walled plots of dry earth and weeds. `town.py` now makes it class 4 (it was scrub, hence the dense shrubs) and draws 13 traced dry-stone plot walls. These are solid, and only drawn up close.
+- `town.py` OVR table:
+  - Hospital (dark-red facade, lunettes, glazed ground floor).
+  - La Risacca (lava vaulted warehouse, gable, glass terrace room on top, no tables).
+  - Blue Moon block (5 storeys, blue pilasters, stone base, blue awning).
+  - Yacht Marina (6 storeys, arched windows, striped base) and Khamma (6 storeys, balconies, arcade).
+  - Da Zaza (2 storeys, ochre); the green 5-storey by the castle.
+  - Tiffany → building site (hoarding, concrete frame, tower crane).
+  - Via Borgo Italia: 4–5 storeys.
+  - Verandas replace the "buildings" on the banchina: Tikirriki and Alchimia (white canopy, green trim, tables); Policardo (empty, on the pier).
+  - The kiosk by the castle roundabout (brown timber box), with sailboats moored in front.
+- No café tables at Katia, La Risacca, Policardo, or where the verandas are.
+- Church: beige board-formed concrete, no dome, fins and a big cross on the parvis side. The parvis is a raised platform (z 6.6) with a low wall and wide stairs at the NW corner.
+- All 20 OSM `highway=steps` near town are real flights: treads, risers, lime-washed cheeks. This includes those behind the castle.
+- Via Giovanni Falcone: a ramp on an embankment (about 7.5 % grade), meeting Via Napoli 1.6 m above the DEM. Via Napoli eases back down within 40 m (`roads_smooth.py`). These roads carry `lift` (bit 7 of the tier byte in detail.bin), so the viewer and carZ use their profile. Rubble retaining walls with parapets come from town.py.
+- All drivable town roads are asphalt; Via Cagliari is 3.2 m wide. There are glazed shop fronts with striped awnings on Via Cagliari and at the Via Errera corner, and fruit crates at Zaza and Da Zaza.
+- Castle: corbel row and string course under the merlons, two rows of small square windows, tricolore on the keep.
+- Town walls (stairs, parapets, retaining walls, plot walls) are solid for the car via `TOWN.solid` in `wallHit`.
+
+## Fixes + car types (2026-10-27, later)
+
+- Hand-traced buildings are now trimmed off the carriageways (road buffer w/2 + 0.8 m) in `prep.py`. Any that would lose more than 45 % of their area are dropped. Two doubtful traces by the Via Napoli / Via Trieste steps were removed. This fixes a building on the Lungomare by the castle, and one at Emporio.
+- OSM steps are clipped where they run on into a street (`town.py`), so no flight of steps crosses a road.
+- Pasticceria da Giovanni: its tables are under a patio roof on Piazza Cavour, across the road (traced on the imagery). There are no longer umbrellas outside the shop.
+- Car types: press **V**, or use the HUD button, to switch between the Panda 4x4 and a blue Rally car. The choice is remembered in localStorage (`pan.car`).
+  - The Rally car (`rallyModel`) is low, with wide arches, a bonnet scoop, a big wing, gold wheels and spot lamps. It has no logos or livery text.
+  - Arcade drift physics: heading `h` and travel direction `phi` are separate, and grip pulls phi towards h. The handbrake, or a big steering input above ~47 km/h, raises `drift`: grip drops, yaw rises, and the slide holds while you steer into it. Slip is capped at ~50°. Loose surfaces slide more. The handbrake barely slows the car, and the body leans out of the slide. The HUD shows `DRIFT n°`.
+  - The Rally car has about 200 km/h top speed and six gears.
