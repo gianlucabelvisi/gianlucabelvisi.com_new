@@ -2977,7 +2977,8 @@ function spawnCar() {
     let bd = 1e18; for (const r of ROADS2) for (let i = 0; i < r.pts.length; i += 3) { const d = (r.pts[i] - v.x) ** 2 + (r.pts[i + 1] - v.y) ** 2; if (d < bd && r.tier <= 1) { bd = d; rd = { px: r.pts[i], py: r.pts[i + 1], ang: 0 }; } }
   }
   let h = rd.ang; if (Math.cos(h - az) < 0) h += Math.PI;
-  Object.assign(VEH.car, { x: rd.px, y: rd.py, h, phi: h, v: 0, steer: 0, slip: 0, drift: 0, gas: 0, brk: 0 });
+  Object.assign(VEH.car, { x: rd.px, y: rd.py, h, phi: h, v: 0, steer: 0, slip: 0, drift: 0, gas: 0, brk: 0, z: undefined, vz: 0, air: false, tumble: null, land: 0 });
+  SKID.last = [null, null];
 }
 function planeState(over) { return { x: 0, y: 0, z: 0, psi: 0, th: 0, ph: 0, v: 0, thr: 0, ground: false, ...over }; }
 function spawnPlane(where) {
@@ -3042,11 +3043,13 @@ function stepCar(c, dt) {
   let drive = 0, brake = 0;
   if (c.v > 0.4) { drive = gas; brake = brk; } else if (c.v < -0.4) { drive = -brk; brake = gas; } else { drive = gas - brk; }
   const rally = c.type === 'rally';
-  let a = drive > 0 ? (rally ? drive * Math.min(8.5, 125 / Math.max(c.v, 1)) : drive * Math.min(3.4, 30 / Math.max(c.v, 1))) : drive * (c.v > -6 ? 2.4 : 0);   // Panda ~50 kW, ~145 km/h; rally ~200 km/h
-  a -= Math.sign(c.v) * (brake * 8.5 + (hand ? (c.type === 'rally' ? 1.6 : 6) : 0) + (CAR_ROLL[c.surface][0] + CAR_ROLL[c.surface][1] * Math.abs(c.v)) * Math.min(1, Math.abs(c.v)) + 0.00033 * c.v * c.v);
+  let a = drive > 0 ? (rally ? drive * Math.min(11.5, 175 / Math.max(c.v, 1)) : drive * Math.min(3.4, 30 / Math.max(c.v, 1))) : drive * (c.v > -6 ? 2.4 : 0);   // Panda ~50 kW, ~145 km/h; rally ~200 km/h
+  a -= Math.sign(c.v) * (brake * 8.5 + (hand ? (c.type === 'rally' ? 1.6 : 6) : 0) + (CAR_ROLL[c.surface][0] + CAR_ROLL[c.surface][1] * Math.abs(c.v)) * Math.min(1, Math.abs(c.v)) * (rally ? (c.surface === 'off road' ? 0.35 : c.surface === 'dirt' ? 0.6 : 1) : 1) + 0.00033 * c.v * c.v);
   const ch = Math.cos(c.h), sh = Math.sin(c.h);
   const grade = (carZ(c.x + ch * 1.6, c.y + sh * 1.6) - carZ(c.x - ch * 1.6, c.y - sh * 1.6)) / 3.2;
   a -= 9.81 * Math.sin(Math.atan(grade)) * 0.85;
+  if (rally && drive > 0) a *= 1 - 0.45 * Math.abs(Math.sin(c.slip || 0));   // sideways, the power goes into the slide
+  if (c.air) a = -0.00033 * c.v * Math.abs(c.v);                   // no traction in the air
   const v0 = c.v; c.v += a * dt;
   if (brake + (hand ? 1 : 0) > 0.05 && Math.sign(c.v) !== Math.sign(v0) && v0 !== 0) c.v = 0;    // brakes stop, they don't reverse
   if (Math.abs(c.v) < 0.03 && !drive) c.v = 0;
@@ -3060,52 +3063,143 @@ function stepCar(c, dt) {
     // big steering input at speed, kicks the tail out (less grip, more yaw); the car holds the slide while you steer
     // into it and catches it when you straighten up. Loose surfaces slide more.
     const av = Math.abs(c.v), loose = c.surface === 'dirt' ? 1 : c.surface === 'off road' ? 1.3 : 0;
-    c.steer += (steerIn * 0.62 / (1 + av / 9) - c.steer) * Math.min(1, dt * 9);
-    const want = av < 5 ? 0 : hand ? 1 : Math.abs(steerIn) > 0.55 && av > 13 ? Math.min(1, 0.45 + 0.35 * gas + 0.25 * loose) : loose * 0.25 * Math.abs(steerIn);
-    c.drift += (want - c.drift) * Math.min(1, dt * (want > c.drift ? 5 : 1.6));
-    const yaw = c.v / 2.6 * Math.tan(c.steer) * (1 + c.drift * 0.55);
+    c.steer += (steerIn * 0.62 / (1 + av / 10) - c.steer) * Math.min(1, dt * 10);
+    let want = av < 5 ? 0 : hand ? 1 : Math.abs(steerIn) > 0.45 && av > 11 ? Math.min(1, 0.55 + 0.35 * gas + 0.2 * loose) : loose * 0.3 * Math.abs(steerIn);
+    if (c.drift > 0.3 && gas > 0.5 && av > 9 && Math.abs(c.slip || 0) > 0.12 && Math.abs(steerIn) > 0.2) want = Math.max(want, 0.7);   // on the throttle, the slide holds
+    c.drift += (want - c.drift) * Math.min(1, dt * (want > c.drift ? 6 : 1.2));
+    let yaw = c.v / 2.6 * Math.tan(c.steer) * (1 + c.drift * 0.85);
+    yaw = THREE.MathUtils.clamp(yaw, -2.7, 2.7);
+    if (c.air) yaw *= 0.15;
     c.h += yaw * dt;
     if (av < 2) c.phi = c.h;
     let d = c.h - c.phi; d = Math.atan2(Math.sin(d), Math.cos(d));
     if (c.v < 0) { c.phi = c.h; d = 0; }
-    const grip = (loose ? 2.6 : 5.5) * (1 - c.drift * 0.8) + 0.6;
+    const grip = c.air ? 0 : (loose ? 2.6 : 5.5) * (1 - c.drift * 0.82) + 0.55;
     c.phi += d * Math.min(1, grip * dt);
     d = Math.atan2(Math.sin(c.h - c.phi), Math.cos(c.h - c.phi));
-    if (Math.abs(d) > 0.9) { c.phi = c.h - Math.sign(d) * 0.9; d = Math.sign(d) * 0.9; }   // never fully sideways (~50°)
-    c.v -= Math.sign(c.v) * Math.abs(Math.sin(d)) * av * 0.3 * dt;                       // scrub while sliding
+    if (Math.abs(d) > 1.05) { c.phi = c.h - Math.sign(d) * 1.05; d = Math.sign(d) * 1.05; }   // never fully sideways (~60°)
+    c.v -= Math.sign(c.v) * Math.abs(Math.sin(d)) * av * (0.24 - 0.1 * gas) * dt;      // scrub while sliding (less on the throttle)
     c.slip = d; md = c.v >= 0 ? c.phi : c.h;
   }
+  if (c.tumble) md = c.phi;
   const nx = c.x + Math.cos(md) * c.v * dt, ny = c.y + Math.sin(md) * c.v * dt;
-  const nr = nearestRoad(nx, ny), roadish = nr && nr.d < nr.r.w / 2 + 1.8;
   const dir = c.v >= 0 ? 1 : -1, fx = nx + Math.cos(c.h) * 1.75 * dir, fy = ny + Math.sin(c.h) * 1.75 * dir;
   const lx = -Math.sin(c.h) * 0.62, ly = Math.cos(c.h) * 0.62;
   const onQuay = (x, y) => PROM.some((P) => inPoly(P, x, y));
+  const blocked = (x, y) => (heightCubic(x, y) < 0.25 && !onQuay(x, y)) || !!buildingAt(x, y) || !!wallHit(x, y, 0.12);
   let hit = heightCubic(fx, fy) < 0.25 && !onQuay(fx, fy) ? 'sea' : null, wall = null;
   if (!hit) for (const k of [0, 1, -1]) if (buildingAt(fx + lx * k, fy + ly * k)) { hit = 'house'; break; }   // real footprints only
   if (!hit && Math.abs(c.v) > 0.01) for (const k of [0, 1, -1]) { wall = wallHit(fx + lx * k, fy + ly * k, 0.12); if (wall) { hit = 'wall'; break; } }
+  if (c.air && hit !== 'house' && c.z - heightCubic(fx, fy) > 1.4) hit = null;        // flying over a low wall
   c.hit = hit;
   if (hit) {
-    let slid = false;
-    if (wall && Math.abs(c.v) > 1.5) {          // glancing blow: scrape along the wall instead of stopping dead
-      let d = Math.atan2(wall[1], wall[0]) - c.h; d = Math.atan2(Math.sin(d), Math.cos(d)); if (Math.abs(d) > Math.PI / 2) d -= Math.sign(d) * Math.PI;
-      if (Math.abs(d) < 0.55) { c.h += d * 0.6; c.phi = c.h; c.v *= 0.9; slid = true; }
+    // bounce off: keep most of the speed along the obstacle, lose (and reverse a little of) the part into it
+    let tx_, ty_;
+    if (wall) { const L = Math.hypot(wall[0], wall[1]) || 1; tx_ = wall[0] / L; ty_ = wall[1] / L; }
+    else {   // house / sea: the free side, from probes round the nose
+      let ox = 0, oy = 0;
+      for (let k = 0; k < 12; k++) { const t = k / 12 * Math.PI * 2, px = fx + Math.cos(t) * 2.2, py = fy + Math.sin(t) * 2.2; if (!blocked(px, py)) { ox += Math.cos(t); oy += Math.sin(t); } }
+      const L = Math.hypot(ox, oy); if (L < 1e-3) { ox = -Math.cos(md) * dir; oy = -Math.sin(md) * dir; } else { ox /= L; oy /= L; }
+      tx_ = -oy; ty_ = ox;
     }
-    if (!slid) { if (Math.abs(c.v) > 6) vMsg(hit === 'sea' ? 'That is the sea' : hit === 'wall' ? 'Crunch — lava-stone wall' : 'Bump!'); c.v = -c.v * 0.18; c.phi = c.h; c.drift = 0; }
+    let nxn = -ty_, nyn = tx_;                                            // normal: make it point away from the obstacle (against the motion)
+    const Vx = Math.cos(md) * c.v, Vy = Math.sin(md) * c.v;
+    if (Vx * nxn + Vy * nyn > 0) { nxn = -nxn; nyn = -nyn; }
+    const vt = Vx * tx_ + Vy * ty_, vn = Vx * nxn + Vy * nyn;            // vn < 0: into the obstacle
+    const Wx = tx_ * vt * 0.86 - nxn * vn * 0.28, Wy = ty_ * vt * 0.86 - nyn * vn * 0.28, sp = Math.hypot(Wx, Wy);
+    const fwd = Wx * Math.cos(c.h) + Wy * Math.sin(c.h) >= 0 ? 1 : -1;
+    c.v = sp * fwd;
+    if (sp > 0.3) { const nphi = Math.atan2(Wy * fwd, Wx * fwd); let dd = Math.atan2(Math.sin(nphi - c.h), Math.cos(nphi - c.h)); c.h += dd * (rally ? 0.35 : 0.6); c.phi = rally ? nphi : c.h; }
+    c.x += nxn * 0.04; c.y += nyn * 0.04;
+    if (-vn > 6) { vMsg(hit === 'sea' ? 'That is the sea' : hit === 'wall' ? 'Crunch — lava-stone wall' : 'Bump!'); c.drift *= 0.5; }
+    if (rally && -vn > 13 && !c.tumble && Math.abs(Math.sin(md - c.h)) > 0.5) startTumble(c, vn > 0 ? 1 : -Math.sign(Math.sin(md - c.h)));   // hit sideways, hard
   } else { c.x = nx; c.y = ny; }
   c.wheel -= c.v * dt / 0.3;
   const GR = rally ? CAR_GEARS_R : CAR_GEARS;
   const av = Math.abs(c.v); c.gear = c.v < -0.3 ? 'R' : av < 0.3 && drive <= 0 ? 'N' : String(GR.findIndex((g) => av < g));
   { const gi = Math.max(1, +c.gear || 1), lo = GR[gi - 1], hi = Math.min(GR[gi], rally ? 58 : 42); c.rpm = c.gear === 'N' ? 900 + gas * 4000 : 1100 + 5200 * Math.min(1, (av - lo * 0.6) / Math.max(hi - lo * 0.6, 1)); }
-  // pose on the terrain
-  const sx = -sh, sy = ch;                                     // left side
-  const hf = carZ(c.x + ch * 1.1, c.y + sh * 1.1), hb = carZ(c.x - ch * 1.1, c.y - sh * 1.1);
+  // ground under the car, and the vertical: follow it, or fly off a crest
+  const ch2 = Math.cos(c.h), sh2 = Math.sin(c.h), sx = -sh2, sy = ch2;
+  const hf = carZ(c.x + ch2 * 1.1, c.y + sh2 * 1.1), hb = carZ(c.x - ch2 * 1.1, c.y - sh2 * 1.1);
   const hl = carZ(c.x + sx * 0.7, c.y + sy * 0.7), hr = carZ(c.x - sx * 0.7, c.y - sy * 0.7);
-  c.z = Math.max((hf + hb + hl + hr) / 4, onQuay(c.x, c.y) ? 0.76 : 0) + 0.06;
+  const gz = Math.max((hf + hb + hl + hr) / 4, onQuay(c.x, c.y) ? 0.76 : 0) + 0.06;
+  const pitchG = Math.atan2(hf - hb, 2.2), rollG = Math.atan2(hl - hr, 1.4);
+  if (c.z === undefined || !isFinite(c.z)) { c.z = gz; c.vz = 0; }
+  if (!c.air) {
+    const vzg = (gz - c.z) / dt;
+    const pred = c.z + (c.vz || 0) * dt;
+    if (av > 9 && pred - gz > 0.03 && (c.vz || 0) > 0.4) { c.air = true; c.pitchA = c.pitchP ?? pitchG; c.rollA = c.rollP ?? rollG; c.z = pred; }   // over the crest: airborne
+    else { c.vz = (c.vz || 0) + (THREE.MathUtils.clamp(vzg, -12, 12) - (c.vz || 0)) * Math.min(1, dt * 18); c.z = gz; }
+  }
+  if (c.air) {
+    c.vz -= 9.81 * 0.9 * dt; c.z += c.vz * dt;                        // a touch floaty, arcade-style
+    c.pitchA -= 0.35 * dt; c.rollA *= 1 - 1.5 * dt;
+    if (c.z <= gz) {
+      const impact = -c.vz; c.z = gz; c.air = false; c.vz = 0;
+      if (impact > 6) { vMsg(impact > 11 ? 'Big landing!' : 'Landed'); c.v *= impact > 11 ? 0.8 : 0.93; }
+      if (rally && impact > 9 && Math.abs(c.slip || 0) > 0.75 && !c.tumble) startTumble(c, -Math.sign(c.slip));
+      c.land = Math.min(0.12, impact * 0.012);                        // suspension squat
+    }
+  }
+  // rolling over when pushed too far: big slide off the tarmac, or a steep side slope at speed
+  if (rally && !c.tumble && !c.air) {
+    const side = av * Math.abs(Math.sin(c.slip || 0));
+    if ((c.surface === 'off road' && side > 24 && Math.abs(c.slip) > 1.0) || (Math.abs(rollG) > 0.5 && av > 10)) startTumble(c, Math.abs(rollG) > 0.5 ? -Math.sign(rollG) : -Math.sign(c.slip));
+  }
+  let rollT = 0, liftT = 0;
+  if (c.tumble) {
+    const T = c.tumble; T.t += dt; const f = Math.min(1, T.t / T.dur), e = f < 0.5 ? 2 * f * f : 1 - 2 * (1 - f) * (1 - f);
+    rollT = T.dir * T.n * Math.PI * 2 * e; liftT = Math.sin(Math.PI * f) * T.lift;
+    c.v *= Math.exp(-1.1 * dt); c.drift = 0; c.steer *= 0.9;
+    if (f >= 1) { c.tumble = null; c.phi = c.h; c.slip = 0; c.v *= 0.55; vMsg('Rolled it — still running!'); }
+  }
+  c.pitchP = c.air ? c.pitchA : pitchG; c.rollP = c.air ? c.rollA : rollG;
+  c.land = Math.max(0, (c.land || 0) - dt * 0.6);
   const g = c.group;
-  g.position.set(c.x, c.z, -c.y);
-  g.rotation.set(Math.atan2(hl - hr, 1.4) + (rally ? -(c.slip || 0) * 0.07 - c.steer * Math.min(1, av / 25) * 0.05 : 0), c.h, Math.atan2(hf - hb, 2.2), 'YZX');   // rally: body leans out of the slide
+  g.position.set(c.x, c.z + liftT - (c.land || 0), -c.y);
+  const lean = rally ? -(c.slip || 0) * 0.08 - c.steer * Math.min(1, av / 25) * 0.05 : 0;   // rally: body leans out of the slide
+  g.rotation.set((c.air ? c.rollA : rollG) + lean + rollT, c.h, (c.air ? c.pitchA : pitchG) - (c.land || 0) * 0.6, 'YZX');
   for (const w of c.wheels) w.rotation.z = c.wheel;
   for (const p of c.pivots) p.rotation.y = c.steer;
+  // skid marks: rear wheels when sliding, handbraking or braking hard
+  const mark = !c.air && !c.tumble && av > 3 && ((rally && Math.abs(c.slip || 0) > 0.16) || (hand && av > 4) || brake > 0.7 && av > 7 || (c.surface !== 'asphalt' && Math.abs(c.slip || 0) > 0.1));
+  for (const [k, side] of [[0, 1], [1, -1]]) {
+    const wx = c.x - ch2 * 1.15 + sx * 0.66 * side, wy = c.y - sh2 * 1.15 + sy * 0.66 * side;
+    skidAt(c, k, mark, wx, wy, carZ(wx, wy) + 0.035, c.surface !== 'asphalt' && c.surface !== 'cement');
+  }
+}
+function startTumble(c, dir) {
+  if (Math.abs(c.v) < 7) return;
+  c.tumble = { t: 0, dur: 1.5 + Math.min(0.8, Math.abs(c.v) / 40), n: Math.abs(c.v) > 24 ? 2 : 1, dir: dir || 1, lift: 1.1 + Math.min(1.6, Math.abs(c.v) / 18) };
+  c.air = false; vMsg('Whoa —');
+}
+// skid marks: one ring buffer of quads (dark rubber on tarmac, paler ruts on dirt), never in the outline pass
+const SKID = { max: 4000, n: 0, last: [null, null], mesh: null };
+function skidInit() {
+  const g = new THREE.BufferGeometry(), M = SKID.max;
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(M * 4 * 3), 3).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(M * 4 * 4), 4).setUsage(THREE.DynamicDrawUsage));
+  const idx = new Uint32Array(M * 6); for (let i = 0; i < M; i++) idx.set([i * 4, i * 4 + 1, i * 4 + 2, i * 4, i * 4 + 2, i * 4 + 3], i * 6);
+  g.setIndex(new THREE.BufferAttribute(idx, 1)); g.setDrawRange(0, 0);
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  m.frustumCulled = false; m.renderOrder = 2; scene.add(m); SKID.mesh = m;
+}
+function skidAt(c, k, on, x, y, z, dirt) {
+  if (!on) { SKID.last[k] = null; return; }
+  const L = SKID.last[k];
+  if (!L) { SKID.last[k] = [x, y, z]; return; }
+  const dx = x - L[0], dy = y - L[1], d = Math.hypot(dx, dy); if (d < 0.35) return;
+  if (d > 4) { SKID.last[k] = [x, y, z]; return; }
+  if (!SKID.mesh) skidInit();
+  const i = SKID.n % SKID.max, P = SKID.mesh.geometry.attributes.position, C = SKID.mesh.geometry.attributes.color;
+  const w = 0.12, nx = -dy / d * w, ny = dx / d * w;
+  const q = [[L[0] + nx, L[1] + ny, L[2]], [x + nx, y + ny, z], [x - nx, y - ny, z], [L[0] - nx, L[1] - ny, L[2]]];
+  q.forEach(([a, b, h], j) => P.setXYZ(i * 4 + j, a, h, -b));
+  const col = dirt ? [0.42, 0.34, 0.25, 0.45] : [0.03, 0.03, 0.035, 0.45];
+  for (let j = 0; j < 4; j++) C.setXYZW(i * 4 + j, ...col);
+  P.needsUpdate = true; C.needsUpdate = true;
+  SKID.n++; SKID.mesh.geometry.setDrawRange(0, Math.min(SKID.n, SKID.max) * 6);
+  SKID.last[k] = [x, y, z];
 }
 function crashPlane(why) {
   const s = VEH.plane.s;
@@ -3406,10 +3500,11 @@ function render(now) {
   if (fitShadow() || shadowDirty) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
   if (STYLE.cel && post.color) {
     // pass 1: normals + depth
+    if (SKID.mesh) SKID.mesh.visible = false;
     const bg = scene.background; scene.overrideMaterial = post.nmat;
     sky.visible = false; if (sea) sea.visible = true;
     renderer.setRenderTarget(post.nrm); renderer.setClearColor(0x8080ff, 1); renderer.clear(); renderer.render(scene, camera);
-    scene.overrideMaterial = null; sky.visible = true;
+    scene.overrideMaterial = null; sky.visible = true; if (SKID.mesh) SKID.mesh.visible = true;
     // pass 2: colour
     renderer.setRenderTarget(post.color); renderer.render(scene, camera);
     renderer.setRenderTarget(null);
@@ -3459,6 +3554,6 @@ async function boot() {
 }
 boot();
 
-window.__pan = { carZ, BLD, VEH, vSim, nearestRoad, setMode, setCam, spawnPlane, DETAIL, heightCubic, chunkGeometry: (c, L) => chunkGeometry(c, L), THREE, scene, camera, controls, renderer, chunks, culled, setView, getView, orbitTo, updateSun, setStyle, heightAt, toLatLon, fromLatLon, b2t, STYLE,
+window.__pan = { SKID, carZ, BLD, VEH, vSim, nearestRoad, setMode, setCam, spawnPlane, DETAIL, heightCubic, chunkGeometry: (c, L) => chunkGeometry(c, L), THREE, scene, camera, controls, renderer, chunks, culled, setView, getView, orbitTo, updateSun, setStyle, heightAt, toLatLon, fromLatLon, b2t, STYLE,
   perf: () => ({ ms: ftimes.reduce((a, b) => a + b, 0) / Math.max(1, ftimes.length), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, pr: renderer.getPixelRatio() }) };
 </script>
