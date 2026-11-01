@@ -156,3 +156,34 @@ detached from the vehicle's heading), First person (cockpit, drag = head look). 
   - The Rally car has about 200 km/h top speed and six gears.
 
 - Rally pass 2 (2026-10-27): drift holds on the throttle while steering (up to ~60 deg), less scrub; wall/house hits bounce (keep 86% of the speed along the obstacle, reflect 28% of the part into it) for both cars; more punch (11.5 m/s2); off-road resistance x0.35 / dirt x0.6 for the rally car; jumps off crests (vz follows the ground, airborne when the ground falls away, 0.9 g in the air, landing squat); rollovers on hard sideways hits, side slopes > 27 deg at speed, very fast full-lock slides off road, sideways landings; skid marks (ring buffer of 4000 quads, dark on tarmac, pale ruts on dirt, hidden from the outline pass).
+
+- Rally pass 3 (2026-10-28), weight: body-frame vx/vy + yaw rate with inertia (the world velocity stays while the body turns), Coulomb lateral grip (mu g, constant force) instead of exponential; the tyres pull the nose back in line unless you steer into the slide; aero drag 0.0011 v2 (top ~200 km/h). Sprung body (pitch/roll/heave springs: squat, dive, lean, landing bounce, wall knocks). Wheels: spokes, capped visual spin + blur discs, wheelspin, droop in the air, counter-steer shown. Heavier in the air (1.3 g). Dust/tyre smoke (Points), skid marks fade (half-life ~12 s), marks on wheelspin and landings, blob shadow under the car, chase cam with lag + speed FOV + shake. FX list hidden from the outline pass.
+
+- Rally pass 4 (2026-10-28): turns at speed again. Arcade grip grows with speed (mu x (1 + v/28), capped at 45 m/s), so plain steering asks for a yaw rate just inside the grip (0.92 mu g / v) and the tail only steps out a little; handbrake / a throttle flick still drift (drift x2 yaw). The aligning pull while steering into a slide scales with the drift (0.25 + 0.9 drift), so it no longer fights ordinary cornering. At 135 km/h on tarmac, full lock gives ~0.7 rad/s (radius ~55 m, ~8 deg slip).
+
+- Rally pass 5 (2026-10-28), WRC-style entries: engine braking when you lift (1.9 m/s2); front-axle load c.lt (smoothed -a/g). Lift or brake while turning in = weight on the nose: the front bites (yaw demand x(1 + 0.8 lt)) and the light tail steps out (drift from lt + lift 0.18 + brake 0.35, up to 0.85). A quick left-right flick within 0.9 s swings it (pendulum). In the slide, throttle + steering hold and adjust the angle; past ~30 deg the tyres catch and the angle settles (~40 deg at full lock). Flat-out steady cornering stays grippy. Power cut in a slide 25 %, scrub 0.06.
+
+## Ground pass (2026-10-28): floating buildings, road joins
+
+- Pipeline: prep.py -> roads_smooth.py -> town.py -> coast_overlay.py -> **ground_fix.py** -> build.py -> web_assets.py -> assemble.py.
+- ground_fix.py re-measures every building zmin/zmax on the final grid (after road grading + harbour floor), with the viewer heightCubic, along edges every 1.5 m and inside on a 2.5 m grid; updates features.json and town.json. Before: 685 buildings floated > 0.3 m (346 > 1 m, worst 36 m), 230 were sunk.
+- Dammusi on slopes stand on a lava-rubble terrace: floor at max(mid, uphill - 1.1 m), rubble below (viewer and far GLB), instead of a tall whitewashed wedge. Big dammusi get a grid of 4-6 m cupolas instead of one giant dome.
+- Roads: ribbons drape on max(bicubic, the drawn 5 m terrain triangles) so hollows no longer swallow stretches of road; side roads take the main road surface where they meet it and ease onto the ground over 3 m (roadGround), so junctions join instead of tearing.
+
+## Drive feel + coast pass 1 (2026-11-01)
+
+- Driving (pass 6): steering eases in and recentres; a light road assist (pure pursuit on the road ahead) when you are not steering hard; arcade rally drift (lift-off / brake / flick entries, hold by steering into it, opposite lock catches it); soft walls (keep ~95% of the along-wall speed, small bounce, no wall rollovers); side probes push the nose away from walls. Holding W for 12 s at 130-170 km/h on four test roads: no wall hits.
+- Walls: rural wall segments within road half-width + 0.45 m of any road are cut (clipWallsOffRoads).
+- Floating: ground_fix.py re-seats every building and tree on the viewer's own bicubic ground (after all grading).
+- Coast: coast_atlas.py builds a 1.6 m/px rocky-coast atlas from the Esri imagery for every coastal 512 m tile (lava rock, wet rock at the waterline, no green within ~18 m of the sea, trees within 40 m dropped). coast_sea.py replaces coast.png with a 4096 px two-channel distance to the real waterline (the viewer terrain at z = 0): the foam is now a thin broken surf line on the rocks, not a sand strip, and the turquoise fringe is a few metres wide.
+- Landmarks: Arco dell'Elefante (head, back, ear, trunk dipping into the sea with the passage open under it), the Faraglione di Tracino sea stack, the Faro di Punta Spadillo tower (Street View).
+- Grass tufts are drawn without ink outlines (from afar they were black specks).
+- Pipeline: run_all.sh (town_extra, prep, roads_smooth, town, coast_atlas, coast_sea, coast_overlay, ground_fix, build, web_assets, assemble).
+
+## Drive pass 7 + Bue Marino site (2026-11-01, later)
+
+- Rally drift is deliberate only: Space (handbrake) starts it; hold it with gas + steering into the turn, opposite lock catches it, letting go of the steering ends it in ~0.3 s. Lifting, braking and quick key flicks no longer throw the car sideways (a keyboard bot drifted 27-37 s out of 40 with pass 6, 0 s now).
+- Road assist is a hint, not a hand on the wheel: max 0.3 rad/s, same road only (it used to swing the car into side roads at up to 1.6 rad/s), off as soon as you steer. Edge nudge 0.2 rad/s; side guard 0.2 rad/s.
+- Hand-detailed coast sites (sites/): sites/bue_marino.py rebuilds Cala del Bue Marino at 0.5 m from the Esri photo: waterline traced from the photo (plus the dark open sea and the cliff shadows on the water), stepped trachyte shelves and ~70-degree cliff faces 4.6-7 m round the cove, a ~1 m swimming ledge on its west side, a low black shore to the west, boulders at the foot. Output web/assets/site_bue.bin/.webp/.json; it lowers the 10 m grid under the rock. In the viewer heightCubic() uses the site heightfield where it exists (the island mesh keeps heightCubicRaw).
+- Cicci's Bistrot (from the Google Maps photos): pale-yellow prefab cabin with white shutters, white-framed veranda, one red-brown roof (15 x 10 m as on the photo), two sand shade sails on steel poles over timber picnic tables, flag, red/white rail on stone bollards, palm-leaf parasol with tyre seats and green chairs. Solid for the car; no rural walls through it.
+- Sea: thinner turquoise fringe (3.5 m) and surf line.

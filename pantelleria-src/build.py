@@ -253,7 +253,8 @@ for b in F['buildings']:
     wall = {'dammuso': 'Lava', 'town': 'Plaster', 'ruins': 'Ruin', 'greenhouse': 'Glasshouse', 'church': 'Church', 'chapel': 'Church'}.get(kind, 'Plaster')
     roof = {'dammuso': 'Roof', 'town': 'Roof', 'ruins': None, 'greenhouse': 'Glasshouse', 'church': 'Roof', 'chapel': 'Roof'}.get(kind, 'Roof')
     zb = b['zmin'] - 1.2
-    zt = b['zmin'] + 0.5 * (b['zmax'] - b['zmin']) + b['h']
+    _R = b['zmax'] - b['zmin']; _pl = max(b['zmin'] + 0.5 * _R, b['zmax'] - 1.1)
+    zt = (_pl if (kind == 'dammuso' and _pl - b['zmin'] > 0.8) else b['zmin'] + 0.5 * _R) + b['h']   # as the viewer: dammusi on a terrace on slopes
     T = tiles.setdefault(t, {})
     # every face of this building carries its centroid in UV (normalised to the island frame): the viewer hides the
     # whole building, by owner, where the close-up layer redraws it

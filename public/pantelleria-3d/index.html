@@ -241,8 +241,23 @@ function heightAt(x, y) {
   const j = fx | 0, i = fy | 0, tx = fx - j, ty = fy - i, k = i * NX + j;
   return (HGT[k] * (1 - tx) + HGT[k + 1] * tx) * (1 - ty) + (HGT[k + NX] * (1 - tx) + HGT[k + NX + 1] * tx) * ty;
 }
+// hand-detailed coast sites (sites/*.py): 0.5 m heightfields that replace the ground where they are defined
+const SITES = [];
+const SITE_CLEAR = [[-3241, 5922, -3208, 5952]];   // no rural walls through Cicci's tables (Bue Marino)
+function siteH(x, y) {
+  for (const S of SITES) {
+    const fx = (x - S.x0) / S.res - 0.5, fy = (y - S.y0) / S.res - 0.5;
+    if (fx < 0 || fy < 0 || fx >= S.nx - 1 || fy >= S.ny - 1) continue;
+    const j = fx | 0, i = fy | 0, tx = fx - j, ty = fy - i, k = i * S.nx + j, Z = S.Z;
+    const a = Z[k], b = Z[k + 1], c = Z[k + S.nx], d = Z[k + S.nx + 1];
+    if (a === -32768 || b === -32768 || c === -32768 || d === -32768) continue;
+    return ((a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty) / 100;
+  }
+  return null;
+}
+function heightCubic(x, y) { if (SITES.length) { const h = siteH(x, y); if (h !== null) return h; } return heightCubicRaw(x, y); }
 // Catmull-Rom bicubic: smooth slopes for the 5 m near-camera terrain
-function heightCubic(x, y) {
+function heightCubicRaw(x, y) {
   const fx = (x - X0) / CELL, fy = (y - Y0) / CELL;
   if (fx < 1 || fy < 1 || fx > NX - 3 || fy > NY - 3) return heightAt(x, y);
   const j = Math.floor(fx), i = Math.floor(fy), tx = fx - j, ty = fy - i;
@@ -429,7 +444,7 @@ function chunkGeometry(c, L) {
     const edge = i === c.i0 || i === c.i1 || j === c.j0 || j === c.j1;
     if (Number.isInteger(i) && Number.isInteger(j)) return edge ? HGT[i * NX + j] : src[i * NX + j];
     const x = X0 + j * CELL, y = Y0 + i * CELL;
-    return edge ? heightAt(x, y) : heightCubic(x, y);   // borders stay linear so they meet the 10 m neighbours
+    return edge ? heightAt(x, y) : heightCubicRaw(x, y);   // borders stay linear so they meet the 10 m neighbours
   };
   let p = 0;
   for (let a = 0; a < h; a++) for (let b = 0; b < w; b++) {
@@ -479,6 +494,15 @@ function chunkGeometry(c, L) {
   return g;
 }
 const COAST_DETAIL = { u: { value: (() => { const t = new THREE.DataTexture(new Uint8Array(4), 1, 1); t.needsUpdate = true; return t; })() } };
+// island-wide rocky coast (coast_atlas.py): 512 m tiles in one atlas, looked up through a small index texture
+const COAST_ATLAS = { tex: { value: COAST_DETAIL.u.value }, idx: { value: COAST_DETAIL.u.value }, b: { value: new THREE.Vector4(0, 0, 1, 0) }, s: { value: new THREE.Vector4(1, 0, 1, 1) }, n: { value: new THREE.Vector2(1, 1) } };
+function setupCoastAtlas(ca) {
+  const d = new Uint8Array(ca.nti * ca.ntj * 4);
+  for (const [ti, tj, sx, sy] of ca.tiles) { const k = (tj * ca.nti + ti) * 4; d[k] = sx; d[k + 1] = sy; d[k + 3] = 255; }
+  const it = new THREE.DataTexture(d, ca.nti, ca.ntj, THREE.RGBAFormat); it.magFilter = it.minFilter = THREE.NearestFilter; it.needsUpdate = true;
+  COAST_ATLAS.idx.value = it; COAST_ATLAS.b.value.set(ca.x0, ca.y0, ca.tile, 1); COAST_ATLAS.s.value.set(ca.slot, ca.gutter, ca.size, 1); COAST_ATLAS.n.value.set(ca.nti, ca.ntj);
+  loadTex(MEDIA + 'coast_atlas.webp').then((t) => { t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; t.generateMipmaps = false; t.minFilter = THREE.LinearFilter; t.magFilter = THREE.LinearFilter; t.needsUpdate = true; COAST_ATLAS.tex.value = t; shadowDirty = true; }).catch(() => {});
+}
 function buildTerrain(colorTex) {
   // object-space normal map at full 10 m resolution so coarse LODs still shade with all the detail
   const nd = new Uint8Array(NX * NY * 4);
@@ -500,7 +524,16 @@ function buildTerrain(colorTex) {
   for (const m of [terrainMats.cel, terrainMats.std]) {
     m.onBeforeCompile = (sh) => {
       sh.uniforms.uCoast = COAST_DETAIL.u; sh.uniforms.uCoastB = { value: cd ? new THREE.Vector4(cd.x0, cd.y0, cd.x1, cd.y1) : new THREE.Vector4(0, 0, -1, -1) };
+      sh.uniforms.uCA = COAST_ATLAS.tex; sh.uniforms.uCAI = COAST_ATLAS.idx; sh.uniforms.uCAB = COAST_ATLAS.b; sh.uniforms.uCAS = COAST_ATLAS.s; sh.uniforms.uCAN = COAST_ATLAS.n;
       sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+        { vec2 cw = vec2(vWP.x, -vWP.z), tc = (cw - uCAB.xy) / uCAB.z, ti = floor(tc), tf = tc - ti;
+          vec4 ix = texture2D(uCAI, (ti + 0.5) / uCAN);
+          float fadeA = 1.0 - smoothstep(1800.0, 3500.0, length(vViewPosition));      // far off, the baked base texture carries it
+          if (ix.a > 0.5 && fadeA > 0.0 && ti.x >= 0.0 && ti.y >= 0.0) {
+            vec2 sl = floor(ix.rg * 255.0 + 0.5), pa = sl * uCAS.x + uCAS.y + vec2(tf.x, 1.0 - tf.y) * (uCAS.x - 2.0 * uCAS.y);
+            vec4 ca = texture2D(uCA, pa / uCAS.z);
+            diffuseColor.rgb = mix(diffuseColor.rgb, ca.rgb, ca.a * fadeA);
+          } }
         { vec2 cw = vec2(vWP.x, -vWP.z), cuv = (cw - uCoastB.xy) / (uCoastB.zw - uCoastB.xy);
           // the rocky coast (scogli) from the imagery: real shelf and inlet shapes, summer-dry
           vec4 co = texture2D(uCoast, vec2(cuv.x, 1.0 - cuv.y));
@@ -518,7 +551,7 @@ function buildTerrain(colorTex) {
             float b = step(0.62, n1 * 0.65 + n2 * 0.35) * 0.08 - step(n1 * 0.6 + n2 * 0.4, 0.3) * 0.07 + (n3 - 0.5) * 0.10;
             diffuseColor.rgb *= 1.0 + b * fade;
           } }`);
-      sh.fragmentShader = sh.fragmentShader.replace('void main() {', `varying vec3 vWP; uniform sampler2D uCoast; uniform vec4 uCoastB;
+      sh.fragmentShader = sh.fragmentShader.replace('void main() {', `varying vec3 vWP; uniform sampler2D uCoast; uniform vec4 uCoastB; uniform sampler2D uCA; uniform sampler2D uCAI; uniform vec4 uCAB; uniform vec4 uCAS; uniform vec2 uCAN;
         float dhash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
         float dnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
           return mix(mix(dhash(i), dhash(i + vec2(1.0, 0.0)), f.x), mix(dhash(i + vec2(0.0, 1.0)), dhash(i + vec2(1.0, 1.0)), f.x), f.y); }
@@ -575,7 +608,7 @@ function buildSea(coastTex) {
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
       coast: { value: null }, bounds: { value: new THREE.Vector4(X0, Y0, X1, Y1) }, time: { value: 0 },
       sunDir: { value: new THREE.Vector3() }, sunCol: { value: new THREE.Color() }, cel: { value: 1 }, night: { value: 0 },
-      cShallow: { value: new THREE.Color('#5fd0cf') }, cMid: { value: new THREE.Color('#2a9cbf') }, cDeep: { value: new THREE.Color('#1b6fa6') }, cOpen: { value: new THREE.Color('#14558c') },
+      cShallow: { value: new THREE.Color('#48c2c4') }, cMid: { value: new THREE.Color('#2590b8') }, cDeep: { value: new THREE.Color('#1b6fa6') }, cOpen: { value: new THREE.Color('#14558c') },
     }]),
     vertexShader: `varying vec3 vW; varying float vDist;
       #include <fog_pars_vertex>
@@ -593,18 +626,23 @@ function buildSea(coastTex) {
         vec2 uv = (b - bounds.xy) / (bounds.zw - bounds.xy);
         // sample unconditionally (a texture read inside a branch breaks mip derivatives -> seam at the edge)
         float inside = step(0.0, uv.x) * step(0.0, uv.y) * step(uv.x, 1.0) * step(uv.y, 1.0);
-        float d = mix(600.0, texture2D(coast, clamp(uv, 0.0, 1.0)).r * 600.0, inside);
+        vec4 ct = texture2D(coast, clamp(uv, 0.0, 1.0));
+        // R: distance to the waterline / 600 m; G: the same / 64 m (fine, near the rocks)
+        float d = mix(600.0, ct.g < 0.99 ? ct.g * 64.0 : ct.r * 600.0, inside);
         float n = noise(b * 0.02 + time * 0.05) * 0.6 + noise(b * 0.07 - time * 0.08) * 0.4;
-        float dd = d + (n - 0.5) * 28.0;
+        float dd = d + (n - 0.5) * min(26.0, 1.5 + d * 0.25);
         vec3 c;
+        // Pantelleria has no beaches: the rock drops straight into deep water. Only a thin turquoise fringe over the
+        // pale ledges, then deep blue within a few tens of metres.
         if (cel > 0.5) {
-          c = dd < 28.0 ? cShallow : dd < 110.0 ? cMid : dd < 380.0 ? cDeep : cOpen;   // the island drops off fast: deep blue close in
+          c = dd < 3.5 ? cShallow : dd < 28.0 ? cMid : dd < 220.0 ? cDeep : cOpen;
         } else {
-          c = mix(cShallow, cMid, smoothstep(8.0, 90.0, dd)); c = mix(c, cDeep, smoothstep(160.0, 380.0, dd)); c = mix(c, cOpen, smoothstep(380.0, 600.0, dd));
+          c = mix(cShallow, cMid, smoothstep(2.0, 30.0, dd)); c = mix(c, cDeep, smoothstep(60.0, 240.0, dd)); c = mix(c, cOpen, smoothstep(260.0, 520.0, dd));
         }
-        // foam along the shore, breathing
-        float f = 4.0 + 2.5 * sin(time * 0.9 + n * 6.0);
-        float foam = cel > 0.5 ? step(d, f) : smoothstep(f, f * 0.4, d);
+        // surf breaking on the rocks: thin, broken, breathing
+        float f = 1.0 + 0.6 * sin(time * 0.9 + n * 6.0);
+        float brk = smoothstep(0.35, 0.6, noise(b * 0.35 + vec2(time * 0.12, -time * 0.07)));
+        float foam = (cel > 0.5 ? step(d, f) : smoothstep(f, f * 0.3, d)) * mix(0.35, 1.0, brk);
         // little sun glints
         vec3 V = normalize(cameraPosition - vW);
         vec3 N = normalize(vec3((noise(b * 0.6 + time * 0.5) - 0.5) * 0.22, 1.0, (noise(b * 0.6 - time * 0.45 + 7.0) - 0.5) * 0.22));
@@ -911,6 +949,23 @@ for (const m of [MAT.RoadNear.cel, MAT.RoadNear.std]) {
   };
   m.customProgramCacheKey = () => 'roadnear';
 }
+// the drawn terrain is triangles between 5 m vertices: on hollows its chord sits above the bicubic surface, which hid
+// stretches of road (torn, pale patches). Drape on whichever is higher.
+function meshH(x, y, st = 0.5) {
+  const fx = (x - X0) / CELL, fy = (y - Y0) / CELL, a = Math.floor(fy / st) * st, b = Math.floor(fx / st) * st;
+  const hv = (i, j) => (Number.isInteger(i) && Number.isInteger(j)) ? HGT[i * NX + j] : heightCubicRaw(X0 + j * CELL, Y0 + i * CELL);
+  const u = (fx - b) / st, w = (fy - a) / st, h0 = hv(a, b), h2 = hv(a + st, b + st);
+  return u >= w ? h0 + u * (hv(a, b + st) - h0) + w * (h2 - hv(a, b + st)) : h0 + w * (hv(a + st, b) - h0) + u * (h2 - hv(a + st, b));
+}
+function groundTop(x, y) { return Math.max(heightCubic(x, y), meshH(x, y)); }
+// side roads meet the main roads at the main road's (graded) surface, then ease onto the ground, so junctions join up
+function roadGround(x, y) {
+  const g = groundTop(x, y); let r = nearestRoad(x, y, 0); const rl = nearestRoad(x, y, 3, true);
+  if (rl && (!r || rl.d < r.d)) r = rl;
+  if (!r) return g;
+  const t = THREE.MathUtils.clamp((r.d - r.r.w / 2) / 3, 0, 1); if (t >= 1) return g;
+  const m = Math.max(g, r.pz - 0.02); return m * (1 - t * t * (3 - 2 * t)) + g * t * t * (3 - 2 * t);
+}
 function roadMeshFor(tx, ty) {
   const list = roadIdx.get(tx + ',' + ty); if (!list) return null;
   const P = [], N = [], R = [], I = [];
@@ -946,7 +1001,7 @@ function roadMeshFor(tx, ty) {
         const x = pts[k * 3], y = pts[k * 3 + 1];
         for (const sgn of [1, 0, -1]) {   // edge, centre, edge: draped on the 5 m terrain (main roads: their graded profile)
           const ex = x - dy * half * sgn, ey = y + dx * half * sgn;
-          P.push(ex, r.tier === 0 || r.lift ? Math.max(pts[k * 3 + 2] + 0.06, heightCubic(ex, ey) + 0.04) : heightCubic(ex, ey) + 0.06, -ey); N.push(0, 1, 0); R.push(sgn, vlen, r.surf, r.tier === 0 ? 1 : 0);
+          P.push(ex, r.tier === 0 || r.lift ? Math.max(pts[k * 3 + 2] + 0.06, groundTop(ex, ey) + 0.04) : roadGround(ex, ey) + 0.04, -ey); N.push(0, 1, 0); R.push(sgn, vlen, r.surf, r.tier === 0 ? 1 : 0);
         }
         if (k > 0) for (let c = 0; c < 2; c++) { const l = base + (k - 1) * 3 + c, rr = l + 1; I.push(l, rr, rr + 3, l, rr + 3, l + 3); }
       }
@@ -1093,6 +1148,32 @@ function instanced(geo, xs, scaleFn, zFn) {
   im.computeBoundingSphere();
   return im;
 }
+// no wall may stand on a carriageway: cut every wall segment where it crosses or runs along any road / track (field
+// edges and terrace contours were drawn straight across lanes). The pieces left either side become gateposts.
+function clipWallsOffRoads(tx, ty, segs) {
+  const R = [];   // candidate road segments around this tile: ax, ay, bx, by, half width + margin
+  for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
+    const L = roadIdx.get((tx + a) + ',' + (ty + b)); if (!L) continue;
+    for (let k = 0; k < L.length; k += 2) { const r = ROADS2[L[k]], i = L[k + 1]; if (r.tier > 2 && r.w < 1.2) continue;
+      R.push(r.pts[i * 3], r.pts[i * 3 + 1], r.pts[i * 3 + 3], r.pts[i * 3 + 4], r.w / 2 + 0.45); }
+  }
+  if (!R.length) return;
+  const onRoad = (x, y) => { for (let k = 0; k < R.length; k += 5) { const ax = R[k], ay = R[k + 1], dx = R[k + 2] - ax, dy = R[k + 3] - ay;
+    if ((x < ax - 12 && x < ax + dx - 12) || (x > ax + 12 && x > ax + dx + 12) || (y < ay - 12 && y < ay + dy - 12) || (y > ay + 12 && y > ay + dy + 12)) continue;
+    const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1e-6)));
+    if (Math.hypot(x - ax - dx * t, y - ay - dy * t) < R[k + 4]) return true; } return false; };
+  const out = [];
+  for (let i = 0; i < segs.length; i += 6) {
+    const ax = segs[i], ay = segs[i + 1], bx = segs[i + 2], by = segs[i + 3], L = Math.hypot(bx - ax, by - ay), n = Math.max(1, Math.ceil(L / 0.6));
+    let run = -1;
+    for (let k = 0; k <= n; k++) {
+      const f = k / n, clear = !onRoad(ax + (bx - ax) * f, ay + (by - ay) * f);
+      if (clear && run < 0) run = k;
+      if ((!clear || k === n) && run >= 0) { const e = clear ? k : k - 1; if (e > run) out.push(ax + (bx - ax) * run / n, ay + (by - ay) * run / n, ax + (bx - ax) * e / n, ay + (by - ay) * e / n, segs[i + 4], segs[i + 5]); run = -1; }
+    }
+  }
+  segs.length = 0; for (const v of out) segs.push(v);
+}
 function buildDetailTile(tx, ty) {
   const x0 = X0 + tx * DT, y0 = Y0 + ty * DT;
   const g = new THREE.Group(); g.userData.key = tx + ',' + ty;
@@ -1109,10 +1190,11 @@ function buildDetailTile(tx, ty) {
   homeWallSegs(tx, ty, segs);
   terraceSegs(x0, y0, segs);
   roadsideWalls(tx, ty, segs);
+  clipWallsOffRoads(tx, ty, segs);
   // town: no rural dry-stone walls in it or within ~150 m of it, and never along the harbour (the Lungomare is a promenade)
   const nearTown = (x, y) => TOWNZ && [[0, 0], [150, 0], [-150, 0], [0, 150], [0, -150], [106, 106], [-106, -106], [106, -106], [-106, 106]].some(([a, c]) => inTown(x + a, y + c));
   for (let i = segs.length - 6; i >= 0; i -= 6) { const mx = (segs[i] + segs[i + 2]) / 2, my = (segs[i + 1] + segs[i + 3]) / 2;
-    if (nearTown(mx, my) || PROM.some((P) => inPoly(P, mx, my))) segs.splice(i, 6); }
+    if (nearTown(mx, my) || PROM.some((P) => inPoly(P, mx, my)) || SITE_CLEAR.some((r) => mx > r[0] && mx < r[2] && my > r[1] && my < r[3])) segs.splice(i, 6); }
   // every wall drawn here is also solid for the car (and nothing else is)
   g.userData.walls = new Float32Array(segs);          // for the car: walls are solid
   // buildings owned by this tile, redrawn up close (the far GLB copy is hidden by owner)
@@ -1150,10 +1232,11 @@ function buildDetailTile(tx, ty) {
     const small = new THREE.Group();
     const vines = [], tufts = [], pears = [];
     scatter(vines, x0, y0, 2.3, (x, y) => clsAt(x, y) === 2 ? 1 : 0, 0.35, 1);
-    scatter(tufts, x0, y0, 2.2, (x, y, r) => { const c = clsAt(x, y); return ((c === 4 || c === 7 || c === 5) && r < 0.6) || (c === 9 && r < 0.45) || (c === 2 && r < 0.12) ? 1 : 0; }, 1, 5);
+    scatter(tufts, x0, y0, 2.2, (x, y, r) => { const c = clsAt(x, y); return ((c === 4 || c === 5) && r < 0.6) || (c === 7 && r < 0.05) || (c === 9 && r < 0.45) || (c === 2 && r < 0.12) ? 1 : 0; }, 1, 5);
     scatter(pears, x0, y0, 9, (x, y, r) => clsAt(x, y) === 1 && r < 0.16 ? 1 : 0, 0.9, 8);
     add(small, VEG.vine, vines, () => 0.85);
     add(small, VEG.tuft, tufts, (k, i, x, y) => 0.8 + rnd(x, y, 13) * 0.7);
+    if (tufts.length && small.children.length) NOOUT.add(small.children[small.children.length - 1]);   // grass tufts: no ink outline (from afar they read as black specks)
     add(small, VEG.pear, pears, (k, i, x, y) => 0.9 + rnd(x, y, 15) * 0.6);
     add(small, VEG.caper, capers, () => 1, (z) => z);
     styleMeshes(small);
@@ -1277,7 +1360,11 @@ function cylAt(b, cx, cy, r, z0, z1, col, kind, seg = 10) {
   }
 }
 function dammuso(b, d, opt = {}) {
-  const pts = ccw(d.pts), g = d.zmin, zb = g - 1.0, zt = g + 0.5 * (d.zmax - d.zmin) + (opt.h ?? d.h), n = pts.length;
+  // on a slope the house stands on a lava-stone terrace (as they really do) instead of a tall whitewashed wedge:
+  // floor level near the uphill side, the drop below it is rubble
+  const R = d.zmax - d.zmin, plat = Math.max(d.zmin + 0.5 * R, d.zmax - 1.1), terr = plat - d.zmin > 0.8 && !opt.noTerrace;
+  const pts = ccw(d.pts), g = terr ? plat : d.zmin, zb = terr ? plat - 0.3 : g - 1.0, zt = (terr ? plat : g + 0.5 * R) + (opt.h ?? d.h), n = pts.length;
+  if (terr) { const base = inset(pts, -0.12); prism(b, base, d.zmin - 1.0, plat, DPAL.grey, -1.5, 7); tCap(b, base, plat, DPAL.lime, 9); }
   const r = hrand(d.seed, 1);
   const variant = opt.variant || (r < 0.55 ? 'stone' : r < 0.8 ? 'white' : r < 0.88 ? 'ochre' : r < 0.94 ? 'pink' : r < 0.98 ? 'red' : 'grey');
   const wallKind = variant === 'stone' ? 7 : 8, wallCol = opt.col || (variant === 'stone' ? DPAL.grey : DPAL[variant]);
@@ -1310,10 +1397,11 @@ function dammuso(b, d, opt = {}) {
   // cupolas: one per room along the long axis (as the far model), rounded-square domes
   const o = obb(pts), area = Math.abs(pts.reduce((s, p, i) => s + p[0] * pts[(i + 1) % n][1] - pts[(i + 1) % n][0] * p[1], 0) / 2);
   if (o && area < 420 && !opt.flat) {
-    const nd = Math.max(1, Math.min(5, Math.round(o.L / Math.max(o.W, 4.2))));
-    const ra = o.L / nd - 0.7, rw = o.W - 0.9;
-    if (rw > 1.6) for (let k = 0; k < nd; k++) {
-      const off = ((k + 0.5) / nd - 0.5) * o.L, cx = o.cx + o.ux * off, cy = o.cy + o.uy * off;
+    // one cupola per room: rooms are ~4-6 m, so a big dammuso gets a grid of domes, never one giant blister
+    const nw = Math.max(1, Math.min(3, Math.round(o.W / 5.6))), nd = Math.max(1, Math.min(6, Math.round(o.L / Math.max(o.W / nw, 4.2))));
+    const ra = o.L / nd - 0.7, rw = o.W / nw - 0.8;
+    if (rw > 1.6) for (let k = 0; k < nd; k++) for (let q = 0; q < nw; q++) {
+      const off = ((k + 0.5) / nd - 0.5) * o.L, offw = ((q + 0.5) / nw - 0.5) * o.W, cx = o.cx + o.ux * off - o.uy * offw, cy = o.cy + o.uy * off + o.ux * offw;
       if (!inPoly(pts, cx, cy)) continue;
       cupola(b, cx, cy, o.ux, o.uy, ra, rw, zt - 0.02, Math.min(1.5, 0.35 + Math.min(ra, rw) * 0.2), DPAL.lime);
     }
@@ -1628,6 +1716,13 @@ for (const m of [MAT.Town.cel, MAT.Town.std]) {
             }
             if (v > top - 0.25) c *= 0.88;
           }
+        } else if (kind > 16.5 && kind < 17.5) {            // natural lava rock (sea stacks, the Elephant): dark, blotchy, rough
+          float n1 = th(floor(vec2(u, v) * 0.9)), n2 = th(floor(vec2(u * 2.3 + 7.0, v * 2.1)));
+          c = mix(vec3(0.22, 0.20, 0.185), vec3(0.40, 0.37, 0.33), n1 * 0.7 + n2 * 0.3);
+          if (v > 6.0) c = mix(c, vec3(0.50, 0.46, 0.40), 0.35 * smoothstep(6.0, 14.0, v));   // sun-bleached top
+          if (n2 > 0.86) c = mix(c, vec3(0.42, 0.34, 0.27), 0.5);                         // rusty patches
+          if (v < 1.2) c *= 0.55 + 0.45 * clamp(v / 1.2, 0.0, 1.0);                       // wet at the waterline
+          if (st > 0.5) c = mix(c, vec3(0.62, 0.60, 0.56), smoothstep(0.55, 0.9, st - floor(st)) * 0.0);
         } else if (kind > 10.5 && kind < 11.5) {            // lava-stone shop front with big arches (Gelateria Katia)
           float row = floor(v / 0.42), off = mod(row, 2.0) * 0.3;
           float r = th(vec2(floor((u + off) / 0.75), row));
@@ -1683,7 +1778,7 @@ for (const m of [MAT.Town.cel, MAT.Town.std]) {
           if (v > st - 4.0 && v < st - 1.2 && abs(fract(u / 3.6) - 0.5) < 0.22) c = vec3(0.12, 0.11, 0.1);
         }
         // the stone/lime palettes above are authored as sRGB: take them to linear (they looked washed out, e.g. a beige castle)
-        if (kind > 2.5 && kind < 13.9 && !(kind > 7.5 && kind < 8.5)) c = pow(max(c, vec3(0.0)), vec3(2.2));
+        if ((kind > 2.5 && kind < 13.9 && !(kind > 7.5 && kind < 8.5)) || (kind > 16.5 && kind < 17.5)) c = pow(max(c, vec3(0.0)), vec3(2.2));
         diffuseColor.rgb = c;
       }`);
   };
@@ -2124,6 +2219,193 @@ function stallGeo() {   // fruit and veg out front: a trestle with crates, a str
 MATDEF.Prop = { color: '#ffffff', vertexColors: true, pull: [0, 0.0006] };
 MAT.Prop = makeMat('Prop');
 let PROM = [];
+// ---- coast landmarks (rocks that the 10 m DEM can't hold) ----
+function rockBlob(b, cx, cy, cz, rx, ry, rz, ang, seed, zFloor = -3) {   // a lumpy, roughly ellipsoidal lava mass
+  const NU = 22, NV = 12, ca = Math.cos(ang), sa = Math.sin(ang), P = [];
+  for (let i = 0; i <= NV; i++) { const th_ = -Math.PI / 2 + Math.PI * i / NV; const row = [];
+    for (let j = 0; j <= NU; j++) { const ph = 2 * Math.PI * j / NU;
+      const nz = 0.82 + 0.3 * rnd(seed + j % NU * 3.1, i * 1.7) + 0.08 * Math.sin(ph * 3 + seed);
+      let lx = Math.cos(th_) * Math.cos(ph) * rx * nz, ly = Math.cos(th_) * Math.sin(ph) * ry * nz, lz = Math.sin(th_) * rz * (0.9 + 0.2 * rnd(seed * 3 + j, i));
+      const x = cx + lx * ca - ly * sa, y = cy + lx * sa + ly * ca, z = Math.max(zFloor, cz + lz);
+      row.push([x, y, z, Math.cos(th_) * Math.cos(ph) * ca - Math.cos(th_) * Math.sin(ph) * sa, Math.cos(th_) * Math.cos(ph) * sa + Math.cos(th_) * Math.sin(ph) * ca, Math.sin(th_)]); }
+    P.push(row); }
+  rockMesh(b, P);
+}
+function rockMesh(b, P) {   // grid of [x,y,z,nx,ny,nz] -> triangles (kind 17)
+  const col = new THREE.Color('#ffffff');
+  for (let i = 0; i < P.length - 1; i++) for (let j = 0; j < P[i].length - 1; j++) {
+    const q = [P[i][j], P[i][j + 1], P[i + 1][j + 1], P[i + 1][j]];
+    for (const k of [0, 1, 2, 0, 2, 3]) { const v = q[k]; tPush(b, v[0], v[1], v[2], [v[3], v[4], v[5]], col, v[0] * 0.7 + v[1] * 0.7, v[2], 0, 17); }
+  }
+}
+function rockTube(b, path, radii, seed) {   // a tapering lumpy tube along a 3D path (the trunk)
+  const NU = 14, P = [];
+  for (let i = 0; i < path.length; i++) {
+    const p = path[i], q = path[Math.min(i + 1, path.length - 1)], o = path[Math.max(i - 1, 0)];
+    let tx = q[0] - o[0], ty = q[1] - o[1], tz = q[2] - o[2]; const tl = Math.hypot(tx, ty, tz) || 1; tx /= tl; ty /= tl; tz /= tl;
+    // frame: side = t x up, nrm = side x t
+    let sx = ty, sy = -tx, sz = 0; const sl = Math.hypot(sx, sy) || 1; sx /= sl; sy /= sl;
+    const nx = sy * tz - sz * ty, ny = sz * tx - sx * tz, nz = sx * ty - sy * tx;
+    const row = [];
+    for (let j = 0; j <= NU; j++) { const a = 2 * Math.PI * j / NU, r = radii[i] * (0.85 + 0.3 * rnd(seed + i * 5.3, j % NU * 2.9));
+      const dx = (Math.cos(a) * sx + Math.sin(a) * nx), dy = (Math.cos(a) * sy + Math.sin(a) * ny), dz = (Math.cos(a) * sz + Math.sin(a) * nz) * 1.15;
+      row.push([p[0] + dx * r, p[1] + dy * r, p[2] + dz * r, dx, dy, dz]); }
+    P.push(row);
+  }
+  rockMesh(b, P);
+}
+function buildLandmarks() {
+  const b = TB();
+  // Arco dell'Elefante (Punta dell'Elefante, past Cala Levante): a lava headland shaped like an elephant's head and back,
+  // its trunk dipping into the sea to make the arch you can swim through (boats may not). Traced on the imagery: head at
+  // ~(5687, 889), trunk tip in the water at ~(5668, 932); the passage runs west-east under the trunk.
+  rockBlob(b, 5664, 866, 2.5, 26, 14, 9, 0.62, 11);                 // the back, sloping down to the cape
+  rockBlob(b, 5688, 886, 5.0, 13, 11, 13, 1.95, 23);                // the head, ~18 m above the sea
+  rockBlob(b, 5694, 879, 3.0, 9, 8, 9, 0.4, 37);                    // the ear / brow
+  const tr = []; const N = 12;
+  for (let k = 0; k <= N; k++) { const t = k / N;                    // the trunk: out from the brow, over the passage, down into the sea
+    const x = 5685 + (5667 - 5685) * t + Math.sin(t * Math.PI) * -2.5, y = 899 + (933 - 899) * t, z = 13.5 * Math.cos(t * Math.PI * 0.5) ** 1.3 + (1 - t) * 1.5 - 4.5 * t * t;
+    tr.push([x, y, z]); }
+  rockTube(b, tr, tr.map((_, k) => 5.2 - 2.2 * k / N), 51);
+  rockBlob(b, 5667, 934, -2.5, 4.2, 4.0, 3.2, 0.3, 61);              // the trunk's foot in the water
+  // Faraglione di Tracino: the sea stack off Punta Tracino (~80 x 35 m on the imagery, NNE-SSW); the DEM holds a flat skerry
+  rockBlob(b, 5547, 1551, -7, 42, 17, 25, 1.13, 71);
+  rockBlob(b, 5556, 1575, -5, 16, 12, 19, 1.0, 83);
+  // Faro di Punta Spadillo (Street View): a slim white round tower rising out of the white keeper's house, gallery, lantern
+  lighthouse(b, 2002.8, 4357.8, 17.5);
+  const m = finishTB(b, MAT.Town); if (m) { m.receiveShadow = true; TOWN.group.add(m); styleMeshes(TOWN.group); }
+}
+function lighthouse(b, x, y, h) {
+  const z = heightCubic(x, y), W = new THREE.Color('#f2f1ec'), Gr = new THREE.Color('#8d9192'), Gl = new THREE.Color('#33454c');
+  const ring = (r, n = 18) => { const p = []; for (let k = 0; k < n; k++) { const a = 2 * Math.PI * k / n; p.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); } return p; };
+  const disc = (r, z0, z1, col) => { const p = ring(r); prism(b, p, z0, z1, col, 0, 2); tCap(b, p, z1, col, 2); };
+  disc(1.75, z - 0.5, z + h, W);                          // shaft
+  disc(2.5, z + h, z + h + 0.35, W);                      // gallery floor
+  prism(b, ring(2.4), z + h + 0.35, z + h + 1.2, Gr, 0, 2); prism(b, ring(2.4), z + h + 0.35, z + h + 1.2, Gr, 0, 2, false);   // railing
+  disc(1.25, z + h + 0.35, z + h + 2.3, Gl);              // lantern glass
+  disc(1.45, z + h + 2.3, z + h + 2.7, Gr);               // roof
+  disc(0.5, z + h + 2.7, z + h + 3.3, Gr);                // vent
+}
+// ---- hand-detailed coast sites: a 0.5 m rock heightfield with its own photo-derived colour, boulders, buildings ----
+MATDEF.Site = { color: '#ffffff', vertexColors: true, pull: [0, 0.0006] };
+async function loadSite(name) {
+  const buf = await bin(MEDIA + 'site_' + name + '.bin'), dv = new DataView(buf);
+  const S = { name, x0: dv.getFloat32(0, true), y0: dv.getFloat32(4, true), res: dv.getFloat32(8, true), nx: dv.getUint16(12, true), ny: dv.getUint16(14, true) };
+  S.Z = new Int16Array(buf.slice(16, 16 + S.nx * S.ny * 2));
+  SITES.push(S); return S;
+}
+async function buildSite(S) {
+  const [tex, J] = await Promise.all([loadTex(MEDIA + 'site_' + S.name + '.webp'), fetch(MEDIA + 'site_' + S.name + '.json').then((r) => r.json())]);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const { nx, ny, res, x0, y0, Z } = S, idx = new Int32Array(nx * ny).fill(-1), P = [], C = [], UV = [], I = [];
+  const W = nx * res, H = ny * res;
+  for (let i = 0; i < ny; i++) for (let j = 0; j < nx; j++) {
+    const k = i * nx + j; if (Z[k] === -32768) continue;
+    const x = x0 + (j + 0.5) * res, y = y0 + (i + 0.5) * res, z = Z[k] / 100;
+    idx[k] = P.length / 3; P.push(x, z, -y); UV.push((j + 0.5) / nx, (i + 0.5) / ny);
+  }
+  for (let i = 0; i < ny - 1; i++) for (let j = 0; j < nx - 1; j++) {
+    const a = idx[i * nx + j], b = idx[i * nx + j + 1], c = idx[(i + 1) * nx + j], d = idx[(i + 1) * nx + j + 1];
+    if (a < 0 || b < 0 || c < 0 || d < 0) continue;
+    // split along the shorter diagonal in height: keeps the cliff edges crisp
+    const za = P[a * 3 + 1], zb = P[b * 3 + 1], zc = P[c * 3 + 1], zd = P[d * 3 + 1];
+    if (Math.abs(za - zd) < Math.abs(zb - zc)) I.push(a, b, d, a, d, c); else I.push(a, b, c, b, d, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); g.setIndex(I);
+  g.computeVertexNormals();
+  // vertex tone: cliff faces darker and banded (the trachyte splits in vertical columns), shelf tops as photographed
+  const N = g.attributes.normal.array;
+  for (let v = 0; v < P.length / 3; v++) {
+    const steep = THREE.MathUtils.smoothstep(1 - N[v * 3 + 1], 0.3, 0.7), x = P[v * 3], y = -P[v * 3 + 2], z = P[v * 3 + 1];
+    const col = 0.78 + 0.3 * rnd(Math.round(x / 0.8) + Math.round(y / 0.8) * 7.1, 3) + (z < 0.4 ? -0.25 : 0);
+    const t = (1 - steep * (1 - col * 0.62)) * (0.93 + 0.14 * rnd(Math.round(x * 2) + 5, Math.round(y * 2), 9));   // grain
+    C.push(t, t * 0.985, t * 0.97);
+  }
+  g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
+  g.computeBoundingSphere();
+  const mats = makeMat('Site', { map: tex }), m = new THREE.Mesh(g, mats.cel);
+  m.userData.mats = mats; m.castShadow = true; m.receiveShadow = true; m.renderOrder = 0;
+  TOWN.group.add(m);
+  // boulders: lumpy dark lava, half sunk
+  const bg = new THREE.IcosahedronGeometry(1, 1), bp = bg.attributes.position;
+  for (let v = 0; v < bp.count; v++) { const k = 0.78 + 0.4 * rnd(Math.round(bp.getX(v) * 5) + 11, Math.round(bp.getY(v) * 5) + Math.round(bp.getZ(v) * 3) * 3); bp.setXYZ(v, bp.getX(v) * k, bp.getY(v) * k * 0.72, bp.getZ(v) * k); }
+  const bgeo = colorize(bg, '#4a4642'); bgeo.computeVertexNormals();
+  const B = J.boulders || [], im = new THREE.InstancedMesh(bgeo, MAT.Stone.cel, B.length);
+  const q = new THREE.Quaternion(), e = new THREE.Euler(), p = new THREE.Vector3(), sc = new THREE.Vector3(), M4 = new THREE.Matrix4(), cc = new THREE.Color();
+  B.forEach(([x, y, z, s, r], k) => {
+    e.set((rnd(x, 1) - 0.5) * 0.5, r, (rnd(y, 2) - 0.5) * 0.5); q.setFromEuler(e);
+    p.copy(b2t(x, y, z - s * 0.25)); sc.set(s * (0.8 + 0.4 * rnd(x, 5)), s * (0.6 + 0.4 * rnd(y, 6)), s * (0.8 + 0.4 * rnd(x + y, 7)));
+    im.setMatrixAt(k, M4.compose(p, q, sc)); im.setColorAt(k, cc.setScalar(0.75 + 0.45 * rnd(x, y)));
+  });
+  im.userData.mats = MAT.Stone; im.castShadow = true; im.receiveShadow = true; im.computeBoundingSphere(); TOWN.group.add(im);
+  if (S.name === 'bue') cicci(J);
+  styleMeshes(TOWN.group); shadowDirty = true;
+}
+// Cicci's Bistrot, Bue Marino (Google Maps photos, Esri roof): a pale-yellow prefab cabin with white shutters under a low
+// red-brown roof; a white-framed veranda on its east side (grey chairs, dark tables, black fascia); two sand-coloured shade
+// sails on steel poles over dark timber picnic tables on a low concrete pad; a flag; a red-and-white rail on stone
+// bollards along the car park; a palm-leaf parasol with tyre seats and green chairs. Dark gravel all round.
+function cicci() {
+  const ox = -3227, oy = 5941, g0 = heightCubic(ox, oy);
+  const parts = [], solid = [];
+  const box = (we, dn, h, e, n, u, col) => parts.push(colorize(boxG(we, h, dn, e, u + h / 2, -n), col));
+  const cyl = (r, h, e, n, u, col, seg = 8) => parts.push(colorize(new THREE.CylinderGeometry(r, r, h, seg).translate(e, u + h / 2, -n), col));
+  const YEL = '#dcc06a', WHT = '#f1efe8', RED = '#93503a', STEEL = '#9aa0a2', TIMBER = '#4a3326', GREY = '#8d8a84';
+  // pads: the roof seen from above is ~15 x 10 m (cabin + veranda under one red-brown roof)
+  box(17, 12, 0.22, 0, 0, -0.1, '#a9a49a');
+  box(15, 9, 0.26, 0, -11, -0.14, '#9d978b');                                     // platform under the sails
+  // cabin (west half): prefab panels, white shutters
+  box(8, 7, 2.65, -3.6, 1.5, 0.12, YEL);
+  for (const e of [-6.2, -4.0]) { box(0.9, 0.06, 1.0, e, -2.03, 1.15, WHT); box(0.95, 0.04, 0.08, e, -2.05, 2.18, WHT); }   // shutters (south)
+  box(0.95, 0.07, 2.0, -1.4, -2.03, 0.15, WHT);                                   // door to the veranda
+  box(0.06, 0.9, 1.0, -7.63, 2.5, 1.15, WHT); box(0.06, 0.9, 1.0, -7.63, 0.2, 1.15, WHT);   // west shutters
+  box(0.06, 0.9, 1.0, -7.63, 3.9, 1.15, WHT);
+  box(0.66, 0.04, 0.66, -2.6, -2.04, 1.35, '#c8322a');                            // round red drinks sign
+  // veranda (east half and along the cabin front): deck, white posts, black fascia
+  box(7.3, 10, 0.2, 3.85, 0, 0.12, '#b7ae9e'); box(8, 3, 0.2, -3.6, -3.5, 0.12, '#b7ae9e');
+  for (const [e, n] of [[0.25, -4.9], [2.6, -4.9], [5.0, -4.9], [7.4, -4.9], [7.4, -2.4], [7.4, 0.1], [7.4, 2.6], [7.4, 4.9], [5.0, 4.9], [2.6, 4.9], [-2.6, -4.9], [-5.1, -4.9], [-7.5, -4.9]]) box(0.2, 0.2, 2.45, e, n, 0.3, WHT);
+  for (const [e, n, we, dn] of [[3.85, -4.95, 7.4, 0.08], [7.45, 0, 0.08, 9.9]]) box(we, dn, 0.06, e, n, 1.0, WHT);   // low white rail
+  box(15.6, 10.6, 0.16, 0, 0, 2.77, RED);                                         // one roof over all
+  box(15.6, 0.12, 0.42, 0, -5.3, 2.45, '#1c1c1e'); box(0.12, 10.6, 0.32, 7.8, 0, 2.5, WHT); box(0.12, 10.6, 0.32, -7.8, 0, 2.5, WHT);
+  for (const [e, n] of [[1.8, -3.2], [4.4, -3.2], [6.3, -3.2], [1.8, -0.4], [4.4, -0.4], [6.3, -0.4], [1.8, 2.6], [4.4, 2.6], [-5.5, -3.6], [-3.2, -3.6]]) {
+    box(0.8, 0.8, 0.05, e, n, 1.05, '#2b2b2d'); cyl(0.05, 0.75, e, n, 0.3, '#2b2b2d', 5);
+    for (const sd of [-1, 1]) { box(0.42, 0.42, 0.05, e + sd * 0.62, n, 0.75, '#9ea2a3'); box(0.06, 0.42, 0.45, e + sd * 0.82, n, 0.78, '#9ea2a3'); }
+  }
+  // flag
+  cyl(0.05, 6.4, 7.6, 5.2, 0.3, STEEL, 6); box(0.05, 1.4, 0.9, 7.6, 5.95, 5.6, '#2d5f9a');
+  // two shade sails, taut, one corner high (hypar look): sand canvas on steel poles
+  const sail = (Q) => {   // quad corners [e, n, h], sagging a little in the middle, both faces
+    const pts = Q.map(([e, n, h]) => new THREE.Vector3(e, h, -n)), mid = pts.reduce((a, v) => a.add(v), new THREE.Vector3()).multiplyScalar(0.25); mid.y -= 0.25;
+    const pos = [];
+    for (let k = 0; k < 4; k++) { const a = pts[k], b = pts[(k + 1) % 4]; for (const v of [a, b, mid, b, a, mid]) pos.push(v.x, v.y, v.z); }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); sg.computeVertexNormals();
+    parts.push(colorize(sg, '#d6bd86'));
+    for (const [e, n, h] of Q) cyl(0.07, h + 0.15, e, n, 0, STEEL, 6);
+  };
+  sail([[-7.2, -7.2, 3.0], [-0.6, -6.6, 4.0], [-0.2, -14.6, 2.7], [-6.8, -14.2, 3.9]]);
+  sail([[0.6, -6.8, 3.0], [7.2, -7.0, 4.1], [6.8, -14.8, 2.6], [0.9, -14.4, 3.8]]);
+  for (const [e, n] of [[-5.0, -9.2], [-2.0, -9.2], [-5.0, -12.4], [-2.0, -12.4], [2.4, -9.4], [5.4, -9.4], [2.4, -12.6], [5.4, -12.6]]) {   // picnic tables
+    box(2.2, 0.85, 0.07, e, n, 0.78, TIMBER); box(0.1, 0.7, 0.66, e - 0.9, n, 0.12, TIMBER); box(0.1, 0.7, 0.66, e + 0.9, n, 0.12, TIMBER);
+    for (const sd of [-1, 1]) box(2.2, 0.3, 0.06, e, n + sd * 0.7, 0.45, TIMBER);
+  }
+  // rail on stone bollards along the car park (west), red and white
+  for (let k = 0; k <= 8; k++) { const n = -14 + k * 2.6; cyl(0.32, 0.6, -10.5, n, 0, GREY, 7); if (k < 8) box(0.12, 2.6, 0.12, -10.5, n + 1.3, 0.55, k % 2 ? WHT : '#b8342a'); }
+  // lounge: palm-leaf parasol, tyre seats, green chairs, a few cycads
+  { const e = 11.5, n = -5; cyl(0.07, 2.4, e, n, 0, '#6a5640', 5);
+    for (let k = 0; k < 14; k++) { const a = k / 14 * Math.PI * 2; parts.push(colorize(new THREE.ConeGeometry(0.2, 1.9, 3).rotateZ(Math.PI / 2 + 0.75).translate(0.85, 2.05, 0).rotateY(a).translate(e, 0, -n), k % 2 ? '#b19a6c' : '#9c8558')); }
+    for (const [de, dn] of [[-1.6, -1.8], [0, -2.2], [1.6, -1.6], [-2.2, 0.2]]) { cyl(0.36, 0.42, e + de, n + dn, 0, '#e2e2dc', 10); cyl(0.37, 0.05, e + de, n + dn, 0.42, '#a87c55', 10); }
+    for (const [de, dn] of [[-0.6, 0.8], [0.6, 0.9], [0.1, -0.7]]) { box(0.5, 0.5, 0.05, e + de, n + dn, 0.42, '#8fcf3a'); box(0.5, 0.05, 0.5, e + de, n + dn + 0.25, 0.47, '#8fcf3a'); }
+    for (const [de, dn] of [[3, 2], [-4, 3], [4.5, -3]]) for (let k = 0; k < 6; k++) parts.push(colorize(new THREE.ConeGeometry(0.06, 0.8, 3).rotateZ(Math.PI / 2 - 0.6).translate(0.3, 0.3, 0).rotateY(k * 1.05).translate(e + de, 0, -(n + dn)), '#4d7a2a'));
+  }
+  const geo = mergeGeos(parts), mesh = vMesh(geo);
+  mesh.position.copy(b2t(ox, oy, g0)); mesh.updateMatrixWorld();
+  TOWN.group.add(mesh);
+  // solid: cabin + veranda block, the rail
+  const rect = (e0, n0, e1, n1) => { const c = [[e0, n0], [e1, n0], [e1, n1], [e0, n1]]; for (let k = 0; k < 4; k++) { const a = c[k], b = c[(k + 1) % 4]; solid.push(ox + a[0], oy + a[1], ox + b[0], oy + b[1], 1, 0.4); } };
+  rect(-7.8, -5.3, 7.8, 5.3); solid.push(ox - 10.5, oy - 14, ox - 10.5, oy + 6.8, 1, 0.6);
+  TOWN.solid = TOWN.solid ? new Float32Array([...TOWN.solid, ...solid]) : new Float32Array(solid);
+}
 function buildTown(T) {
   PROM = (T.promenade || []);
   TOWN.data = T;
@@ -2782,7 +3064,8 @@ const LOFT_DEF = { p: 4, top: 1, z: 0, y: 0 };
 function tireGeo(r, w, rim = '#c9c6bf') {
   return mergeGeos([colorize(new THREE.TorusGeometry(r - w * 0.42, w * 0.45, 8, 18), '#1c1c1c').scale(1, 1, w / (w * 0.9)),
     colorize(new THREE.CylinderGeometry(r * 0.58, r * 0.58, w * 0.8, 14).rotateX(Math.PI / 2), rim),
-    colorize(new THREE.CylinderGeometry(r * 0.2, r * 0.2, w * 0.86, 8).rotateX(Math.PI / 2), '#5a5a58')]);
+    colorize(new THREE.CylinderGeometry(r * 0.2, r * 0.2, w * 0.86, 8).rotateX(Math.PI / 2), '#5a5a58'),
+    ...[0, 1, 2, 3, 4].map((k) => colorize(new THREE.BoxGeometry(r * 0.13, r * 1.05, w * 0.84).translate(0, r * 0.27, 0).rotateZ(k * Math.PI * 2 / 5), '#3c3c3a'))]);   // spokes: you can see them turn
 }
 function strut(ax, ay, az, bx, by, bz, t, col) {   // thin rod from a to b
   const a = new THREE.Vector3(ax, ay, az), b = new THREE.Vector3(bx, by, bz), L = a.distanceTo(b);
@@ -2826,13 +3109,13 @@ function carModel(col) {   // Fiat Panda 4x4 (first series): upright, flat glass
     colorize(boxG(0.03, 0.12, 0.42, -1.71, 0.78, 0), '#e8e2cf'),                                           // number plate
     colorize(boxG(0.03, 0.12, 0.42, 1.71, 0.5, 0), '#e8e2cf'),
   ];
-  const g = new THREE.Group(); g.add(vMesh(mergeGeos([body, cabin, ...bits])));
+  const g = new THREE.Group(), bodyG = new THREE.Group(); bodyG.position.y = 0.55; const bm = vMesh(mergeGeos([body, cabin, ...bits])); bm.position.y = -0.55; bodyG.add(bm); g.add(bodyG);
   const wg = tireGeo(0.31, 0.2), wheels = [], pivots = [];
   for (const [x, z] of wheelsAt) {
     const piv = new THREE.Group(); piv.position.set(x, 0.31, z); const w = vMesh(wg); piv.add(w); g.add(piv);
     wheels.push(w); if (x > 0) pivots.push(piv);
   }
-  return { group: g, wheels, pivots };
+  return { group: g, body: bodyG, wheels, pivots, blur: addWheelBlur(wheels.map((w) => w.parent), 0.31) };
 }
 function rallyModel() {   // blue four-door rally car (90s group-A style): low, wide arches, bonnet scoop, big wing, gold wheels, roof vent
   const BODY = '#1d4fa3', DARK = '#202124', GLASS = '#1e2a33', LIGHT = '#fff6cf', RED = '#c0302a', STRIPE = '#f2f0ea';
@@ -2874,13 +3157,13 @@ function rallyModel() {   // blue four-door rally car (90s group-A style): low, 
     colorize(boxG(0.03, 0.11, 0.44, -2.19, 0.62, 0), '#e8e2cf'),                                                 // plate
     colorize(boxG(1.3, 0.012, 0.7, 0.2, 1.37, 0), STRIPE),                                                      // white roof panel (race number spot, left blank)
   ];
-  const g = new THREE.Group(); g.add(vMesh(mergeGeos([body, cabin, ...bits])));
+  const g = new THREE.Group(), bodyG = new THREE.Group(); bodyG.position.y = 0.55; const bm = vMesh(mergeGeos([body, cabin, ...bits])); bm.position.y = -0.55; bodyG.add(bm); g.add(bodyG);
   const wg = tireGeo(0.32, 0.24, '#c9a43a'), wheels = [], pivots = [];
   for (const [x, z] of wheelsAt) {
     const piv = new THREE.Group(); piv.position.set(x, 0.32, z); const w = vMesh(wg); piv.add(w); g.add(piv);
     wheels.push(w); if (x > 0) pivots.push(piv);
   }
-  return { group: g, wheels, pivots };
+  return { group: g, body: bodyG, wheels, pivots, blur: addWheelBlur(wheels.map((w) => w.parent), 0.31) };
 }
 // car types (V cycles): the Panda is the island's car; the rally car drives arcade-style, drifts easily (Sega Rally feel)
 const CAR_TYPES = { panda: { name: 'Panda 4x4', model: () => carModel('#e9e5dc') }, rally: { name: 'Rally', model: rallyModel } };
@@ -2968,7 +3251,7 @@ function makeCar(type, keep) {
 }
 function cycleCar() {
   const i = CAR_ORDER.indexOf(VEH.carType || 'panda'), t = CAR_ORDER[(i + 1) % CAR_ORDER.length];
-  makeCar(t, true); vMsg(t === 'rally' ? 'Rally car · Space handbrake or a flick of steering at speed to drift' : 'Panda 4x4');
+  makeCar(t, true); vMsg(t === 'rally' ? 'Rally car · lift off (or brake) as you turn in to swing the tail; throttle + steering hold the angle' : 'Panda 4x4');
 }
 function spawnCar() {
   const v = getView(), az = viewAz();
@@ -3041,50 +3324,103 @@ function stepCar(c, dt) {
   const steerIn = Math.abs(P.steer || 0) > 0.01 ? -P.steer : kSteer;
   const rd = nearestRoad(c.x, c.y), onRoad = rd && rd.d < rd.r.w / 2 + 0.8;
   c.surface = onRoad ? ['asphalt', 'dirt', 'cement'][rd.r.surf] || 'asphalt' : 'off road';
+  if (VEH.forceSurf) c.surface = VEH.forceSurf;   // tests
   // drive / brake / reverse (brake pedal at a standstill engages reverse)
   let drive = 0, brake = 0;
   if (c.v > 0.4) { drive = gas; brake = brk; } else if (c.v < -0.4) { drive = -brk; brake = gas; } else { drive = gas - brk; }
   const rally = c.type === 'rally';
   let a = drive > 0 ? (rally ? drive * Math.min(11.5, 175 / Math.max(c.v, 1)) : drive * Math.min(3.4, 30 / Math.max(c.v, 1))) : drive * (c.v > -6 ? 2.4 : 0);   // Panda ~50 kW, ~145 km/h; rally ~200 km/h
-  a -= Math.sign(c.v) * (brake * 8.5 + (hand ? (c.type === 'rally' ? 1.6 : 6) : 0) + (CAR_ROLL[c.surface][0] + CAR_ROLL[c.surface][1] * Math.abs(c.v)) * Math.min(1, Math.abs(c.v)) * (rally ? (c.surface === 'off road' ? 0.35 : c.surface === 'dirt' ? 0.6 : 1) : 1) + 0.00033 * c.v * c.v);
+  a -= Math.sign(c.v) * (brake * 8.5 + (hand ? (c.type === 'rally' ? 1.6 : 6) : 0) + (CAR_ROLL[c.surface][0] + CAR_ROLL[c.surface][1] * Math.abs(c.v)) * Math.min(1, Math.abs(c.v)) * (rally ? (c.surface === 'off road' ? 0.35 : c.surface === 'dirt' ? 0.6 : 1) : 1) + (rally ? 0.0011 : 0.00033) * c.v * c.v);
   const ch = Math.cos(c.h), sh = Math.sin(c.h);
   const grade = (carZ(c.x + ch * 1.6, c.y + sh * 1.6) - carZ(c.x - ch * 1.6, c.y - sh * 1.6)) / 3.2;
   a -= 9.81 * Math.sin(Math.atan(grade)) * 0.85;
-  if (rally && drive > 0) a *= 1 - 0.45 * Math.abs(Math.sin(c.slip || 0));   // sideways, the power goes into the slide
+  if (rally && drive > 0) a *= 1 - 0.25 * Math.abs(Math.sin(c.slip || 0));   // sideways, the power goes into the slide
+  if (rally && drive <= 0 && c.v > 3 && !c.air) a -= 1.9;                         // engine braking when you lift: the nose dips, the tail goes light
+  if (rally) c.lt = (c.lt || 0) + (THREE.MathUtils.clamp(-a / 9.81, -0.4, 0.9) - (c.lt || 0)) * Math.min(1, dt * 7);   // load on the front axle (lift / brake = +)
   if (c.air) a = -0.00033 * c.v * Math.abs(c.v);                   // no traction in the air
   const v0 = c.v; c.v += a * dt;
   if (brake + (hand ? 1 : 0) > 0.05 && Math.sign(c.v) !== Math.sign(v0) && v0 !== 0) c.v = 0;    // brakes stop, they don't reverse
   if (Math.abs(c.v) < 0.03 && !drive) c.v = 0;
   let md = c.h;                                                      // direction the car actually moves in
+  // steering: keys ease in (~0.2 s to full lock) and centre faster, so a tap is a small correction; a stick is direct
+  const padSteer = Math.abs(P.steer || 0) > 0.01;
+  c.sIn = padSteer ? steerIn : (c.sIn || 0) + THREE.MathUtils.clamp(steerIn - (c.sIn || 0), -dt * (steerIn ? 5 : 9), dt * (steerIn ? 5 : 9));
+  const sIn = c.sIn, ast = Math.abs(sIn); let av = Math.abs(c.v);
+  // road assist: with the wheel near centre the car settles onto the road's line and keeps off the verge walls
+  let assist = 0, nudge = 0;
+  if (rd && rd.d < rd.r.w / 2 + 1.2 && rd.r.tier <= 2 && !hand && av > 3 && c.v > 0) {
+    let t = rd.ang; if (Math.cos(t - c.h) < 0) t += Math.PI;
+    // aim at the road a little ahead (pure pursuit), so gentle bends follow themselves
+    const L = THREE.MathUtils.clamp(av * 0.45, 3, 14), rq = nearestRoad(c.x + Math.cos(c.h) * L, c.y + Math.sin(c.h) * L, 2);
+    let tgt = t;
+    if (rq && rq.r === rd.r && rq.d < rq.r.w / 2 + 3) tgt = Math.atan2(rq.py - c.y, rq.px - c.x);   // same road only: never pulled into a side road
+    const dd = Math.atan2(Math.sin(tgt - c.h), Math.cos(tgt - c.h));
+    // a hint, not a hand on the wheel: at most 0.3 rad/s, gone as soon as you steer
+    if (Math.abs(dd) < 0.5) assist = THREE.MathUtils.clamp(dd * 1.2, -0.3, 0.3) * Math.max(0, 1 - ast / 0.25) * Math.min(1, av / 8);
+    const side = (c.x - rd.px) * -Math.sin(t) + (c.y - rd.py) * Math.cos(t), edge = rd.r.w / 2 - 0.9;   // + = left of the line
+    if (Math.abs(side) > edge && ast < 0.25) nudge = -Math.sign(side) * Math.min(0.2, (Math.abs(side) - edge) * 0.3);   // rad/s back towards the middle
+  }
   if (!rally) {
-    c.steer += (steerIn * 0.58 / (1 + Math.abs(c.v) / 11) - c.steer) * Math.min(1, dt * 6);
-    c.h += c.v / 2.2 * Math.tan(c.steer) * dt * (hand ? 1.6 : 1);
+    c.steer += (sIn * 0.58 / (1 + av / 11) - c.steer) * Math.min(1, dt * 6);
+    c.h += (c.v / 2.2 * Math.tan(c.steer) * (hand ? 1.6 : 1) + assist * 0.8 + nudge) * dt;
     c.phi = c.h; md = c.h;
   } else {
-    // arcade rally: heading (h) and travel direction (phi) are separate; grip pulls phi towards h. The handbrake, or a
-    // big steering input at speed, kicks the tail out (less grip, more yaw); the car holds the slide while you steer
-    // into it and catches it when you straighten up. Loose surfaces slide more.
-    const av = Math.abs(c.v), loose = c.surface === 'dirt' ? 1 : c.surface === 'off road' ? 1.3 : 0;
-    c.steer += (steerIn * 0.62 / (1 + av / 10) - c.steer) * Math.min(1, dt * 10);
-    let want = av < 5 ? 0 : hand ? 1 : Math.abs(steerIn) > 0.45 && av > 11 ? Math.min(1, 0.55 + 0.35 * gas + 0.2 * loose) : loose * 0.3 * Math.abs(steerIn);
-    if (c.drift > 0.3 && gas > 0.5 && av > 9 && Math.abs(c.slip || 0) > 0.12 && Math.abs(steerIn) > 0.2) want = Math.max(want, 0.7);   // on the throttle, the slide holds
-    c.drift += (want - c.drift) * Math.min(1, dt * (want > c.drift ? 6 : 1.2));
-    let yaw = c.v / 2.6 * Math.tan(c.steer) * (1 + c.drift * 0.85);
-    yaw = THREE.MathUtils.clamp(yaw, -2.7, 2.7);
-    if (c.air) yaw *= 0.15;
-    c.h += yaw * dt;
-    if (av < 2) c.phi = c.h;
-    let d = c.h - c.phi; d = Math.atan2(Math.sin(d), Math.cos(d));
-    if (c.v < 0) { c.phi = c.h; d = 0; }
-    const grip = c.air ? 0 : (loose ? 2.6 : 5.5) * (1 - c.drift * 0.82) + 0.55;
-    c.phi += d * Math.min(1, grip * dt);
-    d = Math.atan2(Math.sin(c.h - c.phi), Math.cos(c.h - c.phi));
-    if (Math.abs(d) > 1.05) { c.phi = c.h - Math.sign(d) * 1.05; d = Math.sign(d) * 1.05; }   // never fully sideways (~60°)
-    c.v -= Math.sign(c.v) * Math.abs(Math.sin(d)) * av * (0.24 - 0.1 * gas) * dt;      // scrub while sliding (less on the throttle)
-    c.slip = d; md = c.v >= 0 ? c.phi : c.h;
+    // rally, arcade (pass 6): the car goes where it points while gripping; in a drift the nose points into the corner by
+    // a slip angle you set with the steering (more lock = more angle, opposite lock = straighten), the car carries its
+    // speed and the line is the throttle's. Weight is in the yaw inertia, the slow catch of a slide and the sprung body.
+    const loose = c.surface === 'dirt' ? 1 : c.surface === 'off road' ? 1.2 : 0;
+    c.r = c.r || 0; c.vy = 0;
+    if (c.phi === undefined || av < 2) c.phi = c.h;
+    c.simT = (c.simT || 0) + dt;
+    // drift entry: handbrake; lift / brake while turning hard at speed; a quick flick from one lock to the other
+    if (Math.sign(sIn) && Math.abs(sIn) > 0.6 && Math.sign(sIn) !== c.lastSteerS) { c.flickT = c.lastSteerS && c.simT - (c.lastSteerAt || -9) < 0.8 ? 0.4 : 0; c.lastSteerS = Math.sign(sIn); }
+    if (ast > 0.6) c.lastSteerAt = c.simT;
+    c.flickT = Math.max(0, (c.flickT || 0) - dt);
+    c.liftT = gas < 0.15 ? (c.liftT || 0) + dt : 0;
+    // deliberate only (pass 7): the handbrake (Space) starts a drift; nothing else does. Lifting, braking or flicking the
+    // keys never throws the car sideways on its own: on a keyboard you lift, brake and tap all the time.
+    const enter = av > 6 && hand;
+    if (enter && c.drift < 0.3) c.ds = Math.sign(sIn) || Math.sign(c.r) || 1;      // which way the tail goes
+    const into = sIn * (c.ds || 0), hold = c.drift > 0.15 && into > 0.12 && (gas > 0.3 || hand);   // power on and steering into it
+    let want = enter ? (hand ? 1 : 0.85) : hold ? 0.8 : 0;
+    if (into < -0.35) want = 0;                                                   // opposite lock: catch it
+    c.drift += (want - c.drift) * Math.min(1, dt * (want > c.drift ? 6 : into < -0.35 ? 6 : 4));
+    if (c.drift < 0.02) c.drift = 0;
+    // heading: steering asks for a yaw rate (tighter in a drift), turned in with inertia
+    const lat = (loose ? 14 : 21) * (1 + 0.3 * c.drift);                         // arcade lateral grip, m/s²
+    const rGrip = Math.min(av / 2.6 * 0.62, lat / Math.max(av, 1));
+    let rT = (c.v >= 0 ? 1 : -1) * sIn * rGrip * (1 + 0.55 * c.drift) + assist * (1 - c.drift) + nudge * (1 - c.drift);
+    if (c.drift > 0.05) {   // hold the angle: the nose swings towards (velocity + target slip)
+      const slipT = (c.ds || 1) * c.drift * THREE.MathUtils.clamp(0.34 + 0.24 * Math.max(0, into) - 0.4 * Math.max(0, -into) + 0.1 * gas * loose, 0.05, 0.62);
+      const err = Math.atan2(Math.sin(c.phi + slipT - c.h), Math.cos(c.phi + slipT - c.h));
+      rT += err * 4.5 * c.drift;
+    }
+    const kr = c.air ? 0.4 : 7 - 2.2 * c.drift;                                     // yaw inertia: snappy gripping, heavier sliding
+    c.r += (THREE.MathUtils.clamp(rT, -2.6, 2.6) - c.r) * Math.min(1, kr * dt);
+    c.h += c.r * dt;
+    // travel direction follows the nose: quickly when gripping, slowly when sliding (the weight carries you)
+    const dPhi = Math.atan2(Math.sin(c.h - c.phi), Math.cos(c.h - c.phi));
+    const catchRate = c.air ? 0 : (loose ? 6 : 9) * (1 - c.drift) + (loose ? 1.4 : 1.9) * c.drift;
+    c.phi += dPhi * Math.min(1, catchRate * dt);
+    c.slip = Math.atan2(Math.sin(c.h - c.phi), Math.cos(c.h - c.phi));
+    if (Math.abs(c.slip) > 1.0) { c.phi = c.h - Math.sign(c.slip) * 1.0; c.slip = Math.sign(c.slip) * 1.0; }
+    if (!c.air) c.v -= Math.sign(c.v) * Math.abs(Math.sin(c.slip)) * av * 0.1 * (1 - 0.6 * gas) * dt;   // a slide scrubs a little speed, less on the throttle
+    if (c.v < 0) { c.phi = c.h; c.slip = 0; c.drift = 0; }
+    c.mvs = c.v; md = c.v >= 0 ? c.phi : c.h;
+    c.steer += (THREE.MathUtils.clamp(sIn * 0.5 - c.slip * 0.55 * c.drift, -0.6, 0.6) - c.steer) * Math.min(1, dt * 10);   // wheels: lock + counter-steer in a slide
+  }
+  // verge walls and house fronts push back gently before you touch them (narrow lanes between lava walls)
+  if (av > 4 && !c.tumble && !c.air) {
+    const sxw = -Math.sin(c.h), syw = Math.cos(c.h), fxw = Math.cos(c.h), fyw = Math.sin(c.h); let push = 0;
+    for (const sd of [1, -1]) for (const f of [0.4, 1.6]) {
+      const px = c.x + fxw * f + sxw * sd * 1.2, py = c.y + fyw * f + syw * sd * 1.2;
+      if (wallHit(px, py, 0.02) || buildingAt(px, py)) { push -= sd; break; }
+    }
+    if (push) { const k = push * 0.2 * Math.min(1, av / 12) * dt; c.h += k; md += k; if (rally) c.phi += k; }
   }
   if (c.tumble) md = c.phi;
-  const nx = c.x + Math.cos(md) * c.v * dt, ny = c.y + Math.sin(md) * c.v * dt;
+  const SP = rally && !c.tumble ? (c.mvs ?? c.v) : c.v;
+  const nx = c.x + Math.cos(md) * SP * dt, ny = c.y + Math.sin(md) * SP * dt;
   const dir = c.v >= 0 ? 1 : -1, fx = nx + Math.cos(c.h) * 1.75 * dir, fy = ny + Math.sin(c.h) * 1.75 * dir;
   const lx = -Math.sin(c.h) * 0.62, ly = Math.cos(c.h) * 0.62;
   const onQuay = (x, y) => PROM.some((P) => inPoly(P, x, y));
@@ -3105,20 +3441,22 @@ function stepCar(c, dt) {
       tx_ = -oy; ty_ = ox;
     }
     let nxn = -ty_, nyn = tx_;                                            // normal: make it point away from the obstacle (against the motion)
-    const Vx = Math.cos(md) * c.v, Vy = Math.sin(md) * c.v;
+    const Vx = Math.cos(md) * SP, Vy = Math.sin(md) * SP;
     if (Vx * nxn + Vy * nyn > 0) { nxn = -nxn; nyn = -nyn; }
     const vt = Vx * tx_ + Vy * ty_, vn = Vx * nxn + Vy * nyn;            // vn < 0: into the obstacle
-    const Wx = tx_ * vt * 0.86 - nxn * vn * 0.28, Wy = ty_ * vt * 0.86 - nyn * vn * 0.28, sp = Math.hypot(Wx, Wy);
+    const keep = Math.abs(vt) > Math.abs(vn) ? 0.95 : 0.8;                 // glancing: keep nearly all the speed along the wall
+    const Wx = tx_ * vt * keep - nxn * vn * 0.12, Wy = ty_ * vt * keep - nyn * vn * 0.12, sp = Math.hypot(Wx, Wy);
     const fwd = Wx * Math.cos(c.h) + Wy * Math.sin(c.h) >= 0 ? 1 : -1;
     c.v = sp * fwd;
-    if (sp > 0.3) { const nphi = Math.atan2(Wy * fwd, Wx * fwd); let dd = Math.atan2(Math.sin(nphi - c.h), Math.cos(nphi - c.h)); c.h += dd * (rally ? 0.35 : 0.6); c.phi = rally ? nphi : c.h; }
+    if (sp > 0.3) { const nphi = Math.atan2(Wy * fwd, Wx * fwd); let dd = Math.atan2(Math.sin(nphi - c.h), Math.cos(nphi - c.h)); if (Math.abs(dd) < 0.9) c.h += dd * 0.55; c.phi = rally ? nphi : c.h; }
+    if (rally) { c.r *= 0.3; c.drift *= 0.6; }
+    c.brv = (c.brv || 0) + THREE.MathUtils.clamp(-vn * 0.04, 0, 0.5) * (Math.random() < 0.5 ? 1 : -1); if (-vn > 5) VEH.shake = Math.min(0.4, -vn * 0.025);
     c.x += nxn * 0.04; c.y += nyn * 0.04;
-    if (-vn > 6) { vMsg(hit === 'sea' ? 'That is the sea' : hit === 'wall' ? 'Crunch — lava-stone wall' : 'Bump!'); c.drift *= 0.5; }
-    if (rally && -vn > 13 && !c.tumble && Math.abs(Math.sin(md - c.h)) > 0.5) startTumble(c, vn > 0 ? 1 : -Math.sign(Math.sin(md - c.h)));   // hit sideways, hard
+    if (-vn > 9) vMsg(hit === 'sea' ? 'That is the sea' : hit === 'wall' ? 'Crunch — lava-stone wall' : 'Bump!');
   } else { c.x = nx; c.y = ny; }
   c.wheel -= c.v * dt / 0.3;
   const GR = rally ? CAR_GEARS_R : CAR_GEARS;
-  const av = Math.abs(c.v); c.gear = c.v < -0.3 ? 'R' : av < 0.3 && drive <= 0 ? 'N' : String(GR.findIndex((g) => av < g));
+  av = Math.abs(c.v); c.gear = c.v < -0.3 ? 'R' : av < 0.3 && drive <= 0 ? 'N' : String(GR.findIndex((g) => av < g));
   { const gi = Math.max(1, +c.gear || 1), lo = GR[gi - 1], hi = Math.min(GR[gi], rally ? 58 : 42); c.rpm = c.gear === 'N' ? 900 + gas * 4000 : 1100 + 5200 * Math.min(1, (av - lo * 0.6) / Math.max(hi - lo * 0.6, 1)); }
   // ground under the car, and the vertical: follow it, or fly off a crest
   const ch2 = Math.cos(c.h), sh2 = Math.sin(c.h), sx = -sh2, sy = ch2;
@@ -3134,19 +3472,21 @@ function stepCar(c, dt) {
     else { c.vz = (c.vz || 0) + (THREE.MathUtils.clamp(vzg, -12, 12) - (c.vz || 0)) * Math.min(1, dt * 18); c.z = gz; }
   }
   if (c.air) {
-    c.vz -= 9.81 * 0.9 * dt; c.z += c.vz * dt;                        // a touch floaty, arcade-style
+    c.vz -= 9.81 * 1.3 * dt; c.z += c.vz * dt;                        // heavy: it comes down, it doesn't drift down
     c.pitchA -= 0.35 * dt; c.rollA *= 1 - 1.5 * dt;
     if (c.z <= gz) {
       const impact = -c.vz; c.z = gz; c.air = false; c.vz = 0;
       if (impact > 6) { vMsg(impact > 11 ? 'Big landing!' : 'Landed'); c.v *= impact > 11 ? 0.8 : 0.93; }
-      if (rally && impact > 9 && Math.abs(c.slip || 0) > 0.75 && !c.tumble) startTumble(c, -Math.sign(c.slip));
-      c.land = Math.min(0.12, impact * 0.012);                        // suspension squat
+      if (rally && impact > 9 && Math.abs(c.slip || 0) > 0.75 && !c.tumble) startTumble(c, -Math.sign(c.slip), 'landing');
+      c.bzv = (c.bzv || 0) - Math.min(3.5, impact * 0.35); c.bpv = (c.bpv || 0) - Math.min(1.2, impact * 0.08);   // suspension takes the hit
+      if (impact > 3) { c.markT = 0.18; VEH.shake = Math.min(0.6, impact * 0.05); for (let k = 0; k < Math.min(30, impact * 3); k++) dustAt(c.x + (Math.random() - 0.5) * 3, c.y + (Math.random() - 0.5) * 3, gz + 0.1, c.surface !== 'asphalt', 0, 0); }
     }
   }
   // rolling over when pushed too far: big slide off the tarmac, or a steep side slope at speed
   if (rally && !c.tumble && !c.air) {
     const side = av * Math.abs(Math.sin(c.slip || 0));
-    if ((c.surface === 'off road' && side > 24 && Math.abs(c.slip) > 1.0) || (Math.abs(rollG) > 0.5 && av > 10)) startTumble(c, Math.abs(rollG) > 0.5 ? -Math.sign(rollG) : -Math.sign(c.slip));
+    c.slopeT = Math.abs(rollG) > 0.6 && av > 10 ? (c.slopeT || 0) + dt : 0;
+    if ((c.surface === 'off road' && side > 24 && Math.abs(c.slip) > 1.0) || c.slopeT > 0.3) startTumble(c, c.slopeT > 0.3 ? -Math.sign(rollG) : -Math.sign(c.slip), c.slopeT > 0.3 ? 'slope' : 'slide');
   }
   let rollT = 0, liftT = 0;
   if (c.tumble) {
@@ -3158,20 +3498,100 @@ function stepCar(c, dt) {
   c.pitchP = c.air ? c.pitchA : pitchG; c.rollP = c.air ? c.rollA : rollG;
   c.land = Math.max(0, (c.land || 0) - dt * 0.6);
   const g = c.group;
-  g.position.set(c.x, c.z + liftT - (c.land || 0), -c.y);
-  const lean = rally ? -(c.slip || 0) * 0.08 - c.steer * Math.min(1, av / 25) * 0.05 : 0;   // rally: body leans out of the slide
-  g.rotation.set((c.air ? c.rollA : rollG) + lean + rollT, c.h, (c.air ? c.pitchA : pitchG) - (c.land || 0) * 0.6, 'YZX');
-  for (const w of c.wheels) w.rotation.z = c.wheel;
+  g.position.set(c.x, c.z + liftT, -c.y);
+  g.rotation.set((c.air ? c.rollA : rollG) + rollT, c.h, (c.air ? c.pitchA : pitchG), 'YZX');
+  // sprung body: squats when you floor it, dives under braking, leans out of corners and slides, bounces on landings
+  const axl = (c.v - (c.vPrev ?? c.v)) / dt; c.vPrev = c.v;
+  const ayl = rally ? c.v * (c.r || 0) : c.v * c.v / 2.2 * Math.tan(c.steer);
+  const pT = c.air ? 0.04 : THREE.MathUtils.clamp(axl * 0.0075, -0.075, 0.06), rT2 = c.air ? 0 : THREE.MathUtils.clamp(ayl * 0.0062 + (rally ? -(c.slip || 0) * 0.02 : 0), -0.1, 0.1);
+  c.bp = c.bp || 0; c.bpv = c.bpv || 0; c.br = c.br || 0; c.brv = c.brv || 0; c.bz = c.bz || 0; c.bzv = c.bzv || 0;
+  c.bpv += (95 * (pT - c.bp) - 11 * c.bpv) * dt; c.bp += c.bpv * dt;
+  c.brv += (85 * (rT2 - c.br) - 10 * c.brv) * dt; c.br += c.brv * dt;
+  c.bzv += (140 * ((c.air ? 0.06 : 0) - c.bz) - 13 * c.bzv) * dt; c.bz += c.bzv * dt;
+  if (c.body) { c.body.rotation.set(c.br, 0, c.bp, 'YZX'); c.body.position.y = 0.55 + c.bz; }
+  // wheels: steer, spin (spokes; a blur disc at speed), wheelspin when you floor it from low speed, droop in the air
+  const spin = rally && !c.air && !c.tumble && gas > 0.85 && av < 9 && drive > 0;
+  const om = (c.air ? (c.omAir ?? c.v / 0.31) : c.v / 0.31) + (spin ? 45 : 0); if (!c.air) c.omAir = om;
+  c.wheelVis = (c.wheelVis || 0) - THREE.MathUtils.clamp(om, -38, 38) * dt;
+  for (const w of c.wheels) { w.rotation.z = c.wheelVis; w.parent.position.y = 0.31 - (c.air ? 0.07 : 0); }
   for (const p of c.pivots) p.rotation.y = c.steer;
-  // skid marks: rear wheels when sliding, handbraking or braking hard
-  const mark = !c.air && !c.tumble && av > 3 && ((rally && Math.abs(c.slip || 0) > 0.16) || (hand && av > 4) || brake > 0.7 && av > 7 || (c.surface !== 'asphalt' && Math.abs(c.slip || 0) > 0.1));
+  if (c.blur) c.blur.opacity = THREE.MathUtils.clamp((Math.abs(om) - 14) / 30, 0, 0.75);
+  // skid marks + dust: sliding, handbrake, hard braking, wheelspin, and for a moment after a landing
+  c.markT = Math.max(0, (c.markT || 0) - dt);
+  const slide = rally && Math.abs(c.slip || 0) > 0.14 && av > 4;
+  const mark = !c.air && !c.tumble && (c.markT > 0 || spin || (av > 3 && (slide || (hand && av > 4) || brake > 0.7 && av > 7 || (c.surface !== 'asphalt' && Math.abs(c.slip || 0) > 0.1))));
+  const dirt = c.surface !== 'asphalt' && c.surface !== 'cement';
   for (const [k, side] of [[0, 1], [1, -1]]) {
-    const wx = c.x - ch2 * 1.15 + sx * 0.66 * side, wy = c.y - sh2 * 1.15 + sy * 0.66 * side;
-    skidAt(c, k, mark, wx, wy, carZ(wx, wy) + 0.035, c.surface !== 'asphalt' && c.surface !== 'cement');
+    const wx = c.x - ch2 * 1.15 + sx * 0.66 * side, wy = c.y - sh2 * 1.15 + sy * 0.66 * side, wz = carZ(wx, wy);
+    skidAt(c, k, mark, wx, wy, wz + 0.035, dirt);
+    if (mark && Math.random() < dt * (dirt ? 60 : 16) * (spin || c.markT > 0 ? 1.4 : Math.min(1, Math.abs(c.slip || 0) * 2.5 + (hand ? 0.5 : 0)))) dustAt(wx, wy, wz + 0.15, dirt, -Math.cos(md) * SP * 0.15, -Math.sin(md) * SP * 0.15);
   }
 }
-function startTumble(c, dir) {
+function addWheelBlur(pivs, r) {   // translucent discs over the wheels, faded in with wheel speed (one material per car)
+  const mat = new THREE.MeshBasicMaterial({ color: 0x55534f, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+  const geo = new THREE.CircleGeometry(r * 0.78, 20);
+  for (const p of pivs) for (const zz of [-0.115, 0.115]) { const m = new THREE.Mesh(geo, mat); m.position.z = zz; p.add(m); FX.push(m); }
+  return mat;
+}
+// dust / tyre smoke: one Points cloud, soft round sprites that grow and fade (sand off the tarmac, brown dust off the dirt)
+const DUST = { n: 500, i: 0, pts: null, life: null, vel: null };
+function dustInit() {
+  const N = DUST.n, g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 3), 3).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('a', new THREE.BufferAttribute(new Float32Array(N * 3), 3).setUsage(THREE.DynamicDrawUsage));   // age, life, kind
+  const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false,
+    uniforms: { scale: { value: 600 } },
+    vertexShader: `attribute vec3 a; varying float vA; varying float vK; uniform float scale;
+      void main() { float t = a.x / max(a.y, 0.01); vA = (a.y > 0.0 && t < 1.0) ? (1.0 - t) * (1.0 - t) * smoothstep(0.0, 0.08, t) : 0.0; vK = a.z;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = (0.5 + 1.9 * t) * scale / -mv.z; }`,
+    fragmentShader: `varying float vA; varying float vK;
+      void main() { vec2 q = gl_PointCoord - 0.5; float r = dot(q, q) * 4.0; if (r > 1.0 || vA <= 0.0) discard;
+        vec3 c = vK > 0.5 ? vec3(0.62, 0.53, 0.40) : vec3(0.86, 0.84, 0.80);
+        gl_FragColor = vec4(c, vA * (1.0 - r) * (vK > 0.5 ? 0.5 : 0.22)); }` });
+  DUST.pts = new THREE.Points(g, m); DUST.pts.frustumCulled = false; DUST.pts.renderOrder = 3; scene.add(DUST.pts); FX.push(DUST.pts);
+  DUST.vel = new Float32Array(N * 3);
+}
+function dustAt(x, y, z, dirt, vx, vy) {
+  if (!DUST.pts) dustInit();
+  const i = DUST.i++ % DUST.n, P = DUST.pts.geometry.attributes.position, A = DUST.pts.geometry.attributes.a;
+  P.setXYZ(i, x + (Math.random() - 0.5) * 0.4, z, -(y + (Math.random() - 0.5) * 0.4));
+  A.setXYZ(i, 0, (dirt ? 1.6 : 0.9) * (0.7 + Math.random() * 0.6), dirt ? 1 : 0);
+  DUST.vel.set([vx + (Math.random() - 0.5) * 1.2, 0.5 + Math.random() * 0.9, -(vy + (Math.random() - 0.5) * 1.2)], i * 3);
+}
+function updateFx(dt) {
+  if (DUST.pts) {
+    const P = DUST.pts.geometry.attributes.position, A = DUST.pts.geometry.attributes.a, V = DUST.vel;
+    for (let i = 0; i < DUST.n; i++) { if (A.getY(i) <= 0) continue; const age = A.getX(i) + dt; A.setX(i, age); if (age > A.getY(i)) { A.setY(i, 0); continue; }
+      V[i * 3] *= 1 - 1.8 * dt; V[i * 3 + 2] *= 1 - 1.8 * dt; V[i * 3 + 1] *= 1 - 1.2 * dt;
+      P.setXYZ(i, P.getX(i) + V[i * 3] * dt, P.getY(i) + V[i * 3 + 1] * dt, P.getZ(i) + V[i * 3 + 2] * dt); }
+    P.needsUpdate = true; A.needsUpdate = true;
+    DUST.pts.material.uniforms.scale.value = renderer.domElement.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
+  }
+  // skid marks fade away (half-life ~12 s): temporary, like rubber dust on a sandy road
+  if (SKID.mesh && (SKID.fadeT = (SKID.fadeT || 0) + dt) > 0.25) {
+    const C = SKID.mesh.geometry.attributes.color, n = Math.min(SKID.n, SKID.max) * 4;
+    for (let i = 0; i < n; i++) C.array[i * 4 + 3] *= Math.pow(0.985, SKID.fadeT / 0.25);
+    C.needsUpdate = true; SKID.fadeT = 0;
+  }
+  // blob shadow under the car: sits on the ground, shrinks and fades as the car flies
+  const c = VEH.car;
+  if (VEH.mode === 'car' && c) {
+    if (!VEH.blob) {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'), gr = x.createRadialGradient(32, 32, 4, 32, 32, 32);
+      gr.addColorStop(0, 'rgba(0,0,0,0.55)'); gr.addColorStop(0.6, 'rgba(0,0,0,0.35)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+      VEH.blob = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+      VEH.blob.renderOrder = 1; scene.add(VEH.blob); FX.push(VEH.blob);
+    }
+    const gz = carZ(c.x, c.y), hgt = Math.max(0, c.z - gz - 0.06), k = 1 / (1 + hgt * 0.25);
+    VEH.blob.visible = true; VEH.blob.position.set(c.x, gz + 0.05, -c.y); VEH.blob.rotation.y = c.h;
+    VEH.blob.scale.set((c.type === 'rally' ? 5.2 : 4.0) * (1 + hgt * 0.08), 1, (c.type === 'rally' ? 2.4 : 2.1) * (1 + hgt * 0.08)); VEH.blob.material.opacity = k;
+  } else if (VEH.blob) VEH.blob.visible = false;
+}
+const FX = [];   // transparent effects kept out of the normal/outline pass
+const NOOUT = new Set();   // small props drawn without ink (pruned when their tile leaves the scene)
+function startTumble(c, dir, why = '') {
   if (Math.abs(c.v) < 7) return;
+  c.tumbleWhy = why;
   c.tumble = { t: 0, dur: 1.5 + Math.min(0.8, Math.abs(c.v) / 40), n: Math.abs(c.v) > 24 ? 2 : 1, dir: dir || 1, lift: 1.1 + Math.min(1.6, Math.abs(c.v) / 18) };
   c.air = false; vMsg('Whoa —');
 }
@@ -3184,7 +3604,7 @@ function skidInit() {
   const idx = new Uint32Array(M * 6); for (let i = 0; i < M; i++) idx.set([i * 4, i * 4 + 1, i * 4 + 2, i * 4, i * 4 + 2, i * 4 + 3], i * 6);
   g.setIndex(new THREE.BufferAttribute(idx, 1)); g.setDrawRange(0, 0);
   const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
-  m.frustumCulled = false; m.renderOrder = 2; scene.add(m); SKID.mesh = m;
+  m.frustumCulled = false; m.renderOrder = 2; scene.add(m); SKID.mesh = m; FX.push(m);
 }
 function skidAt(c, k, on, x, y, z, dirt) {
   if (!on) { SKID.last[k] = null; return; }
@@ -3279,7 +3699,7 @@ addEventListener('gamepadconnected', () => kick());
 
 // ---- camera ----
 function vehCamera(dt, focus, psi, quat, eye, kind) {
-  const near = VEH.cam === 'cockpit' ? (kind === 'car' ? 0.2 : 0.35) : 0.5, fov = VEH.cam === 'cockpit' ? 62 : VEH.fov0;
+  const near = VEH.cam === 'cockpit' ? (kind === 'car' ? 0.2 : 0.35) : 0.5, fov = VEH.cam === 'cockpit' ? 62 : Math.round((VEH.fov0 + (kind === 'car' ? VEH.fovAdd || 0 : 0)) * 4) / 4;
   if (camera.near !== near || camera.fov !== fov) { camera.near = near; camera.fov = fov; camera.updateProjectionMatrix(); }
   if (VEH.cam === 'cockpit') {
     camera.position.copy(eye);
@@ -3292,6 +3712,7 @@ function vehCamera(dt, focus, psi, quat, eye, kind) {
   const gy = groundAt(_vv.x, -_vv.z) + 1.2; if (_vv.y < gy) _vv.y = gy;
   if (VEH.cam === 'follow' && VEH.snap !== true) camera.position.lerp(_vv, 1 - Math.exp(-dt * (kind === 'car' ? 7 : 4)));
   else camera.position.copy(_vv);
+  if (VEH.shake > 0.01) { camera.position.x += (Math.random() - 0.5) * VEH.shake; camera.position.y += (Math.random() - 0.5) * VEH.shake; VEH.shake *= Math.exp(-dt * 7); }
   VEH.snap = false;
   _vw.copy(focus); _vw.y += kind === 'car' ? 1.2 : 1.6;
   camera.up.copy(Y_UP); camera.lookAt(_vw);
@@ -3303,7 +3724,14 @@ function updateVehicle(dt) {
   let o, psi, kind = VEH.mode;
   const sim = dt;
   const n = Math.ceil(sim / 0.02), h = sim / n;              // fixed-ish substeps: same physics at any frame rate
-  if (kind === 'car') { for (let i = 0; i < n; i++) stepCar(VEH.car, h); o = VEH.car.group; psi = VEH.car.h; _eye.set(-0.3, 1.25, -0.33); }
+  if (kind === 'car') {
+    for (let i = 0; i < n; i++) stepCar(VEH.car, h); const c = VEH.car; o = c.group; _eye.set(-0.3, 1.25, -0.33);
+    // chase cam: swings round behind the car with a little lag, looking between where it points and where it goes
+    const tgt = Math.abs(c.v) > 3 ? c.h - (c.slip || 0) * 0.45 : c.h;
+    if (VEH.camPsi === undefined || VEH.snap) VEH.camPsi = tgt;
+    VEH.camPsi += Math.atan2(Math.sin(tgt - VEH.camPsi), Math.cos(tgt - VEH.camPsi)) * (1 - Math.exp(-dt * 4.5));
+    psi = VEH.camPsi; VEH.fovAdd = Math.min(9, Math.abs(c.v) * 0.17);
+  }
   else { for (let i = 0; i < n; i++) stepPlane(VEH.plane, h); o = VEH.plane.group; psi = VEH.plane.s.psi; _eye.set(0.75, 1.7, -0.26); }
   if (VEH.pad.lookX || VEH.pad.lookY) {                     // right stick looks around
     const lx = VEH.pad.lookX * dt * 2.2, ly = VEH.pad.lookY * dt * 1.6;
@@ -3492,6 +3920,7 @@ function render(now) {
   const dtk = Math.min(0.25, (now - (render.last || now)) / 1000); render.last = now;
   if (VEH.mode === 'map') { keyMove(dtk); stepAnim(now); controls.update(); clampCamera(); }
   else { updateVehicle(dtk); kick(); }
+  updateFx(dtk);
   updateTerrainLOD();
   updateCulling();
   updateDetail();
@@ -3502,11 +3931,13 @@ function render(now) {
   if (fitShadow() || shadowDirty) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
   if (STYLE.cel && post.color) {
     // pass 1: normals + depth
-    if (SKID.mesh) SKID.mesh.visible = false;
+    for (const o of NOOUT) { let p = o; while (p.parent) p = p.parent; if (p !== scene) NOOUT.delete(o); }
+    const fxv = FX.map((o) => o.visible); FX.forEach((o) => { o.visible = false; });
+    const nov = [...NOOUT].map((o) => o.visible); NOOUT.forEach((o) => { o.visible = false; });
     const bg = scene.background; scene.overrideMaterial = post.nmat;
     sky.visible = false; if (sea) sea.visible = true;
     renderer.setRenderTarget(post.nrm); renderer.setClearColor(0x8080ff, 1); renderer.clear(); renderer.render(scene, camera);
-    scene.overrideMaterial = null; sky.visible = true; if (SKID.mesh) SKID.mesh.visible = true;
+    scene.overrideMaterial = null; sky.visible = true; FX.forEach((o, i) => { o.visible = fxv[i]; }); { let i = 0; for (const o of NOOUT) o.visible = nov[i++]; }
     // pass 2: colour
     renderer.setRenderTarget(post.color); renderer.render(scene, camera);
     renderer.setRenderTarget(null);
@@ -3529,9 +3960,11 @@ async function boot() {
     X1 = X0 + (NX - 1) * CELL; Y1 = Y0 + (NY - 1) * CELL;
     const hb = new Uint16Array(await bin(MEDIA + 'height.bin'));
     HGT = new Float32Array(hb.length); for (let k = 0; k < hb.length; k++) HGT[k] = hb[k] / 50 - 50;
+    for (const nm of META.sites || []) { try { await loadSite(nm); } catch (e) { console.warn('site', nm, e); } }
     step('colours');
     const [colorTex, coastTex] = await Promise.all([loadTex(MEDIA + 'terrain.webp'), loadTex(MEDIA + 'coast.png')]);
     buildTerrain(colorTex); buildSea(coastTex);
+    if (META.coastAtlas) setupCoastAtlas(META.coastAtlas);
     if (META.coastDetail) loadTex(MEDIA + 'coast_detail.webp').then((t) => { t.colorSpace = THREE.SRGBColorSpace; t.flipY = false; t.anisotropy = 4; COAST_DETAIL.u.value = t; shadowDirty = true; }).catch(() => {}); step('roads & buildings');
     const gl = new GLTFLoader(); gl.setMeshoptDecoder(MeshoptDecoder);
     const gltf = await new Promise((res, rej) => gl.load(MEDIA + 'island.glb', res, undefined, rej));
@@ -3540,6 +3973,8 @@ async function boot() {
     parseDetail(await bin(MEDIA + 'detail.bin')); hookFarTrees(); hookFarRoads();
     try { parseBld(await bin(MEDIA + 'bld.bin')); hookFarBuildings(); } catch (e) { console.warn('bld', e); } step('town');
     try { buildTown(await (await fetch(MEDIA + 'town.json')).json()); } catch (e) { console.warn('town', e); }
+    try { buildLandmarks(); } catch (e) { console.warn('landmarks', e); }
+    for (const S of SITES) { try { await buildSite(S); } catch (e) { console.warn('site mesh', S.name, e); } }
     step('names');
     buildLabels(); buildRoadLabels();
     setupPost();
@@ -3556,7 +3991,7 @@ async function boot() {
 }
 boot();
 
-window.__pan = { SKID, carZ, BLD, VEH, vSim, nearestRoad, setMode, setCam, spawnPlane, DETAIL, heightCubic, chunkGeometry: (c, L) => chunkGeometry(c, L), THREE, scene, camera, controls, renderer, chunks, culled, setView, getView, orbitTo, updateSun, setStyle, heightAt, toLatLon, fromLatLon, b2t, STYLE,
+window.__pan = { roads2: () => ROADS2, SKID, carZ, BLD, VEH, vSim, nearestRoad, setMode, setCam, spawnPlane, DETAIL, heightCubic, chunkGeometry: (c, L) => chunkGeometry(c, L), THREE, scene, camera, controls, renderer, chunks, culled, setView, getView, orbitTo, updateSun, setStyle, heightAt, toLatLon, fromLatLon, b2t, STYLE,
   perf: () => ({ ms: ftimes.reduce((a, b) => a + b, 0) / Math.max(1, ftimes.length), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, pr: renderer.getPixelRatio() }) };
 </script>
 

@@ -185,6 +185,8 @@ for e in LE:
         if p is not None: bays[nm] = p
 harbour = unary_union(list(bays.values())).difference(land)
 print('harbour water m2', round(harbour.area))
+from shapely.geometry import mapping as _mp
+json.dump(_mp(harbour), open('prep/harbour.json', 'w'))
 pontoons = []
 for e in LE:
     t = e['tags']
