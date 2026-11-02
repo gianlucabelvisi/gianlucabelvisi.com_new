@@ -243,7 +243,7 @@ function heightAt(x, y) {
 }
 // hand-detailed coast sites (sites/*.py): 0.5 m heightfields that replace the ground where they are defined
 const SITES = [];
-const SITE_CLEAR = [[-3241, 5922, -3208, 5952]];   // no rural walls through Cicci's tables (Bue Marino)
+const SITE_CLEAR = [[-3292, 5929, -3185, 5990], [-3292, 5915, -3272, 5932], [-470, 3690, -95, 3872], [-600, 3240, -400, 3720], [-175, 3600, -60, 3760]];   // Cicci's; the descent to the lake (Street View: no field walls on the crater wall)   // Cicci's (Bue Marino): no rural walls on the gravel; the gap in the road wall is the way in
 function siteH(x, y) {
   for (const S of SITES) {
     const fx = (x - S.x0) / S.res - 0.5, fy = (y - S.y0) / S.res - 0.5;
@@ -1067,6 +1067,22 @@ function inTown(x, y) {
   return c;
 }
 // walls along both sides of rural roads (most lanes on the island run between lava-stone walls), with gate gaps
+// Perimetrale, town -> Campobello (Street View survey 2026-11-02, every 200 m, driving east): where the road really has a
+// lava wall on its left (sea) / right side. Samples [x, y, left, right]; the route is the road's line every ~25 m.
+const PERIM = { route: [[-4071,5474],[-4044,5470],[-4017,5464],[-3989,5458],[-3959,5453],[-3932,5455],[-3905,5463],[-3882,5474],[-3862,5495],[-3849,5522],[-3854,5549],[-3854,5575],[-3846,5600],[-3836,5627],[-3826,5654],[-3816,5677],[-3800,5697],[-3777,5715],[-3755,5733],[-3732,5751],[-3710,5769],[-3687,5787],[-3663,5803],[-3639,5812],[-3611,5821],[-3584,5830],[-3557,5839],[-3533,5847],[-3506,5857],[-3479,5866],[-3452,5875],[-3426,5884],[-3399,5893],[-3372,5901],[-3347,5908],[-3320,5916],[-3291,5919],[-3266,5920],[-3238,5917],[-3213,5906],[-3189,5894],[-3166,5881],[-3143,5870],[-3120,5858],[-3095,5846],[-3068,5837],[-3042,5836],[-3013,5838],[-2987,5839],[-2959,5841],[-2930,5842],[-2902,5843],[-2873,5844],[-2847,5839],[-2822,5829],[-2795,5819],[-2770,5815],[-2744,5817],[-2716,5820],[-2687,5823],[-2660,5825],[-2634,5827],[-2607,5829],[-2582,5831],[-2554,5831],[-2529,5823],[-2501,5815],[-2473,5806],[-2448,5798],[-2421,5788],[-2394,5779],[-2367,5770],[-2340,5761],[-2312,5752],[-2285,5743],[-2258,5734],[-2232,5725],[-2208,5717],[-2184,5708],[-2156,5701],[-2130,5702],[-2104,5707],[-2078,5708],[-2052,5708],[-2027,5705],[-2003,5695],[-1980,5679],[-1963,5660],[-1945,5638],[-1928,5615],[-1914,5590],[-1901,5565],[-1886,5541],[-1864,5522],[-1842,5505],[-1820,5488],[-1797,5470],[-1776,5455],[-1753,5438],[-1730,5422],[-1710,5400],[-1703,5375],[-1692,5351],[-1667,5338],[-1641,5328],[-1614,5319],[-1588,5309],[-1562,5299],[-1536,5289],[-1512,5276],[-1490,5261],[-1469,5247],[-1448,5234],[-1426,5220],[-1405,5207],[-1381,5191],[-1358,5172],[-1339,5155],[-1321,5135],[-1305,5111],[-1289,5087],[-1273,5064],[-1258,5041],[-1245,5020],[-1232,4995],[-1227,4971],[-1223,4945],[-1222,4915],[-1225,4887],[-1229,4858],[-1232,4829],[-1231,4800],[-1226,4772],[-1220,4744],[-1212,4716],[-1202,4692],[-1185,4672],[-1166,4652],[-1147,4631],[-1128,4610]], sv: [[-4071,5474,0,0],[-3879,5477,0,0],[-3823,5660,0,1],[-3678,5794,0,1],[-3490,5862,0,1],[-3299,5918,1,0],[-3114,5855,1,1],[-2918,5843,0,1],[-2723,5819,0,0],[-2525,5822,1,1],[-2335,5760,0,0],[-2145,5701,1,0],[-1962,5659,1,1],[-1840,5503,1,1],[-1702,5368,1,0],[-1526,5284,1,1],[-1359,5173,1,1],[-1241,5013,0,1],[-1233,4817,1,1],[-1155,4640,1,1]] };
+function perimAt(x, y) {   // -> { d: distance to the route, lx, ly: unit left normal, k: nearest sample } or null
+  if (x < -4200 || x > -1050 || y < 4500 || y > 6100) return null;
+  const R = PERIM.route; let best = null, bd = 1e9;
+  for (let i = 0; i < R.length - 1; i++) {
+    const ax = R[i][0], ay = R[i][1], dx = R[i + 1][0] - ax, dy = R[i + 1][1] - ay;
+    if (Math.abs(x - ax) > 60 && Math.abs(x - ax - dx) > 60) continue;
+    const L2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)), d = Math.hypot(x - ax - dx * t, y - ay - dy * t);
+    if (d < bd) { bd = d; const L = Math.sqrt(L2); best = { d, lx: -dy / L, ly: dx / L, px: ax + dx * t, py: ay + dy * t }; }
+  }
+  if (!best || bd > 25) return null;
+  let k = 0, kd = 1e9; PERIM.sv.forEach((s, i) => { const e = Math.hypot(s[0] - best.px, s[1] - best.py); if (e < kd) { kd = e; k = i; } });
+  best.k = kd < 130 ? k : -1; return best;
+}
 function roadsideWalls(tx, ty, segs) {
   const list = roadIdx.get(tx + ',' + ty); if (!list) return;
   const vn = (P, i, n) => {   // unit normal at vertex i (average of the adjacent segments), for joints without gaps
@@ -1074,10 +1090,10 @@ function roadsideWalls(tx, ty, segs) {
     let dx = P[c * 3] - P[a * 3], dy = P[c * 3 + 1] - P[a * 3 + 1]; const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
     return [-dy, dx];
   };
-  const crossing = (x, y, self) => {   // another road within reach (junction, drive): leave the wall open
+  const crossing = (x, y, self, maxTier = 3) => {   // another road within reach (junction, drive): leave the wall open
     const L = roadIdx.get(tkey(x, y)); if (!L) return false;
     for (let k = 0; k < L.length; k += 2) {
-      const r = ROADS2[L[k]]; if (r === self || r.tier === 3 && r.w < 1.2) continue; const i = L[k + 1], P = r.pts;
+      const r = ROADS2[L[k]]; if (r === self || r.tier > maxTier || r.tier === 3 && r.w < 1.2) continue; const i = L[k + 1], P = r.pts;
       const ax = P[i * 3], ay = P[i * 3 + 1], dx = P[i * 3 + 3] - ax, dy = P[i * 3 + 4] - ay;
       const t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1e-6)));
       if (Math.hypot(x - ax - dx * t, y - ay - dy * t) < r.w / 2 + 1.6) return true;
@@ -1093,11 +1109,20 @@ function roadsideWalls(tx, ty, segs) {
     for (const sgn of [1, -1]) {
       const pa = [ax + na[0] * off * sgn, ay + na[1] * off * sgn], pb = [bx + nb[0] * off * sgn, by + nb[1] * off * sgn];
       const mx = (pa[0] + pb[0]) / 2, my = (pa[1] + pb[1]) / 2;
+      const pm = r.tier === 0 ? perimAt((ax + bx) / 2, (ay + by) / 2) : null;
+      if (pm && pm.d < 4 && pm.k >= 0) {   // surveyed (Street View): a wall exactly where there is one, town edge included
+        const left = na[0] * sgn * pm.lx + na[1] * sgn * pm.ly > 0;
+        if (!PERIM.sv[pm.k][left ? 2 : 3]) continue;
+        if (crossing(mx, my, r, 1) || crossing(pa[0], pa[1], r, 1) || crossing(pb[0], pb[1], r, 1)) continue;   // junctions and drives, not the footpath alongside
+        if (buildingAt(mx + na[0] * 1.5 * sgn, my + na[1] * 1.5 * sgn) || buildingAt(mx, my)) continue;
+        segs.push(pa[0], pa[1], pb[0], pb[1], 0.97, 0.6); continue;
+      }
       const cl = clsAt(mx, my); if (cl === 1 || cl === 0 || cl === 6) continue;          // town / sea / woods: no walls
       // survey (Street View): leaving town the sea side is open (pavement, low ground); from Bue Marino on there is a wall
       if (r.tier === 0 && mx < -3290 && my > 5600 && [25, 60, 120].some((d) => clsAt(mx + na[0] * d * sgn, my + na[1] * d * sgn) === 0)) continue;
       if (crossing(mx, my, r) || crossing(pa[0], pa[1], r) || crossing(pb[0], pb[1], r)) continue;
       if (buildingAt(mx + na[0] * 1.5 * sgn, my + na[1] * 1.5 * sgn) || buildingAt(mx, my)) continue;
+      if (vnoise(mx / 70 + sgn * 13.7, my / 70 - sgn * 5.1) < 0.4) continue;   // elsewhere: walls come in runs, with long open stretches
       segs.push(pa[0], pa[1], pb[0], pb[1], 0.95, 0.6);
     }
   }
@@ -1189,11 +1214,16 @@ function buildDetailTile(tx, ty) {
   }
   homeWallSegs(tx, ty, segs);
   terraceSegs(x0, y0, segs);
+  for (let i = segs.length - 6; i >= 0; i -= 6) {   // along the surveyed Perimetrale only the surveyed roadside walls
+    const pm = perimAt((segs[i] + segs[i + 2]) / 2, (segs[i + 1] + segs[i + 3]) / 2);
+    if (pm && pm.k >= 0 && pm.d < 9) segs.splice(i, 6);
+  }
   roadsideWalls(tx, ty, segs);
   clipWallsOffRoads(tx, ty, segs);
   // town: no rural dry-stone walls in it or within ~150 m of it, and never along the harbour (the Lungomare is a promenade)
   const nearTown = (x, y) => TOWNZ && [[0, 0], [150, 0], [-150, 0], [0, 150], [0, -150], [106, 106], [-106, -106], [106, -106], [-106, 106]].some(([a, c]) => inTown(x + a, y + c));
   for (let i = segs.length - 6; i >= 0; i -= 6) { const mx = (segs[i] + segs[i + 2]) / 2, my = (segs[i + 1] + segs[i + 3]) / 2;
+    if (segs[i + 4] === 0.97) { if (SITE_CLEAR.some((r) => mx > r[0] && mx < r[2] && my > r[1] && my < r[3])) segs.splice(i, 6); continue; }   // surveyed Perimetrale walls stay
     if (nearTown(mx, my) || PROM.some((P) => inPoly(P, mx, my)) || SITE_CLEAR.some((r) => mx > r[0] && mx < r[2] && my > r[1] && my < r[3])) segs.splice(i, 6); }
   // every wall drawn here is also solid for the car (and nothing else is)
   g.userData.walls = new Float32Array(segs);          // for the car: walls are solid
@@ -2340,6 +2370,19 @@ async function buildSite(S) {
   });
   im.userData.mats = MAT.Stone; im.castShadow = true; im.receiveShadow = true; im.computeBoundingSphere(); TOWN.group.add(im);
   if (S.name === 'bue') cicci(J);
+  if (J.walls && J.walls.length) {   // surveyed walls of the site (drawn like the rural ones, and solid)
+    const ws = []; for (const w of J.walls) ws.push(...w);
+    const wb = wallGeometry(ws, null), wm = wb && finishTB(wb, MAT.Town); if (wm) { wm.castShadow = false; TOWN.group.add(wm); }
+    TOWN.solid = TOWN.solid ? new Float32Array([...TOWN.solid, ...ws]) : new Float32Array(ws);
+  }
+  if (J.blocks && J.blocks.length) {   // concrete guard blocks
+    const bg = colorize(boxG(1.6, 0.55, 0.45, 0, 0.27, 0), '#b9b5ac'), im2 = new THREE.InstancedMesh(bg, MAT.Stone.cel, J.blocks.length), sol = [];
+    const q2 = new THREE.Quaternion(), M2 = new THREE.Matrix4(), one = new THREE.Vector3(1, 1, 1);
+    J.blocks.forEach(([x, y, z, a], k) => { q2.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a); im2.setMatrixAt(k, M2.compose(b2t(x, y, heightCubic(x, y) - 0.05), q2, one));
+      sol.push(x - Math.cos(a) * 0.8, y - Math.sin(a) * 0.8, x + Math.cos(a) * 0.8, y + Math.sin(a) * 0.8, 0.55, 0.45); });
+    im2.userData.mats = MAT.Stone; im2.castShadow = true; im2.receiveShadow = true; im2.computeBoundingSphere(); TOWN.group.add(im2);
+    TOWN.solid = TOWN.solid ? new Float32Array([...TOWN.solid, ...sol]) : new Float32Array(sol);
+  }
   styleMeshes(TOWN.group); shadowDirty = true;
 }
 // Cicci's Bistrot, Bue Marino (Google Maps photos, Esri roof): a pale-yellow prefab cabin with white shutters under a low
@@ -2393,16 +2436,37 @@ function cicci() {
   for (let k = 0; k <= 8; k++) { const n = -14 + k * 2.6; cyl(0.32, 0.6, -10.5, n, 0, GREY, 7); if (k < 8) box(0.12, 2.6, 0.12, -10.5, n + 1.3, 0.55, k % 2 ? WHT : '#b8342a'); }
   // lounge: palm-leaf parasol, tyre seats, green chairs, a few cycads
   { const e = 11.5, n = -5; cyl(0.07, 2.4, e, n, 0, '#6a5640', 5);
-    for (let k = 0; k < 14; k++) { const a = k / 14 * Math.PI * 2; parts.push(colorize(new THREE.ConeGeometry(0.2, 1.9, 3).rotateZ(Math.PI / 2 + 0.75).translate(0.85, 2.05, 0).rotateY(a).translate(e, 0, -n), k % 2 ? '#b19a6c' : '#9c8558')); }
+    for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, dr = 0.45 + (k % 2) * 0.2; parts.push(colorize(new THREE.ConeGeometry(0.24, 1.9, 3).rotateZ(-Math.PI / 2 - dr).translate(Math.cos(dr) * 0.95, 2.35 - Math.sin(dr) * 0.95, 0).rotateY(a).translate(e, 0, -n), k % 2 ? '#b19a6c' : '#9c8558')); }
     for (const [de, dn] of [[-1.6, -1.8], [0, -2.2], [1.6, -1.6], [-2.2, 0.2]]) { cyl(0.36, 0.42, e + de, n + dn, 0, '#e2e2dc', 10); cyl(0.37, 0.05, e + de, n + dn, 0.42, '#a87c55', 10); }
     for (const [de, dn] of [[-0.6, 0.8], [0.6, 0.9], [0.1, -0.7]]) { box(0.5, 0.5, 0.05, e + de, n + dn, 0.42, '#8fcf3a'); box(0.5, 0.05, 0.5, e + de, n + dn + 0.25, 0.47, '#8fcf3a'); }
     for (const [de, dn] of [[3, 2], [-4, 3], [4.5, -3]]) for (let k = 0; k < 6; k++) parts.push(colorize(new THREE.ConeGeometry(0.06, 0.8, 3).rotateZ(Math.PI / 2 - 0.6).translate(0.3, 0.3, 0).rotateY(k * 1.05).translate(e + de, 0, -(n + dn)), '#4d7a2a'));
   }
+  // more seats out on the gravel east of the cabin, each under a 'fake palm' (a pole thatched with dry palm leaves)
+  const gz = (e, n) => heightCubic(ox + e, oy + n) - g0;   // each piece on its own ground
+  const fakePalm = (e, n, h, R) => {
+    const p0 = parts.length;
+    parts.push(colorize(new THREE.CylinderGeometry(0.11, 0.16, h, 6).translate(e, h / 2, -n), '#6b5238'));
+    for (let k = 0; k < 4; k++) parts.push(colorize(new THREE.CylinderGeometry(0.17, 0.17, 0.08, 6).translate(e, 0.5 + k * (h - 0.8) / 4, -n), '#5a4430'));   // trunk rings
+    for (let k = 0; k < 18; k++) { const a = k / 18 * Math.PI * 2 + (k % 2) * 0.12, L = R * (0.85 + 0.3 * ((k * 7) % 5) / 5);
+      const dr = 0.35 + (k % 3) * 0.22; parts.push(colorize(new THREE.ConeGeometry(0.26, L, 3).rotateZ(-Math.PI / 2 - dr).translate(Math.cos(dr) * L / 2, h - 0.1 - Math.sin(dr) * L / 2, 0).rotateY(a).translate(e, 0, -n), ['#b9a273', '#a68d5c', '#c4ad7e'][k % 3])); }   // dry leaves hanging out and down
+    const dz = gz(e, n); for (let k = p0; k < parts.length; k++) parts[k].translate(0, dz, 0);
+  };
+  const picnic = (e, n, rot = 0) => {
+    const g = []; const bx = (we, dn, hh, ee, nn, uu) => g.push(colorize(boxG(we, hh, dn, ee, uu + hh / 2, -nn), TIMBER));
+    bx(2.0, 0.85, 0.07, 0, 0, 0.78); bx(0.1, 0.7, 0.66, -0.8, 0, 0.12); bx(0.1, 0.7, 0.66, 0.8, 0, 0.12);
+    for (const sd of [-1, 1]) bx(2.0, 0.3, 0.06, 0, sd * 0.7, 0.45);
+    const dz = gz(e, n); for (const q of g) parts.push(q.rotateY(rot).translate(e, dz, -n));
+  };
+  for (const [e, n, r] of [[12, 2.5, 0.2], [17, 3.5, -0.3], [12.5, 8, 0.5], [17.5, 9, 0], [22, 6, 0.9], [8.5, 12, 0.1]]) { picnic(e, n, r); fakePalm(e + 0.2, n - 0.1, 3.0, 1.8); }
+  for (const [e, n, h] of [[3.5, 15.5, 3.6], [-2.5, 14, 3.3], [25, 14, 3.8], [21, 0, 3.2]]) fakePalm(e, n, h, 2.1);   // a few more, round the terrace
+  // the court-like enclosure west of the cabin: low lava kerb walls along its long sides
+  for (const n of [10.5, 31.5]) for (let k = 0; k < 8; k++) { const e = -30.6 + k * 3.875; box(3.9, 0.5, 0.7, e, n, gz(e, n) - 0.2, '#3a3633'); }
   const geo = mergeGeos(parts), mesh = vMesh(geo);
   mesh.position.copy(b2t(ox, oy, g0)); mesh.updateMatrixWorld();
   TOWN.group.add(mesh);
   // solid: cabin + veranda block, the rail
   const rect = (e0, n0, e1, n1) => { const c = [[e0, n0], [e1, n0], [e1, n1], [e0, n1]]; for (let k = 0; k < 4; k++) { const a = c[k], b = c[(k + 1) % 4]; solid.push(ox + a[0], oy + a[1], ox + b[0], oy + b[1], 1, 0.4); } };
+  for (const n of [10.5, 31.5]) solid.push(ox - 32.5, oy + n, ox - 1.5, oy + n, 0.5, 0.5);
   rect(-7.8, -5.3, 7.8, 5.3); solid.push(ox - 10.5, oy - 14, ox - 10.5, oy + 6.8, 1, 0.6);
   TOWN.solid = TOWN.solid ? new Float32Array([...TOWN.solid, ...solid]) : new Float32Array(solid);
 }
@@ -3347,7 +3411,11 @@ function stepCar(c, dt) {
   c.sIn = padSteer ? steerIn : (c.sIn || 0) + THREE.MathUtils.clamp(steerIn - (c.sIn || 0), -dt * (steerIn ? 5 : 9), dt * (steerIn ? 5 : 9));
   const sIn = c.sIn, ast = Math.abs(sIn); let av = Math.abs(c.v);
   // road assist: with the wheel near centre the car settles onto the road's line and keeps off the verge walls
-  let assist = 0, nudge = 0;
+  let assist = 0, nudge = 0, rTgt = null;
+  if (rally && rd && rd.d < rd.r.w / 2 + 2.5 && rd.r.tier <= 2 && av > 8 && c.v > 0) {   // where the road goes, seen along the line of travel (drift guide)
+    const pd = c.phi ?? c.h, L2 = THREE.MathUtils.clamp(av * 0.7, 6, 22), rq2 = nearestRoad(c.x + Math.cos(pd) * L2, c.y + Math.sin(pd) * L2, 2);
+    if (rq2 && rq2.r === rd.r && rq2.d < rq2.r.w / 2 + 6) rTgt = Math.atan2(rq2.py - c.y, rq2.px - c.x);
+  }
   if (rd && rd.d < rd.r.w / 2 + 1.2 && rd.r.tier <= 2 && !hand && av > 3 && c.v > 0) {
     let t = rd.ang; if (Math.cos(t - c.h) < 0) t += Math.PI;
     // aim at the road a little ahead (pure pursuit), so gentle bends follow themselves
@@ -3377,14 +3445,17 @@ function stepCar(c, dt) {
     if (ast > 0.6) c.lastSteerAt = c.simT;
     c.flickT = Math.max(0, (c.flickT || 0) - dt);
     c.liftT = gas < 0.15 ? (c.liftT || 0) + dt : 0;
-    // deliberate only (pass 7): the handbrake (Space) starts a drift; nothing else does. Lifting, braking or flicking the
-    // keys never throws the car sideways on its own: on a keyboard you lift, brake and tap all the time.
-    const enter = av > 6 && hand;
-    if (enter && c.drift < 0.3) c.ds = Math.sign(sIn) || Math.sign(c.r) || 1;      // which way the tail goes
-    const into = sIn * (c.ds || 0), hold = c.drift > 0.15 && into > 0.12 && (gas > 0.3 || hand);   // power on and steering into it
-    let want = enter ? (hand ? 1 : 0.85) : hold ? 0.8 : 0;
+    c.steerT = ast > 0.6 && !c.air ? (c.steerT || 0) + dt : 0;
+    // pass 8 (the compromise): on the gas the car grips and follows the road. Lift off (or brake) and hold the wheel into
+    // a bend at speed and the tail steps out a little: a controlled, partial drift that the road guide below steers
+    // round the corner. A quick tap of the keys does nothing (the wheel has to be held ~0.15 s). Space = full drift.
+    const liftIn = av > 12 && (c.liftT > 0.05 || brake > 0.3) && c.steerT > 0.15;
+    const enter = (av > 6 && hand) || liftIn;
+    if (enter && c.drift < 0.25) c.ds = Math.sign(sIn) || Math.sign(c.r) || 1;      // which way the tail goes
+    const into = sIn * (c.ds || 0), hold = c.drift > 0.15 && into > 0.12;          // steering into it holds it, on or off the gas
+    let want = hand ? 1 : liftIn ? 0.6 : hold ? (gas > 0.3 ? 0.5 : 0.6) : 0;
     if (into < -0.35) want = 0;                                                   // opposite lock: catch it
-    c.drift += (want - c.drift) * Math.min(1, dt * (want > c.drift ? 6 : into < -0.35 ? 6 : 4));
+    c.drift += (want - c.drift) * Math.min(1, dt * (want > c.drift ? (hand ? 6 : 3) : into < -0.35 ? 6 : 4));
     if (c.drift < 0.02) c.drift = 0;
     // heading: steering asks for a yaw rate (tighter in a drift), turned in with inertia
     const lat = (loose ? 14 : 21) * (1 + 0.3 * c.drift);                         // arcade lateral grip, m/s²
@@ -3402,6 +3473,12 @@ function stepCar(c, dt) {
     const dPhi = Math.atan2(Math.sin(c.h - c.phi), Math.cos(c.h - c.phi));
     const catchRate = c.air ? 0 : (loose ? 6 : 9) * (1 - c.drift) + (loose ? 1.4 : 1.9) * c.drift;
     c.phi += dPhi * Math.min(1, catchRate * dt);
+    // drift guide (breaks the physics on purpose): while sliding and steering the way the road bends, the line of travel
+    // is drawn round the bend, so a lift-off slide carries you through the corner instead of into the outside wall
+    if (c.drift > 0.05 && rTgt !== null && !c.air) {
+      const dg = Math.atan2(Math.sin(rTgt - c.phi), Math.cos(rTgt - c.phi));
+      if (dg * sIn >= 0 || ast < 0.2) { const k = THREE.MathUtils.clamp(dg * 2.4, -1.2, 1.2) * Math.min(1, c.drift * 1.6) * dt; c.phi += k; c.h += k * 0.6; }
+    }
     c.slip = Math.atan2(Math.sin(c.h - c.phi), Math.cos(c.h - c.phi));
     if (Math.abs(c.slip) > 1.0) { c.phi = c.h - Math.sign(c.slip) * 1.0; c.slip = Math.sign(c.slip) * 1.0; }
     if (!c.air) c.v -= Math.sign(c.v) * Math.abs(Math.sin(c.slip)) * av * 0.1 * (1 - 0.6 * gas) * dt;   // a slide scrubs a little speed, less on the throttle

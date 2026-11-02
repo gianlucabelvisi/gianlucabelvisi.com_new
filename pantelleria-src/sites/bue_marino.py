@@ -110,8 +110,14 @@ z = np.where(land & (d_land > 14), np.maximum(z, h_new + 0.05), z)
 z = np.where(land & (d_land > 26), h_new, z)                               # exact match at the inland edge
 print('grid nodes lowered', changed)
 
+# Cicci's: the dark gravel car park from the road to the sea terrace, and the pale terrace (Esri + Google satellite)
+from matplotlib.path import Path as _P
+def poly_mask(pts): return _P(pts).contains_points(np.column_stack([Xg.ravel(), Yg.ravel()])).reshape(Xg.shape)
+gravel = poly_mask([(-3292, 5926), (-3214, 5927), (-3197, 5944), (-3190, 5957), (-3224, 5957), (-3229, 5968), (-3240, 5976), (-3288, 5973)])
+terrace = poly_mask([(-3227, 5978), (-3214, 5985), (-3200, 5984), (-3191, 5975), (-3188, 5962), (-3197, 5955), (-3214, 5956), (-3226, 5964)]) | \
+          poly_mask([(-3284, 5969), (-3262, 5976), (-3240, 5979), (-3240, 5983), (-3262, 5981), (-3286, 5975)])
 # ---------------- which nodes belong to the patch ----------------
-keep = (land & (d_land < 28)) | (~land & (d_sea < 14))
+keep = (land & (d_land < 28)) | (~land & (d_sea < 14)) | ndimage.binary_dilation(gravel | terrace, iterations=6)
 keep = ndimage.binary_dilation(keep, iterations=1)
 zi = np.where(keep, np.round(z * 100), -32768).astype('<i2')
 out = struct.pack('<3f2H', X0, Y0, RES, NXp, NYp) + zi.tobytes()
@@ -129,6 +135,9 @@ col = lava * (1 - veg[..., None]) + dry * veg[..., None]
 col = np.where((land & (d_land > 10))[..., None], col * 0.6 + img * 0.4 * 1.15, col)
 wet = land & (d_land < 1.5) & (z < 2.5)
 col[wet] *= 0.6
+gn = (0.9 + 0.2 * n2)[..., None]
+col = np.where((gravel & ~terrace)[..., None], np.array([0.29, 0.28, 0.27]) * gn, col)
+col = np.where(terrace[..., None], np.array([0.80, 0.76, 0.68]) * gn, col)
 col[~land] = np.array([0.20, 0.32, 0.33])                                  # seabed (under the sea plane)
 col = np.clip(col * (0.94 + 0.12 * n2[..., None]), 0, 1)
 Image.fromarray((col[::-1] * 255).astype(np.uint8)).save('web/assets/site_bue.webp', quality=88, method=6)
@@ -145,6 +154,21 @@ for pi, pj in cand[:900]:
 json.dump({'x0': X0, 'y0': Y0, 'x1': X1, 'y1': Y1, 'res': RES, 'boulders': bould}, open('web/assets/site_bue.json', 'w'), separators=(',', ':'))
 print('boulders', len(bould))
 
+# the OSM footpaths across Cicci's gravel are just the open ground: don't draw them as lanes
+F0 = json.load(open('prep/features.json'))
+def on_gravel(p): return -3292 < p[0] < -3185 and 5928 < p[1] < 5990
+nr = len(F0['roads'])
+out_r = []
+for r in F0['roads']:
+    if r['cls'] not in ('path', 'footway', 'track', 'service') or not any(on_gravel(p) for p in r['pts']): out_r.append(r); continue
+    run = []
+    for p in r['pts'] + [None]:
+        if p is not None and not on_gravel(p): run.append(p); continue
+        if len(run) > 1: q = dict(r); q['pts'] = run; out_r.append(q)
+        run = []
+F0['roads'] = out_r
+json.dump(F0, open('prep/features.json', 'w'), separators=(',', ':'))
+print('paths dropped at Cicci\'s', nr - len(F0['roads']))
 # trees: none in the patch's coastal band
 F = json.load(open('prep/features.json'))
 def inpatch_coast(x, y):

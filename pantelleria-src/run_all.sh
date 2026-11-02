@@ -8,6 +8,7 @@ python3 roads_smooth.py
 python3 town.py
 python3 coast_atlas.py
 python3 sites/bue_marino.py
+python3 sites/lago.py
 python3 coast_sea.py
 python3 coast_overlay.py
 python3 ground_fix.py
