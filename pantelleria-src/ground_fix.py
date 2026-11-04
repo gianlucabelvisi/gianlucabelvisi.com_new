@@ -30,6 +30,26 @@ def hcubic(x, y):   # vectorised copy of heightCubic()
     c = np.stack([Hf[i * NX + j], Hf[i * NX + j + 1], Hf[(i + 1) * NX + j], Hf[(i + 1) * NX + j + 1]])
     return np.minimum(np.maximum(h, c.min(0) - 1.5), c.max(0) + 1.5)
 
+# hand-detailed sites (web/assets/site_*.bin) replace the ground where they are defined, as in the viewer
+import glob, gzip, struct
+SITES = []
+for f in glob.glob('web/assets/site_*.bin'):
+    raw = gzip.decompress(open(f, 'rb').read()); sx0, sy0, sres = struct.unpack('<3f', raw[:12]); snx, sny = struct.unpack('<2H', raw[12:16])
+    SITES.append((sx0, sy0, sres, snx, sny, np.frombuffer(raw[16:16 + snx * sny * 2], '<i2').reshape(sny, snx)))
+_hc_grid = hcubic
+def hcubic(x, y):
+    x = np.asarray(x, float); y = np.asarray(y, float); h = _hc_grid(x, y)
+    for sx0, sy0, sres, snx, sny, SZ in SITES:
+        fx = (x - sx0) / sres - 0.5; fy = (y - sy0) / sres - 0.5
+        ok = (fx >= 0) & (fy >= 0) & (fx < snx - 1) & (fy < sny - 1)
+        if not ok.any(): continue
+        j = np.clip(fx.astype(int), 0, snx - 2); i = np.clip(fy.astype(int), 0, sny - 2); tx = fx - j; ty = fy - i
+        a, b, c, d = SZ[i, j], SZ[i, j + 1], SZ[i + 1, j], SZ[i + 1, j + 1]
+        ok &= (a != -32768) & (b != -32768) & (c != -32768) & (d != -32768)
+        v = ((a * (1 - tx) + b * tx) * (1 - ty) + (c * (1 - tx) + d * tx) * ty) / 100.0
+        h = np.where(ok, v, h)
+    return h
+
 def samples(pts):
     P = np.array(pts, float)
     if np.allclose(P[0], P[-1]): P = P[:-1]

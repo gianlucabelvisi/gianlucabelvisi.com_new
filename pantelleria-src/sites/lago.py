@@ -1,37 +1,62 @@
-"""Via del Lago, from the Perimetrale down to the Specchio di Venere: python3 sites/lago.py   (after bue_marino.py)
-The 10 m DEM smears the lake's crater wall into the water: the lakeside road came out 20-30 m above the lake and the
-three legs of the descent (Street View 2026-11-02) were lost. Rebuilt here at 0.5 m:
-  - upper leg: narrow lane along the plateau (~42-46 m) past the houses, then down to the first hairpin (~22 m) above
-    the north-east shore;
-  - middle leg: back west across the crater wall, a grey trachyte rock cut on the uphill side, open (low guard blocks)
-    to the lake, down to the second hairpin (~6 m);
-  - lower leg: east along the shore at lake level (~3.5 m), a low rubble retaining wall on the uphill side, a grass
-    verge, and a line of black boulders in the shallows; the west-shore track at the same level down to the beach.
-Ground: the strip between the middle leg and the water is re-modelled from the road levels and the shore (2.2 m);
-elsewhere the original ground is cut (rock faces ~58 deg) and filled (~50 deg) to seat the roads.
-Writes web/assets/site_lago.{bin,webp,json}; lowers the 10 m grid under it (prep/grid.npz).
+"""Lago di Venere and Via del Lago, from the Perimetrale down to the lake and round it: python3 sites/lago.py
+(after bue_marino.py, before coast_sea.py / ground_fix.py / build.py)
+The 10 m DEM smears the crater wall into the water: the descent (Street View 2026-11-02: plateau leg ~42-46 m, hairpin
+~22 m, middle leg across the crater wall to a second hairpin ~6 m, lower leg at lake level) was lost, the lakeside road
+came out 20-30 m above the water on the north and west, and dipped under it (DEM 1.7 m < water 2.0 m) on the east.
+Pass 2 (smooth): the ground round the lake is a single membrane (harmonic interpolation, solved at 1 m) pinned to
+  - the roads, each a flat bench at its designed level (descent legs, the ring road round the lake at 2.8-6 m, the
+    first stretch of Via Bugeber),
+  - the water's edge at 2.25 m (the shoreline traced from the photo, which also replaces the OSM lake polygon),
+  - the island's own ground at the rim of the area (stitched to the lowered 10 m grid).
+So the crater wall falls smoothly from bench to bench, with no ridges, steps or rock-cut boxes; the rock cuts are only
+coloured. Writes web/assets/site_lago.{bin,webp,json}; updates prep/grid.npz (nodes well inside the area are dropped
+far below it, so the island mesh never shows through) and the lake polygon in prep/features.json.
 """
 import gzip, json, math, struct, sys
 import numpy as np
 from PIL import Image
-from scipy import ndimage
+from scipy import ndimage, sparse
+from scipy.sparse.linalg import spsolve
 from scipy.spatial import cKDTree
 from matplotlib.path import Path
+from skimage import measure
 sys.path.insert(0, 'sites')
 from common import imagery, grid, make_hcubic
 
-X0, Y0, X1, Y1, RES = -580.0, 3230.0, -70.0, 3990.0, 0.5
+X0, Y0, X1, Y1, RES = -640.0, 3070.0, 60.0, 3990.0, 0.5
 img, xs, ys = imagery(X0, Y0, X1, Y1, RES)
 NYp, NXp = img.shape[:2]
 Xg, Yg = np.meshgrid(xs, ys)
+pix = np.column_stack([Xg.ravel(), Yg.ravel()])
 Gd = grid(); h_orig = make_hcubic(Gd)
 h0 = h_orig(Xg, Yg)
 F = json.load(open('prep/features.json')); R = {r['id']: r for r in F['roads']}
-lake = [w for w in F['water'] if 'Venere' in (w.get('name') or '')][0]
-lakeP = Path(np.array(lake['pts'])[:, :2])
-in_lake = lakeP.contains_points(np.column_stack([Xg.ravel(), Yg.ravel()])).reshape(Xg.shape)
-d_lake = ndimage.distance_transform_edt(~in_lake) * RES             # distance from the water, on land
+LK = [w for w in F['water'] if 'Venere' in (w.get('name') or '')][0]
+ZW = float(LK['z'])
+LK.setdefault('pts_osm', LK['pts'])
+oldLake = Path(np.array(LK['pts_osm'])[:, :2]).contains_points(pix).reshape(Xg.shape)
 
+# ---------------- the lake, traced from the photo ----------------
+Rr, Gg, Bb = img[..., 0], img[..., 1], img[..., 2]; L = 0.3 * Rr + 0.59 * Gg + 0.11 * Bb
+sat = img.max(-1) - img.min(-1)
+water = ((Bb > Rr + 0.05) & (Gg > Rr + 0.02) & (sat > 0.07)) | ((L < 0.3) & (Bb > Rr + 0.04) | ((Gg > Rr + 0.05) & (L > 0.42) & (Bb > Rr - 0.06)))   # + the milky shallows in the south   # turquoise shallows + the dark deep
+water = ndimage.binary_opening(ndimage.gaussian_filter(water.astype(float), 2) > 0.5, iterations=2)
+lab, n = ndimage.label(water); sz = np.bincount(lab.ravel()); sz[0] = 0
+core = lab == np.argmax(sz)
+lake = ndimage.binary_fill_holes(ndimage.binary_closing(core, iterations=6))
+lake &= ndimage.binary_dilation(oldLake, iterations=int(40 / RES))          # never far from where OSM has it
+lake = ndimage.gaussian_filter(lake.astype(float), 3) > 0.5                 # a soft, natural shoreline
+cs = max(measure.find_contours(lake.astype(float), 0.5), key=len)
+poly = np.column_stack([X0 + (cs[:, 1] + 0.5) * RES, Y0 + (cs[:, 0] + 0.5) * RES])
+keepi = [0]
+for k in range(1, len(poly)):
+    if math.dist(poly[k], poly[keepi[-1]]) >= 3.0: keepi.append(k)
+poly = poly[keepi]
+in_lake = Path(poly).contains_points(pix).reshape(Xg.shape)
+d_lake = ndimage.distance_transform_edt(~in_lake) * RES
+print('lake traced', len(poly), 'pts, area m2', round(in_lake.sum() * RES * RES), '(OSM', round(oldLake.sum() * RES * RES), ')')
+
+# ---------------- roads and their levels ----------------
 def chain(ids, start):
     P = []
     for i in ids:
@@ -40,153 +65,212 @@ def chain(ids, start):
         if math.dist(ref, pts[-1]) < math.dist(ref, pts[0]): pts = pts[::-1]
         P += pts if not P else pts[1:]
     return np.array(P, float)
-
 def resample(P, step=0.5):
     seg = np.hypot(*np.diff(P, axis=0).T); s = np.concatenate([[0], np.cumsum(seg)])
     t = np.arange(0, s[-1], step)
     return np.column_stack([np.interp(t, s, P[:, 0]), np.interp(t, s, P[:, 1])]), t
-
-def profile(ctrl, t):
-    c = np.array(ctrl, float); z = np.interp(t, c[:, 0], c[:, 1])
-    return ndimage.gaussian_filter1d(z, 30)                          # 15 m: no kinks at the control points
+def profile(ctrl, t, sig=30):
+    c = np.array(ctrl, float); return ndimage.gaussian_filter1d(np.interp(t, c[:, 0], c[:, 1]), sig, mode='nearest')
 
 roads = {}
-up = chain([389428430, 933237014], (-454, 3961)); upP, upT = resample(up)
-h_up = ndimage.gaussian_filter1d(h_orig(upP[:, 0], upP[:, 1]), 40)
-z_up = np.where(upT < 190, h_up, h_up[np.searchsorted(upT, 190)] + (22 - h_up[np.searchsorted(upT, 190)]) * np.clip((upT - 190) / (upT[-1] - 190), 0, 1) ** 1.3)
-z_up = ndimage.gaussian_filter1d(z_up, 12)
-h_raw = h_orig(upP[:, 0], upP[:, 1]); tw = np.clip(upT / 30, 0, 1)
-z_up = h_raw * (1 - tw) + z_up * tw                                    # meets the Perimetrale on the original ground
-roads['up'] = (upP, upT, z_up, 2.0)
-mid = chain([389428429], (-147, 3819)); P, T = resample(mid)
-roads['mid'] = (P, T, profile([(0, 22), (120, 18), (260, 12), (T[-1], 6)], T), 2.0)
-low = chain([389422661, 389422664], (-416, 3706)); P, T = resample(low)
-zl = profile([(0, 6), (60, 3.6), (300, 3.3), (T[-1], 2.6)], T); tw = np.clip((T[-1] - T) / 30, 0, 1)
-roads['low'] = (P, T, zl * tw + h_orig(P[:, 0], P[:, 1]) * (1 - tw), 2.1)
-west = chain([702095772], (-416, 3706)); P, T = resample(west)
-h_end = float(h_orig(P[-1, 0], P[-1, 1]))
-roads['west'] = (P, T, profile([(0, 6), (60, 3.6), (T[-1] - 70, 3.8), (T[-1], h_end)], T), 1.7)
+def fix_ends(z, T, z0=None, z1=None, L=40.0):   # exact levels where the legs meet (hairpins, junctions), eased over L m
+    z = z.copy()
+    if z0 is not None: z += (z0 - z[0]) * np.clip(1 - T / L, 0, 1) ** 2
+    if z1 is not None: z += (z1 - z[-1]) * np.clip(1 - (T[-1] - T) / L, 0, 1) ** 2
+    return z
+P, T = resample(chain([389428430, 933237014], (-454, 3961)))
+hs = ndimage.gaussian_filter1d(h_orig(P[:, 0], P[:, 1]), 40, mode='nearest')
+z = profile([(0, hs[0]), (190, hs[380]), (T[-1], 22)], T, 24)
+tw = np.clip(T / 30, 0, 1); z = h_orig(P[:, 0], P[:, 1]) * (1 - tw) + z * tw
+roads['up'] = (P, T, fix_ends(z, T, None, 22.0), 2.0)
+P, T = resample(chain([389428429], (-147, 3819)))
+roads['mid'] = (P, T, fix_ends(profile([(0, 22), (120, 18), (260, 12), (T[-1], 6)], T), T, 22.0, 6.0), 2.0)
+P, T = resample(chain([389422661, 389422664], (-416, 3706)))
+roads['low'] = (P, T, fix_ends(profile([(0, 6), (60, 3.6), (T[-1], 3.0)], T), T, 6.0, 3.0), 2.1)
+P, T = resample(chain([702095772], (-416, 3706)))
+roads['west'] = (P, T, fix_ends(profile([(0, 6), (60, 3.6), (T[-1], 3.4)], T), T, 6.0, None), 1.8)
+P, T = resample(chain([60040924], (-96, 3656)))                             # round the east and south shore
+hs = ndimage.gaussian_filter1d(h_orig(P[:, 0], P[:, 1]), 30, mode='nearest')
+zr = np.clip(hs, 2.8, 6.0); zr[:40] = np.linspace(3.0, zr[40], 40); zr[-60:] = np.linspace(zr[-60], 3.4, 60)
+roads['ring'] = (P, T, fix_ends(ndimage.gaussian_filter1d(zr, 16, mode='nearest'), T, 3.0, 3.4), 1.8)
+P, T = resample(chain([239886279], (-96, 3656)))                             # Via Bugéber, the first 260 m up from the lake
+m = T < 260; P, T = P[m], T[m]
+hs = h_orig(P[:, 0], P[:, 1]); tw = np.clip((T - 40) / 200, 0, 1)
+roads['bug'] = (P, T, fix_ends(ndimage.gaussian_filter1d(3.0 * (1 - tw) + np.maximum(hs, 3.0) * tw, 10, mode='nearest'), T, 3.0, None), 2.5)
 
-# nearest point of each road for every pixel: distance, height there, side (+ = left of travel)
-pix = np.column_stack([Xg.ravel(), Yg.ravel()])
 near = {}
 for k, (P, T, Z, hw) in roads.items():
     d, i = cKDTree(P).query(pix)
-    i1 = np.minimum(i + 1, len(P) - 1); i0 = np.maximum(i - 1, 0)
-    tx, ty = P[i1, 0] - P[i0, 0], P[i1, 1] - P[i0, 1]
-    side = np.sign(tx * (pix[:, 1] - P[i, 1]) - ty * (pix[:, 0] - P[i, 0]))
-    near[k] = (d.reshape(Xg.shape), Z[i].reshape(Xg.shape), side.reshape(Xg.shape), hw)
+    near[k] = (d.reshape(Xg.shape), Z[i].reshape(Xg.shape), hw, i.reshape(Xg.shape))
 
-# which side of each road is downhill: the lake's side
-def lake_side(k):
-    P = roads[k][0]; m = len(P) // 2
-    a, b = P[max(m - 4, 0)], P[min(m + 4, len(P) - 1)]
-    c = np.array([-280.0, 3560.0])
-    return np.sign((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]))
-LS = {k: lake_side(k) for k in roads}
+# the car park at the end of the asphalt (NE shore; Esri: dirt, cars in rows along its edges)
+PARK = Path([(-160, 3734), (-128, 3737), (-108, 3742), (-98, 3734), (-86, 3718), (-77, 3700), (-75, 3680), (-82, 3664), (-96, 3654),
+             (-104, 3660), (-110, 3674), (-120, 3692), (-132, 3708), (-147, 3724)])
+park = PARK.contains_points(pix).reshape(Xg.shape)
+# one bench field for every road (and the car park): blended where roads meet, so hairpins and junctions are seamless
+num = np.zeros(Xg.shape); den = np.zeros(Xg.shape); bench = np.zeros(Xg.shape, bool)
+for k, (d, zr, hw, _) in near.items():
+    w = 1 / np.maximum(d - 0.5 * hw, 0.25) ** 4 * (d < hw + 4)
+    num += w * zr; den += w; bench |= d < hw + 1.0
+d_low = near['low'][0]
+zp = np.minimum(3.1 + 0.012 * np.maximum(d_low - 2.1, 0), 3.6)
+num = np.where(park, num + 50 * zp, num); den = np.where(park, den + 50, den); bench |= park
+Zb = num / np.maximum(den, 1e-9)
+Zb = np.where(den > 0, Zb, np.nan)
+m_ = np.isfinite(Zb) & ndimage.binary_dilation(bench, iterations=4)
+sm = lambda a: ndimage.gaussian_filter(a, 3)              # 1.5 m: no step where two benches meet
+Zb = sm(np.where(m_, Zb, 0)) / np.maximum(sm(m_.astype(float)), 1e-6)
+# ---------------- the area and its rim ----------------
+area = (d_lake < 75) & ~in_lake
+for k, (d, zr, hw, _) in near.items(): area |= d < 34
+area |= ndimage.binary_dilation(park, iterations=int(20 / RES))
+# the crater wall between the plateau leg, the middle leg and the water
+wall = Path(np.vstack([roads['up'][0], roads['mid'][0], [[-470, 3720], [-480, 3900]]]))
+area |= wall.contains_points(pix).reshape(Xg.shape)
+area = ndimage.binary_closing(area, iterations=8) & (Xg > X0 + 2) & (Xg < X1 - 2) & (Yg > Y0 + 2) & (Yg < Y1 - 2)
+area &= ~in_lake
 
-# 1) away from the lake strip: cut / fill the original ground to seat each road
-z = h0.copy()
-for k in ['up', 'mid', 'west', 'low']:
-    d, zr, side, hw = near[k]
-    dd = np.maximum(d - hw - 0.4, 0)
-    down = side == LS[k]
-    cap = np.where(down, zr + np.where(dd < 2.5, 0.0, (dd - 2.5) * 1.0), zr + 2.8 * np.minimum(dd, 3) + 1.0 * np.maximum(dd - 3, 0))      # uphill: an ~8 m rock cut, then the natural slope
-    flo = np.where(down, zr - 1.2 * dd, zr - 0.15 * dd)
-    zc = np.minimum(np.maximum(z, flo), cap)
-    w = np.clip((26 - d) / 8, 0, 1)
-    z = z + w * (zc - z)
-
-# 2) the lakeside strip (between the middle leg / west track and the water): rebuilt from the road levels + the shore
-strip = Path(np.vstack([roads['mid'][0], roads['west'][0], [[-420, 3240], [-150, 3240], [-60, 3600], [-80, 3700], [-150, 3800]]]))
-S = strip.contains_points(pix).reshape(Xg.shape) & ~in_lake
-lines = [(near['mid'][0], near['mid'][1], 2.0), (near['low'][0], near['low'][1], 2.1), (near['west'][0], near['west'][1], 1.7)]
-num = np.zeros_like(z); den = np.zeros_like(z)
-for d, zr, hw in lines:
-    wgt = 1 / np.maximum(d - hw - 0.3, 0.05) ** 3; num += wgt * zr; den += wgt
-ws = 1 / np.maximum(d_lake - 0.5, 0.05) ** 3; num += ws * 2.25; den += ws
-zs = num / den
-Sw = ndimage.gaussian_filter(S.astype(float), 6)                     # soft edge (3 m)
-Sw = np.where(S, np.maximum(Sw, (d_lake < 60) * 1.0), Sw)
-z = z * (1 - Sw) + zs * Sw
-# road benches exact, the shore never below the water level, the lake floor under it
-for k, (dmap, zr, side, hw) in near.items():
-    z = np.where(dmap < hw + 0.3, zr, z)
-z = np.where(in_lake, np.minimum(h0, 1.2), np.where(S, np.maximum(z, 2.15), z))
-
-# ---------------- grid underneath ----------------
-ENDS = [tuple(roads['up'][0][0]), tuple(roads['low'][0][-1]), tuple(roads['west'][0][-1])]
-corr = np.zeros(z.shape, bool)
-for k, (d, zr, side, hw) in near.items(): corr |= d < 30
-corr |= (Sw > 0.02) | (in_lake & (d_lake == 0) & (ndimage.distance_transform_edt(in_lake) * RES < 5))
+# lower the 10 m grid well inside the area (the island mesh must stay under the membrane); keep the rim nodes
 Z = Gd['z']; GX0, GY0, CELL = float(Gd['x0']), float(Gd['y0']), float(Gd['cell'])
-zmin = ndimage.minimum_filter(z, size=int(16 / RES))
-inner = ndimage.binary_erosion(corr, iterations=int(10 / RES))
+deep = ndimage.binary_erosion(area | in_lake, iterations=int(16 / RES))
 changed = 0
 for i in range(int(np.ceil((Y0 - GY0) / CELL)), int(np.floor((Y1 - GY0) / CELL)) + 1):
     for j in range(int(np.ceil((X0 - GX0) / CELL)), int(np.floor((X1 - GX0) / CELL)) + 1):
         pj, pi = int((GX0 + j * CELL - X0) / RES), int((GY0 + i * CELL - Y0) / RES)
-        gx_, gy_ = GX0 + j * CELL, GY0 + i * CELL
-        if min(math.dist((gx_, gy_), e) for e in ENDS) < 35: continue          # the roads' ends stay on the island ground
-        if 0 <= pi < NYp and 0 <= pj < NXp and inner[pi, pj] and not in_lake[pi, pj]:
-            nz = min(float(Z[i, j]), float(zmin[pi, pj]) - 0.6)
+        if 0 <= pi < NYp and 0 <= pj < NXp and deep[pi, pj]:
+            nz = -6.0 if area[pi, pj] else min(float(Z[i, j]), ZW - 1.5)
             if nz < Z[i, j]: Z[i, j] = nz; changed += 1
+            Gd['land'][i, j] = bool(area[pi, pj])
 np.savez('prep/grid.npz', **Gd)
 h_new = make_hcubic(Gd)(Xg, Yg)
-edge = corr & ~ndimage.binary_erosion(corr, iterations=int(4 / RES))
-z = np.where(edge, h_new, z)                                         # stitched to the island mesh at the rim
 print('grid nodes lowered', changed)
-keep = ndimage.binary_dilation(corr, iterations=1)
-zi = np.where(keep, np.round(z * 100), -32768).astype('<i2')
+
+# ---------------- the membrane (1 m) ----------------
+S2 = 2
+a2 = area[::S2, ::S2]; ny, nx = a2.shape
+fixed = np.full(a2.shape, np.nan)
+rim = a2 & ~ndimage.binary_erosion(a2, iterations=1)
+fixed[rim] = h_new[::S2, ::S2][rim]
+fixed[ndimage.binary_dilation(in_lake[::S2, ::S2], iterations=1) & a2] = ZW + 0.25
+b = bench[::S2, ::S2] & a2
+fixed[b] = Zb[::S2, ::S2][b]
+unk = a2 & np.isnan(fixed)
+idx = -np.ones(a2.shape, int); idx[unk] = np.arange(unk.sum())
+rows, cols, vals = [], [], []; rhs = np.zeros(unk.sum())
+ii, jj = np.nonzero(unk)
+for di, dj in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+    ni, nj = np.clip(ii + di, 0, ny - 1), np.clip(jj + dj, 0, nx - 1)
+    nb_in = a2[ni, nj]
+    rows.append(idx[ii, jj]); cols.append(idx[ii, jj]); vals.append(np.where(nb_in, 1.0, 0.0))     # diagonal: # of area neighbours
+    u = nb_in & unk[ni, nj]
+    rows.append(idx[ii, jj][u]); cols.append(idx[ni, nj][u]); vals.append(-np.ones(u.sum()))
+    f = nb_in & ~unk[ni, nj]
+    np.add.at(rhs, idx[ii, jj][f], fixed[ni, nj][f])
+A = sparse.csr_matrix((np.concatenate(vals), (np.concatenate(rows), np.concatenate(cols))), shape=(unk.sum(), unk.sum()))
+sol = spsolve(A.tocsc(), rhs)
+z2 = fixed.copy(); z2[unk] = sol
+z2 = np.where(a2, z2, np.nan)
+print('membrane unknowns', unk.sum())
+# back to 0.5 m: bilinear, then the benches exact again, a light grain
+zf = np.nan_to_num(z2, nan=0.0); wf = np.isfinite(z2).astype(float)
+up = lambda a: ndimage.zoom(a, S2, order=1)[:NYp, :NXp]
+zz = up(zf) / np.maximum(up(wf), 1e-3)
+grain = ndimage.gaussian_filter(np.random.default_rng(5).random(zz.shape), 3) - 0.5
+dmin = np.full(zz.shape, 1e9)
+for k, (d, zr, hw, _) in near.items(): dmin = np.minimum(dmin, d - hw)
+dmin = np.where(park, -1, dmin)
+zz = np.where(bench, Zb, zz)
+zz += grain * 0.8 * np.clip((dmin - 2) / 6, 0, 1) * np.clip(d_lake / 6, 0, 1)
+zz = np.where(area, np.maximum(zz, np.where(d_lake < 1.5, ZW + 0.15, ZW + 0.2)), zz)
+rimb = area & ~ndimage.binary_erosion(area, iterations=3)
+zz = np.where(rimb, h_new, zz)
+# the island mesh is 5 m triangles of the bicubic: never let it poke through near the rim
+lin5 = ndimage.zoom(h_new[::10, ::10], 10, order=1)[:NYp, :NXp]
+zz = np.where(area & ~rimb & (dmin > 1.5), np.maximum(zz, np.maximum(h_new, lin5) + 0.05), zz)
+zlake = np.where(d_lake == 0, np.minimum(h_new, ZW - 0.8), np.nan)
+keep = area | (in_lake & (ndimage.distance_transform_edt(in_lake) * RES < 8))
+zout = np.where(area, zz, np.where(in_lake, ZW - 0.8, zz))
+zi = np.where(keep, np.round(zout * 100), -32768).astype('<i2')
 open('web/assets/site_lago.bin', 'wb').write(gzip.compress(struct.pack('<3f2H', X0, Y0, RES, NXp, NYp) + zi.tobytes(), 9))
 
 # ---------------- colour ----------------
-R_, G_, B_ = img[..., 0], img[..., 1], img[..., 2]; L = 0.3 * R_ + 0.59 * G_ + 0.11 * B_
-gy, gx = np.gradient(z, RES); slope = np.hypot(gx, gy)
-col = np.clip(img * 1.12, 0, 1)
-rock = np.clip((slope - 1.6) / 0.6, 0, 1)[..., None]                  # the cuts: grey trachyte (the crater wall keeps its macchia)
-trach = np.array([0.55, 0.53, 0.50]) * (0.8 + 0.4 * np.clip(L, 0, 1))[..., None]
-col = col * (1 - rock) + trach * rock
-shore = (S & (d_lake < 6))[..., None]                                 # pale sand / mud at the water's edge
-col = np.where(shore, col * 0.4 + np.array([0.78, 0.74, 0.64]) * 0.6, col)
-col[in_lake] = (0.55, 0.75, 0.70)
+gy, gx = np.gradient(np.where(area, zz, ZW), RES); slope = np.hypot(gx, gy)
+blur = ndimage.gaussian_filter(img, (1.5, 1.5, 0))
+col = np.clip((img + 0.9 * (img - blur)) * 1.1, 0, 1)                     # sharpened: the photo is ~0.6 m/px
+rock = np.clip((slope - 1.1) / 0.5, 0, 1)[..., None] * 0.7
+col = col * (1 - rock) + (np.array([0.55, 0.53, 0.50]) * (0.8 + 0.4 * np.clip(L, 0, 1))[..., None]) * rock
+shore = (d_lake < 5)[..., None] & area[..., None]
+col = np.where(shore, col * 0.5 + np.array([0.80, 0.76, 0.66]) * 0.5, col)
+# the lake itself, banded like the photo: navy in the deep crater, teal, turquoise, the milky shallows
+Ls = ndimage.gaussian_filter(L, 4)
+band = np.digitize(Ls, [0.13, 0.26, 0.42])
+LKC = np.array([[0.08, 0.30, 0.39], [0.12, 0.50, 0.53], [0.27, 0.70, 0.65], [0.62, 0.84, 0.76]])
+col = np.where(in_lake[..., None], LKC[band], col)
 Image.fromarray((col[::-1] * 255).astype(np.uint8)).save('web/assets/site_lago.webp', quality=86, method=6)
 
-# ---------------- walls, guard blocks, boulders ----------------
-def offset_line(k, off, s0, s1, every=0.0):
-    P, T, Zr, hw = roads[k]; out = []
-    sel = np.nonzero((T >= s0) & (T <= s1))[0][::4]
-    for a, b in zip(sel, sel[1:]):
-        tx, ty = P[b] - P[a]; L_ = math.hypot(tx, ty) or 1; nx, ny = -ty / L_, tx / L_
-        sgn = -LS[k]                                                  # uphill
-        out.append([P[a, 0] + nx * off * sgn, P[a, 1] + ny * off * sgn, P[b, 0] + nx * off * sgn, P[b, 1] + ny * off * sgn])
-    return out
-walls = [w + [0.9, 0.55] for w in offset_line('low', 2.1 + 0.6, 40, roads['low'][1][-1] - 50)]       # rubble retaining wall
-blocks = []
-P, T, Zr, hw = roads['mid']
-for s in np.arange(15, T[-1] - 25, 4.5):                              # concrete guard blocks on the lake side
-    i = int(np.searchsorted(T, s)); a, b = P[max(i - 3, 0)], P[min(i + 3, len(P) - 1)]
-    tx, ty = b - a; L_ = math.hypot(tx, ty) or 1; nx, ny = -ty / L_ * LS['mid'], tx / L_ * LS['mid']
-    blocks.append([round(P[i, 0] + nx * 2.6, 2), round(P[i, 1] + ny * 2.6, 2), round(float(Zr[i]), 2), round(math.atan2(ty, tx), 3)])
-bould = []; rng = np.random.default_rng(3)
+# ---------------- walls, guard blocks, rocks in the shallows ----------------
+def downhill_normal(P, i):
+    a, b = P[max(i - 3, 0)], P[min(i + 3, len(P) - 1)]
+    tx, ty = b - a; L_ = math.hypot(tx, ty) or 1; nx_, ny_ = -ty / L_, tx / L_
+    px, py = P[i]
+    jx, jy = int((px + nx_ * 6 - X0) / RES), int((py + ny_ * 6 - Y0) / RES)
+    kx, ky = int((px - nx_ * 6 - X0) / RES), int((py - ny_ * 6 - Y0) / RES)
+    if zz[min(max(jy, 0), NYp - 1), min(max(jx, 0), NXp - 1)] > zz[min(max(ky, 0), NYp - 1), min(max(kx, 0), NXp - 1)]: nx_, ny_ = -nx_, -ny_
+    return nx_, ny_, math.atan2(ty, tx)
+walls, blocks, bould = [], [], []
+park8 = ndimage.binary_dilation(park, iterations=int(8 / RES))
 P, T, Zr, hw = roads['low']
-for s in np.arange(20, T[-1] - 40, 2.6):                              # the line of black rocks in the shallows
-    i = int(np.searchsorted(T, s)); a, b = P[max(i - 3, 0)], P[min(i + 3, len(P) - 1)]
-    tx, ty = b - a; L_ = math.hypot(tx, ty) or 1; nx, ny = -ty / L_ * LS['low'], tx / L_ * LS['low']
-    for off in np.arange(4, 30, 0.5):
-        x, y = P[i, 0] + nx * off, P[i, 1] + ny * off
-        if lakeP.contains_point((x, y)): break
-    x += nx * (3.5 + rng.random()); y += ny * (3.5 + rng.random())
-    bould.append([round(x, 2), round(y, 2), 2.15, round(0.7 + rng.random() * 0.6, 2), round(rng.random() * 6.28, 2)])
-json.dump({'boulders': bould, 'walls': [[round(v, 2) for v in w] for w in walls], 'blocks': blocks}, open('web/assets/site_lago.json', 'w'), separators=(',', ':'))
-# the descent is asphalt and narrow (Street View)
-F2 = json.load(open('prep/features.json'))
-for r in F2['roads']:
+sel = np.nonzero((T > 40) & (T < T[-1] - 50))[0][::4]
+for a, b in zip(sel, sel[1:]):
+    nx_, ny_, _ = downhill_normal(P, a); o = -(hw + 0.6)
+    w_ = [P[a, 0] + nx_ * o, P[a, 1] + ny_ * o, P[b, 0] + nx_ * o, P[b, 1] + ny_ * o, 0.9, 0.55]
+    if not any(park8[min(max(int((yy - Y0) / RES), 0), NYp - 1), min(max(int((xx - X0) / RES), 0), NXp - 1)] for xx, yy in ((w_[0], w_[1]), (w_[2], w_[3]))): walls.append(w_)   # open onto the car park
+P, T, Zr, hw = roads['mid']
+for s in np.arange(15, T[-1] - 25, 4.5):
+    i = int(np.searchsorted(T, s)); nx_, ny_, ang = downhill_normal(P, i)
+    blocks.append([round(P[i, 0] + nx_ * 2.6, 2), round(P[i, 1] + ny_ * 2.6, 2), round(float(Zr[i]), 2), round(ang, 3)])
+rng = np.random.default_rng(3)
+P, T, Zr, hw = roads['low']
+for s in np.arange(20, T[-1] - 40, 2.6):
+    i = int(np.searchsorted(T, s)); nx_, ny_, _ = downhill_normal(P, i)
+    for off in np.arange(3, 40, 0.5):
+        x, y = P[i, 0] + nx_ * off, P[i, 1] + ny_ * off
+        if in_lake[min(int((y - Y0) / RES), NYp - 1), min(int((x - X0) / RES), NXp - 1)]: break
+    x += nx_ * (3.5 + rng.random()); y += ny_ * (3.5 + rng.random())
+    bould.append([round(x, 2), round(y, 2), ZW + 0.15, round(0.7 + rng.random() * 0.6, 2), round(rng.random() * 6.28, 2)])
+# macchia where the photo is green (the crater wall is covered in it), off the roads and the shore
+gi = ndimage.gaussian_filter(Gg - (Rr + Bb) / 2, 2)
+rng2 = np.random.default_rng(11); veg = []
+ok = area & ~bench & (dmin > 2.5) & (d_lake > 4)
+for i in range(0, NYp, 5):
+    for j in range(0, NXp, 5):
+        ii_, jj_ = min(i + rng2.integers(5), NYp - 1), min(j + rng2.integers(5), NXp - 1)
+        if not ok[ii_, jj_]: continue
+        p = np.clip((gi[ii_, jj_] - 0.015) / 0.05, 0, 1) * 0.35
+        if rng2.random() < p: veg.append([round(float(xs[jj_]), 1), round(float(ys[ii_]), 1), round(0.45 + 1.2 * p + 0.25 * rng2.random(), 2)])
+# parked cars: rows along the edges of the car park (Esri)
+ROWS = [[(-148, 3728), (-131, 3723), (-123, 3719), (-116, 3711), (-110, 3701), (-103, 3692), (-99, 3684), (-96, 3677)],
+        [(-106, 3731), (-100, 3724), (-93, 3718), (-87, 3710), (-82, 3702), (-77, 3694), (-75, 3688)],
+        [(-80, 3677), (-86, 3668), (-93, 3659)]]
+cars = []
+for row in ROWS:
+    Pr = np.array(row, float); Pr2, Tr = resample(Pr, 2.6)
+    for k in range(len(Pr2)):
+        if rng2.random() < 0.2: continue
+        if near['low'][0][min(int((Pr2[k, 1] - Y0) / RES), NYp - 1), min(int((Pr2[k, 0] - X0) / RES), NXp - 1)] < 4.5: continue   # not on the carriageway
+        a_ = Pr2[min(k + 1, len(Pr2) - 1)] - Pr2[max(k - 1, 0)]; ang = math.atan2(a_[1], a_[0]) + math.pi / 2
+        cars.append([round(float(Pr2[k, 0]), 2), round(float(Pr2[k, 1]), 2), round(ang + (rng2.random() - 0.5) * 0.15, 3), int(rng2.integers(8))])
+lakeOut = [[round(float(x), 2), round(float(y), 2)] for x, y in poly]
+json.dump({'lake': lakeOut, 'lakeZ': ZW + 0.05, 'veg': veg, 'cars': cars, 'boulders': bould, 'walls': [[round(v, 2) for v in w] for w in walls], 'blocks': blocks}, open('web/assets/site_lago.json', 'w'), separators=(',', ':'), default=float)
+
+# ---------------- features: the traced lake, the roads asphalt where they are ----------------
+LK['pts'] = [[round(float(x), 2), round(float(y), 2)] for x, y in poly]
+for r in F['roads']:
     if r['id'] in (389428430, 933237014, 389428429, 389422661, 389422664, 389374588): r['surface'] = 'asphalt'; r['w'] = min(r['w'], 4.0)
-json.dump(F2, open('prep/features.json', 'w'), separators=(',', ':'))
-print('lago: walls', len(walls), 'blocks', len(blocks), 'boulders', len(bould))
+json.dump(F, open('prep/features.json', 'w'), separators=(',', ':'))
+print('lago: veg', len(veg), 'cars', len(cars), 'walls', len(walls), 'blocks', len(blocks), 'boulders', len(bould))
 vis = (img * 255).astype(np.uint8).copy()
-for k, (dmap, zr, side, hw) in near.items(): vis[(dmap < hw)] = (255, 0, 0)
-vis[S & (Sw > 0.5) & (np.arange(NXp)[None, :] % 8 == 0)] = (255, 255, 0)
+vis[area & (np.arange(NXp)[None, :] % 10 == 0)] = (255, 255, 0)
+for k, (d, zr, hw, _) in near.items(): vis[d < hw] = (255, 0, 0)
+e = in_lake & ~ndimage.binary_erosion(in_lake, iterations=2); vis[e] = (0, 255, 255)
 Image.fromarray(vis[::-1]).save('prep/site_lago_check.png')
-for k in roads: print(k, 'len', round(roads[k][1][-1]), 'z', [round(float(v), 1) for v in roads[k][2][::max(1, len(roads[k][2]) // 8)]])

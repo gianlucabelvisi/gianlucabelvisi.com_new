@@ -241,6 +241,7 @@ function heightAt(x, y) {
 }
 // hand-detailed coast sites (sites/*.py): 0.5 m heightfields that replace the ground where they are defined
 const SITES = [];
+let CAMPO = null;   // campo.json: Campobello survey + props
 const SITE_CLEAR = [[-3292, 5929, -3185, 5990], [-3292, 5915, -3272, 5932], [-470, 3690, -95, 3872], [-600, 3240, -400, 3720], [-175, 3600, -60, 3760]];   // Cicci's; the descent to the lake (Street View: no field walls on the crater wall)   // Cicci's (Bue Marino): no rural walls on the gravel; the gap in the road wall is the way in
 function siteH(x, y) {
   for (const S of SITES) {
@@ -955,7 +956,7 @@ function meshH(x, y, st = 0.5) {
   const u = (fx - b) / st, w = (fy - a) / st, h0 = hv(a, b), h2 = hv(a + st, b + st);
   return u >= w ? h0 + u * (hv(a, b + st) - h0) + w * (h2 - hv(a, b + st)) : h0 + w * (hv(a + st, b) - h0) + u * (h2 - hv(a + st, b));
 }
-function groundTop(x, y) { return Math.max(heightCubic(x, y), meshH(x, y)); }
+function groundTop(x, y) { if (SITES.length) { const h = siteH(x, y); if (h !== null) return h; } return Math.max(heightCubic(x, y), meshH(x, y)); }   // in a site its own surface is what is drawn
 // side roads meet the main roads at the main road's (graded) surface, then ease onto the ground, so junctions join up
 function roadGround(x, y) {
   const g = groundTop(x, y); let r = nearestRoad(x, y, 0); const rl = nearestRoad(x, y, 3, true);
@@ -1068,20 +1069,29 @@ function inTown(x, y) {
 // Perimetrale, town -> Campobello (Street View survey 2026-11-02, every 200 m, driving east): where the road really has a
 // lava wall on its left (sea) / right side. Samples [x, y, left, right]; the route is the road's line every ~25 m.
 const PERIM = { route: [[-4071,5474],[-4044,5470],[-4017,5464],[-3989,5458],[-3959,5453],[-3932,5455],[-3905,5463],[-3882,5474],[-3862,5495],[-3849,5522],[-3854,5549],[-3854,5575],[-3846,5600],[-3836,5627],[-3826,5654],[-3816,5677],[-3800,5697],[-3777,5715],[-3755,5733],[-3732,5751],[-3710,5769],[-3687,5787],[-3663,5803],[-3639,5812],[-3611,5821],[-3584,5830],[-3557,5839],[-3533,5847],[-3506,5857],[-3479,5866],[-3452,5875],[-3426,5884],[-3399,5893],[-3372,5901],[-3347,5908],[-3320,5916],[-3291,5919],[-3266,5920],[-3238,5917],[-3213,5906],[-3189,5894],[-3166,5881],[-3143,5870],[-3120,5858],[-3095,5846],[-3068,5837],[-3042,5836],[-3013,5838],[-2987,5839],[-2959,5841],[-2930,5842],[-2902,5843],[-2873,5844],[-2847,5839],[-2822,5829],[-2795,5819],[-2770,5815],[-2744,5817],[-2716,5820],[-2687,5823],[-2660,5825],[-2634,5827],[-2607,5829],[-2582,5831],[-2554,5831],[-2529,5823],[-2501,5815],[-2473,5806],[-2448,5798],[-2421,5788],[-2394,5779],[-2367,5770],[-2340,5761],[-2312,5752],[-2285,5743],[-2258,5734],[-2232,5725],[-2208,5717],[-2184,5708],[-2156,5701],[-2130,5702],[-2104,5707],[-2078,5708],[-2052,5708],[-2027,5705],[-2003,5695],[-1980,5679],[-1963,5660],[-1945,5638],[-1928,5615],[-1914,5590],[-1901,5565],[-1886,5541],[-1864,5522],[-1842,5505],[-1820,5488],[-1797,5470],[-1776,5455],[-1753,5438],[-1730,5422],[-1710,5400],[-1703,5375],[-1692,5351],[-1667,5338],[-1641,5328],[-1614,5319],[-1588,5309],[-1562,5299],[-1536,5289],[-1512,5276],[-1490,5261],[-1469,5247],[-1448,5234],[-1426,5220],[-1405,5207],[-1381,5191],[-1358,5172],[-1339,5155],[-1321,5135],[-1305,5111],[-1289,5087],[-1273,5064],[-1258,5041],[-1245,5020],[-1232,4995],[-1227,4971],[-1223,4945],[-1222,4915],[-1225,4887],[-1229,4858],[-1232,4829],[-1231,4800],[-1226,4772],[-1220,4744],[-1212,4716],[-1202,4692],[-1185,4672],[-1166,4652],[-1147,4631],[-1128,4610]], sv: [[-4071,5474,0,0],[-3879,5477,0,0],[-3823,5660,0,1],[-3678,5794,0,1],[-3490,5862,0,1],[-3299,5918,1,0],[-3114,5855,1,1],[-2918,5843,0,1],[-2723,5819,0,0],[-2525,5822,1,1],[-2335,5760,0,0],[-2145,5701,1,0],[-1962,5659,1,1],[-1840,5503,1,1],[-1702,5368,1,0],[-1526,5284,1,1],[-1359,5173,1,1],[-1241,5013,0,1],[-1233,4817,1,1],[-1155,4640,1,1]] };
-function perimAt(x, y) {   // -> { d: distance to the route, lx, ly: unit left normal, k: nearest sample } or null
-  if (x < -4200 || x > -1050 || y < 4500 || y > 6100) return null;
-  const R = PERIM.route; let best = null, bd = 1e9;
-  for (let i = 0; i < R.length - 1; i++) {
-    const ax = R[i][0], ay = R[i][1], dx = R[i + 1][0] - ax, dy = R[i + 1][1] - ay;
-    if (Math.abs(x - ax) > 60 && Math.abs(x - ax - dx) > 60) continue;
-    const L2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)), d = Math.hypot(x - ax - dx * t, y - ay - dy * t);
-    if (d < bd) { bd = d; const L = Math.sqrt(L2); best = { d, lx: -dy / L, ly: dx / L, px: ax + dx * t, py: ay + dy * t }; }
+// Street View wall surveys: PERIM (Perimetrale town -> Campobello, presence only) and the ones in campo.json
+// (Via Campobello, Via Posta Vecchia: height and kind per side). sv rows: [x, y, leftH, leftKind, rightH, rightKind]
+// with kind 1 dry-stone, 2 tall retaining, 3 white plaster; left/right of the route's direction.
+const SURVEYS = [{ route: PERIM.route, sv: PERIM.sv.map(([x, y, l, r]) => [x, y, l ? 0.95 : 0, 1, r ? 0.95 : 0, 1]) }];
+for (const S of SURVEYS) surveyBox(S);
+function surveyBox(S) { const xs = S.route.map((p) => p[0]), ys = S.route.map((p) => p[1]); S.bb = [Math.min(...xs) - 30, Math.min(...ys) - 30, Math.max(...xs) + 30, Math.max(...ys) + 30]; }
+function perimAt(x, y) {   // -> { d: distance to the nearest surveyed route, lx, ly: unit left normal, k, sv } or null
+  let best = null, bd = 1e9, bs = null;
+  for (const S of SURVEYS) {
+    if (x < S.bb[0] || x > S.bb[2] || y < S.bb[1] || y > S.bb[3]) continue;
+    const R = S.route;
+    for (let i = 0; i < R.length - 1; i++) {
+      const ax = R[i][0], ay = R[i][1], dx = R[i + 1][0] - ax, dy = R[i + 1][1] - ay;
+      if (Math.abs(x - ax) > 60 && Math.abs(x - ax - dx) > 60) continue;
+      const L2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)), d = Math.hypot(x - ax - dx * t, y - ay - dy * t);
+      if (d < bd) { bd = d; bs = S; const L = Math.sqrt(L2); best = { d, lx: -dy / L, ly: dx / L, px: ax + dx * t, py: ay + dy * t }; }
+    }
   }
   if (!best || bd > 25) return null;
-  let k = 0, kd = 1e9; PERIM.sv.forEach((s, i) => { const e = Math.hypot(s[0] - best.px, s[1] - best.py); if (e < kd) { kd = e; k = i; } });
-  best.k = kd < 130 ? k : -1; return best;
+  let k = 0, kd = 1e9; bs.sv.forEach((s, i) => { const e = Math.hypot(s[0] - best.px, s[1] - best.py); if (e < kd) { kd = e; k = i; } });
+  best.k = kd < 130 ? k : -1; best.sv = bs.sv; return best;
 }
-function roadsideWalls(tx, ty, segs) {
+function roadsideWalls(tx, ty, segs, keep) {
   const list = roadIdx.get(tx + ',' + ty); if (!list) return;
   const vn = (P, i, n) => {   // unit normal at vertex i (average of the adjacent segments), for joints without gaps
     const a = Math.max(0, i - 1), c = Math.min(n - 1, i + 1);
@@ -1107,21 +1117,23 @@ function roadsideWalls(tx, ty, segs) {
     for (const sgn of [1, -1]) {
       const pa = [ax + na[0] * off * sgn, ay + na[1] * off * sgn], pb = [bx + nb[0] * off * sgn, by + nb[1] * off * sgn];
       const mx = (pa[0] + pb[0]) / 2, my = (pa[1] + pb[1]) / 2;
-      const pm = r.tier === 0 ? perimAt((ax + bx) / 2, (ay + by) / 2) : null;
-      if (pm && pm.d < 4 && pm.k >= 0) {   // surveyed (Street View): a wall exactly where there is one, town edge included
-        const left = na[0] * sgn * pm.lx + na[1] * sgn * pm.ly > 0;
-        if (!PERIM.sv[pm.k][left ? 2 : 3]) continue;
+      const pm = perimAt((ax + bx) / 2, (ay + by) / 2);
+      if (pm && pm.d < 4 && pm.k >= 0) {   // surveyed (Street View): a wall exactly where there is one, its height and kind
+        const left = na[0] * sgn * pm.lx + na[1] * sgn * pm.ly > 0, row = pm.sv[pm.k], h = row[left ? 2 : 4], kind = row[left ? 3 : 5];
+        if (!(h > 0)) continue;
         if (crossing(mx, my, r, 1) || crossing(pa[0], pa[1], r, 1) || crossing(pb[0], pb[1], r, 1)) continue;   // junctions and drives, not the footpath alongside
         if (buildingAt(mx + na[0] * 1.5 * sgn, my + na[1] * 1.5 * sgn) || buildingAt(mx, my)) continue;
-        segs.push(pa[0], pa[1], pb[0], pb[1], 0.97, 0.6); continue;
+        const hh = h * (0.9 + 0.2 * vnoise(mx / 9, my / 9));
+        (keep || segs).push(pa[0], pa[1], pb[0], pb[1], hh, kind === 3 ? 0.44 : kind === 2 || h > 1.5 ? 0.78 : 0.6); continue;
       }
+      if (CAMPO && mx > CAMPO.bbox[0] && mx < CAMPO.bbox[2] && my > CAMPO.bbox[1] && my < CAMPO.bbox[3] && r.w < 3.0) continue;   // Campobello drives: no walls of their own
       const cl = clsAt(mx, my); if (cl === 1 || cl === 0 || cl === 6) continue;          // town / sea / woods: no walls
       // survey (Street View): leaving town the sea side is open (pavement, low ground); from Bue Marino on there is a wall
       if (r.tier === 0 && mx < -3290 && my > 5600 && [25, 60, 120].some((d) => clsAt(mx + na[0] * d * sgn, my + na[1] * d * sgn) === 0)) continue;
       if (crossing(mx, my, r) || crossing(pa[0], pa[1], r) || crossing(pb[0], pb[1], r)) continue;
       if (buildingAt(mx + na[0] * 1.5 * sgn, my + na[1] * 1.5 * sgn) || buildingAt(mx, my)) continue;
       if (vnoise(mx / 70 + sgn * 13.7, my / 70 - sgn * 5.1) < 0.4) continue;   // elsewhere: walls come in runs, with long open stretches
-      segs.push(pa[0], pa[1], pb[0], pb[1], 0.95, 0.6);
+      segs.push(pa[0], pa[1], pb[0], pb[1], 0.55 + 0.8 * vnoise(mx / 40 + 3.3, my / 40 - 1.7), 0.6);   // walls come in all heights
     }
   }
 }
@@ -1216,21 +1228,27 @@ function buildDetailTile(tx, ty) {
     const pm = perimAt((segs[i] + segs[i + 2]) / 2, (segs[i + 1] + segs[i + 3]) / 2);
     if (pm && pm.k >= 0 && pm.d < 9) segs.splice(i, 6);
   }
-  roadsideWalls(tx, ty, segs);
+  const kept = [];
+  roadsideWalls(tx, ty, segs, kept);
   clipWallsOffRoads(tx, ty, segs);
   // town: no rural dry-stone walls in it or within ~150 m of it, and never along the harbour (the Lungomare is a promenade)
   const nearTown = (x, y) => TOWNZ && [[0, 0], [150, 0], [-150, 0], [0, 150], [0, -150], [106, 106], [-106, -106], [106, -106], [-106, 106]].some(([a, c]) => inTown(x + a, y + c));
   for (let i = segs.length - 6; i >= 0; i -= 6) { const mx = (segs[i] + segs[i + 2]) / 2, my = (segs[i + 1] + segs[i + 3]) / 2;
-    if (segs[i + 4] === 0.97) { if (SITE_CLEAR.some((r) => mx > r[0] && mx < r[2] && my > r[1] && my < r[3])) segs.splice(i, 6); continue; }   // surveyed Perimetrale walls stay
     if (nearTown(mx, my) || PROM.some((P) => inPoly(P, mx, my)) || SITE_CLEAR.some((r) => mx > r[0] && mx < r[2] && my > r[1] && my < r[3])) segs.splice(i, 6); }
+  for (let i = 0; i < kept.length; i += 6) { const mx = (kept[i] + kept[i + 2]) / 2, my = (kept[i + 1] + kept[i + 3]) / 2;   // surveyed walls stay
+    if (!SITE_CLEAR.some((r) => mx > r[0] && mx < r[2] && my > r[1] && my < r[3])) segs.push(...kept.slice(i, i + 6)); }
   // every wall drawn here is also solid for the car (and nothing else is)
   g.userData.walls = new Float32Array(segs);          // for the car: walls are solid
   // buildings owned by this tile, redrawn up close (the far GLB copy is hidden by owner)
   { const bm = buildingsMeshFor(tx, ty); if (bm) g.add(bm); }
   homeExtras(g, tx, ty);
   const capers = [];
-  const wb = wallGeometry(segs, capers);
+  const white = [], stone = [];
+  for (let i = 0; i < segs.length; i += 6) (segs[i + 5] === 0.44 ? white : stone).push(...segs.slice(i, i + 6));
+  const wb = wallGeometry(stone, capers);
   if (wb) { const m = finishTB(wb, MAT.Town); if (m) { m.castShadow = false; g.add(m); } }
+  const ww = wallGeometry(white, null);   // white plastered garden walls
+  if (ww) { for (let i = 3; i < ww.A.length; i += 4) ww.A[i] = 8; const m = finishTB(ww, MAT.Town); if (m) { m.castShadow = false; g.add(m); } }
   // trees from the island-wide set, re-drawn as puffy maritime pines / macchia (the far ones are hidden here)
   const pines = [], bigShrubs = [];
   for (const k of treeIdx.get(tx + ',' + ty) || []) {
@@ -2353,6 +2371,23 @@ async function buildSite(S) {
   g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
   g.computeBoundingSphere();
   const mats = makeMat('Site', { map: tex }), m = new THREE.Mesh(g, mats.cel);
+  // detail at street level: the photo is ~0.6 m/px, so break it up with two octaves of world-space grain (no N64 smear)
+  for (const mm of [mats.cel, mats.std]) {
+    const prev = mm.onBeforeCompile;
+    mm.onBeforeCompile = (sh) => { prev && prev(sh);
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vSiteW;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvSiteW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+        varying vec3 vSiteW;
+        float sh1(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float sn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(sh1(i), sh1(i + vec2(1, 0)), f.x), mix(sh1(i + vec2(0, 1)), sh1(i + vec2(1, 1)), f.x), f.y); }`)
+        .replace('#include <map_fragment>', `#include <map_fragment>
+        { vec2 q = vSiteW.xz; float g = sn(q * 1.3) * 0.55 + sn(q * 4.1) * 0.3 + sn(q * 11.0) * 0.15;
+          float fade = 1.0 - smoothstep(60.0, 220.0, length(cameraPosition - vSiteW));
+          diffuseColor.rgb *= mix(1.0, 0.8 + 0.4 * g, fade); }`);
+    };
+    mm.customProgramCacheKey = () => 'site_grain';
+  }
   m.userData.mats = mats; m.castShadow = true; m.receiveShadow = true; m.renderOrder = 0;
   TOWN.group.add(m);
   // boulders: lumpy dark lava, half sunk
@@ -2368,6 +2403,30 @@ async function buildSite(S) {
   });
   im.userData.mats = MAT.Stone; im.castShadow = true; im.receiveShadow = true; im.computeBoundingSphere(); TOWN.group.add(im);
   if (S.name === 'bue') cicci(J);
+  if (J.lake && J.lake.length > 2) {   // the lake surface, coloured from the photo (deep navy to milky shallows)
+    const shp = new THREE.Shape(J.lake.map(([x, y]) => new THREE.Vector2(x, y)));
+    const lg = new THREE.ShapeGeometry(shp, 2), lp = lg.attributes.position, luv = new Float32Array(lp.count * 2), W = nx * res, H = ny * res;
+    for (let v = 0; v < lp.count; v++) { const x = lp.getX(v), y = lp.getY(v); luv[v * 2] = (x - x0) / W; luv[v * 2 + 1] = (y - y0) / H; lp.setXYZ(v, x, J.lakeZ, -y); }
+    lg.setAttribute('uv', new THREE.BufferAttribute(luv, 2)); { const nn = new Float32Array(lp.count * 3); for (let v = 0; v < lp.count; v++) nn[v * 3 + 1] = 1; lg.setAttribute('normal', new THREE.BufferAttribute(nn, 3)); lg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(lp.count * 3).fill(1), 3)); } lg.computeBoundingSphere();
+    const lmats = makeMat('Site', { map: tex, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    lmats.cel.side = lmats.std.side = THREE.DoubleSide;
+    const lm = new THREE.Mesh(lg, lmats.cel); lm.userData.mats = lmats; lm.receiveShadow = true; TOWN.group.add(lm); NOOUT.add(lm);
+  }
+  if (J.veg && J.veg.length) {   // macchia on the crater wall where the photo is green
+    const pick = [[], [], []]; J.veg.forEach(([x, y, s], k) => pick[k % 3].push(x, y, s));
+    [VEG.shrubA, VEG.shrubB, VEG.shrubC].forEach((geo, k) => { const im = instanced(geo, pick[k], (s) => s); if (im) TOWN.group.add(im); });
+  }
+  if (J.cars && J.cars.length) {   // parked cars
+    const CC = ['#f2f2ee', '#c8cbcc', '#2b2e33', '#b23a2f', '#3a5f8f', '#e0e0d8', '#8a8f93', '#d9c9a0'];
+    const body = mergeGeos([colorize(boxG(4.0, 0.75, 1.7, 0, 0.6, 0), '#ffffff'), colorize(boxG(2.1, 0.55, 1.5, -0.2, 1.25, 0), '#ffffff')]);
+    const glass = colorize(boxG(2.15, 0.4, 1.52, -0.2, 1.25, 0), '#33454c'), tyres = mergeGeos([[-1.3, -0.75], [-1.3, 0.75], [1.3, -0.75], [1.3, 0.75]].map(([a, b]) => colorize(new THREE.CylinderGeometry(0.33, 0.33, 0.24, 8).rotateX(Math.PI / 2).translate(a, 0.33, b), '#1a1a1a')));
+    const n = J.cars.length, ims = [body, glass, tyres].map((g) => new THREE.InstancedMesh(g, MAT.Prop.cel, n)), M5 = new THREE.Matrix4(), q5 = new THREE.Quaternion(), one = new THREE.Vector3(1, 1, 1), c5 = new THREE.Color(), sol = [];
+    J.cars.forEach(([x, y, a, ci], k) => { q5.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a); M5.compose(b2t(x, y, heightCubic(x, y) - 0.02), q5, one);
+      ims.forEach((im) => im.setMatrixAt(k, M5)); ims[0].setColorAt(k, c5.set(CC[ci % CC.length]));
+      sol.push(x - Math.cos(a) * 1.9, y - Math.sin(a) * 1.9, x + Math.cos(a) * 1.9, y + Math.sin(a) * 1.9, 1.4, 1.6); });
+    for (const im of ims) { im.userData.mats = MAT.Prop; im.castShadow = true; im.receiveShadow = true; im.computeBoundingSphere(); TOWN.group.add(im); }
+    TOWN.solid = TOWN.solid ? new Float32Array([...TOWN.solid, ...sol]) : new Float32Array(sol);
+  }
   if (J.walls && J.walls.length) {   // surveyed walls of the site (drawn like the rural ones, and solid)
     const ws = []; for (const w of J.walls) ws.push(...w);
     const wb = wallGeometry(ws, null), wm = wb && finishTB(wb, MAT.Town); if (wm) { wm.castShadow = false; TOWN.group.add(wm); }
@@ -2467,6 +2526,64 @@ function cicci() {
   for (const n of [10.5, 31.5]) solid.push(ox - 32.5, oy + n, ox - 1.5, oy + n, 0.5, 0.5);
   rect(-7.8, -5.3, 7.8, 5.3); solid.push(ox - 10.5, oy - 14, ox - 10.5, oy + 6.8, 1, 0.6);
   TOWN.solid = TOWN.solid ? new Float32Array([...TOWN.solid, ...solid]) : new Float32Array(solid);
+}
+// ---- Campobello props (campo.json: Street View + crowns from the photo) ----
+const CAMPO_GEO = {};
+function campoGeo(kind) {
+  if (CAMPO_GEO[kind]) return CAMPO_GEO[kind];
+  const P = [], ico = (r, x, y, z, lo, hi) => paint(new THREE.IcosahedronGeometry(r, 0).translate(x, y, z), lo, hi, y - r, y + r);
+  const R = (k, n) => rnd(k * 7.1, n * 3.3);
+  if (kind === 'bougainvillea') {   // a mound of leaves smothered in magenta bracts
+    P.push(paint(blob(1, 1.5, 1.1, 1.3, 0, 1.0, 0), '#2f5222', '#4f7a32', 0, 2));
+    for (let k = 0; k < 16; k++) { const a = k * 2.4, r = 0.9 + 0.5 * R(k, 1), y = 0.6 + 1.4 * R(k, 2); P.push(ico(0.32 + 0.2 * R(k, 3), Math.cos(a) * r, y, Math.sin(a) * r, '#b0105e', k % 3 ? '#e23c8f' : '#f06aa8')); }
+  } else if (kind === 'oleander') {   // tall, leggy, pink at the top
+    for (let k = 0; k < 5; k++) P.push(paint(blob(1, 0.8, 1.3, 0.8, (R(k, 1) - 0.5) * 1.4, 1.5 + 0.4 * R(k, 2), (R(k, 3) - 0.5) * 1.4), '#2c4a24', '#5a7f3c', 0.2, 3));
+    for (let k = 0; k < 18; k++) { const a = k * 2.1, r = 0.4 + 0.8 * R(k, 4); P.push(ico(0.16, Math.cos(a) * r, 1.6 + 1.2 * R(k, 5), Math.sin(a) * r, '#e05a8a', '#f7a3c0')); }
+  } else if (kind === 'ficus') {   // big glossy round bush (fig, frangipani)
+    P.push(trunk(0.18, 0.12, 1.2), paint(blob(1, 2.0, 1.5, 2.0, 0, 1.9, 0, 1), '#244a20', '#4f8a3a', 0.6, 3.4), paint(blob(1, 1.2, 1.0, 1.2, 0.9, 2.6, 0.4), '#2e5626', '#6a9c48', 1.5, 3.6));
+  } else if (kind === 'carob') {   // carob: short stout trunk, a wide dark dome
+    P.push(trunk(0.35, 0.22, 1.6, 0, 0, 0.08, '#5a4636'), paint(blob(1, 2.9, 1.9, 2.7, 0, 3.0, 0, 1), '#1e3d1c', '#3d6b30', 1.2, 4.9), paint(blob(1, 1.6, 1.2, 1.5, 1.2, 3.8, -0.6), '#244421', '#4b7a38', 2.6, 5));
+  } else if (kind === 'araucaria') {   // Norfolk Island pine: straight trunk, flat tiers
+    P.push(trunk(0.32, 0.12, 15, 0, 0, 0, '#5d4a3a'));
+    for (let k = 0; k < 8; k++) { const y = 4 + k * 1.45, r = 3.0 - k * 0.3; P.push(paint(new THREE.CylinderGeometry(r * 0.25, r, 0.55, 7).translate(0, y, 0).rotateY(k * 0.7), '#21401f', '#3f6b33', y - 0.3, y + 0.3)); }
+    P.push(paint(new THREE.ConeGeometry(0.5, 1.6, 6).translate(0, 16.2, 0), '#21401f', '#3f6b33', 15.4, 17));
+  } else if (kind === 'agave') {
+    for (let k = 0; k < 14; k++) P.push(paint(new THREE.ConeGeometry(0.12, 1.4, 3).translate(0, 0.7, 0).rotateZ(0.35 + (k % 3) * 0.3).rotateY(k * 2.4), '#5b7a6a', '#a8bfae', 0, 1.4));
+  } else if (kind === 'upole') {   // wooden utility pole with a crossarm
+    P.push(colorize(new THREE.CylinderGeometry(0.11, 0.15, 8, 6).translate(0, 4, 0), '#6b5a46'), colorize(boxG(1.4, 0.1, 0.1, 0, 7.6, 0), '#5a4a38'));
+  } else if (kind === 'lamp') {   // tall white street lamp
+    P.push(colorize(new THREE.CylinderGeometry(0.06, 0.1, 6.5, 6).translate(0, 3.25, 0), '#e8e8e4'), colorize(boxG(1.2, 0.08, 0.08, 0.55, 6.45, 0), '#e8e8e4'), colorize(boxG(0.5, 0.14, 0.24, 1.1, 6.35, 0), '#d8d8d2'));
+  } else if (kind === 'mirror') {   // convex traffic mirror
+    P.push(colorize(new THREE.CylinderGeometry(0.04, 0.04, 2.6, 5).translate(0, 1.3, 0), '#9a9a96'), colorize(new THREE.CylinderGeometry(0.42, 0.42, 0.06, 12).rotateZ(Math.PI / 2).translate(0.05, 2.75, 0), '#e8701e'), colorize(new THREE.CylinderGeometry(0.34, 0.34, 0.07, 12).rotateZ(Math.PI / 2).translate(0.07, 2.75, 0), '#c8d4dc'));
+  } else if (kind === 'cane') {   // reed (canne) fence panel along the road
+    for (let k = 0; k < 10; k++) P.push(colorize(boxG(0.06, 1.7 + 0.25 * R(k, 1), 0.06, -2.2 + k * 0.5, 0.9, 0), k % 2 ? '#c9b07a' : '#b39a64'));
+    P.push(colorize(boxG(5, 0.06, 0.06, 0, 0.6, 0), '#8a744c'), colorize(boxG(5, 0.06, 0.06, 0, 1.5, 0), '#8a744c'));
+  } else if (kind === 'pillar') {   // white plastered gate pillar with a cap
+    P.push(colorize(boxG(0.6, 1.7, 0.6, 0, 0.85, 0), '#f1efe8'), colorize(boxG(0.75, 0.14, 0.75, 0, 1.77, 0), '#e2ded4'), colorize(new THREE.ConeGeometry(0.3, 0.3, 4).rotateY(Math.PI / 4).translate(0, 2.0, 0), '#e2ded4'));
+  } else if (kind === 'palm') return (CAMPO_GEO[kind] = palmGeo());
+  else if (kind === 'pine') return (CAMPO_GEO[kind] = VEG.pine);
+  else if (kind === 'olive2') return (CAMPO_GEO[kind] = VEG.olive);
+  else if (kind === 'pear') return (CAMPO_GEO[kind] = VEG.pear);
+  return (CAMPO_GEO[kind] = mergeGeos(P));
+}
+const CAMPO_SOLID = { pillar: 0.35, upole: 0.15, lamp: 0.12, mirror: 0.06, palm: 0.25, araucaria: 0.3, carob: 0.35, olive2: 0.2, pine: 0.3 };
+function buildCampoProps(J) {
+  const by = {}; for (const p of J.props) (by[p[0]] ||= []).push(p);
+  const q = new THREE.Quaternion(), M = new THREE.Matrix4(), sc = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0), sol = [];
+  for (const [kind, list] of Object.entries(by)) {
+    const geo = campoGeo(kind), plant = !['upole', 'lamp', 'mirror', 'cane', 'pillar', 'palm'].includes(kind), mats = plant ? MAT.Veg : MAT.Prop;
+    const im = new THREE.InstancedMesh(geo, mats.cel, list.length);
+    list.forEach(([, x, y, s, a], k) => {
+      const jit = plant ? 0.85 + 0.3 * rnd(x * 3, y * 3) : 1;
+      q.setFromAxisAngle(Y, kind === 'cane' || kind === 'pillar' || kind === 'mirror' || kind === 'lamp' || kind === 'upole' ? a + (kind === 'mirror' ? Math.PI : 0) : rnd(x, y) * 6.283);
+      M.compose(b2t(x, y, heightCubic(x, y) - (plant ? 0.1 : 0.05)), q, sc.set(s * jit, s * jit * (plant ? 0.9 + 0.2 * rnd(y, x) : 1), s * jit));
+      im.setMatrixAt(k, M);
+      const r = CAMPO_SOLID[kind]; if (r) sol.push(x - r, y, x + r, y, 2, r * 2);
+    });
+    im.userData.mats = mats; im.castShadow = kind !== 'cane'; im.receiveShadow = true; im.computeBoundingSphere(); TOWN.group.add(im);
+  }
+  TOWN.solid = TOWN.solid ? new Float32Array([...TOWN.solid, ...sol]) : new Float32Array(sol);
+  styleMeshes(TOWN.group);
 }
 function buildTown(T) {
   PROM = (T.promenade || []);
@@ -4049,6 +4166,7 @@ async function boot() {
     try { parseBld(await bin(MEDIA + 'bld.bin')); hookFarBuildings(); } catch (e) { console.warn('bld', e); } step('town');
     try { buildTown(await (await fetch(MEDIA + 'town.json')).json()); } catch (e) { console.warn('town', e); }
     try { buildLandmarks(); } catch (e) { console.warn('landmarks', e); }
+    if (META.campo) try { CAMPO = await (await fetch(MEDIA + 'campo.json')).json(); for (const S of CAMPO.survey) { surveyBox(S); SURVEYS.push(S); } buildCampoProps(CAMPO); } catch (e) { console.warn('campo', e); }
     for (const S of SITES) { try { await buildSite(S); } catch (e) { console.warn('site mesh', S.name, e); } }
     step('names');
     buildLabels(); buildRoadLabels();

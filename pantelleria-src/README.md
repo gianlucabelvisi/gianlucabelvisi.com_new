@@ -197,3 +197,22 @@ detached from the vehicle's heading), First person (cockpit, drag = head look). 
 ## Via del Lago site (2026-11-02)
 
 - sites/lago.py rebuilds the descent from the Perimetrale to the Specchio di Venere at 0.5 m (the 10 m DEM had the lakeside road 20-30 m above the water). Street View: upper leg along the plateau (~42-46 m) then down to a first hairpin (~22 m); middle leg back west across the crater wall with an ~8 m grey rock cut uphill and concrete guard blocks on the lake side, down to a second hairpin (~6 m); lower leg east along the shore at ~3.5 m with a low rubble retaining wall uphill, a grass verge and a line of black rocks in the shallows; the west-shore track at the same level. The strip between the middle leg and the water is re-modelled from the road levels and the shoreline; elsewhere the ground is cut and filled to seat the road. The road is asphalt and 4 m wide. No field walls on the crater wall (SITE_CLEAR).
+
+## Lago site pass 2 (2026-11-02, later)
+
+- sites/lago.py rewritten: the whole crater round the Specchio di Venere is one smooth surface (harmonic membrane solved at 1 m) pinned to the roads as flat benches at their design levels (descent legs, the ring road round the east/south/west shore at 2.8-6 m, the first 260 m of Via Bugeber) and to the water at 2.25 m, stitched to the island ground at the rim. No more cut/fill steps or ridges.
+- The lake outline is traced from the photo (incl. the pale southern shallows) and replaces the OSM polygon (kept as pts_osm); the ring road no longer dips under the water.
+- ground_fix.py samples the site heightfields, so houses and trees in a site sit on it.
+
+## Lago site pass 3 (2026-11-03)
+
+- Bumps: every road leg now ends exactly at the level of the leg it joins (hairpins, the NE corner), and all roads plus the car park share one blended level field (smoothed over 1.5 m where they meet). In a site the road ribbon drapes on the site surface only (groundTop no longer takes the max with the coarse island mesh). Probe: no kinks > 0.12 m/m along any lake road.
+- Car park at the end of the asphalt (NE shore, from the photo): a flat dirt lot, ~45 parked cars in the rows seen on the photo, the shore wall opens onto it. Asphalt stops there; the ring road round the lake stays unpaved.
+- Less N64: the lake is banded from the photo (navy deep crater, teal, turquoise, milky shallows); the site photo is sharpened and broken up with world-space grain up close; ~5000 macchia bushes where the photo is green.
+
+## Campobello pass 1 (2026-11-03)
+
+- sites/campobello.py (Street View every ~70 m along Via Campobello, plus Via Posta Vecchia and the photo): removes 9 drives/tracks the imagery does not show (one around Via Posta Vecchia), narrows unnamed drives to 2.6 m (no walls of their own), Via Campobello 4 m, Via Posta Vecchia 3.2 m (asphalt to the bend).
+- Wall survey per side (height and kind: dry-stone, tall retaining, white plaster) drives the roadside walls on both roads; elsewhere roadside walls now vary in height (0.55-1.35 m). White walls are lime-washed.
+- New assets: bougainvillea, oleander, big fig/frangipani, carob, Norfolk pine, agave, wooden utility poles, white street lamps, traffic mirror, cane fence, white gate posts. Placed from Street View; 124 trees from the dark crowns on the photo near the two roads.
+- The two white guard posts on the island where Via Campobello splits from the Perimetrale.
