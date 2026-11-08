@@ -238,7 +238,8 @@
   overflow: visible;
   padding: 0.5rem;
   flex: 1;
-  transition: transform 300ms ease-in-out;
+  /* Moved by NetflixSlider's frame loop, never by a CSS transition */
+  will-change: transform;
 }
 
 /* Responsive slider adjustments */
