@@ -216,3 +216,106 @@ detached from the vehicle's heading), First person (cockpit, drag = head look). 
 - Wall survey per side (height and kind: dry-stone, tall retaining, white plaster) drives the roadside walls on both roads; elsewhere roadside walls now vary in height (0.55-1.35 m). White walls are lime-washed.
 - New assets: bougainvillea, oleander, big fig/frangipani, carob, Norfolk pine, agave, wooden utility poles, white street lamps, traffic mirror, cane fence, white gate posts. Placed from Street View; 124 trees from the dark crowns on the photo near the two roads.
 - The two white guard posts on the island where Via Campobello splits from the Perimetrale.
+
+## Kharuscia, Minardi, coast landmarks, Streets toggle (2026-11-04)
+
+- Via Kharuscia (Perimetrale -> Via Campobello, Street View): 3.6 m asphalt lane, the two lava-stone WWII guard huts (garitte di Karuscia) either side of it ~25 m in, surveyed walls (dry-stone, tall retaining, white), agaves, palms, lamps, poles, pines, prickly pear.
+- Cantina Minardi (Via Campobello 85, photos): lava-stone blocks with arches, the white barrel-vault cellar, a pink terrace with a dark timber pergola, white slats, white/orange curtains, pallet lounges with red cushions, tables with red and orange chairs.
+- sites/cliffs.py: the north coast east of Il Porticello is a cliff dropping straight to the sea.
+- Arco dell Elefante rebuilt as one continuous mass (back, head, trunk into the sea); Faraglione di Tracino ~38 m with a lower companion; Cala Tramontana timber sun decks and the slipway with timber steps.
+- The car sits on the drawn ground (site surface or the 5 m mesh) so it no longer sinks or floats where they differ.
+- Streets button (S) in the top-right menu shows or hides street names (on by default, remembered).
+
+## 2026-11-07 airport, lake terrain redo, Kharuscia
+- sites/airport.py (runs before cliffs.py): grades runways/taxiways/aprons, clears scrub (class 10 = paved, 4 = field grass), clips dry-stone walls inside the fence, writes web/assets/airport.json (paved, aprons, markings quads, fence, terminal footprints, props, parked cars).
+- Viewer buildAirport(): draped runway/taxiway ribbons and clipped apron mesh, white/yellow markings, chain-link fence with barbed wire (solid), two-storey glass terminal with solar roof and pyramid entrance, control tower, floodlight masts, ATR 72 + business jet, windsocks, landside car parks. Airfield paving counts as asphalt for the car (airPavedAt).
+- build.py no longer bakes runway ribbons.
+- sites/lago.py: no cutting/bank; gentle verges, shore excluded from membrane pins, no grid lowering before the membrane (fixes rim walls, tall houses, vertical road). Brick parapet blocks on the hairpins.
+- Via Kharuscia widened to 5.4 m two-lane asphalt. Tarmac drift less eager (lift-off > 15 m/s).
+
+## 2026-11-07 later: lake road from a 20 m Street View survey
+- sites/lago.py back to the lago-pass-3 base. Membrane = absolute near the water, displacement from the DEM up the crater wall (blend 35-80 m from the lake): natural slopes, no cliff at the rim. Grid lowered only 28 m inside the area (bicubic never pulls the rim down).
+- Only cutting: last ~35 m before hairpin 1 (2.5 m / 1.5 m). Middle leg: uphill rock face (steepens existing rise only), brick parapet sections 1.6 m every 2.6 m for the first ~120 m after hairpin 1. Shore wall only from ~200 m after hairpin 2, 0.6 m.
+- Via Kelima = footway (hikers), 3 lava posts at its mouth. Car treats footpaths/steps as off-road.
+- ground_fix: plinth capped at 6 m (plinthMax). The long structure on the west crater slope (OSM 1160060288/89) is a low ruin.
+- Airport: fence inside the public perimeter roads; landside (terminal, roundabout, car parks) has no field walls (class 1/10). Made-up glass pyramid removed.
+
+## 2026-11-07 lake fixes 2
+- Perimetrale junction: lake site starts 32 m in (link lane 389374588 no longer buried); field walls cleared; low lava-stone island in the fork; no shrubs within 6 m of the Perimetrale/link.
+- Removed: middle-leg added rock face (ribbed walls), the 3 posts at Via Kelima (they sat on the road), OSM 1160060288/89 (65 m slab on the slope).
+- Lane 1160060138 (to the pink houses) pinned at its natural level and trimmed to stop at the top of the crater wall (was a vertical ramp down to hairpin 2).
+
+## 2026-11-08 vehicles
+- Helicopter mode (4 / Heli button): heliModel() (R44 type), stepHeli(): stick asks for a speed, eases into it, hovers when released; Shift/R up, Ctrl/F down, W/S fwd/back, A/D turn, Q/E sideways, Space stop, T lands below; rides over terrain at speed; touch slider = collective.
+- Vespa 150 (red, with rider) as car type vespa (V cycles Panda > Rally > Vespa): ~100 km/h top, leans atan(v^2/(R g)), no skid marks, small shadow, wheel radius from the model (c.wr).
+- Panda/rally: real half-ring arch flares, bumpers, grille, lamps, mud flaps, slim rear wing, door roundels (no more painted stair-steps).
+- Lake: macchia kept 4 m off every lane in the site, parked cars kept out of aisles.
+
+## 2026-11-08 placement + lake
+- Car placement: first press of Car (2) shows an orange marker (ring, arrow, bobbing pin) on the road nearest the map centre; move the map to change it; Car/2/Enter again drives, Esc/Map cancels (PLACE, carSpawnPoint, startPlacing/stopPlacing/updatePlace).
+- lago.py: every other lane in the site (Perimetrale profile, drives/tracks at smoothed natural ground) gets a bench; the 32 m junction exclusion is gone.
+- Lake colours: 7 bands, shallows mixed with the photo tones (no flat milky slab up close).
+
+## 2026-11-08 roads clean + debug
+- Road surfaces: roadProf(r) = 5 lines across, every 1 m, each the upper envelope of the ground (max over +-3 m then +-3 m mean): never below the terrain, smooth along; road mesh 5 verts across; carZ drives on the same surface. Island audit (web/road_audit.mjs): ground poking through roads 394 -> 19 points.
+- road_clear.py (after the sites): drops trees on drivable roads, trims building/town footprints back to road edge + 0.3 m (935 trimmed, 1 dropped).
+- build.py: no flat GLB copy of Lago Specchio di Venere (it covered the depth-coloured site lake up close).
+- Debug (G / Debug button): off, light = FPS/ms/draws/tris, heavy = every building numbered (#n, stable: data/bld_numbers.json id->number, never reused; bld.bin header +uint32 num; town.json blds num).
+
+## 2026-11-08 junction mounds (root cause)
+- The mounds by the Perimetrale were the island bicubic ringing up 1-2 m next to grid nodes the lake site had lowered to -6 m (since the junction exclusion was dropped). lago.py: no grid lowering within 30 m of roads the site does not shape (perim, lanes, svc). Verge cap: ground beside those roads and the plateau leg rises at most 0.3 m/m (grid + site).
+- Lake water polygon buffered 2 m under the shore; shore lip ZW+0.3 (no slivers of lake bed at the edge now that the flat GLB lake is gone).
+
+## 2026-11-09 lake: middle leg + fake hills
+- RULE: whenever terrain is altered, verify roads are not affected. Run python3 check_lago.py after run_all.sh (fake hills > 3 m above the original ground; walls beside roads) and look at the lake roads from above and from the car.
+- Grid kept up only near the Perimetrale, or near lanes/svc > 40 m from a Via del Lago leg (keeping it up by the lane above the middle leg had buried the middle leg under a stepped wall).
+- Lowered grid nodes are re-set after the membrane to 1 m under the lowest site ground within 12 m (not -6 m): the -6 m drop made the bicubic ring into 4-7 m ridges that became fake hills.
+- Away from roads the site never stands above the original ground (+0.3), except a 1:1.2 fill falling from a road or the beach rising from the water line.
+
+## 2026-11-09 performance pass 1
+- Site surfaces in 64 m tiles with 4 levels (every 1/2/4/8 samples by distance: <70, <180, <450 m, x QUALITY); tile rings stay full-res so there are no cracks; off-screen tiles culled (updateSiteLOD).
+- Far trees in 500 m tiles; a tile is not drawn when every close-up tile under it is up (they were drawn and then discarded per pixel).
+- Close-up plants thin out with distance via InstancedMesh.count on shuffled instances (full within ~170 m, 1/3 at the ring edge) (updateVegLOD).
+- Lake surface back in the ink pass (the lake bed steps were drawing ink lines across the water).
+- Lake view: 8.5 M -> 1.8 M triangles per frame (all passes).
+
+
+## 2026-11-11 the five-area pass
+
+Workspace note: the cloud workspace was rebuilt from this folder on 2026-11-11. To rebuild from scratch you need, besides
+the files here: `cp data/tinitaly/w40575_s10/w40575_s10.tif data/dem10.tif`, `python3 s2mosaic.py`, then
+`python3 town_extra.py && python3 prep.py && python3 road_surface.py` once (road_surface.py needs prep/features.json and
+writes data/road_surface.json), then `bash run_all.sh`. Tools: pip bpy shapely scipy rasterio pyproj pillow matplotlib,
+npm -g @gltf-transform/cli, three@0.170 + playwright for the tests.
+
+**Standing rule: whenever the terrain or anything on it changes, the roads must not be affected.** `run_all.sh` now ends with
+- `python3 check_roads.py` — objects on carriageways (trees, buildings, site props, cars, walls, fence), fake hills
+  (> 3 m above the original ground), wall-like rises beside roads, roads steeper than 35 % inside a site;
+- `node tests/road_check.mjs` — in the real viewer: ground poking through the tarmac, kinks in the road surface.
+Both compare 100 m cells with `data/road_check_baseline.json` and fail the build on anything new. `--accept` saves a new
+baseline (only after looking at the place).
+- `python3 suspicious_roads.py` → `suspicious_roads.md`: roads steeper than 22 % or with no trace on the Esri photo.
+
+Viewer
+- Outlines in one pass: every material writes its view normal to a second render target (ShaderChunk patch at the top,
+  `gNrm`, alpha 0 = no ink). `?mrt=0` falls back to the old two passes. No-ink objects use `noInk(o)`.
+- Automatic resolution (`DYN`, Settings), benchmark (`G` then `B`): five places, 30 s, copyable result.
+- All files are requested at once at boot.
+- Debug (`G`): `O` satellite photo over the model (Esri tiles, 60 % / 100 %), `K` Street View here, heavy debug: click
+  copies a location line (lat/lon, x/y, building number, road), colliders drawn in magenta.
+- Sound (Web Audio, synthesised: engine, tyres, wind, rotor, thumps), `M`.
+- Rally stage (`Y` in the car): Perimetrale town → Campobello, ten gates, best time per car (localStorage `pan.rally`).
+- Vespa: own steering (short wheelbase, lock limited to ~0.75 g) and brakes.
+- Plane: `RUNWAYS` (four ends, `T` cycles), approach line in the HUD, taxiways/aprons count as runway, field landings.
+- Helicopter: landing spots (`PADS`, found on clear flat ground near twelve places, `N`), auto-land (`L`), lands on the
+  lake surface.
+- UI: Places (`/`) and Settings buttons; settings menu (names, streets, time, sound, automatic resolution, detail
+  auto/high/low = QUALITY, photo mode `P`, full screen, debug, help `?`); first-visit help; while placing the car a
+  click on the map moves the marker; touch: Up / Down / Auto-land buttons for the helicopter, rotate hint.
+- Closest ring (`buildClose`, tiles within 250 m): pergola + stone bench, flower pots, agave / prickly pear,
+  bougainvillea next to houses; never on a road or in a building. Finer ground grit under 110 m; tar patches and edge
+  lines on roads.
+- prep.py: villages outside Pantelleria town are low (half the small footprints become dammusi, two storeys are rare).
+
+Not done: side-by-side Street View review sheets (use `K`), cross-fades between detail levels, per-land-type ground
+textures, compressing island.glb further.

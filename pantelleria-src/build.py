@@ -174,7 +174,7 @@ for (key, mname), (Vs, Qs, _) in groups.items():
 print('road meshes', len(groups))
 
 Vs, Qs, n = [], [], 0
-for rw in F['runway'] + F['aprons']:
+for rw in []:   # runways / taxiways are draped by the viewer on the graded terrain (sites/airport.py)
     pts = np.array(rw['pts'], dtype=np.float64)
     zz = ndimage.gaussian_filter1d(zat(pts[:, 0], pts[:, 1]), 1.5, mode='nearest') if len(pts) > 3 else zat(pts[:, 0], pts[:, 1])
     if rw['kind'] == 'apron' and pts.shape[0] > 3:
@@ -325,6 +325,7 @@ finish(bm, 'piers', M['Concrete'])
 
 bm = bmesh.new()
 for wv in F['water']:
+    if 'Venere' in (wv.get('name') or '') and os.path.exists('web/assets/site_lago.json'): continue   # drawn by the lake site (depth colours); this flat copy covered it up close
     q = wv['pts'][:-1] if wv['pts'][0] == wv['pts'][-1] else wv['pts']
     if len(q) < 3: continue
     if SPoly(q).exterior.is_ccw is False: q = q[::-1]

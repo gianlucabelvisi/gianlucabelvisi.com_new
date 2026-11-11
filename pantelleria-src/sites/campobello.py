@@ -35,6 +35,13 @@ for r in F['roads']:
         r['w'] = 3.2
         if r['id'] == 389668599: r['surface'] = 'asphalt'   # Street View: asphalt from Via Campobello to the bend
     elif r['cls'] in ('service', 'track') and not nm: r['w'] = 2.6; narrowed += 1
+for r in F['roads']:
+    if r['id'] == 239886281: r['w'] = 5.4; r['surface'] = 'asphalt'          # Via Kharuscia: two narrow lanes (narrower than the Perimetrale)
+# Cantina Minardi (Via Campobello 85): drawn by the viewer (lava-stone blocks with arches, the white barrel-vault cellar,
+# the terrace with its pergola); the plain OSM boxes go
+MIN_IDS = {1159183883, 1159183884, 1159183886, 1159183887, 1159183863}
+minardi_b = {b['id']: b for b in F['buildings'] if b.get('id') in MIN_IDS}
+F['buildings'] = [b for b in F['buildings'] if b.get('id') not in MIN_IDS]
 json.dump(F, open('prep/features.json', 'w'), separators=(',', ':'))
 print('campobello: roads dropped', n0 - len(F['roads']), 'narrowed', narrowed)
 
@@ -95,14 +102,6 @@ def put(kind, s, side, sc=1.0, extra=0.0, road=(campR, campT), w=4.0):
     p, a = at(road[0], road[1], s, side, w)
     if extra: p = [p[0] - math.sin(a) * side * extra, p[1] + math.cos(a) * side * extra]
     props.append([kind, round(p[0], 2), round(p[1], 2), sc, round(a, 3)])
-# the two white gate pillars where the frontage lane of Via Campobello opens onto the Perimetrale (both ends)
-# the two guard posts on the island between Via Campobello and the Perimetrale where they split (Street View), on the
-# island's midline
-pe = np.vstack([np.array([q[:2] for q in r['pts']]) for r in F['roads'] if (r.get('name') or '').startswith('Strada Perimetrale') and any(-1300 < q[0] < -1050 and 4550 < q[1] < 4750 for q in r['pts'])])
-for s in (24, 36):
-    p, a_ = at(campR, campT, s, 0)
-    q = pe[np.argmin(np.hypot(pe[:, 0] - p[0], pe[:, 1] - p[1]))]
-    props.append(['pillar', round((p[0] + q[0]) / 2, 2), round((p[1] + q[1]) / 2, 2), 1.0, round(a_, 3)])
 put('bougainvillea', 66, 1, 1.4, 1.5); put('palm', 74, 1, 1.0, 4); put('oleander', 80, -1, 1.1, 2)
 for s in (130, 138, 150): put('palm', s, -1, 0.9 + 0.1 * (s % 3), 5)
 put('carob', 215, -1, 1.4, 8); put('agave', 200, -1, 1.0, 2.5)
@@ -146,5 +145,35 @@ for k, sl in enumerate(objs):
     r_ = math.sqrt(area / math.pi)
     props.append(['carob' if r_ > 2.6 else 'olive2', round(x, 2), round(y, 2), round(min(1.6, max(0.6, r_ / 2.6)), 2), round((x * 7.3 + y) % 6.28, 2)])
     trees += 1
-json.dump({'survey': survey, 'props': props, 'bbox': BB}, open('web/assets/campo.json', 'w'), separators=(',', ':'))
+# ---------------- Via Kharuscia (Perimetrale -> Via Campobello, Street View 2026-11-04) ----------------
+kh = chain([239886281], (-2142, 5702)); khR, khT, khL = resample(kh, 25)
+KS = [  # s, left (h, kind), right (h, kind); left = NE side driving in from the Perimetrale
+    (0, (0.5, D), (1.0, D)), (40, (0.9, D), (1.4, D)), (90, (0.7, D), (1.8, RT)), (140, (1.2, D), (1.9, RT)),
+    (190, (0.9, D), (1.2, D)), (250, (1.1, W), (1.0, D)), (300, (1.1, W), (0.9, D)), (350, (0.9, D), (0.8, D)),
+    (400, (0.8, D), (0.8, D)), (450, (0.6, D), (0.7, D)), (500, (0.6, D), (0.7, D)), (530, (0.6, D), (0.7, D))]
+kh_sv = []
+for s_, (lh, lk), (rh, rk) in KS:
+    p, _ = at(khR, khT, min(s_, khL - 1)); kh_sv.append([p[0], p[1], lh, lk, rh, rk])
+survey.append({'route': [[round(float(x), 1), round(float(y), 1)] for x, y in khR], 'sv': kh_sv})
+KR = (khR, khT)
+# the two WWII guard huts (garitte di Karuscia) either side of the lane ~25 m in from the Perimetrale
+for side in (1, -1):
+    p, a_ = at(khR, khT, 25, side, 5.4)
+    props.append(['garitta', p[0], p[1], 1.0, round(a_ + (math.pi / 2 if side > 0 else -math.pi / 2), 3)])
+for s_ in (35, 48, 60): put('agave', s_, -1, 1.2, 2.0, road=KR, w=5.4)
+put('palm', 70, -1, 1.0, 9, road=KR, w=5.4); put('palm', 80, -1, 0.9, 12, road=KR, w=5.4)
+for s_ in (60, 160, 260, 380): put('lamp', s_, 1 if s_ < 200 else -1, 1.0, 0.4, road=KR, w=5.4)
+for s_ in (110, 210, 330, 480, 515): put('upole', s_, -1, 1.0, 0.6, road=KR, w=5.4)
+put('olive2', 245, 1, 1.4, 3, road=KR, w=5.4); put('pine', 262, -1, 1.0, 5, road=KR, w=5.4)
+put('pine', 395, 1, 0.9, 3, road=KR, w=5.4); put('pine', 405, 1, 0.8, 7, road=KR, w=5.4); put('pear', 410, -1, 1.2, 1.5, road=KR, w=5.4)
+put('pear', 418, -1, 1.0, 2.5, road=KR, w=5.4); put('bougainvillea', 285, 1, 1.0, 1.0, road=KR, w=5.4)
+
+# ---------------- Cantina Minardi ----------------
+minardi = {
+    'lava': [minardi_b[i]['pts'] for i in (1159183883, 1159183884, 1159183863) if i in minardi_b],
+    'vault': minardi_b[1159183886]['pts'] if 1159183886 in minardi_b else None,
+    'white': [minardi_b[i]['pts'] for i in (1159183887,) if i in minardi_b],
+    'terrace': [[-1940, 5112], [-1926, 5134], [-1904, 5129], [-1912, 5109], [-1924, 5101]],
+}
+json.dump({'survey': survey, 'props': props, 'bbox': BB, 'minardi': minardi}, open('web/assets/campo.json', 'w'), separators=(',', ':'))
 print('campobello: survey points', sum(len(s['sv']) for s in survey), 'props', len(props), 'trees from photo', trees)

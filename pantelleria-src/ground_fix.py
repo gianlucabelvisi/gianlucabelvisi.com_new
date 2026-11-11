@@ -70,6 +70,7 @@ moved = []
 for b in F['buildings']:
     S = samples(b['pts']); h = hcubic(S[:, 0], S[:, 1])
     zmin, zmax = float(h.min()), float(h.max())
+    zmin = max(zmin, zmax - b.get('plinthMax', 6.0))   # on a cliff edge: a plinth of at most 6 m, the rest overhangs (no 30 m 'skyscraper' bases)
     moved.append(b['zmin'] - zmin)
     b['zmin'] = round(zmin, 2); b['zmax'] = round(zmax, 2)
 # trees too (they were placed on the raw DEM: the ones beside graded roads floated)

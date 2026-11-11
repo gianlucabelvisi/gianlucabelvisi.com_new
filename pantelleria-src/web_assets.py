@@ -100,6 +100,18 @@ def detail_bin():
 detail_bin()
 
 # building footprints for the close-up layer and the car: kind, flags, n, zmin, zmax, h, seed, then n x (x*4, y*4) int16
+# stable building numbers (debug overlay: 'change building #123'): data/bld_numbers.json maps id -> number, new ids get
+# the next free number, numbers are never reused
+NUMF = 'data/bld_numbers.json'
+NUM = json.load(open(NUMF)) if os.path.exists(NUMF) else {}
+_next = max(NUM.values(), default=0) + 1
+for _b in F['buildings'] + (TZ['blds'] if TZ else []):
+    k_ = str(_b['id'])
+    if k_ not in NUM: NUM[k_] = _next; _next += 1
+os.makedirs('data', exist_ok=True); json.dump(NUM, open(NUMF, 'w'), separators=(',', ':'))
+if TZ:
+    for _b in TZ['blds']: _b['num'] = NUM[str(_b['id'])]
+    json.dump(TZ, open(os.path.join(W, 'town.json'), 'w'), separators=(',', ':'), ensure_ascii=False)
 def bld_bin():
     import struct, zlib
     TIDS = set(b['id'] for b in TZ['blds']) if TZ else set()
@@ -109,8 +121,8 @@ def bld_bin():
     for b in bl:
         pts = b['pts'][:-1] if b['pts'][0] == b['pts'][-1] else b['pts']
         seed = zlib.crc32(str(b['id']).encode()) & 0xffffffff
-        out += struct.pack('<BBHhhHI', KC.get(b['kind'], 1), 1 if b['id'] in TIDS else 0, len(pts),
-                           int(round(b['zmin'] * 10)), int(round(b['zmax'] * 10)), int(round(b['h'] * 10)), seed)
+        out += struct.pack('<BBHhhHII', KC.get(b['kind'], 1), 1 if b['id'] in TIDS else 0, len(pts),
+                           int(round(b['zmin'] * 10)), int(round(b['zmax'] * 10)), int(round(b['h'] * 10)), seed, NUM[str(b['id'])])
         out += np.round(np.array(pts) * 4).astype('<i2').tobytes()
     open(os.path.join(W, 'bld.bin'), 'wb').write(gzip.compress(bytes(out), 9))
 bld_bin()
@@ -120,6 +132,7 @@ meta = {'x0': fr['x0'], 'y0': fr['y0'], 'cell': fr['cell'], 'nx': fr['nx'], 'ny'
         'labels': F['labels'],
         'roadLabels': road_labels(),
         'coastDetail': json.load(open('prep/coast_detail.json')) if os.path.exists('prep/coast_detail.json') else None,
+        'airport': os.path.exists(os.path.join(W, 'airport.json')),
         'campo': os.path.exists(os.path.join(W, 'campo.json')),
         'sites': sorted(f[5:-4] for f in os.listdir(W) if f.startswith('site_') and f.endswith('.bin')),
         'coastAtlas': json.load(open('prep/coast_atlas.json')) if os.path.exists('prep/coast_atlas.json') else None,

@@ -184,6 +184,12 @@ for e in json.load(open(os.path.join(D, 'osm_buildings.json')))['elements']:
             in_town = (town is not None and town.contains(c)) or dens(c.x, c.y) >= 14
             h = (6.6 if poly.area > 60 else 3.8) if in_town else 3.6
             kind = 'town' if in_town else 'dammuso'
+            # villages (2026-11-11): outside Pantelleria town the contrade are low — dammusi and one-storey houses, a
+            # two-storey house here and there — not rows of tall blocks. Deterministic per building id.
+            if in_town and math.hypot(c.x + 4011, c.y - 5156) > 1500:
+                r_ = ((e['id'] * 2654435761) % 1000) / 1000.0
+                if poly.area < 150 and r_ < 0.5: kind, h = 'dammuso', 3.6
+                else: h = 6.6 if (poly.area > 110 and r_ > 0.78) else 3.8
         blds.append({'id': e['id'], 'kind': kind, 'h': round(h, 2), 'zmin': round(float(zz.min()), 2), 'zmax': round(float(zz.max()), 2),
                      'name': t.get('name', ''), 'pts': p})
 # houses OSM misses, found on Esri imagery by detect_houses.py (white roofs, high-confidence only)

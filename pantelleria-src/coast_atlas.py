@@ -90,8 +90,13 @@ for k, (ti, tj) in enumerate(tiles):
     lq = ndimage.gaussian_filter(lum, 1.0) * 0.85 + 0.12
     lava = np.stack([0.19 + 0.34 * lq, 0.19 + 0.335 * lq, 0.195 + 0.34 * lq], -1)
     dry = np.where(lum[..., None] > 0.35, np.array([0.58, 0.54, 0.43]), np.array([0.45, 0.43, 0.35]))
-    vegw = veg * np.clip((dsea - 18) / 40, 0, 1)                     # right at the sea it is all rock
-    out = lava * (1 - vegw[..., None] * 0.8) + dry * (vegw[..., None] * 0.8)
+    # low shores: bare rock right to the sea. Cliff tops (Porticello, Cinque Denti, Spadillo...): green macchia patches
+    # right up to the edge, the rock only in the face and the boulders below (Gianluca, photos 2026-11-05)
+    high = np.clip((ndimage.gaussian_filter(zf, 2.0) - 6) / 6, 0, 1)
+    vegw = veg * (np.clip((dsea - 18) / 40, 0, 1) * (1 - high) + np.clip((dsea - 3) / 8, 0, 1) * high)
+    macchia = np.stack([0.26 + 0.18 * lum, 0.36 + 0.2 * lum, 0.18 + 0.1 * lum], -1)
+    vcol = dry * (1 - high[..., None]) + macchia * high[..., None]
+    out = lava * (1 - vegw[..., None] * 0.85) + vcol * (vegw[..., None] * 0.85)
     noise = ndimage.gaussian_filter(np.random.default_rng(k).random(Xg.shape), 1.0)
     out *= (0.94 + 0.12 * noise)[..., None]
     wet = ~landm & ndimage.binary_dilation(landm, iterations=int(10 / PX)) & ok
@@ -121,9 +126,9 @@ C = np.load('prep/classes.npy')
 near = LAND & (dsea10 <= 30); mid = LAND & (dsea10 > 30) & (dsea10 <= 75)
 tm = np.zeros(C.shape, bool)
 tz = rasterize([(town, 1)], out_shape=C.shape, transform=Affine(CELL, 0, X0 - CELL / 2, 0, CELL, Y0 - CELL / 2), fill=0, dtype='uint8').astype(bool)
-sel = near & ~tz & (C != 0) & (C != 1) & (C != 8)
+sel = near & ~tz & (C != 0) & (C != 1) & (C != 8) & (Z <= 8)          # cliff tops keep their macchia
 C[sel] = 7
-sel2 = mid & ~tz & np.isin(C, [5, 6])
+sel2 = mid & ~tz & np.isin(C, [5, 6]) & (Z <= 8)
 C[sel2] = 9
 np.save('prep/classes.npy', C)
 tr = F.get('trees', [])
@@ -136,6 +141,17 @@ if tr and isinstance(tr[0], (list, tuple)):
     json.dump(F, open('prep/features.json', 'w'), separators=(',', ':'))
     print('trees by the sea dropped', len(tr) - len(F['trees']))
 print('coast classes: rock', int(sel.sum()), 'thinned', int(sel2.sum()))
+# boulders below the cliffs: sea cells next to land standing > 8 m within 20 m (10 m grid), a few per cell
+rng = np.random.default_rng(17)
+cliffy = ndimage.maximum_filter(np.where(LAND, Z, -99), size=5) > 8
+foot = (~LAND) & ndimage.binary_dilation(LAND, iterations=1) & cliffy
+rocks = []
+for i, j in zip(*np.nonzero(foot)):
+    for _ in range(int(rng.integers(2, 6))):
+        x = X0 + (j + rng.random() - 0.5) * CELL; y = Y0 + (i + rng.random() - 0.5) * CELL
+        rocks.append([round(float(x), 1), round(float(y), 1), round(float(0.8 + rng.random() ** 2 * 2.6), 2)])
+json.dump(rocks, open('web/assets/coast_rocks.json', 'w'), separators=(',', ':'))
+print('coast boulders', len(rocks))
 
 # bake the same coast into the island colour texture (seen from afar, and wherever the atlas has faded out)
 tim = np.asarray(Image.open('prep/terrain.png').convert('RGB')).astype(np.float32)
