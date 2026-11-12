@@ -8,7 +8,7 @@ open(os.path.join(W, 'index.html'), 'w').write(s.replace('data-media="media/"', 
 t = s.replace('data-media="media/"', 'data-media="assets/"')
 t = re.sub(r'https://cdn\.jsdelivr\.net/npm/three@[^/]+/build/three\.module\.js', '/node_modules/three/build/three.module.js', t)
 t = re.sub(r'https://cdn\.jsdelivr\.net/npm/three@[^/]+/examples/jsm/', '/node_modules/three/examples/jsm/', t)
-open(os.path.join(W, 'test.html'), 'w').write('<!doctype html><html lang="en"><head><meta charset="utf-8"></head><body>' + t + '</body></html>')
+open(os.path.join(W, 'test.html'), 'w').write('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"></head><body style="margin:0">' + t + '</body></html>')
 if len(sys.argv) > 2:
     D = sys.argv[2]; os.makedirs(D, exist_ok=True)
     b = s.replace('data-media="media/"', 'data-media="/pantelleria-3d/"')

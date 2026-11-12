@@ -29,3 +29,15 @@
 @media (prefers-reduced-motion: reduce) {
   .page { animation: none; }
 }
+
+/* Pantelleria map on a phone held sideways: the map takes the whole screen, over the site header
+   (the map shows its own back button there). Only pages that add this class are affected. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .immersive {
+    position: fixed;
+    inset: 0;
+    padding-top: 0;
+    z-index: 300;
+    animation: none;
+  }
+}

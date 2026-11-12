@@ -319,3 +319,49 @@ Viewer
 
 Not done: side-by-side Street View review sheets (use `K`), cross-fades between detail levels, per-land-type ground
 textures, compressing island.glb further.
+
+## 2026-11-11 (b3) roads cannot be unnaturally steep · stutter
+
+Rule (from Gianluca): a road that is unnaturally steep, or bumps at a junction, means the terrain is wrong. Fix the ground, not the road.
+
+- `roads_smooth.py` stage 2: every drivable street is graded (max 16/18/22 % by class), pinned to already-graded roads at junctions, and the ground is graded to it. Short links that would still need > 30 % become steps (91). Leftovers are listed in `prep/steep_after_grading.json`.
+- `sites/lago.py`: lanes are held to the level of the nearest Via del Lago leg (the hump before the car park). `sites/bue_marino.py`: sea specks under 2000 px are land (a 6 px speck dug a 14 m pit across Via Santa Chiara). `sites/airport.py`: no parked cars on lanes, fence opens where roads cross. `sites/campobello.py`: garitte slide clear of lanes.
+- `tests/road_check.mjs` now also fails on drawn streets steeper than 30 % over 8 m. `tests/steep_probe.mjs` reports the whole island: 6920 m -> 1658 m of 384 km. Still steep: Tracino (Via Marina, the main-road cut into the escarpment), Via Khania, Via del Fante, Vicolo delle Rose, Via Zighidi.
+- Lesson: a guard baseline only proves nothing new broke. The old baselines had accepted real faults (cars on lanes, the lake hump, the pit). Look at what is in a baseline before trusting it.
+- Stutter: `roadProf` built a whole road's surface the first time a tile touched it (up to 320 ms). It is now built in 32 m chunks on demand (same result). `buildDetailTile` and `roadMeshFor` are generators: a tile is built a stage at a time inside a per-frame budget (`stepTile`, `DETAIL.jobs`) and shown when complete. Worst tile step in the test drive: 368 ms -> 36 ms. Automatic resolution has hysteresis (no more bouncing). The debug FPS line names the part behind any hitch (`PROF`); `tests/t_stutter.mjs` profiles a drive (run from `web/`).
+- Not verified on a real GPU.
+
+## 2026-11-12 (b4) no trenches on main roads · steep links removed · town sidewalks
+
+- `roads_smooth.py` main roads: the 9 % profile cut or filled up to 35 m in places (Tracino's Via Marina was a trench). Outside the reviewed north-west box `KEEP` (town, Campobello, lake: sites are pinned to the old levels) the profile now stays within 3 m of the ground and may be up to 20 % steep. Inside the box nothing changed (worst cut there: 19 m at about (-816, 4049), still to do).
+- The short links that cannot be driven are removed from the map altogether (77 after the change above), not turned into steps.
+- Drawn-road guard after this: poke 2, kink 59 (was 146), steep 289 points (was 457).
+- `town.py` writes `sidewalks` to town.json: ribbons [kerb x, y, outer x, y] every 2.5 m along both sides of town streets at least 4.4 m wide; 1.5 m wide, or out to the house front when that is within 3.2 m; open at junctions; none on the promenade, squares or where a house stands on the kerb. Viewer: drawn in buildTown, kerb top 14 cm above the drawn road edge (`carZ`), shader kind 18 (grey pavers, light kerb stone). The car does not ride up on them yet (it sinks 14 cm into the slab).
+
+## 2026-11-12 (b5) roads join at junctions
+
+Gianluca: bumps and slabs at almost every intersection. Measured with the new `junctionCheck` (viewer, exposed on `__pan`; `tests/junction_probe.mjs`; now a `junction` key in `tests/road_check.mjs`): where two carriageways overlap, their drawn surfaces differed by more than 12 cm at 13,795 sample points in 1,587 cells. After this pass: 100.
+
+- Cause: every road is its own ribbon on its own surface (`roadProf`); nothing made two roads agree where they cross.
+- Viewer (`rpEnsure`): roads are ranked (`roadRank`: main before minor, wide before narrow, built-up ramps first within a class). Where a road's centre line runs onto a higher-ranked carriageway (a contact, `higherRoad`), it lies 3 cm under that road's surface and eases back to its own level over 8-30 m along it (longer when the levels differ more), never under the ground. Roads merely running alongside another are untouched; a road's rounded end cap is not a contact. `?nojn` switches it off for comparison.
+- Pipeline (`roads_smooth.py`): main-road lines each had their own profile; 58 ends met the road they join up to 6.9 m off. Ends are now pinned to the road they meet, eased over 60 m.
+- Cost of making it honest: 21 more cells with a kink and 23 with a steep stretch (none in town, two steep ones near the lake/Campobello side: (-950, 4450), (-150, 3850)). There the levels really differ in the terrain, and the joint is now a short ramp instead of a floating slab. Per the rule, the fix is in the ground (next).
+- Known: on the inside of a sharp, steep bend a ribbon overlaps itself at two heights (e.g. Via Borgo Italia tertiary at (-4462, 5104)).
+
+## 2026-11-12 (b6) phone layout
+
+Gianluca: on a phone the UI is confusing and takes a large part of the screen.
+
+- `body.phone` (set from `(max-width: 640px), (pointer: coarse) and (max-height: 520px)`); all rules are at the end of the stylesheet. Desktop is unchanged.
+- One row at the top: modes in the middle, Places and Settings as two icons on the right. No title card. On touch only the compass button remains (pinch zooms, two fingers rotate and tilt).
+- Vehicle readout is one line (speed, gear or height, surface; the extras carry class `x` and are hidden). Follow / Sound / car type / Rally stage / Back on the road fold behind `#hudMore` ("⋯").
+- Credits are a small tab bottom-right; tap to read them in full.
+- First hint in a vehicle talks about thumbs, not keys.
+- `assemble.py`: test.html now has the viewport meta (without it phone screenshots were laid out 980 px wide and meant nothing). `web/ph.mjs` takes the phone screenshots (portrait and landscape, every mode).
+
+## 2026-11-12 (b7) phone held sideways · tilt to steer
+
+- Landscape phone: everything is in the top row (back, readout top-left, modes in the middle, two icons right); nothing sits in the middle of the view; smaller stick and pedals; settings in two columns.
+- Blog side (outside this folder): `pages/pantelleria.tsx` adds the class `immersive` (in `styles/Apartment.module.css`): on a phone held sideways the map covers the 4rem site header (it was a fifth of the height). The viewer notices it fills the parent window (`body.covered`) and shows its own back button (`#backBtn`, history.back()). The iframe also allows accelerometer and gyroscope.
+- Tilt to steer (optional; "⋯" in a vehicle, or Settings; touch devices only): `TILT`, `tiltEvent`, `setTilt`. Roll like a steering wheel = steer / bank (full lock at about 25°); in the air tipping the top away / towards you = nose down / up, helicopter forward / back (full at about 22°). The way the phone is held when switched on is level. iPhones ask for permission each visit. The on-screen stick still works and wins; in the car it is hidden while tilt is on.
+- Not tried on a real phone: the direction signs come from the orientation maths only (checked with synthetic events). If steering or pitch is reversed on a device, flip the sign of `st` or `pt` in `tiltEvent`.

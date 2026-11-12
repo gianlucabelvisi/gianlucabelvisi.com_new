@@ -181,6 +181,50 @@
     #touch .tbtn.sm { width: 58px; height: 44px; font-size: 10.5px; } #touch .tthr { width: 58px; height: 132px; background: rgba(20, 18, 15, 0.3); }
     .lb { font-size: 10px !important; }
   }
+
+  /* phone layout (2026-11-12): the island gets the screen. One row at the top (modes in the middle, two icons on the
+     right), no title card, one compass button, a one-line readout whose buttons fold away behind "⋯", small credits. */
+  #hudMore { display: none; }
+  body.phone #info { display: none; }
+  body.phone #modes, body.phone.vehicle #modes { top: calc(var(--gut) + var(--safe-t)); bottom: auto; left: 50%; transform: translateX(-50%); }
+  body.phone #modes button { padding: 8px 10px; font-size: 12px; }
+  body.phone #quick button span { display: none; }
+  body.phone #quick { grid-auto-flow: column; }
+  body.phone #quick button { padding: 8px; }
+  body.phone.touch #zin, body.phone.touch #zout, body.phone.touch #rotL, body.phone.touch #rotR { display: none; }
+  body.phone #nav { bottom: calc(var(--gut) + var(--safe-b) + 16px); }
+  body.phone #scale { bottom: calc(var(--gut) + var(--safe-b) + 16px); }
+  body.phone #hud, body.phone.touch.vehicle #hud { top: calc(var(--gut) + var(--safe-t) + 42px); bottom: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px !important; padding: 4px 6px 4px 10px !important; max-width: calc(100vw - 2 * var(--gut)); }
+  body.phone #hud[hidden] { display: none; }
+  body.phone #hudMain .x { display: none; }
+  body.phone #hudMain { flex-wrap: nowrap; white-space: nowrap; }
+  body.phone #hudKeys { display: none; }
+  body.phone #hudMore { display: block; font: 600 15px/1 var(--ui); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 7px; padding: 3px 9px 6px; }
+  body.phone #hud .hb { display: none; flex-basis: 100%; padding: 2px 0 4px; }
+  body.phone #hud.open .hb { display: flex; }
+  body.phone #hud.open #hudMore { background: var(--oak-dim); }
+  body.phone #hud .hb button { font-size: 12px; padding: 8px 11px !important; }
+  body.phone #vmsg { top: auto; bottom: calc(var(--gut) + var(--safe-b) + 170px); font-size: 12.5px; width: 86vw; }
+  body.phone #attrib { left: auto; max-width: 46vw; font-size: 8.5px; padding: 2px 7px calc(2px + var(--safe-b)); border-top-left-radius: 7px; background: rgba(255, 255, 255, .4); }
+  body.phone #attrib.open { left: 0; max-width: none; white-space: normal; background: rgba(255, 255, 255, .85); font-size: 10px; z-index: 9; }
+  body.phone #menu, body.phone #places { top: calc(var(--gut) + var(--safe-t) + 44px); max-height: calc(100vh - 70px); }
+  /* phone held sideways (2026-11-12): everything in the top row — back, readout, modes, icons — nothing in the middle */
+  #backBtn { display: none; position: fixed; left: var(--gut); top: calc(var(--gut) + var(--safe-t)); z-index: 7; width: 34px; height: 34px; padding: 0; font: 600 20px/1 var(--ui); color: var(--ink); cursor: pointer; }
+  body.phone.covered #backBtn { display: block; }
+  #hudTilt, #mTilt { display: none; } body.touch #hudTilt { display: inline-block; } body.touch #mTilt { display: flex; }
+  #hudTilt[aria-pressed="true"] { background: var(--oak-dim); border-color: var(--oak); }
+  @media (orientation: landscape) {
+    body.phone #hud, body.phone.touch.vehicle #hud { top: calc(var(--gut) + var(--safe-t)); left: calc(var(--gut) + var(--safe-l, 0px)); transform: none; justify-content: flex-start; max-width: calc(50vw - 112px); min-height: 34px; box-sizing: border-box; }
+    body.phone.covered #hud, body.phone.covered.touch.vehicle #hud { left: calc(var(--gut) + 40px); max-width: calc(50vw - 152px); }
+    body.phone #hud.open { max-width: min(330px, 46vw); z-index: 8; }
+    body.phone #hud .hb { justify-content: flex-start; }
+    body.phone #vmsg { top: calc(var(--gut) + var(--safe-t) + 48px); bottom: auto; }
+    body.phone #menu { grid-template-columns: 1fr 1fr; min-width: min(430px, 70vw); max-height: calc(100dvh - 58px); }
+    body.phone #touch .tpad { width: 104px; height: 104px; } body.phone #touch .knob { width: 44px; height: 44px; margin: -22px; }
+    body.phone #touch .tbtn { width: 58px; height: 70px; } body.phone #touch .tbtn.gas { height: 100px; } body.phone #touch .tbtn.sm { width: 56px; height: 40px; } body.phone #touch .tthr { height: 112px; }
+    body.phone #rotHint { display: none; }
+  }
+  body.tilt.touch #tStick.caronly { display: none; }
 </style>
 
 <div id="stage" data-media="media/"></div>
@@ -198,6 +242,7 @@
   <button id="mAuto" aria-pressed="true" title="Lower the resolution for a moment when frames run slow"><i>A</i><span>Automatic resolution</span></button>
   <button id="mQuality" aria-pressed="false" title="Detail distance: Auto, High or Low (reloads the map)"><i>Q</i><span id="mQualityOut">Detail: auto</span></button>
   <button id="mPhoto" aria-pressed="false" title="Hide the interface (P)"><i>P</i><span>Photo mode</span></button>
+  <button id="mTilt" aria-pressed="false" title="Steer the car and fly by tilting the phone"><i>↔</i><span>Tilt to steer</span></button>
   <button id="mFull" aria-pressed="false" title="Full screen"><i>⤢</i><span>Full screen</span></button>
   <button id="qDebug" aria-pressed="false" title="Debug: off · light (FPS) · heavy (building numbers) (G)"><i>G</i><span id="qDebugOut">Debug</span></button>
   <button id="mHelp" aria-pressed="false" title="Keys and tips (?)"><i>?</i><span>Keys and tips</span></button>
@@ -218,10 +263,11 @@
   <button data-m="plane" aria-pressed="false" title="Fly a Cessna (3)">Plane<i>3</i></button>
   <button data-m="heli" aria-pressed="false" title="Fly a helicopter (4)">Heli<i>4</i></button>
 </div>
+<button id="backBtn" class="panel" aria-label="Back to the site">‹</button>
 <div id="hud" class="panel" hidden>
-  <div id="hudMain"></div>
+  <div id="hudMain"></div><button id="hudMore" aria-label="More" aria-expanded="false">⋯</button>
   <div id="hudKeys"></div>
-  <div class="hb"><button id="hudCam">Follow (C)</button><button id="hudSnd">Sound on (M)</button><button id="hudCar">Panda 4x4 (V)</button><button id="hudRally">Rally stage (Y)</button><button id="hudReset">Respawn</button></div>
+  <div class="hb"><button id="hudCam">Follow (C)</button><button id="hudSnd">Sound on (M)</button><button id="hudCar">Panda 4x4 (V)</button><button id="hudRally">Rally stage (Y)</button><button id="hudTilt" aria-pressed="false">Tilt to steer</button><button id="hudReset">Respawn</button></div>
 </div>
 <div id="vmsg" hidden></div>
 <div id="touch" hidden>
@@ -872,7 +918,7 @@ function updateCulling() {
 // Inner ring (< 320 m from the target) also gets the small stuff (tufts, prickly pears, capers, vines).
 const DT = 250, INNER = 320, CLOSE = 250;   // CLOSE: tiles whose centre is this near get the closest ring (house extras)
 function closeRing(g, on, t0, budgetMs) {
-  if (on && !g.userData.close && g.userData.buildClose && performance.now() - t0 < budgetMs) { try { g.userData.close = g.userData.buildClose(); g.add(g.userData.close); shadowDirty = true; } catch (e) { console.warn('close ring', e); g.userData.buildClose = null; } }
+  if (on && !g.userData.close && g.userData.buildClose && performance.now() - t0 < budgetMs) { try { tm('build close ring', () => { g.userData.close = g.userData.buildClose(); }); g.add(g.userData.close); shadowDirty = true; } catch (e) { console.warn('close ring', e); g.userData.buildClose = null; } }
   if (g.userData.close && g.userData.close.visible !== on) { g.userData.close.visible = on; shadowDirty = true; }
 }
 const DETAIL = { radius: 600 * QUALITY, maxDist: 1000, tiles: new Map(), group: new THREE.Group() };
@@ -1051,39 +1097,105 @@ function roadGround(x, y) {
 // (max over ±3 m, then a ±3 m running mean, which never dips below the ground). Smooth along, never under the terrain,
 // and the car drives on exactly the same surface (carZ).
 const RP_OFF = [-1, -0.5, 0, 0.5, 1], RP_STEP = 1;
-function roadProf(r) {
+function roadProf(r) {   // built in 32 m chunks, only where a tile or the car needs it (a whole long road at once was a visible hitch)
   if (r.prof) return r.prof;
   const n = r.pts.length / 3, cum = new Float32Array(n);
   for (let i = 1; i < n; i++) cum[i] = cum[i - 1] + Math.hypot(r.pts[i * 3] - r.pts[i * 3 - 3], r.pts[i * 3 + 1] - r.pts[i * 3 - 2]);
-  const L = cum[n - 1], m = Math.max(2, Math.ceil(L / RP_STEP) + 1), half = r.w / 2 + 0.15, main = r.tier === 0 || r.lift;
-  const lines = RP_OFF.map(() => new Float32Array(m));
-  let i = 0;
-  for (let k = 0; k < m; k++) {
-    const sk = Math.min(L, k * RP_STEP); while (i < n - 2 && cum[i + 1] < sk) i++;
-    const sl = cum[i + 1] - cum[i] || 1, t = (sk - cum[i]) / sl;
-    const ax = r.pts[i * 3], ay = r.pts[i * 3 + 1], bx = r.pts[i * 3 + 3], by = r.pts[i * 3 + 4];
-    const x = ax + (bx - ax) * t, y = ay + (by - ay) * t, pz = r.pts[i * 3 + 2] + (r.pts[i * 3 + 5] - r.pts[i * 3 + 2]) * t;
-    const dx = (bx - ax) / sl, dy = (by - ay) / sl;
-    RP_OFF.forEach((f, j) => { const ex = x - dy * half * f, ey = y + dx * half * f; lines[j][k] = main ? Math.max(pz + 0.02, groundTop(ex, ey)) : roadGround(ex, ey); });
-  }
-  const W = Math.round(3 / RP_STEP);
-  const env = (a) => {
-    const mx = new Float32Array(a.length), out = new Float32Array(a.length);
-    for (let k = 0; k < a.length; k++) { let v = -1e9; for (let j = Math.max(0, k - W); j <= Math.min(a.length - 1, k + W); j++) v = Math.max(v, a[j]); mx[k] = v; }
-    for (let k = 0; k < a.length; k++) { let v = 0, c = 0; for (let j = Math.max(0, k - W); j <= Math.min(a.length - 1, k + W); j++) { v += mx[j]; c++; } out[k] = v / c + 0.04; }
-    return out;
-  };
-  r.prof = { cum, L, lines: lines.map(env) };
+  const L = cum[n - 1], m = Math.max(2, Math.ceil(L / RP_STEP) + 1);
+  r.prof = { cum, L, m, raw: RP_OFF.map(() => new Float32Array(m)), rawOK: new Uint8Array(m), lines: RP_OFF.map(() => new Float32Array(m)), ok: new Uint8Array(Math.ceil(m / RP_CH)) };
   return r.prof;
 }
+const RP_CH = 32, RP_W = Math.round(3 / RP_STEP);
+function rpRaw(r, P, k) {
+  if (P.rawOK[k]) return; P.rawOK[k] = 1;
+  const n = r.pts.length / 3, cum = P.cum, sk = Math.min(P.L, k * RP_STEP), half = r.w / 2 + 0.15, main = r.tier === 0 || r.lift;
+  let lo = 0, hi = n - 2; while (lo < hi) { const md = (lo + hi) >> 1; if (cum[md + 1] < sk) lo = md + 1; else hi = md; }
+  const i = lo, sl = cum[i + 1] - cum[i] || 1, t = (sk - cum[i]) / sl;
+  const ax = r.pts[i * 3], ay = r.pts[i * 3 + 1], bx = r.pts[i * 3 + 3], by = r.pts[i * 3 + 4];
+  const x = ax + (bx - ax) * t, y = ay + (by - ay) * t, pz = r.pts[i * 3 + 2] + (r.pts[i * 3 + 5] - r.pts[i * 3 + 2]) * t;
+  const dx = (bx - ax) / sl, dy = (by - ay) / sl;
+  for (let j = 0; j < RP_OFF.length; j++) { const f = RP_OFF[j], ex = x - dy * half * f, ey = y + dx * half * f;
+    if (main) { P.raw[j][k] = Math.max(pz + 0.02, groundTop(ex, ey)); continue; }
+    // streets (2026-11-11): the pipeline grades every street to a smooth profile (roads_smooth.py stage 2) and the
+    // ground to it; where the 10 m ground still dips under that profile the road bridges it. Not inside sites (they
+    // carry their own road levels), and not where the profile is plainly stale (ground moved by more than 1.5 m).
+    const g = roadGround(ex, ey);
+    P.raw[j][k] = r.tier === 1 && siteH(ex, ey) === null && Math.abs(pz - g) < 1.5 ? Math.max(pz + 0.02, g) : g; }
+}
+function rpEnsure(r, P, c) {
+  if (P.ok[c]) return; P.ok[c] = 1;
+  const W = RP_W, m = P.m, a = c * RP_CH, b = Math.min(m - 1, a + RP_CH - 1), a2 = Math.max(0, a - 2 * W), b2 = Math.min(m - 1, b + 2 * W);
+  for (let k = a2; k <= b2; k++) rpRaw(r, P, k);
+  const a1 = Math.max(0, a - W), b1 = Math.min(m - 1, b + W), mx = new Float32Array(b1 - a1 + 1);
+  for (let j = 0; j < RP_OFF.length; j++) { const raw = P.raw[j], out = P.lines[j];
+    for (let k = a1; k <= b1; k++) { let v = -1e9; for (let q = Math.max(0, k - W); q <= Math.min(m - 1, k + W); q++) v = Math.max(v, raw[q]); mx[k - a1] = v; }
+    for (let k = a; k <= b; k++) { let v = 0, n_ = 0; for (let q = Math.max(0, k - W); q <= Math.min(m - 1, k + W); q++) { v += mx[q - a1]; n_++; } out[k] = v / n_ + 0.04; } }
+  // junctions (2026-11-12): every road was its own ribbon at its own height, so where two met one stuck out as a slab or
+  // a step. Roads are ranked (main before minor, wide before narrow). Where a road's centre line runs onto a
+  // higher-ranked road's carriageway (a contact), it lies just under that road's surface there and eases onto its own
+  // level over the next 8 m along it. Roads that merely run alongside another are left alone. Ways of one street that
+  // continue end to end join the same way.
+  if (NOJN) return;
+  const BLX = 30, half = r.w / 2 + 0.15;   // ease over 8 m, longer where the levels differ a lot (at most ~12 % extra slope)
+  if (!P.cs) { P.cs = new Uint8Array(m); P.cq = new Array(m); }
+  const pos = (k) => { const n = r.pts.length / 3, cum = P.cum, sk = Math.min(P.L, k * RP_STEP);
+    let lo = 0, hi = n - 2; while (lo < hi) { const md = (lo + hi) >> 1; if (cum[md + 1] < sk) lo = md + 1; else hi = md; }
+    const i = lo, sl = cum[i + 1] - cum[i] || 1, t = (sk - cum[i]) / sl, ax = r.pts[i * 3], ay = r.pts[i * 3 + 1], bx = r.pts[i * 3 + 3], by = r.pts[i * 3 + 4];
+    return [ax + (bx - ax) * t, ay + (by - ay) * t, (bx - ax) / sl, (by - ay) / sl]; };
+  for (let k = Math.max(0, a - BLX); k <= Math.min(m - 1, b + BLX); k++) if (!P.cs[k]) { const [x, y] = pos(k), c = higherRoad(r, x, y); P.cs[k] = c && c.e <= 0 ? 1 : 2; if (P.cs[k] === 1) P.cq[k] = c; }
+  for (let k = a; k <= b; k++) {
+    let da = 1e9, c = null;
+    for (let d = 0; d <= BLX && !c; d++) { if (k - d >= 0 && P.cs[k - d] === 1) { c = P.cq[k - d]; da = d; } else if (k + d < m && P.cs[k + d] === 1) { c = P.cq[k + d]; da = d; } }
+    if (!c) continue;
+    if (c.dz === undefined) {   // level difference at the contact: sets how long the easing is
+      const kc = P.cs[k - da] === 1 && P.cq[k - da] === c ? k - da : k + da, [cx, cy] = pos(kc), Qc = c.r.pts, i0 = c.i, lx = Qc[i0 * 3 + 3] - Qc[i0 * 3], ly = Qc[i0 * 3 + 4] - Qc[i0 * 3 + 1], ll = Math.hypot(lx, ly) || 1;
+      rpRaw(r, P, kc); c.dz = Math.abs(P.raw[2][kc] - roadZAt(c.r, roadProf(c.r).cum[i0] + c.t * ll, (lx * (cy - c.py) - ly * (cx - c.px)) / ll / (c.r.w / 2 + 0.15)));
+    }
+    const BL = Math.max(8, Math.min(BLX, c.dz / 0.12)); if (da > BL) continue;
+    const q = c.r, Q = q.pts, qh = q.w / 2 + 0.15, nq = Q.length / 3, [x, y, dx, dy] = pos(k);
+    for (let j = 0; j < RP_OFF.length; j++) {
+      const f = RP_OFF[j], ex = x - dy * half * f, ey = y + dx * half * f;
+      let bd = 1e9, bi = 0, bt = 0, past = false;   // nearest point of q, around the contact
+      for (let i = Math.max(0, c.i - 8); i < Math.min(nq - 1, c.i + 9); i++) {
+        const sx = Q[i * 3], sy = Q[i * 3 + 1], ux = Q[i * 3 + 3] - sx, uy = Q[i * 3 + 4] - sy, tu = ((ex - sx) * ux + (ey - sy) * uy) / (ux * ux + uy * uy || 1e-6), t = Math.max(0, Math.min(1, tu)), d = Math.hypot(ex - sx - ux * t, ey - sy - uy * t);
+        if (d < bd) { bd = d; bi = i; bt = t; const sl = Math.hypot(ux, uy); past = (i === 0 && tu * sl < -0.3) || (i === nq - 2 && (tu - 1) * sl > 0.3); } }
+      const ux = Q[bi * 3 + 3] - Q[bi * 3], uy = Q[bi * 3 + 4] - Q[bi * 3 + 1], ql = Math.hypot(ux, uy) || 1, lat = (ux * (ey - Q[bi * 3 + 1] - uy * bt) - uy * (ex - Q[bi * 3] - ux * bt)) / ql;
+      const zq = roadZAt(q, roadProf(q).cum[bi] + bt * ql, Math.max(-1, Math.min(1, lat / qh))) - 0.03, e = past ? Math.max(bd - qh, 0.01) : bd - qh;
+      if (e <= 0) { P.lines[j][k] = zq; continue; }
+      const u = Math.min(1, Math.min(da, e) / BL), w = u * u * (3 - 2 * u), own = P.lines[j][k], raw = P.raw[j];
+      const floor = Math.min(own, Math.max(raw[Math.max(0, k - 1)], raw[k], raw[Math.min(m - 1, k + 1)]) + 0.05);   // never under the ground
+      P.lines[j][k] = Math.max(zq * (1 - w) + own * w, floor);
+    }
+  }
+}
+let _rankDone = false; const NOJN = /[?&]nojn/.test(location.search);
+function roadRank(r) { if (!_rankDone) { ROADS2.forEach((q, i) => { q.rank = q.tier * 1e6 - Math.round(q.w * 10) * 1e3 + i * 1e-3 + (q.lift ? -5e5 : 0); }); _rankDone = true; } return r.rank; }
+function higherRoad(r, x, y) {   // the higher-ranked road whose carriageway is nearest: e = distance outside its edge (<= 0: on it)
+  const tx = Math.floor((x - X0) / DT), ty = Math.floor((y - Y0) / DT), rk = roadRank(r);
+  let best = null, be = 1e9;
+  for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
+    const L = roadIdx.get((tx + a) + ',' + (ty + b)); if (!L) continue;
+    for (let k = 0; k < L.length; k += 2) {
+      const q = ROADS2[L[k]], i = L[k + 1]; if (q === r || q.rank >= rk || q.tier > 2 || q.w < 2.4) continue;
+      const Q = q.pts, ax = Q[i * 3], ay = Q[i * 3 + 1], dx = Q[i * 3 + 3] - ax, dy = Q[i * 3 + 4] - ay;
+      const tu = ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1e-6), t = Math.max(0, Math.min(1, tu)), sl = Math.hypot(dx, dy);
+      if ((i === 0 && tu * sl < -0.6) || (i === Q.length / 3 - 2 && (tu - 1) * sl > 0.6)) continue;   // past the road's end: its ribbon is not there
+      const px = ax + dx * t, py = ay + dy * t, e = Math.hypot(x - px, y - py) - q.w / 2 - 0.15;
+      if (e < be) { be = e; best = { r: q, e, px, py, i, t }; }
+    }
+  }
+  return best;
+}
 function roadZAt(r, s, f) {   // surface of road r at arc length s, lateral fraction f (-1 … 1 = edge … edge)
-  const P = roadProf(r), k = THREE.MathUtils.clamp(s / RP_STEP, 0, P.lines[0].length - 1), k0 = Math.floor(k), k1 = Math.min(k0 + 1, P.lines[0].length - 1), u = k - k0;
+  const P = roadProf(r), k = THREE.MathUtils.clamp(s / RP_STEP, 0, P.m - 1), k0 = Math.floor(k), k1 = Math.min(k0 + 1, P.m - 1), u = k - k0;
+  rpEnsure(r, P, (k0 / RP_CH) | 0); if (k1 % RP_CH === 0) rpEnsure(r, P, (k1 / RP_CH) | 0);
   const at = (j) => P.lines[j][k0] * (1 - u) + P.lines[j][k1] * u;
   const ff = THREE.MathUtils.clamp(f, -1, 1) * 2 + 2, j0 = Math.min(3, Math.floor(ff)), w = ff - j0;
   return at(j0) * (1 - w) + at(j0 + 1) * w;
 }
 const roadVertZ = (r, ex, ey, pz, s, f) => s === undefined ? (r.tier === 0 || r.lift ? Math.max(pz + 0.06, groundTop(ex, ey) + 0.04) : roadGround(ex, ey) + 0.04) : roadZAt(r, s, f);
-function roadMeshFor(tx, ty) {
+function* roadMeshFor(tx, ty) {   // pauses every few ms (see buildDetailTile)
+  let _rt = performance.now();
   const list = roadIdx.get(tx + ',' + ty); if (!list) return null;
   const P = [], N = [], R = [], I = [];
   // group consecutive segments of the same road into runs
@@ -1091,6 +1203,7 @@ function roadMeshFor(tx, ty) {
   for (let k = 0; k < list.length; k += 2) { const ri = list[k], i = list[k + 1]; let a = runs.get(ri); if (!a) runs.set(ri, a = []); a.push(i); }
   for (const [ri, segs] of runs) {
     const r = ROADS2[ri]; if (r.tier === 3 && r.w < 1.2) continue;
+    if (performance.now() - _rt > 3) { yield; _rt = performance.now(); }
     segs.sort((a, b) => a - b);
     let start = 0;
     while (start < segs.length) {
@@ -1331,11 +1444,13 @@ function clipWallsOffRoads(tx, ty, segs) {
   }
   segs.length = 0; for (const v of out) segs.push(v);
 }
-function buildDetailTile(tx, ty) {
+function* buildDetailTile(tx, ty) {   // a generator: it pauses between stages so one tile never costs a whole frame
   const x0 = X0 + tx * DT, y0 = Y0 + ty * DT;
   const g = new THREE.Group(); g.userData.key = tx + ',' + ty; g.userData.cx = x0 + DT / 2; g.userData.cy = y0 + DT / 2;
+  let _lt = performance.now(); const LAP = (n) => { const t = performance.now(), d = t - _lt; _lt = t; PROF.sum[n] = (PROF.sum[n] || 0) + d; if (d > (PROF.max[n] || 0)) PROF.max[n] = d; };
   // roads
-  const rm = roadMeshFor(tx, ty); if (rm) g.add(rm);
+  const rm = yield* roadMeshFor(tx, ty); if (rm) g.add(rm); _lt = performance.now();
+  LAP('t:roads'); yield; _lt = performance.now();
   // walls: OSM, gardens, terraces, roadside
   const segs = [];
   for (const [wi, i] of pairs(wallIdx.get(tx + ',' + ty))) {
@@ -1344,16 +1459,16 @@ function buildDetailTile(tx, ty) {
     if (TOWNZ && inTown((ax + bx) / 2, (ay + by) / 2)) continue;   // town: plastered garden walls, not lava stone
     segs.push(ax, ay, bx, by, w.ty === 2 ? 2.8 : w.ty === 1 ? 1.4 : 1.05, w.ty === 2 ? 0.9 : 0.6);
   }
-  homeWallSegs(tx, ty, segs);
+LAP('t:wallidx'); yield; _lt = performance.now();   homeWallSegs(tx, ty, segs);
   terraceSegs(x0, y0, segs);
   for (let i = segs.length - 6; i >= 0; i -= 6) {   // along the surveyed Perimetrale only the surveyed roadside walls
     const pm = perimAt((segs[i] + segs[i + 2]) / 2, (segs[i + 1] + segs[i + 3]) / 2);
     if (pm && pm.k >= 0 && pm.d < 9) segs.splice(i, 6);
   }
-  const kept = [];
+LAP('t:homewalls+terrace'); yield; _lt = performance.now();   const kept = [];
   roadsideWalls(tx, ty, segs, kept);
   clipWallsOffRoads(tx, ty, segs);
-  // town: no rural dry-stone walls in it or within ~150 m of it, and never along the harbour (the Lungomare is a promenade)
+LAP('t:roadside+clip'); yield; _lt = performance.now();   // town: no rural dry-stone walls in it or within ~150 m of it, and never along the harbour (the Lungomare is a promenade)
   const nearTown = (x, y) => TOWNZ && [[0, 0], [150, 0], [-150, 0], [0, 150], [0, -150], [106, 106], [-106, -106], [106, -106], [-106, 106]].some(([a, c]) => inTown(x + a, y + c));
   for (let i = segs.length - 6; i >= 0; i -= 6) { const mx = (segs[i] + segs[i + 2]) / 2, my = (segs[i + 1] + segs[i + 3]) / 2;
     if (nearTown(mx, my) || PROM.some((P) => inPoly(P, mx, my)) || SITE_CLEAR.some((r) => mx > r[0] && mx < r[2] && my > r[1] && my < r[3])) segs.splice(i, 6); }
@@ -1362,16 +1477,16 @@ function buildDetailTile(tx, ty) {
   // every wall drawn here is also solid for the car (and nothing else is)
   g.userData.walls = new Float32Array(segs);          // for the car: walls are solid
   // buildings owned by this tile, redrawn up close (the far GLB copy is hidden by owner)
-  { const bm = buildingsMeshFor(tx, ty); if (bm) g.add(bm); }
-  homeExtras(g, tx, ty);
-  const capers = [];
+LAP('t:wallfilter'); yield; _lt = performance.now();   { const bm = buildingsMeshFor(tx, ty); if (bm) g.add(bm); }
+LAP('t:buildings'); yield; _lt = performance.now();   homeExtras(g, tx, ty);
+LAP('t:homeExtras'); yield; _lt = performance.now();   const capers = [];
   const white = [], stone = [];
   for (let i = 0; i < segs.length; i += 6) (segs[i + 5] === 0.44 ? white : stone).push(...segs.slice(i, i + 6));
   const wb = wallGeometry(stone, capers);
   if (wb) { const m = finishTB(wb, MAT.Town); if (m) { m.castShadow = false; g.add(m); } }
   const ww = wallGeometry(white, null);   // white plastered garden walls
   if (ww) { for (let i = 3; i < ww.A.length; i += 4) ww.A[i] = 8; const m = finishTB(ww, MAT.Town); if (m) { m.castShadow = false; g.add(m); } }
-  // trees from the island-wide set, re-drawn as puffy maritime pines / macchia (the far ones are hidden here)
+LAP('t:wallgeo'); yield; _lt = performance.now();   // trees from the island-wide set, re-drawn as puffy maritime pines / macchia (the far ones are hidden here)
   const pines = [], bigShrubs = [];
   for (const k of treeIdx.get(tx + ',' + ty) || []) {
     const x = TREES.xyz[k * 3] / 2, y = TREES.xyz[k * 3 + 1] / 2, sc = TREES.ks[k * 2 + 1] / 100;
@@ -1386,7 +1501,7 @@ function buildDetailTile(tx, ty) {
   scatter(shC, x0, y0, 6.5, (x, y, r) => { const c = clsAt(x, y), d = dens(x, y + 80); return (c === 5 && r < d * 0.8) || (c === 6 && r < 0.2) ? 1 : 0; }, 0.95, 6);
   scatter(olives, x0, y0, 7, (x, y) => clsAt(x, y) === 3 ? 1 : 0, 0.5, 2);
   for (const [gx, gy, gr] of GARDENS) if (gx >= x0 && gx < x0 + DT && gy >= y0 && gy < y0 + DT) citrus.push(gx, gy, Math.min(1.2, Math.max(0.6, gr / 4)));
-  const big = new THREE.Group(); g.add(big);
+LAP('t:scatter'); yield; _lt = performance.now();   const big = new THREE.Group(); g.add(big);
   const add = (grp, geo, xs, sf, zf) => { const im = instanced(geo, xs, sf, zf); if (im) grp.add(im); };
   add(big, VEG.pine, pines, (k) => k * 0.95);
   add(big, VEG.shrubC, bigShrubs, (k) => k * 1.1);
@@ -1395,7 +1510,7 @@ function buildDetailTile(tx, ty) {
   add(big, VEG.shrubC, shC, (k, i, x, y) => 0.6 + rnd(x, y, 14) * 0.6);
   add(big, VEG.olive, olives, (k, i, x, y) => 0.8 + rnd(x, y, 9) * 0.6);
   add(big, VEG.citrus, citrus, (k) => k);
-  // small stuff: only in the inner ring, built lazily
+LAP('t:instanced'); yield; _lt = performance.now();   // small stuff: only in the inner ring, built lazily
   g.userData.buildSmall = () => {
     const small = new THREE.Group();
     const vines = [], tufts = [], pears = [];
@@ -1782,11 +1897,11 @@ function wantDetailView(want, budgetMs) {
     let g = DETAIL.tiles.get(key);
     if (!g && performance.now() - t0 < budgetMs) {
       const [a, b] = key.split(',').map(Number);
-      g = buildDetailTile(a, b); DETAIL.tiles.set(key, g); DETAIL.group.add(g); setMask(key, true); shadowDirty = true;
+      tm('build tile', () => { g = stepTile(key, a, b, t0, budgetMs); }); if (g) { DETAIL.tiles.set(key, g); DETAIL.group.add(g); setMask(key, true); shadowDirty = true; }
     }
     if (g) {
       const inner = agl < 250 && d < INNER + DT * 0.5;
-      if (inner && !g.userData.small && performance.now() - t0 < budgetMs) { g.userData.small = g.userData.buildSmall(); g.add(g.userData.small); }
+      if (inner && !g.userData.small && performance.now() - t0 < budgetMs) { tm('build small ring', () => { g.userData.small = g.userData.buildSmall(); }); g.add(g.userData.small); }
       if (g.userData.small) g.userData.small.visible = inner;
       closeRing(g, agl < 120 && d < CLOSE, t0, budgetMs);
     }
@@ -1805,6 +1920,12 @@ function updateVegLOD() {
     const f = THREE.MathUtils.clamp(1 - (d - 170 * Q) / (430 * Q) * 0.68, 0.32, 1);
     g.traverse((o) => { if (o.isInstancedMesh && o.userData.full) { const c = Math.max(1, Math.ceil(o.userData.full * f)); if (c !== o.count) o.count = c; } });
   }
+}
+// tiles are built a stage at a time (roads, walls, buildings, plants) within the frame's budget and shown when complete
+DETAIL.jobs = new Map();
+function stepTile(key, a, b, t0, budgetMs) {
+  let j = DETAIL.jobs.get(key); if (!j) DETAIL.jobs.set(key, j = buildDetailTile(a, b));
+  for (;;) { const r = j.next(); if (r.done) { DETAIL.jobs.delete(key); return r.value; } if (performance.now() - t0 >= budgetMs) return undefined; }
 }
 function updateDetail(budgetMs = 6) {
   if (!CLS) return;
@@ -1827,16 +1948,17 @@ function updateDetail(budgetMs = 6) {
       let g = DETAIL.tiles.get(key);
       if (!g && performance.now() - t0 < budgetMs) {
         const [a, b] = key.split(',').map(Number);
-        g = buildDetailTile(a, b); DETAIL.tiles.set(key, g); DETAIL.group.add(g); setMask(key, true); shadowDirty = true;
+        tm('build tile', () => { g = stepTile(key, a, b, t0, budgetMs); }); if (g) { DETAIL.tiles.set(key, g); DETAIL.group.add(g); setMask(key, true); shadowDirty = true; }
       }
       if (g) {
         const inner = smallOK && d < INNER + DT * 0.5;
-        if (inner && !g.userData.small && performance.now() - t0 < budgetMs) { g.userData.small = g.userData.buildSmall(); g.add(g.userData.small); }
+        if (inner && !g.userData.small && performance.now() - t0 < budgetMs) { tm('build small ring', () => { g.userData.small = g.userData.buildSmall(); }); g.add(g.userData.small); }
         if (g.userData.small) g.userData.small.visible = inner;
         closeRing(g, dist < 420 && d < CLOSE, t0, budgetMs);
       }
     }
   }
+  for (const key of DETAIL.jobs.keys()) if (!want.has(key)) DETAIL.jobs.delete(key);
   for (const [key, g] of DETAIL.tiles) if (!want.has(key)) {
     DETAIL.group.remove(g); setMask(key, false); shadowDirty = true;
     g.traverse((o) => { if (o.isMesh && o.geometry && !Object.values(VEG).includes(o.geometry)) o.geometry.dispose(); if (o.isInstancedMesh) o.dispose(); });
@@ -1943,6 +2065,10 @@ for (const m of [MAT.Town.cel, MAT.Town.std]) {
             }
             if (v > top - 0.25) c *= 0.88;
           }
+        } else if (kind > 17.5 && kind < 18.5) {            // sidewalk: grey concrete pavers, a kerb stone along the road (v = metres from the kerb)
+          c = vec3(0.50, 0.49, 0.47) * (0.92 + 0.08 * th(floor(vec2(u, v) / 0.6)));
+          if (fract(u / 0.6) < 0.05 || fract(v / 0.6) < 0.07) c *= 0.87;
+          if (v < 0.22) { c = vec3(0.76, 0.75, 0.72); if (fract(u) < 0.03) c *= 0.8; }
         } else if (kind > 16.5 && kind < 17.5) {            // natural lava rock (sea stacks, the Elephant): dark, blotchy, rough
           float n1 = th(floor(vec2(u, v) * 0.9)), n2 = th(floor(vec2(u * 2.3 + 7.0, v * 2.1)));
           c = mix(vec3(0.22, 0.20, 0.185), vec3(0.40, 0.37, 0.33), n1 * 0.7 + n2 * 0.3);
@@ -2005,7 +2131,7 @@ for (const m of [MAT.Town.cel, MAT.Town.std]) {
           if (v > st - 4.0 && v < st - 1.2 && abs(fract(u / 3.6) - 0.5) < 0.22) c = vec3(0.12, 0.11, 0.1);
         }
         // the stone/lime palettes above are authored as sRGB: take them to linear (they looked washed out, e.g. a beige castle)
-        if ((kind > 2.5 && kind < 13.9 && !(kind > 7.5 && kind < 8.5)) || (kind > 16.5 && kind < 17.5)) c = pow(max(c, vec3(0.0)), vec3(2.2));
+        if ((kind > 2.5 && kind < 13.9 && !(kind > 7.5 && kind < 8.5)) || (kind > 16.5 && kind < 18.5)) c = pow(max(c, vec3(0.0)), vec3(2.2));
         diffuseColor.rgb = c;
       }`);
   };
@@ -3157,6 +3283,29 @@ function buildTown(T) {
       else tQuad(quay, [a[0], a[1], za - 0.5, za], [c[0], c[1], zc - 0.5, zc], [nx, ny, 0], slab, 0, L, 0, 0, 0, 13);   // kerb
     }
   }
+  // sidewalks (2026-11-12): ribbons from town.py [kerb x, y, outer x, y]; the kerb top is 14 cm above the drawn road edge
+  for (const rb of T.sidewalks || []) {
+    let u = 0; const V = [];
+    for (let k = 0; k < rb.length; k++) {
+      const [xi, yi, xo, yo] = rb[k]; if (k) u += Math.hypot(xi - rb[k - 1][0], yi - rb[k - 1][1]);
+      const zr = carZ(xi, yi), zt = zr + 0.14, w = Math.hypot(xo - xi, yo - yi);
+      V.push({ xi, yi, xo, yo, zr, zt, zo: Math.max(zt, heightCubic(xo, yo) + 0.04), u, w, nx: (xo - xi) / w, ny: (yo - yi) / w });
+    }
+    for (let k = 0; k + 1 < V.length; k++) {
+      const a = V[k], c = V[k + 1];
+      const top = [[a.xi, a.yi, a.zt, a.u, 0], [c.xi, c.yi, c.zt, c.u, 0], [c.xo, c.yo, c.zo, c.u, c.w], [a.xo, a.yo, a.zo, a.u, a.w]];
+      const flip = (c.xi - a.xi) * (a.yo - a.yi) - (c.yi - a.yi) * (a.xo - a.xi) < 0;   // keep the top facing up on either side of the road
+      for (const i of (flip ? [0, 2, 1, 0, 3, 2] : [0, 1, 2, 0, 2, 3])) tPush(pv, top[i][0], top[i][1], top[i][2], [0, 0, 1], slab, top[i][3], top[i][4], 0, 18);
+      const kerb = [[a.xi, a.yi, a.zr - 0.1], [c.xi, c.yi, c.zr - 0.1], [c.xi, c.yi, c.zt], [a.xi, a.yi, a.zt]];
+      for (const i of (flip ? [0, 1, 2, 0, 2, 3] : [0, 2, 1, 0, 3, 2])) tPush(pv, kerb[i][0], kerb[i][1], kerb[i][2], [-a.nx, -a.ny, 0], slab, i === 1 || i === 2 ? c.u : a.u, 0.1, 0, 18);
+      const sk = [[a.xo, a.yo, a.zo - 0.7], [c.xo, c.yo, c.zo - 0.7], [c.xo, c.yo, c.zo], [a.xo, a.yo, a.zo]];
+      for (const i of (flip ? [0, 2, 1, 0, 3, 2] : [0, 1, 2, 0, 2, 3])) tPush(pv, sk[i][0], sk[i][1], sk[i][2], [a.nx, a.ny, 0], slab, i === 1 || i === 2 ? c.u : a.u, 0.1, 0, 18);
+    }
+    for (const [e, sg] of [[V[0], -1], [V[V.length - 1], 1]]) {   // ends
+      const q = [[e.xi, e.yi, e.zr - 0.1], [e.xo, e.yo, e.zo - 0.5], [e.xo, e.yo, e.zo], [e.xi, e.yi, e.zt]];
+      for (const i of [0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2]) tPush(pv, q[i][0], q[i][1], q[i][2], [-e.ny * sg, e.nx * sg, 0], slab, 0, 0.1, 0, 18);
+    }
+  }
   const pm = finishTB(pv, MAT.Town, false); if (pm) add(pm);
   const qm = finishTB(quay, MAT.Town, false); if (qm) add(qm);
   // bollards, benches, raised planters round the palms
@@ -3610,7 +3759,7 @@ function drawDebug(now) {
   DBG.fr.push(now); while (DBG.fr.length && now - DBG.fr[0] > 1000) DBG.fr.shift();
   if (now - DBG.last > 250) {
     DBG.last = now; const ms = ftimes.reduce((a, b) => a + b, 0) / Math.max(1, ftimes.length);
-    $('dbgFps').innerHTML = `<b>${DBG.fr.length}</b> fps · ${ms.toFixed(1)} ms/frame · ${renderer.info.render.calls} draws · ${(renderer.info.render.triangles / 1e6).toFixed(2)} M tris` + (now - lastInteract > 1500 ? ' · idle (15 fps cap)' : '') + (DYN.scale < 1 ? ` · resolution ${Math.round(DYN.scale * 100)}%` : '') + ' · <u>B</u> benchmark · <u>O</u> satellite · <u>K</u> Street View' + (DBG.mode > 1 ? ' · click = copy location' : '');
+    $('dbgFps').innerHTML = `<b>${DBG.fr.length}</b> fps · ${ms.toFixed(1)} ms/frame · ${renderer.info.render.calls} draws · ${(renderer.info.render.triangles / 1e6).toFixed(2)} M tris` + (now - lastInteract > 1500 ? ' · idle (15 fps cap)' : '') + (DYN.scale < 1 ? ` · resolution ${Math.round(DYN.scale * 100)}%` : '') + (() => { const r = PROF.hitches.filter((h) => now - h.t < 5000); if (!r.length) return ''; const w = r.reduce((a, b) => (b.gap > a.gap ? b : a)); return ` · <span style="color:#ff9a6b">${r.length} hitches in 5 s, worst ${w.gap} ms (${w.part})</span>`; })() + ' · <u>B</u> benchmark · <u>O</u> satellite · <u>K</u> Street View' + (DBG.mode > 1 ? ' · click = copy location' : '');
   }
   if (DBG.mode < 2) return;
   const cv = $('dbgCanvas'), dpr = Math.min(2, devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
@@ -4791,6 +4940,7 @@ function stepPlane(P, dt) {
 function readPad() {
   readGamepad();
   const P = VEH.pad, T = VEH.touch;                     // on-screen stick (touch)
+  if (TILT.on) { if (Math.abs(TILT.steer) > 0.04) P.steer = TILT.steer; if (VEH.mode !== 'car' && Math.abs(TILT.pitch) > 0.05) P.pitch = TILT.pitch; }   // tilting the phone (optional); the stick still wins
   if (T.x) P.steer = T.x; if (T.y) P.pitch = T.y;
 }
 function readGamepad() {
@@ -4970,20 +5120,20 @@ function updateHud(dt) {
   if (VEH.mode === 'car') {
     const c = VEH.car, gas = Math.max(c.gas, VEH.pad.gas || 0), brk = Math.max(c.brk, VEH.pad.brake || 0);
     $('hudMain').innerHTML = `<b>${Math.round(Math.abs(c.v) * 3.6)}</b><small>km/h</small><span class="sep"></span><b class="gear">${c.gear}</b>` +
-      `<span class="thr rpm"><i style="width:${Math.min(100, Math.round(c.rpm / 65))}%"></i></span><small>${(c.rpm / 1000).toFixed(1)}k rpm</small><span class="sep"></span>` +
-      `<small>gas</small><span class="thr"><i style="width:${Math.round(gas * 100)}%"></i></span><small>brake</small><span class="thr brk"><i style="width:${Math.round(brk * 100)}%"></i></span>` +
+      `<span class="thr rpm x"><i style="width:${Math.min(100, Math.round(c.rpm / 65))}%"></i></span><small class="x">${(c.rpm / 1000).toFixed(1)}k rpm</small><span class="sep x"></span>` +
+      `<small class="x">gas</small><span class="thr x"><i style="width:${Math.round(gas * 100)}%"></i></span><small class="x">brake</small><span class="thr brk x"><i style="width:${Math.round(brk * 100)}%"></i></span>` +
       `<span class="sep"></span><span>${c.surface}</span>` + (RALLY.state === 'run' ? `<span class="sep"></span><span class="warn">${rallyFmt(RALLY.t)} · gate ${RALLY.next + 1}/${RALLY.gates.length}</span>` : '') + (c.type === 'rally' && Math.abs(c.slip || 0) > 0.18 && Math.abs(c.v) > 8 ? `<span class="sep"></span><span class="warn">DRIFT ${Math.round(Math.abs(c.slip) * 57.3)}°</span>` : '');
   } else if (VEH.mode === 'heli') {
     const s = VEH.heli.s, agl = s.z - heliGround(s.x, s.y), hdg = (Math.round(90 - THREE.MathUtils.radToDeg(s.psi)) % 360 + 360) % 360, sp = Math.hypot(s.vx, s.vy);
     $('tThr').firstElementChild.style.height = Math.round(s.col * 100) + '%';
-    $('hudMain').innerHTML = `<b>${Math.round(sp * 1.944)}</b><small>kt</small><span class="sep"></span><b>${Math.round(agl)}</b><small>m above ground</small>` +
-      `<span class="sep"></span><span>${String(hdg).padStart(3, '0')}°</span><span class="sep"></span><span>${s.vz > 0.5 ? '▲ ' + s.vz.toFixed(1) : s.vz < -0.5 ? '▼ ' + (-s.vz).toFixed(1) : 'level'} m/s</span>` +
-      (s.ground ? '<span class="sep"></span><span>landed</span>' : sp < 2 && Math.abs(s.vz) < 0.5 ? '<span class="sep"></span><span>hover</span>' : '');
+    $('hudMain').innerHTML = `<b>${Math.round(sp * 1.944)}</b><small>kt</small><span class="sep"></span><b>${Math.round(agl)}</b><small>m<span class="x"> above ground</span></small>` +
+      `<span class="sep x"></span><span class="x">${String(hdg).padStart(3, '0')}°</span><span class="sep"></span><span>${s.vz > 0.5 ? '▲ ' + s.vz.toFixed(1) : s.vz < -0.5 ? '▼ ' + (-s.vz).toFixed(1) : 'level'} m/s</span>` +
+      (s.ground ? '<span class="sep"></span><span>landed</span>' : sp < 2 && Math.abs(s.vz) < 0.5 ? '<span class="sep x"></span><span class="x">hover</span>' : '');
   } else {
     $('tThr').firstElementChild.style.height = Math.round(VEH.plane.s.thr * 100) + '%';
     const s = VEH.plane.s, agl = s.z - groundAt(s.x, s.y), hdg = (Math.round(90 - THREE.MathUtils.radToDeg(s.psi)) % 360 + 360) % 360;
     $('hudMain').innerHTML = `<b>${Math.round(s.v * 1.944)}</b><small>kt</small><span class="sep"></span><b>${Math.round(s.z * 3.281)}</b><small>ft</small>` +
-      `<span class="sep"></span><span>${String(hdg).padStart(3, '0')}°</span><span class="sep"></span><span class="thr"><i style="width:${Math.round(s.thr * 100)}%"></i></span><span>${Math.round(s.thr * 100)}%</span>` +
+      `<span class="sep x"></span><span class="x">${String(hdg).padStart(3, '0')}°</span><span class="sep"></span><span class="thr x"><i style="width:${Math.round(s.thr * 100)}%"></i></span><span>${Math.round(s.thr * 100)}%</span>` +
       planeApproach(s) + (s.ground ? '<span class="sep"></span><span>on ground</span>' : agl < 60 ? `<span class="sep"></span><span class="warn">${Math.round(agl)} m AGL</span>` : '') +
       (!s.ground && s.v < 26 ? '<span class="warn"> STALL</span>' : '') + (VEH.pspd !== 1 ? `<span class="sep"></span><span class="warn">speed ×${VEH.pspd}</span>` : '');
   }
@@ -5026,7 +5176,8 @@ function setMode(m, direct) {
   $('hudKeys').innerHTML = HELP[m]; $('hudReset').textContent = m === 'car' ? 'Back on the road' : m === 'heli' ? 'Land here (T)' : 'Start on the runway (T)';
   $('hudCar').hidden = m !== 'car'; $('hudRally').hidden = m !== 'car'; if (m !== 'car' && RALLY.state !== 'idle') rallyStop(); if (VEH.car) $('hudCar').textContent = CAR_TYPES[VEH.car.type].name + ' (V)';
   $('hudCam').textContent = CAM_NAME[VEH.cam] + ' (C)';
-  vMsg(m === 'car' ? 'Car · W accelerator, S brake, A/D steer' : m === 'heli' ? 'Helicopter · Shift up, Ctrl down, W/S forward/back, A/D turn — let go to hover' : 'Cessna 172 · S/↓ pull up, A/D bank, Shift/R throttle');
+  if (document.body.classList.contains('touch')) vMsg(m === 'car' ? 'Left thumb steers · Gas and Brake on the right' : m === 'heli' ? 'Left thumb flies · Up and Down on the right — let go to hover' : 'Left thumb banks and pitches · slide the throttle on the right');
+  else vMsg(m === 'car' ? 'Car · W accelerator, S brake, A/D steer' : m === 'heli' ? 'Helicopter · Shift up, Ctrl down, W/S forward/back, A/D turn — let go to hover' : 'Cessna 172 · S/↓ pull up, A/D bank, Shift/R throttle');
 }
 const PSPD = [1, 1.5, 2, 3, 4];
 function planeSpeed(d) {
@@ -5066,13 +5217,49 @@ function vSim(sec, keys) {
   return VEH.mode === 'car' ? { x: c.x, y: c.y, v: c.v, h: c.h, surf: c.surface } : VEH.mode === 'heli' ? { ...VEH.heli.s } : { ...s, msg: $('vmsg').textContent };
 }
 // ---- touch controls ----
+
+// ---- tilt to steer (optional, phones): hold the phone like a steering wheel. Roll = steer / bank; in the air, tipping
+// the top away or towards you = nose down / up (helicopter: forward / back). The way you hold it when you switch it on
+// is "level". Uses the device orientation; iPhones ask for permission first.
+const TILT = { on: false, steer: 0, pitch: 0, phi0: null, seen: 0 };
+function tiltEvent(e) {
+  if (e.beta === null || e.gamma === null) return; TILT.seen = performance.now();
+  const b = e.beta * Math.PI / 180, g = e.gamma * Math.PI / 180, ux = -Math.cos(b) * Math.sin(g), uy = Math.sin(b), uz = Math.cos(b) * Math.cos(g);   // "up" in the phone's own axes
+  const a = ((screen.orientation && screen.orientation.angle) || window.orientation || 0) * Math.PI / 180;
+  const sx = ux * Math.cos(a) - uy * Math.sin(a), sy = ux * Math.sin(a) + uy * Math.cos(a);         // … in the screen's axes (angle 90 = top of the phone to the left)
+  const phi = Math.atan2(uz, sy); if (TILT.phi0 === null) TILT.phi0 = phi;
+  let dp = phi - TILT.phi0; if (dp > Math.PI) dp -= 2 * Math.PI; if (dp < -Math.PI) dp += 2 * Math.PI;
+  const st = THREE.MathUtils.clamp(-sx / 0.42, -1, 1), pt = THREE.MathUtils.clamp(-dp / 0.38, -1, 1);   // full lock at ~25°, full pitch at ~22°
+  TILT.steer += (st - TILT.steer) * 0.35; TILT.pitch += (pt - TILT.pitch) * 0.35;
+}
+async function setTilt(on) {
+  if (on) {
+    try { const D = window.DeviceOrientationEvent; if (!D) throw 0; if (typeof D.requestPermission === 'function' && (await D.requestPermission()) !== 'granted') throw 1; }
+    catch (err) { vMsg(err === 0 ? 'This device does not report its tilt' : 'Motion access was not allowed — allow it in the browser settings and try again'); on = false; }
+  }
+  TILT.on = on; TILT.steer = TILT.pitch = 0; TILT.phi0 = null;
+  window.removeEventListener('deviceorientation', tiltEvent); if (on) window.addEventListener('deviceorientation', tiltEvent);
+  document.body.classList.toggle('tilt', on);
+  for (const id of ['hudTilt', 'mTilt']) $(id).setAttribute('aria-pressed', on);
+  $('hudTilt').textContent = on ? 'Tilt on' : 'Tilt to steer';
+  if (on) { vMsg('Tilt on · hold the phone like a steering wheel'); const t0 = performance.now(); setTimeout(() => { if (TILT.on && TILT.seen < t0) { vMsg('This device does not report its tilt'); setTilt(false); } }, 1500); }
+  touchUI();
+}
+$('hudTilt').onclick = $('mTilt').onclick = () => setTilt(!TILT.on);
+// inside the blog page: when the page gives the map the whole screen (phone held sideways), offer a way back
+{ const upd = () => { let cov = false; try { cov = window.parent !== window && Math.abs(window.parent.innerHeight - innerHeight) < 8; } catch (e) {} document.body.classList.toggle('covered', cov); };
+  upd(); addEventListener('resize', upd);
+  $('backBtn').onclick = () => { try { if (window.parent.history.length > 1) window.parent.history.back(); else window.parent.location.href = '/'; } catch (e) {} }; }
 function touchUI() {
   const on = document.body.classList.contains('touch') && VEH.mode !== 'map';
-  $('touch').hidden = !on; $('tCar').hidden = VEH.mode !== 'car'; $('tPlane').hidden = VEH.mode !== 'plane'; $('tHeli').hidden = VEH.mode !== 'heli';
+  $('touch').hidden = !on; $('tCar').hidden = VEH.mode !== 'car'; $('tPlane').hidden = VEH.mode !== 'plane'; $('tHeli').hidden = VEH.mode !== 'heli'; $('tStick').classList.toggle('caronly', VEH.mode === 'car');
   const rh = $('rotHint'); if (on && innerHeight > innerWidth * 1.15 && !touchUI.told) { touchUI.told = true; rh.hidden = false; rh.style.opacity = 1; setTimeout(() => { rh.style.opacity = 0; }, 3500); setTimeout(() => { rh.hidden = true; }, 4200); }
 }
 {
   if (matchMedia('(pointer: coarse)').matches) document.body.classList.add('touch');
+  { const mq = matchMedia('(max-width: 640px), (pointer: coarse) and (max-height: 520px)'), set = () => document.body.classList.toggle('phone', mq.matches); set(); mq.addEventListener('change', set); }
+  $('hudMore').addEventListener('click', () => { const o = $('hud').classList.toggle('open'); $('hudMore').setAttribute('aria-expanded', o); });
+  document.getElementById('attrib').addEventListener('click', (e) => { if (document.body.classList.contains('phone') && !e.target.closest('a')) e.currentTarget.classList.toggle('open'); });
   const st = $('tStick'), kn = st.querySelector('.knob'); let sid = null;
   const set = (e) => {
     const r = st.getBoundingClientRect(), R = r.width / 2;
@@ -5142,15 +5329,21 @@ addEventListener('blur', () => VEH.keys.clear());
 // ---------------- render loop ----------------
 // ---- automatic resolution: when frames run slow the picture is rendered a little smaller for a while, then recovers ----
 const DYN = { base: renderer.getPixelRatio(), scale: 1, ema: 0.016, slow: 0, fast: 0, cool: 0, on: (() => { try { return localStorage.getItem('pan.autores') !== '0'; } catch (e) { return true; } })() };
-function dynScale(sc) { DYN.scale = sc; renderer.setPixelRatio(DYN.base * sc); renderer.setSize(innerWidth, innerHeight); resizePost(); DYN.cool = 1.2; DYN.slow = DYN.fast = 0; }
+function dynScale(sc) { PROF.dyn++; DYN.scale = sc; renderer.setPixelRatio(DYN.base * sc); renderer.setSize(innerWidth, innerHeight); resizePost(); DYN.cool = 2; DYN.slow = DYN.fast = 0; DYN.ema = 1 / 45; }
 function dynRes(dt, idle) {
   if (!DYN.on || BENCH.on) { if (DYN.scale !== 1 && !BENCH.on) dynScale(1); return; }
   if (idle || dt > 0.25) return;
-  DYN.ema += (dt - DYN.ema) * 0.1;
+  DYN.ema += (dt - DYN.ema) * 0.1; DYN.since = (DYN.since || 0) + dt; DYN.hold = Math.max(0, (DYN.hold || 0) - dt);
   if ((DYN.cool -= dt) > 0) return;
   if (DYN.ema > 1 / 38) { DYN.slow += dt; DYN.fast = 0; } else if (DYN.ema < 1 / 54) { DYN.fast += dt; DYN.slow = 0; } else { DYN.slow = DYN.fast = 0; }
-  if (DYN.slow > 0.6 && DYN.scale > 0.55) dynScale(Math.max(0.55, DYN.scale - (DYN.ema > 1 / 24 ? 0.2 : 0.1)));
-  else if (DYN.fast > 2.5 && DYN.scale < 1) dynScale(Math.min(1, DYN.scale + 0.1));
+  // Changing the resolution costs a hitch (the render targets are rebuilt), so it must be rare and must never flip-flop:
+  // going down needs 1.5 s of slow frames; going back up needs 12 s of fast ones, and if a step up turns slow again
+  // within 10 s that level is given up for two minutes (with vsync the frame rate jumps 60 <-> 30, which made the
+  // resolution bounce every few seconds: the stutter while driving, 2026-11-11).
+  if (DYN.slow > 1.5 && DYN.scale > 0.55) {
+    if (DYN.up && DYN.since < 10) DYN.hold = 120;
+    DYN.up = false; DYN.since = 0; dynScale(Math.max(0.55, DYN.scale - (DYN.ema > 1 / 24 ? 0.2 : 0.1)));
+  } else if (DYN.fast > 12 && DYN.scale < 1 && !DYN.hold) { DYN.up = true; DYN.since = 0; dynScale(Math.min(1, DYN.scale + 0.1)); }
 }
 // ---- benchmark: a fixed 30 s flight over five places; reports frame rates to compare machines and versions ----
 const BENCH = { on: false, legs: [['Town', -4030, 5250, 260, 30, 55], ['Lake', -300, 3600, 320, 0, 50], ['Campobello', -1500, 4750, 200, 60, 62], ['Airport', -2050, 3700, 420, 200, 50], ['Island', 0, 0, 9000, 0, 45]], LEG: 6 };
@@ -5179,6 +5372,9 @@ function endBench() {
   BENCH.text = lines.join('\n');
   const el = $('benchOut'); el.querySelector('pre').textContent = BENCH.text; el.hidden = false;
 }
+// frame profiler: time per part of a frame; frames that take long are logged with the part that caused it (debug line)
+const PROF = { sum: {}, max: {}, n: 0, hitches: [], worst: null, dyn: 0 };
+function tm(name, f) { const t = performance.now(); f(); const d = performance.now() - t; PROF.sum[name] = (PROF.sum[name] || 0) + d; if (d > (PROF.max[name] || 0)) PROF.max[name] = d; if (d > (PROF.cur || 0)) { PROF.cur = d; PROF.curName = name; } }
 const clock = new THREE.Clock();
 let frame = 0, ftimes = [];
 function render(now) {
@@ -5190,12 +5386,13 @@ function render(now) {
   renderer.info.reset();
   const dtk = Math.min(0.25, (now - (render.last || now)) / 1000); dynRes((now - (render.last || now)) / 1000, idle); render.last = now;
   if (BENCH.on) benchStep(now);
+  PROF.cur = 0; PROF.curName = '';
   if (VEH.mode === 'map') { keyMove(dtk); stepAnim(now); controls.update(); clampCamera(); if (PLACE.on) { updatePlace(); kick(); } }
-  else { updateVehicle(dtk); kick(); }
-  updateFx(dtk);
-  updateTerrainLOD(); updateSiteLOD(); updateVegLOD();
-  updateCulling();
-  updateDetail();
+  else { tm('vehicle', () => updateVehicle(dtk)); kick(); }
+  tm('fx', () => updateFx(dtk));
+  tm('terrainLOD', () => updateTerrainLOD()); tm('siteLOD', () => updateSiteLOD()); tm('vegLOD', () => updateVegLOD());
+  tm('culling', () => updateCulling());
+  tm('detail tiles', () => updateDetail(idle ? 40 : Math.max(6, Math.min(75, dtk * 300))));   // a slice of the frame time: small when smooth, more when still or slow anyway
   if (TOWN.fieldWalls) TOWN.fieldWalls.visible = camera.position.distanceTo(_fwc) < 520;
   if (sea) sea.material.uniforms.time.value = clock.getElapsedTime();
   sky.position.copy(camera.position);
@@ -5224,9 +5421,9 @@ function render(now) {
   } else {
     renderer.setRenderTarget(null); renderer.render(scene, camera);
   }
-  updateLabels();
-  updateHover();
-  updateScale();
+  tm('labels', () => { updateLabels(); updateHover(); updateScale(); });
+  { const whole = performance.now() - t0, gap = now - (PROF.lastNow || now); PROF.lastNow = now; PROF.n++;
+    if (!idle && gap > 50 && gap < 2000) { const h = { gap: Math.round(gap), js: Math.round(whole), part: PROF.cur > 12 ? PROF.curName + ' ' + Math.round(PROF.cur) + ' ms' : 'drawing', t: now }; PROF.hitches.push(h); if (PROF.hitches.length > 200) PROF.hitches.shift(); } }
   ftimes.push(performance.now() - t0); if (ftimes.length > 60) ftimes.shift();
   drawDebug(now);
 }
@@ -5280,6 +5477,40 @@ async function boot() {
 }
 boot();
 
-window.__pan = { goPlace, openPlaces, showHelp, setPhoto, RALLY, rallyStart, PADS, buildPads, nextPad, RUNWAYS, SND, setSat, SAT, reportAt, setDebug, startBench, BENCH, DYN, dynScale, SITE_TILES, updateSiteLOD, roads2: () => ROADS2, groundTop, roadVertZ, roadZAt, roadProf, SKID, carZ, BLD, VEH, vSim, nearestRoad, setMode: (m) => setMode(m, true), startPlacing, PLACE, updatePlace, setCam, spawnPlane, spawnHeli, makeCar, DETAIL, heightCubic, chunkGeometry: (c, L) => chunkGeometry(c, L), THREE, scene, camera, controls, renderer, chunks, culled, setView, getView, orbitTo, updateSun, setStyle, heightAt, toLatLon, fromLatLon, b2t, STYLE,
+// test: wherever two carriageways overlap, their drawn surfaces must agree (tests/road_check.mjs 'junction')
+function junctionCheck(bx0, by0, bx1, by1, tol = 0.12) {
+  const bad = []; let n = 0;
+  for (const r of ROADS2) {
+    if (r.tier > 2 || r.w < 2.4) continue;
+    const P = roadProf(r), half = r.w / 2 + 0.15, np = r.pts.length / 3;
+    for (let i = 0; i < np - 1; i++) {
+      const ax = r.pts[i * 3], ay = r.pts[i * 3 + 1], bx = r.pts[i * 3 + 3], by = r.pts[i * 3 + 4];
+      if (Math.max(ax, bx) < bx0 || Math.min(ax, bx) > bx1 || Math.max(ay, by) < by0 || Math.min(ay, by) > by1) continue;
+      const sl = P.cum[i + 1] - P.cum[i]; if (sl < 0.01) continue;
+      for (let d = 0; d < sl; d += 2) for (const f of [-0.9, 0, 0.9]) {
+        const t = d / sl, x = ax + (bx - ax) * t - (by - ay) / sl * half * f, y = ay + (by - ay) * t + (bx - ax) / sl * half * f;
+        const tx = Math.floor((x - X0) / DT), ty = Math.floor((y - Y0) / DT), zr = roadZAt(r, P.cum[i] + d, f);
+        const near = new Map();   // per other road: its nearest segment only (a bend projects one point onto two segments)
+        for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) {
+          const L = roadIdx.get((tx + a) + ',' + (ty + b)); if (!L) continue;
+          for (let k = 0; k < L.length; k += 2) {
+            const q = ROADS2[L[k]], qi = L[k + 1]; if (q === r || q.tier > 2 || q.w < 2.4 || q.rank > r.rank) continue;
+            const Q = q.pts, qx = Q[qi * 3], qy = Q[qi * 3 + 1], dx = Q[qi * 3 + 3] - qx, dy = Q[qi * 3 + 4] - qy, ql = Math.hypot(dx, dy) || 1;
+            const uu = ((x - qx) * dx + (y - qy) * dy) / (ql * ql), u = Math.max(0, Math.min(1, uu)), px = qx + dx * u, py = qy + dy * u, dd = Math.hypot(x - px, y - py);
+            if ((qi === 0 && uu * ql < -0.1) || (qi === Q.length / 3 - 2 && (uu - 1) * ql > 0.1)) continue;
+            const o = near.get(q); if (!o || dd < o.dd) near.set(q, { dd, qi, u, ql, lat: (dx * (y - py) - dy * (x - px)) / ql });
+          }
+        }
+        for (const [q, o] of near) {
+          const qh = q.w / 2 + 0.15; if (o.dd > qh - 0.6) continue;
+          n++; const zq = roadZAt(q, roadProf(q).cum[o.qi] + o.u * o.ql, o.lat / qh);
+          if (Math.abs(zq - zr) > tol) bad.push([Math.round(x), Math.round(y), +(zr - zq).toFixed(2)]);
+        }
+      }
+    }
+  }
+  return { n, bad };
+}
+window.__pan = { TILT, setTilt, tiltEvent, junctionCheck, roadProf, roadZAt, PROF, goPlace, openPlaces, showHelp, setPhoto, RALLY, rallyStart, PADS, buildPads, nextPad, RUNWAYS, SND, setSat, SAT, reportAt, setDebug, startBench, BENCH, DYN, dynScale, SITE_TILES, updateSiteLOD, roads2: () => ROADS2, groundTop, roadVertZ, roadZAt, roadProf, SKID, carZ, BLD, VEH, vSim, nearestRoad, setMode: (m) => setMode(m, true), startPlacing, PLACE, updatePlace, setCam, spawnPlane, spawnHeli, makeCar, DETAIL, heightCubic, chunkGeometry: (c, L) => chunkGeometry(c, L), THREE, scene, camera, controls, renderer, chunks, culled, setView, getView, orbitTo, updateSun, setStyle, heightAt, toLatLon, fromLatLon, b2t, STYLE,
   perf: () => ({ ms: ftimes.reduce((a, b) => a + b, 0) / Math.max(1, ftimes.length), calls: renderer.info.render.calls, tris: renderer.info.render.triangles, pr: renderer.getPixelRatio() }) };
 </script>

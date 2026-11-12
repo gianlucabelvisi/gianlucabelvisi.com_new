@@ -1,0 +1,11 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const p = await b.newPage({ viewport: { width: 400, height: 300 } });
+p.on('pageerror', (e) => console.log('PAGEERROR', e.message.slice(0, 300)));
+await p.route(/fonts\.(googleapis|gstatic)/, (r) => r.abort());
+await p.goto('http://localhost:8765/test.html');
+await p.waitForFunction(() => window.__ready, null, { timeout: 90000 });
+const box = JSON.parse(process.argv[2]);
+const r = await p.evaluate((B) => { const t = performance.now(); const o = window.__pan.junctionCheck(...B); o.ms = Math.round(performance.now() - t); o.bad.sort((a, c) => Math.abs(c[2]) - Math.abs(a[2])); o.nbad = o.bad.length; o.bad = o.bad.slice(0, 25); return o; }, box);
+console.log(JSON.stringify(r));
+await b.close();

@@ -48,6 +48,10 @@ land0 = ndimage.binary_opening(~sea, iterations=3)                          # no
 lab, n = ndimage.label(land0); sz = np.bincount(lab.ravel()); sz[0] = 0
 land = np.isin(lab, np.nonzero(sz > 400)[0])                              # skerries under ~100 m2 go (boulders instead)
 sea = ~land
+# only the real sea counts (2026-11-11): a 6-pixel speck of 'sea' in the SW corner made the cliff profile dig a 14 m pit
+# across Via Santa Chiara. Water areas under 500 m2 are land.
+lab, n = ndimage.label(sea); sz = np.bincount(lab.ravel()); sz[0] = 0
+sea = np.isin(lab, np.nonzero(sz > 2000)[0]); land = ~sea
 d_land = ndimage.distance_transform_edt(land) * RES                      # inland distance from the waterline
 d_sea = ndimage.distance_transform_edt(sea) * RES                        # seaward distance
 

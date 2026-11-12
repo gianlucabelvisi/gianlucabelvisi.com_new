@@ -8,7 +8,7 @@ import styles from '../styles/Apartment.module.css'
  */
 export default function Pantelleria() {
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${styles.immersive}`}>
       <SEO
         title="Pantelleria 3D"
         description="Pantelleria in 3D: the real terrain, roads and every dammuso, cel-shaded and explorable like a map."
@@ -19,7 +19,7 @@ export default function Pantelleria() {
         className={styles.frame}
         src="/pantelleria-3d/index.html"
         title="3D map of Pantelleria"
-        allow="fullscreen"
+        allow="fullscreen; accelerometer; gyroscope"
         allowFullScreen
       />
     </div>

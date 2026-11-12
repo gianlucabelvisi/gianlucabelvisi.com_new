@@ -13,10 +13,10 @@ try {
   const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const p = await b.newPage({ viewport: { width: 400, height: 300 } });
   await p.route(/fonts\.(googleapis|gstatic)/, (r) => r.abort());
-  await p.goto('http://localhost:8767/test.html');
+  await p.goto('http://localhost:8767/test.html' + (process.env.Q || ''));
   await p.waitForFunction(() => window.__ready, null, { timeout: 240000 });
   const res = await p.evaluate(() => {
-    const P = window.__pan, R = P.roads2(), out = { poke: [], kink: [] };
+    const P = window.__pan, R = P.roads2(), out = { poke: [], kink: [], steep: [], junction: [] };
     for (const r of R) {
       if (r.tier > 1 || r.w < 2) continue;
       const pr = P.roadProf(r), n = r.pts.length / 3, hw = r.w / 2, prof = [];
@@ -29,18 +29,22 @@ try {
           prof.push([x, y, P.roadZAt(r, sa, 0), poke]);
         }
       }
+      // rule (2026-11-11): a road cannot be unnaturally steep — more than 30 % over 8 m of the drawn surface is a terrain mistake
+      for (let k = 0; k + 8 < prof.length; k += 2) if (Math.abs(prof[k + 8][2] - prof[k][2]) / 8 > 0.3) out.steep.push([prof[k + 4][0], prof[k + 4][1]]);
       for (let k = 0; k < prof.length; k++) {
         if (prof[k][3] > 0.25) out.poke.push([prof[k][0], prof[k][1]]);
         let s = 0, c = 0; for (let j = Math.max(0, k - 5); j <= Math.min(prof.length - 1, k + 5); j++) { s += prof[j][2]; c++; }
         if (Math.abs(prof[k][2] - s / c) > 0.5 && k > 5 && k < prof.length - 6) out.kink.push([prof[k][0], prof[k][1]]);
       }
     }
+    // junctions (2026-11-12): where two carriageways overlap their drawn surfaces must agree (within 12 cm)
+    out.junction = P.junctionCheck(-1e6, -1e6, 1e6, 1e6).bad.map((q) => [q[0], q[1]]);
     return out;
   });
   await b.close();
   const BF = path.join(ROOT, 'data/road_check_baseline.json'), base = fs.existsSync(BF) ? JSON.parse(fs.readFileSync(BF)) : {};
   const accept = process.argv.includes('--accept'); let bad = false;
-  for (const k of ['poke', 'kink']) {
+  for (const k of ['poke', 'kink', 'steep', 'junction']) {
     const cells = [...new Set(res[k].map(([x, y]) => Math.floor(x / 100) * 100 + ',' + Math.floor(y / 100) * 100))].sort();
     const fresh = cells.filter((c) => !(base[k] || []).includes(c));
     console.log(`road surface · ${k.padEnd(5)} ${String(res[k].length).padStart(5)} points in ${String(cells.length).padStart(3)} cells (${fresh.length} new)`);

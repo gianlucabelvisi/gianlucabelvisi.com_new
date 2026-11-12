@@ -157,8 +157,12 @@ for s_, (lh, lk), (rh, rk) in KS:
 survey.append({'route': [[round(float(x), 1), round(float(y), 1)] for x, y in khR], 'sv': kh_sv})
 KR = (khR, khT)
 # the two WWII guard huts (garitte di Karuscia) either side of the lane ~25 m in from the Perimetrale
+from shapely.geometry import LineString as _LS, Point as _PT
+_lanes = [(_LS(np.array(r_['pts'])[:, :2]), r_['w']) for r_ in F['roads'] if r_['cls'] not in ('footway', 'path', 'steps') and len(r_['pts']) > 1 and r_.get('id') != 239886281]
 for side in (1, -1):
-    p, a_ = at(khR, khT, 25, side, 5.4)
+    for s_try in (25, 28, 22, 31, 19, 34, 16):       # slide along the lane until the hut is clear of every other lane
+        p, a_ = at(khR, khT, s_try, side, 5.4)
+        if all(L_.distance(_PT(p[0], p[1])) > w_ / 2 + 1.7 for L_, w_ in _lanes): break
     props.append(['garitta', p[0], p[1], 1.0, round(a_ + (math.pi / 2 if side > 0 else -math.pi / 2), 3)])
 for s_ in (35, 48, 60): put('agave', s_, -1, 1.2, 2.0, road=KR, w=5.4)
 put('palm', 70, -1, 1.0, 9, road=KR, w=5.4); put('palm', 80, -1, 0.9, 12, road=KR, w=5.4)

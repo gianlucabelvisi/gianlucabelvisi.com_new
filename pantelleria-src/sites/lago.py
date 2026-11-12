@@ -129,6 +129,13 @@ for key, sel in (('perim', lambda r: r['id'] == 933237015), ('lanes', lambda r: 
             s0 = np.concatenate([[0], np.cumsum(np.hypot(*np.diff(P0[:, :2], axis=0).T))]); Z_ = np.interp(T_, s0, P0[:, 2])
         else:
             Z_ = ndimage.gaussian_filter1d(h_orig(P_[:, 0], P_[:, 1]), 8, mode='nearest')
+        if key == 'lanes':   # a lane joins a Via del Lago leg at that leg's level and leaves it at 18 % at most (2026-11-11:
+            # the drive at the car park met the shore road 4 m too high and put a hump on it)
+            dm = np.full(len(P_), 1e9); zm = np.zeros(len(P_))
+            for k_ in MAIN:
+                d_, i_ = cKDTree(roads[k_][0]).query(P_); m_ = d_ < dm; dm[m_] = d_[m_]; zm[m_] = roads[k_][2][i_][m_]
+            lim = 0.18 * np.maximum(dm - 2.0, 0); near_ = dm < 60
+            Z_ = np.where(near_, np.clip(Z_, zm - lim, zm + lim), Z_)
         Ps.append(P_); Zs.append(Z_)
     if Ps:
         P_, Z_ = np.vstack(Ps), np.concatenate(Zs)

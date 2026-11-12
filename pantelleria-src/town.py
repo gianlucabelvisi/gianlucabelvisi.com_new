@@ -523,10 +523,47 @@ json.dump(F, open('prep/features.json', 'w'), separators=(',', ':'))
 print('town roads set to asphalt', n_asph)
 print('stairs', len(stairs), 'terraces', len(terraces), 'retaining', len(retaining), 'field walls', len(field_walls), 'shop fronts', len(shops), 'stalls', len(stalls))
 
+# ---------- sidewalks (2026-11-12): a raised kerb strip along the town's streets ----------
+# Ribbons along each side of the wider streets: 1.5 m wide, out to the house front where that is within 3.2 m, open at
+# junctions (other carriageways), none where a house stands on the kerb, on the promenade or on a square.
+_zb = zone.buffer(30)
+_sw_cls = ('secondary', 'tertiary', 'residential', 'unclassified')
+_near = [(r, LineString([p_[:2] for p_ in r['pts']])) for r in F['roads'] if len(r['pts']) > 1 and r['cls'] not in ('footway', 'path', 'steps')]
+_near = [(r, l) for r, l in _near if l.intersects(_zb.buffer(40))]
+_bufs = [l.buffer(r['w'] / 2 + 0.35, cap_style=2) for r, l in _near]
+_bldU = unary_union([Polygon(b['pts']).buffer(0) for b in out_b])
+_paved = unary_union([Polygon(p_).buffer(0) for p_ in piazzas] + ([promu] if promu is not None else []))
+_bp, _pp, _hp = sprep(_bldU), sprep(_paved), sprep(harbour.buffer(0.5))
+sidewalks = []
+for qi, (r, l) in enumerate(_near):
+    if r['cls'] not in _sw_cls or r['w'] < 4.4 or r.get('bridge') or r.get('tunnel') or not l.intersects(_zb): continue
+    others = unary_union([b_ for j_, b_ in enumerate(_bufs) if j_ != qi and b_.intersects(l.buffer(14))] or [Point(1e7, 1e7).buffer(0.1)])
+    op = sprep(others); hw = r['w'] / 2 + 0.1
+    ss = np.arange(0, l.length + 1e-6, 2.5)
+    for sgn in (1, -1):
+        run = []
+        def flush():
+            global sidewalks
+            if len(run) >= 3: sidewalks.append([list(q_) for q_ in run])
+            run.clear()
+        for s_ in ss:
+            p0, p1 = l.interpolate(max(0, s_ - 0.5)), l.interpolate(min(l.length, s_ + 0.5)); p = l.interpolate(s_)
+            tx_, ty_ = p1.x - p0.x, p1.y - p0.y; n_ = math.hypot(tx_, ty_) or 1; nx_, ny_ = -ty_ / n_ * sgn, tx_ / n_ * sgn
+            xi, yi = p.x + nx_ * hw, p.y + ny_ * hw; pi_ = Point(xi, yi)
+            if not _zb.contains(pi_) or op.contains(pi_) or _bp.contains(pi_) or _hp.contains(pi_) or _pp.contains(Point(xi + nx_ * 0.8, yi + ny_ * 0.8)): flush(); continue
+            ray = LineString([(xi, yi), (xi + nx_ * 3.2, yi + ny_ * 3.2)]); wd = 1.5
+            hb = ray.intersection(_bldU)
+            if not hb.is_empty: wd = pi_.distance(hb)
+            ho = ray.intersection(others)
+            if not ho.is_empty: wd = min(wd, pi_.distance(ho))
+            if wd < 0.6 or _hp.contains(Point(xi + nx_ * wd, yi + ny_ * wd)): flush(); continue
+            run.append((round(xi, 2), round(yi, 2), round(xi + nx_ * wd, 2), round(yi + ny_ * wd, 2)))
+        flush()
+print('sidewalks', len(sidewalks), 'ribbons,', round(sum(2.5 * (len(r_) - 1) for r_ in sidewalks)), 'm')
 json.dump({'zone': [[round(x, 1), round(y, 1)] for x, y in zone.exterior.coords[:-1]], 'blds': out_b, 'pois': pois, 'boats': boats,
            'ferry': ferry, 'palms': palms, 'lamps': lamps, 'cafes': cafes, 'piazzas': piazzas,
            'promenade': promenade, 'bollards': bollards, 'benches': benches, 'planters': planters,
-           'stairs': stairs, 'terraces': terraces, 'retaining': retaining, 'field': FIELD, 'fieldWalls': field_walls, 'shops': shops, 'stalls': stalls},
+           'sidewalks': sidewalks, 'stairs': stairs, 'terraces': terraces, 'retaining': retaining, 'field': FIELD, 'fieldWalls': field_walls, 'shops': shops, 'stalls': stalls},
           open('prep/town.json', 'w'), separators=(',', ':'), ensure_ascii=False)
 
 # ---------- harbour basins read as deep water ----------

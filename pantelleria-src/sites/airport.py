@@ -126,10 +126,11 @@ bl = [Polygon(np.array(b['pts'])[:, :2]).buffer(4) for b in F['buildings'] if le
 blk = unary_union(bl + [Polygon(np.array(p)[:, :2]).buffer(6) for p in term])
 ring = np.array(field.exterior.simplify(4).coords)
 fence, run = [], []
+_gates = [(LineString(np.array(r_['pts'])[:, :2]), r_['w']) for r_ in F['roads'] if r_['cls'] not in ('footway', 'path', 'steps', 'track') and len(r_['pts']) > 1 and LineString(np.array(r_['pts'])[:, :2]).intersects(field.exterior)]
 L = LineString(ring); n = int(L.length // 3)
 for k in range(n + 1):
     p = L.interpolate(k * 3.0)
-    if blk.contains(p):
+    if blk.contains(p) or any(L_.distance(p) < w_ / 2 + 0.8 for L_, w_ in _gates):   # buildings, and a gate where a road goes through
         if len(run) > 1: fence.append(run)
         run = []
     else: run.append([round(p.x, 1), round(p.y, 1)])
@@ -186,6 +187,7 @@ props.append(['tower', -1968.0, 3826.0, 1, round(ang, 3)])
 props.append(['windsock', -2050.0, 3560.0, 1, 0])
 props.append(['windsock', -1560.0, 3590.0, 1, 0])
 cars = []
+_lanes = [(LineString(np.array(r_['pts'])[:, :2]), r_['w']) for r_ in F['roads'] if r_['cls'] not in ('footway', 'path', 'steps') and len(r_['pts']) > 1 and any(-2250 < q[0] < -1950 and 3700 < q[1] < 3990 for q in r_['pts'])]
 rng = np.random.default_rng(4)
 ca = math.radians(74); cu = (math.cos(ca), math.sin(ca)); cn = (-cu[1], cu[0])
 for lot in ([(-2122, 3846), (-2118, 3812), (-2108, 3801), (-2068, 3800), (-2056, 3836), (-2100, 3852)],
@@ -197,6 +199,7 @@ for lot in ([(-2122, 3846), (-2118, 3812), (-2108, 3801), (-2068, 3800), (-2056,
             for s in np.arange(-80, 80, 2.6):
                 x = -2088 + cn[0] * o + cu[0] * s; y = 3858 + cn[1] * o + cu[1] * s
                 if pp.contains_point((x, y)) and pp.contains_point((x + cn[0] * 2.4 * (1 if side == 0 else -1), y + cn[1] * 2.4 * (1 if side == 0 else -1))) and rng.random() < 0.82:
+                    if any(L_.distance(Point(x, y)) < w_ / 2 + 1.3 for L_, w_ in _lanes): continue   # not in an aisle or on a lane
                     cars.append([round(x, 2), round(y, 2), round(ca + math.pi / 2 + (rng.random() - 0.5) * 0.1, 3), int(rng.integers(8))])
 print('airport: parked cars', len(cars))
 json.dump({'paved': [{'kind': r['kind'], 'w': r['w'], 'pts': [[round(p[0], 1), round(p[1], 1)] for p in r['pts']]} for r in rws], 'aprons': [[[round(p[0], 1), round(p[1], 1)] for p in a['pts']] for a in aprons],
