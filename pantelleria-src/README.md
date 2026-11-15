@@ -365,3 +365,151 @@ Gianluca: on a phone the UI is confusing and takes a large part of the screen.
 - Blog side (outside this folder): `pages/pantelleria.tsx` adds the class `immersive` (in `styles/Apartment.module.css`): on a phone held sideways the map covers the 4rem site header (it was a fifth of the height). The viewer notices it fills the parent window (`body.covered`) and shows its own back button (`#backBtn`, history.back()). The iframe also allows accelerometer and gyroscope.
 - Tilt to steer (optional; "⋯" in a vehicle, or Settings; touch devices only): `TILT`, `tiltEvent`, `setTilt`. Roll like a steering wheel = steer / bank (full lock at about 25°); in the air tipping the top away / towards you = nose down / up, helicopter forward / back (full at about 22°). The way the phone is held when switched on is level. iPhones ask for permission each visit. The on-screen stick still works and wins; in the car it is hidden while tilt is on.
 - Not tried on a real phone: the direction signs come from the orientation maths only (checked with synthetic events). If steering or pitch is reversed on a device, flip the sign of `st` or `pt` in `tiltEvent`.
+
+- 2026-11-12 (b8): tilt twice as sensitive (full lock at about 12 degrees, full pitch at about 14), less smoothing lag. Gianluca: it did not steer much.
+
+## 2026-11-12 (b9) town close-up façades, pass 1
+
+Gianluca: town buildings feel like placeholders, not lived in; a first-person walk is coming, so buildings need a level of detail worth looking at up close. Mix Street View and procedural detail.
+
+- Viewer only (`FAC`, `facIndex`, `facadeHouse`, `facSignMesh`, `facBuildCell`, `updateFacades`). Within ~95 m (and low), every ordinary town house (`kind: house`, no `style`) gets a skin 5 cm proud of its walls: plain plaster (shader kind 19) over the painted windows, then real parts on the shader's own 3.3 m x 3.1 m grid: framed windows with sills and louvred shutters (open / closed / one leaf), balconies with railings, French doors, pots and air conditioners, front doors with surrounds, steps, house numbers and lamps, garages and roller shutters (23), shop fronts with a fascia board, ground-floor windows behind grilles, drainpipes, cornice, string course. Party walls stay blank (`facInOther`). Dropped beyond ~150 m. Built a house at a time in 60 m cells inside the frame budget.
+- Real data so far: each named place in town.json `pois` goes to the nearest house (within 9 m) and becomes a shop front on its street side with its name on the fascia (canvas texture per cell). Colours per house come from its id (shutters, door, trim).
+- New shader kinds: 19 skin, 20 louvres, 21 glass, 22 panelled door, 23 ribbed shutter, 24 balcony side bars (discard).
+- Not done yet: a Street View survey per street (which houses have shops, balconies, colours, heights); the special buildings (Blue Moon, hotel, hospital, town hall, church) keep their old look; nothing at street level between houses (bins, scooters, benches, signs, cables, parked cars); windows pop from painted to real at ~95 m (same grid, different pattern); not measured on a real GPU (about 1 M more triangles in the town centre).
+
+## 2026-11-12 (b10) Lungomare Street View survey, part 1
+
+- `survey_list.py "Road name|Road name" tag` lists the houses that face the named roads with a Street View viewpoint each (lat, lon, heading) -> `snip/survey_<tag>.json` in the workspace. Street View: `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=LAT,LON&heading=H&pitch=15&fov=90`, one pano at a time (several in one batch can time out). Imagery there is Sep 2012.
+- `data/town_survey.json` (new, the source of truth for surveyed houses): per building id `st`, `col`, and `fac` for the close-up façade (`blind` roller|louvre|none, `blindCol`, `balc` solid|iron|none, `accent`, `arches`, `trim`, `signs`). `town.py` applies it to town.json (heights too).
+- Finding: OSM has no heights in town and the guesses were far off on the seafront. 7 Via Borgo Italia (Acquamarina / Tikirriki) was 5 storeys, is 2; the shops under the castle were 3, are 1; 49 Via Borgo Italia was 4, is 1; 21 was 5, is 3; 27 was 5, is 4.
+- Finding: the post-war town has roller blinds (tapparelle) and long balconies with solid parapets far more than louvred shutters and iron railings. The viewer now has both: roller blinds part-way down (`shut 4`), long solid or iron balconies along a whole front (`longBalc`), arched ground-floor openings (`arch`). Unsurveyed houses pick roller blinds 55 % of the time and long solid balconies 30 %.
+- Surveyed so far (6): 3237373 Khamma Hotel (keeps its old hotel look: it has a `style`, which the close-up skips), 238574869, 238571915, 238571914, 238571920, 238924050.
+- Still to survey on the seafront: -100013, -100017 (west end), -100015, 1056831679 (by Gelateria Katia), the hotel 238574871, and everything east of the castle. Then the centre (Piazza Cavour, Corso Umberto).
+
+## 2026-11-12 (b11) survey part 2: rest of the seafront, first centre houses
+
+- Seafront done (11 houses; the two hotels keep their special look). New: -100013 petrol station kiosk (grey, yellow roof band, 1 storey), -100015 old storerooms under the castle (1 storey, was 3), 1056831679 low white hut by the castle (1, was 2).
+- Centre started (4 of about 95 houses facing Piazza Cavour, Corso Umberto I, Via Arciprete d'Aietti, Via Roma, Via Bellini, Via Verdi; list: `python3 survey_list.py "Piazza Cavour|Corso Umberto I|Via Arciprete d'Aietti|Via Roma|Via Vincenzo Bellini|Via Giuseppe Verdi" centre`): 310343618 (8 Via Arciprete d'Aietti: 3 storeys, grey, pink surrounds, panelled doors), 310343620 and 310343621 (Via Bellini, pink and grey blocks), 310343697 (25 Via Bellini: pink, beige roller blinds, blue awnings, Pasticceria da Giovanni).
+- New `fac` keys: `trimCol`, `cornice`, `awning`. `balc: mixed` = scattered iron balconies.
+- Not usable from the panos tried: 310343619 (Da Pina; the view was an empty lot), -100019 (south side of Via Arciprete d'Aietti; a garage gate and a palm). The centre's old streets are narrow: aim panos along the street (heading ± 40° off the façade) instead of square on, or the house fills the frame.
+
+## 2026-11-12 (b12) survey part 3: around Piazza Cavour, Via Roma, start of Corso Umberto
+
+- 8 more houses in data/town_survey.json (21 in all; names and what was seen are in the file). Heights corrected: Max supermarket 5 -> 1 storey, Il Cappero 4 -> 3, the block behind Carrefour 4 -> 3, the old palazzo at 53 Corso Umberto I 4 -> 3.
+- New fac value: balc every (an iron balcony at every upper window).
+- Not modelled: stone cladding on Max, the double stair and raised basement of the palazzo at 53 Corso Umberto I, the pierced bands on the long balconies of Via Roma.
+- Left in the centre list: about 80 houses, mostly Corso Umberto I eastwards and Via Giuseppe Verdi.
+
+## 2026-11-13 (b13) Via Marina (Tracino): not floating, no centre line · survey part 4
+
+Gianluca: the steep road up to Tracino's square now feels right, but it had centre stripes on a one-lane road and it floated from start to end.
+
+- Centre and edge lines are drawn only on main roads at least 5.5 m wide (Via Marina is 2.5 m).
+- Floating had three causes, all fixed:
+  1. `roads_smooth.py`: outside the KEEP box the profile was the 9 % profile clipped to 3 m of the ground, which left Via Marina in a 3 m cut along its whole length (it needs 13 % on average). It now starts from the ground itself (smoothed over 16 m), up to 20 %, still within 3 m.
+  2. Viewer `rpEnsure`: the upper envelope was taken of heights, which lifts a road by gradient x 3 m (0.6 m at 20 %). It is now taken of the bumps around a running mean (+-8 m).
+  3. Viewer `rpRaw`: the graded profile may carry a main road at most `MAINLIFT` (0.35 m, `?ml=` to try others) above the drawn ground, except built-up ramps (`lift`).
+- Road shoulders: where a road edge still sits above the ground beside it, a short bank runs down to the ground (`roadMeshFor`).
+- `tests/float_probe.mjs` (run from `web/`) measures Via Marina: centre 0.20 m above the drawn ground on average (was 0.29), worst 0.67 (was 1.71). Guard after this: poke 2, kink 106 (was 155), steep 360 (was 397), junction 100.
+- Survey: 24 houses (3 more on Corso Umberto I: 1056842030, 1056846130, 1056846133). About 75 left in the centre list.
+
+- 2026-11-13 (b14): survey at 27 houses (3 more on the east part of Corso Umberto I / Via Roma: 310343630, 1056846144, 1056846142; skipped ones and why are under _skipped in data/town_survey.json). About 70 left in the centre list. East of Via Bellini the street is mostly houses behind garden walls, so the remaining value is in the blocks between Piazza Cavour and the seafront.
+
+- 2026-11-13 (b15): survey at 43 houses (16 more: Via Napoli, Corso Umberto I by the castle, next to the Blue Moon, Via Manzoni, Via Dante Alighieri, Piazza Cavour north). Heights corrected again (north side of Corso Umberto by the castle 5 -> 2; Casa della frutta 3 -> 2; villa on Corso Umberto 4 -> 2; several 4 -> 3; rear blocks on Via Manzoni 3 -> 5). Core list left: about 25 larger fronts (python3 survey_list.py with the street names in snip/survey_core, filter L >= 9, d <= 9).
+
+## 2026-11-13 (b16) main-town survey done for the larger fronts · villages get the close-up dressing
+
+- 58 houses in `data/town_survey.json` (15 more: Via Napoli shops, north of Piazza Cavour, Via Alessandro Manzoni, Via Roma north, Corso Umberto). Skipped (no Street View or hidden) under `_skipped`; larger fronts still on the procedural look under `_not_surveyed`.
+- Villages: `facIndexVillages()` gives every plain box house outside the town (Khamma, Tracino, Scauri…) the close-up dressing in the village manner (louvred shutters, few balconies, no shops); `updateFacades` is no longer limited to the town zone. Dammusi, ruins and Gianluca's place unchanged.
+- No village Street View survey yet: village houses are BLD records; per-house overrides need an id path first (next).
+
+## 2026-11-13 (b17) village Street View survey: the path, and the first 11 houses (Tracino, Khamma)
+
+- `data/village_survey.json` (building ids from prep/features.json): `kind` house|dammuso, `st`, `col`, `fac` (as in town_survey.json, plus `doorCol`). `village_survey.py` (new step right after prep.py in run_all.sh) applies kind and height to features.json and writes prep/village_fac.json; `web_assets.py` writes `village_fac.json` for the viewer keyed by building number; the viewer (`VFAC`) uses it for colour, storeys and the close-up dressing, in `buildingsMeshFor` and `facIndexVillages`.
+- `survey_list_village.py X Y RADIUS tag [n]` lists houses near a point with a viewpoint each (Tracino: 4366 727 260; Khamma: 3748 1758 300). Both villages have Street View; the lanes are narrow, so many panos are close-ups of a wall.
+- Seen: the villages are mostly single-storey; white, pink and ochre plaster; blue or brown doors; garages; a few two-storey houses with an iron or wooden balcony; some bare lava-stone buildings. Unsurveyed village houses keep storeys from the old guess.
+- Done: Tracino 5 (around Piazza Perugia, Via Tracino, 25 Via Marina), Khamma 6 (Via Khamma, Via Asilo). Left: about 160 houses in Tracino and 120 in Khamma on the lists; the long fronts first.
+
+- 2026-11-13 (b18): village survey at 21 houses (Tracino 10, Khamma 11). Surveyed village houses now carry their storeys to the viewer (village_fac.json st), so a two-storey house on a slope no longer shows three rows of windows. Two houses that the old guess had as plain boxes are lava-stone dammusi (1149425070, 1150782457); one L=36 dammuso guess is a low ochre villa (1149425032). No Street View: 1149425003 (Tracino), 1149508022 (Khamma).
+
+- 2026-11-13 (b19): village survey at 25 houses (Tracino 12, Khamma 13); more skipped ones recorded (no Street View, or the pano only looked along a lane). Petrol station on Via Borgo Italia: town.py splits the traced footprint -100013 into the kiosk (west 40 %) and a canopy (town.json petrol), drawn in buildTown as a flat roof on four red columns with two pumps. Surveyed styled blocks (the Khamma Hotel) now get the close-up dressing too (facBuildCell). Still open in town: Hotel Mediterraneo, hospital, town hall, church close-ups; palazzo stair at 53 Corso Umberto I; cladding on Max.
+
+## 2026-11-13 (b20) fix: b19 built no close-up façades at all · special buildings
+
+- b19 broke the close-up façades everywhere: a `//` comment added in the middle of the one-line loop in facBuildCell swallowed the call to facadeHouse, so every cell came out empty. (Same trap as the README warns about for GLSL one-liners: never put a `//` comment inside a one-line statement; use /* */.) Fixed. `__pan.facTest(id)` builds one house and returns its triangle count or the error.
+- Khamma Hotel and Hotel Mediterraneo now get the close-up dressing from the survey (kind hotel is dressed once it has fac). Max has stone-tile cladding (fac.clad, shader kind 25). The palazzo at 53 Corso Umberto I has a raised entrance with a double flight (fac.stair) — written but not seen in a render yet. Petrol canopy band is yellow.
+- town.json in public/ was patched with the new fac entries directly; the next full build writes the same from data/town_survey.json.
+
+- 2026-11-13 (b21): town hall (Municipio, 810864530) dressed from Street View: pale stone, ground-floor portico on square piers (fac.portico), long railed balconies, MUNICIPIO lettered at the top (fac.signs now go at the top of the main front for any building). kind townhall is dressed by the close-up layer. tests/facade_probe.mjs (run from web/) prints triangle counts for a few buildings via __pan.facTest. Seen but not modelled: hospital is a dark red block behind a barrier with a beige wing (already has its own model); church is board-formed concrete with a row of tall concrete fins and a slim bell tower (own model). Palazzo stair at 53 Corso Umberto I: built by the code (7364 triangles) but not seen in a render from the right side yet.
+
+## 2026-11-13 (b22) walk mode · parapets open at junctions
+
+- Walk mode (button Walk, key 5; WALK, spawnWalk, stepWalk, walkBlocked, walkGround): first person, eye 1.65 m, fov 68, near 0.15. W/S walk, A/D sidestep, arrows or drag look, Shift runs; touch: the stick walks, a drag elsewhere looks. Starts where the map is centred (or beside the car when coming from the car, which stays there); houses (buildingAt), walls (wallHit) and the sea block; steps up over 0.45 m block; stands on carZ or a platform. vSim walks too; tests/walk_test.mjs (run from web/).
+- Gianluca: the road was blocked by a wall at the Via Napoli / Via Giovanni Falcone junction (by Donne Fugate). The parapets of the built-up roads (town.py retaining) each ran to the end of their own road, across the junction. They now open wherever another carriageway meets the road.
+- Open for walking: names in the readout need road names in ROADS2; too many labels at eye level; no street furniture yet; sidewalks are not stepped onto (14 cm); no interiors.
+
+## 2026-11-13 (b23) walk polish · skid marks 10 s + tyre sounds · arcade drift style
+
+- Walk: Run toggle on touch (#tRun, WALK.run); at most 4 place labels within 90 m; steps up onto sidewalks (SWIDX, onSidewalk, +0.14 m); the readout shows the nearest street name (from the road labels).
+- Skid marks: SKID.t / SKID.a0 per quad; full for 7 s, fade over the last 3, gone at 10 s (tests/skid_test.mjs). Dirt marks are darker ruts.
+- Sounds: tyre squeal on tarmac (SND.sqG: two detuned saws with a wobble through a sharp band-pass) and gravel scrabble on dirt (SND.grG: bright noise chopped at a rattle rate), both only while marks are being laid (c.marking). Not heard by me; tune gains 0.11 / 0.28 in sndUpdate.
+- Rally car styles (X or the HUD button, localStorage pan.rallyStyle): Rally = as before; Arcade drift = same triggers (handbrake, or lift/brake while holding the wheel), earlier (from 9 m/s), deeper (drift 0.8-0.85, about 27 degrees at 130 km/h on tarmac vs 8), held as long as you steer into it, scrubs a third of the speed, stronger road guide, opposite lock catches in under a second. Gas + steering alone never starts a slide in either style (tests/arcade_test.mjs).
+
+## 2026-11-13 (b24 + b25) street furniture · props redone so every object makes sense
+
+- b24: street furniture on the town sidewalks (TOWN.furn: wheelie bins, parked scooters, potted plants, signs), never on a carriageway, one item every 9-16 m by a position hash; shown when the camera is close and low; not solid. Fewer street labels on foot.
+- b25 (Gianluca: scooters, boats, airport planes and parked cars looked like no effort; minimal Wind Waker style is fine but every object must make sense):
+  - Parked vehicles are the driven models baked to static meshes (parkedGeo: paintwork tinted per instance + the rest): parked cars are Pandas (parkedCars, used at the lake car park and the airport), scooters are Vespas without the rider.
+  - Boats (BOATS): every part now stands on the deck (deck = 0.56 x D amidships). Before, cabins floated up to 0.5 m above it. Gozzo with foredeck, thwarts, oars, outboard; fishing boat with wheelhouse, derrick, gantry, net drum; sailboat with coachroof, stays, boom, wheel; cruiser with cabin, flybridge, radar arch, bathing platform.
+  - Aircraft at the airport: ATR 72 and business jet rebuilt from lofts (wingGeo, finGeo): tapered wings, T-tails, engines with propellers, window lines, landing gear.
+- Still plain: the ferry, the signs (coloured discs), cafe tables, the airport tower and masts.
+
+## 2026-11-13 (b26) ferry · floating house · Scauri walk-only lanes
+
+- Ferry (ferryGeo) rebuilt from lofts: a hull that sits in the water (waterline y = 0), car-deck portholes, two passenger decks with window rows, bridge with wings, funnel, mast, lifeboats, stern ramp. It was a stack of boxes hanging 4 m above the sea.
+- Floating house (#846 near Monte Sant Elmo, 36.81906 N 11.95680 E): (1) viewer: dammuso terraces and house plinths now go down to the lowest ground under the footprint (the recorded zmin is capped at 6 m below zmax); (2) cause: one of two deep main-road cuttings left inside the KEEP box. roads_smooth.py FOLLOW = [(-2926, 3779, 160), (-816, 4049, 260)] applies the follow-the-ground rule there too. Worst main-road cut or fill is now 8.9 m (a fill by the lake junction, left alone because the lake site is pinned to it).
+- Scauri: walk-only lanes. data/village_survey.json _walk_only {steps, footway} (road ids); village_survey.py turns them into 2 m paved footways or stone steps before roads_smooth, so they follow the hillside as it is and the ground is not graded for them. web_assets writes surface 3 for steps; the near-road shader draws stone treads. Seven lanes so far (Via Padre Piccirilli, Vicolo Maestrale, Vicolo dell Autera, Via Sciuvechi and three unnamed links), chosen by natural slope (20-70 %) and Street View (stone steps down from the Perimetrale).
+- Scauri not done yet: no house survey, the harbour (Scauri Scalo) and the lighthouse at (-2588, -1852) are not modelled, nothing stops a car entering a stair lane.
+
+## 2026-11-13 (b27) no tower houses · Scauri survey started
+
+- RULE (Gianluca): houses are one or two floors, never towers. b26 had extended house bases down to the lowest ground, which made towers on steep ground (Scauri, the lake). Reverted. Instead every house is seated on the LOW side of its plot (viewer: footGround, seatBld; town houses d.z = lowest ground - 0.2): the floor is at most 1.2 m above the lowest ground under the footprint and the uphill side is dug into the slope. Nothing floats, nothing is taller than its storeys. Gianluca place (homeRole) is untouched.
+- Known side effect: on very steep plots a house can be buried up to its roof on the uphill side. The proper cure is a small level pad in the terrain under such houses (not done; must not touch roads).
+- Scauri house survey: 6 houses (31 village houses in all): three lava-stone houses set as dammusi, a white single-storey with an arched garage, a white house with brick-lattice terrace, the pink CineTeatro. Two skipped (hedge, wall close-up).
+
+### b28 (2026-11-13) house pads
+- New step house_pads.py (before ground_fix): under houses on plots steeper than a storey the ground is levelled a little towards the plot mean (max 4 m per node, fades over 14 m), never within a road corridor, the sea or a site. Houses buried to the roof uphill: 1210 -> 804. Road guards unchanged.
+
+### b29 (2026-11-13) west coast, town -> Scauri (first pass)
+- sites/west_coast.py (after coast_atlas): dark-brown lava reef seaward of the Perimetrale, dry garrigue belt inland, red tufo at the Kuddie Rosse, bare aa lava field at Punta Fram. New land classes 11 (bare west lava) and 12 (dry garrigue). Heights and roads untouched.
+- Viewer westCoast(): Sesiventi terrace (Mursia), Lido Shurhuq decks (Suvaki), Sataria cave with pools, stair rail. Sesiventi and the lido are from descriptions, not photos.
+- Survey: Mursia hotels (arched loggias), 16 more Scauri buildings incl. the church (the last 5 enter at the next full build).
+
+### b30 (2026-11-13) west coast, second pass
+- terrain_edits.py (after prep.py): named node edits, refused within 12 m of a drivable road edge. Sataria: the hollow under the bank is cut in (one node); the Perimetrale runs right above, so the cave is shallow.
+- Viewer: cave moved over the hollow; Sese Grande tomb (OSM footprint dropped via _modelled in village_survey.json); Mursia hotel tower; a light tower at Faro di Scauri (generic form, not surveyed).
+- All 50 surveyed village buildings are in this build. tests/wk_at.mjs = walk-mode screenshots.
+
+### b31 (2026-11-14) DEM fusion + Sesiventi and Lido Shurhuq from photos
+- ROOT CAUSE of buried houses / wrong Mursia: TINITALY is a smooth ramp over much of the west and south (Kuddie Rosse 11 m instead of 44; summits up to 40 m low; Scauri cliffs up to 100 m off). prep.py now adds the low-passed difference to Copernicus GLO-30 (needs data/Copernicus_DSM_COG_10_N36_00_E011/E012 tiles) outside the hand-tuned boxes (town, airport, lake, Bue Marino) and the shore strip. A third of the island moved by more than 4 m.
+- Road surface baseline re-accepted: totals improved (kink 101->63, steep 344->265, junction 99->100) but the places changed.
+- Sesiventi rebuilt from photos (patio, pergola, white bar, walkable roof by white steps); Lido Shurhuq rebuilt (dark building with the painted name, gazebo, loungers on the rocks). Steps now stop at the kerb of the road they meet.
+
+### b32 (2026-11-14) DEM fusion v2 + Oxidiana
+- Fusion v2: full correction from 4 m (v1 left up to 4.5 m), carried out to the shore from the nearest inland cell (Sataria coast road ~19 m, was 9), protection shrunk to the town core, airport, lake, Bue Marino. 444,742 of 835,190 land cells moved more than 4 m.
+- Road surface baseline re-accepted (kink 78, steep 257, junction 98, poke 2; before the fusion 101 / 344 / 99 / 2).
+- Oxidiana (closed disco bar) on the Cuddie Rosse hill: octagonal walled terrace, concrete drive, gateposts with a chain, faded sign. Red tufo extended east over the motocross ground (aerial).
+
+### b33 (2026-11-14) Mursia pools, Oxidiana tidy (viewer only)
+- Mursia: the three hotel pools are level stone terraces with water, sunbeds, white parasols, a pool bar (walkable). Oxidiana: smaller terrace, continuous concrete drive.
+
+### b34 (2026-11-14) terrain v3, Scauri harbour, 10 more Scauri houses
+- DEM fusion v3: the radar surface reads roofs and tree tops (+4.4 m over Scauri houses, +2.3 m mean / +12 m p90 over woods), so the correction is now measured on open ground only and filled in under houses and woods. Villages came out 1-2 m lower. Road baseline re-accepted (kink 89, steep 281, junction 104, poke 2): a few steep Tracino lanes crossed the threshold.
+- terrain_edits.py: sea round the two Scauri moles (OSM gave them a rock shelf); nodes near a road are left alone.
+- Scauri Scalo: armour blocks on the open-sea side of both moles, bollards, lamp posts, five gozzi moored inside.
+- Village survey: 59 buildings (10 more in Scauri). Town centre left on its hand-tuned terrain (measured: within ~1 m of the radar on open ground).
+
+### b35 (2026-11-14) terrain v4 (Scauri lifted), San Gaetano church, Sesiventi steps
+- DEM fusion v4: houses are kept in the measurement less a 4 m roof allowance (v3 had dropped them, which emptied Scauri centre and left it 10-15 m low and lumpy); woods still left out; smoothing 25 m instead of 40 m. Scauri church square now ~95 m (radar ~96). Road guard better: kink 73, steep 242, junction 97; one new 0.3 m poke at the Via del Porto T-junction (the branch arrives 1 m above the road it joins) accepted as a known spot.
+- Scauri: church of San Gaetano front (salmon gable, iron cross, pilasters, brown door, square window, side doors), seated at the level of Piazza San Gaetano; benches. 5 more houses surveyed (64 village buildings).
+- Sesiventi: the patio no longer blocks the first step (a field wall ran under it); you can walk up the seven white steps and across the roof.

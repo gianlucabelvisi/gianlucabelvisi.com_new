@@ -1,0 +1,10 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const p = await b.newPage({ viewport: { width: 500, height: 320 } });
+p.on('pageerror', (e) => console.log('PAGEERROR', e.message.slice(0, 400), (e.stack || '').split('\n').slice(0, 3).join(' | ')));
+p.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') console.log(m.type(), m.text().slice(0, 300)); });
+await p.route(/fonts\.(googleapis|gstatic)/, (r) => r.abort());
+await p.goto('http://localhost:8765/test.html');
+await p.waitForFunction(() => window.__ready, null, { timeout: 90000 });
+console.log(JSON.stringify(await p.evaluate(() => [810864530, 3237373, 310343624, 238571915].map((i) => window.__pan.facTest(i)))));
+await b.close();

@@ -25,6 +25,7 @@ merged = linemerge([LineString([p[:2] for p in r['pts']]) for r in roads])
 lines = list(merged.geoms) if merged.geom_type == 'MultiLineString' else [merged]
 S, ZS, W = [], [], []
 KEEP = (-4700.0, 3500.0, 100.0, 6300.0); CUT = []
+FOLLOW = [(-2926.0, 3779.0, 160.0), (-816.0, 4049.0, 260.0)]
 for L in lines:
     n = max(2, int(L.length / 2) + 1)
     pts = np.array([L.interpolate(L.length * k / (n - 1)).coords[0] for k in range(n)])
@@ -41,7 +42,12 @@ for L in lines:
     zn = ndimage.gaussian_filter1d(z, 5.0, mode='nearest')
     dbox = np.hypot(np.maximum.reduce([KEEP[0] - pts[:, 0], pts[:, 0] - KEEP[2], np.zeros(n)]), np.maximum.reduce([KEEP[1] - pts[:, 1], pts[:, 1] - KEEP[3], np.zeros(n)]))
     wk = np.clip(dbox / 200.0, 0, 1)
-    zc = zs * (1 - wk) + np.clip(zs, zn - 3.0, zn + 3.0) * wk
+    # (2026-11-13) two deep cuttings left inside the box, away from the sites, get the same treatment (a dammuso hung
+    # 17 m over the cut at Monte Sant'Elmo): full inside the radius, fading out over 150 m
+    for fx_, fy_, fr_ in FOLLOW: wk = np.maximum(wk, np.clip(1 - (np.hypot(pts[:, 0] - fx_, pts[:, 1] - fy_) - fr_) / 150.0, 0, 1))
+    # (2026-11-13) start again from the ground itself there (smoothed over 16 m), not from the 9 % profile: clipping the
+    # 9 % profile to 3 m left Via Marina in a 3 m cut along its whole length (it needs 13 % on average).
+    zc = zs * (1 - wk) + np.clip(ndimage.gaussian_filter1d(z, 8.0, mode='nearest'), zn - 3.0, zn + 3.0) * wk
     for _ in range(2):
         for i in range(1, n): zc[i] = np.clip(zc[i], zc[i - 1] - 0.40, zc[i - 1] + 0.40)
         for i in range(n - 2, -1, -1): zc[i] = np.clip(zc[i], zc[i + 1] - 0.40, zc[i + 1] + 0.40)

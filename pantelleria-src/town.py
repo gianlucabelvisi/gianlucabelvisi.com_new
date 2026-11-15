@@ -159,6 +159,30 @@ for b, c in zip(blds, cents):
 _gv = [[-3984.6, 5189.5], [-3978.9, 5187.3], [-3981.1, 5180.3], [-3986.4, 5182.1]]
 out_b.append({'id': -900001, 'kind': 'veranda', 'pts': _gv, 'z': round(min(zat(*p) for p in _gv) - 0.4, 2), 'zt': round(max(zat(*p) for p in _gv), 2),
               'h': 2.9, 'st': 1, 'col': -1, 'seats': 1})
+
+# Street View survey (data/town_survey.json): what the houses really are — storeys, colour, and how the close-up
+# façade is dressed (the viewer reads 'fac'). OSM gives no heights in town; several guesses were far off.
+if os.path.exists('data/town_survey.json'):
+    _sv = json.load(open('data/town_survey.json')); _n = 0
+    for ob in out_b:
+        o = _sv.get(str(ob['id']))
+        if not isinstance(o, dict) or str(ob['id']).startswith('_'): continue
+        if 'st' in o: ob['st'] = o['st']; ob['h'] = round(o['st'] * 3.1 + 0.6, 2)
+        if 'col' in o: ob['col'] = o['col']
+        if 'fac' in o: ob['fac'] = o['fac']
+        _n += 1
+    print('surveyed houses applied', _n)
+# the petrol station at the west end of Via Borgo Italia (hand-traced footprint -100013 = kiosk + canopy; Street View:
+# grey kiosk with a yellow band on the west, a flat canopy on red columns over the pumps on the east)
+PETROL = None
+for ob in out_b:
+    if ob['id'] != -100013: continue
+    _r = list(Polygon(ob['pts']).minimum_rotated_rectangle.exterior.coords)[:4]
+    if math.hypot(_r[1][0] - _r[0][0], _r[1][1] - _r[0][1]) < math.hypot(_r[2][0] - _r[1][0], _r[2][1] - _r[1][1]): _r = _r[1:] + _r[:1]
+    if _r[0][0] + _r[3][0] > _r[1][0] + _r[2][0]: _r = [_r[1], _r[0], _r[3], _r[2]]          # 0,3 = west end; 1,2 = east end
+    _m = lambda p, q, f: [round(p[0] + (q[0] - p[0]) * f, 2), round(p[1] + (q[1] - p[1]) * f, 2)]
+    ob['pts'] = [list(map(lambda v: round(v, 2), _r[0])), _m(_r[0], _r[1], 0.4), _m(_r[3], _r[2], 0.4), list(map(lambda v: round(v, 2), _r[3]))]
+    PETROL = {'pts': [_m(_r[0], _r[1], 0.46), list(map(lambda v: round(v, 2), _r[1])), list(map(lambda v: round(v, 2), _r[2])), _m(_r[3], _r[2], 0.46)], 'z': ob['z'] + 0.4}
 print('town buildings', len(out_b), {k: sum(b['kind'] == k for b in out_b) for k in ('castle', 'church', 'townhall', 'hotel')})
 
 # ---------- harbour: water polygons, boats, ferry ----------
@@ -448,6 +472,9 @@ for r in F['roads']:
     if not r.get('lift'): continue
     ln = LineString([p[:2] for p in r['pts']]); zs = [p[2] for p in r['pts']]
     arc = np.concatenate([[0], np.cumsum([math.dist(ln.coords[i], ln.coords[i + 1]) for i in range(len(zs) - 1)])])
+    # (2026-11-13) a parapet never crosses another road: it opens where any other carriageway meets this one (the
+    # parapets of the Falcone ramp and Via Napoli walled off their own junction)
+    _oth = sprep(unary_union([LineString([p_[:2] for p_ in o_['pts']]).buffer(o_['w'] / 2 + 0.9) for o_ in F['roads'] if o_ is not r and len(o_['pts']) > 1 and o_['cls'] not in ('footway', 'path', 'steps') and LineString([p_[:2] for p_ in o_['pts']]).distance(ln) < 12] or [Point(1e7, 1e7).buffer(0.1)]))
     for sgn in (1, -1):
         run = []
         for d in np.arange(0, ln.length + 0.01, 2.0):
@@ -457,7 +484,7 @@ for r in F['roads']:
             off = r['w'] / 2 + 0.3
             x, y = p.x + nx * off, p.y + ny * off
             zr = float(np.interp(d, arc, zs)); zg = zat(x + nx * 1.5, y + ny * 1.5)
-            if zr - zg > 0.35 and zr - zat(p.x, p.y) > 0.25 and math.dist((x, y), (-4223.4, 5062.0)) < 90 and not bprep.contains(Point(x, y)):
+            if zr - zg > 0.35 and zr - zat(p.x, p.y) > 0.25 and math.dist((x, y), (-4223.4, 5062.0)) < 90 and not bprep.contains(Point(x, y)) and not _oth.contains(Point(x, y)):
                 run.append([round(x, 2), round(y, 2), round(zg - 0.4, 2), round(zr + 0.85, 2)])     # parapet 0.85 m above the road
             else:
                 if len(run) > 1: retaining.append(run)
@@ -563,7 +590,7 @@ print('sidewalks', len(sidewalks), 'ribbons,', round(sum(2.5 * (len(r_) - 1) for
 json.dump({'zone': [[round(x, 1), round(y, 1)] for x, y in zone.exterior.coords[:-1]], 'blds': out_b, 'pois': pois, 'boats': boats,
            'ferry': ferry, 'palms': palms, 'lamps': lamps, 'cafes': cafes, 'piazzas': piazzas,
            'promenade': promenade, 'bollards': bollards, 'benches': benches, 'planters': planters,
-           'sidewalks': sidewalks, 'stairs': stairs, 'terraces': terraces, 'retaining': retaining, 'field': FIELD, 'fieldWalls': field_walls, 'shops': shops, 'stalls': stalls},
+           'sidewalks': sidewalks, 'petrol': PETROL, 'stairs': stairs, 'terraces': terraces, 'retaining': retaining, 'field': FIELD, 'fieldWalls': field_walls, 'shops': shops, 'stalls': stalls},
           open('prep/town.json', 'w'), separators=(',', ':'), ensure_ascii=False)
 
 # ---------- harbour basins read as deep water ----------

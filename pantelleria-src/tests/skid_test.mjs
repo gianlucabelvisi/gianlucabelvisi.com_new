@@ -1,0 +1,12 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const p = await b.newPage({ viewport: { width: 500, height: 320 } });
+p.on('pageerror', (e) => console.log('PAGEERROR', e.message.slice(0, 300)));
+await p.route(/fonts\.(googleapis|gstatic)/, (r) => r.abort());
+await p.goto('http://localhost:8765/test.html');
+await p.waitForFunction(() => window.__ready, null, { timeout: 90000 });
+await p.evaluate(() => window.__pan.setView({ x: -3900, y: 5460, dist: 200, heading: 60, tilt: 50 })); await p.waitForTimeout(2500);
+console.log(JSON.stringify(await p.evaluate(() => { const P = window.__pan; P.setMode('car', true); P.makeCar('rally', true); P.vSim(4, ['w']); P.vSim(1.5, ['w', ' ', 'a']);
+  const S = P.SKID, live = () => { let n = 0, mx = 0; for (let i = 0; i < Math.min(S.n, S.max); i++) if (S.a0[i]) { n++; mx = Math.max(mx, S.mesh.geometry.attributes.color.array[i * 16 + 3]); } return [n, +mx.toFixed(2)]; };
+  const out = { laid: S.n, t0: live() }; for (const t of [5, 8, 9.5, 10.6]) { while (S.clock < t + 0) P.updateFx(0.05); out['t' + t] = live(); } out.clock = +S.clock.toFixed(1); return out; })));
+await b.close();

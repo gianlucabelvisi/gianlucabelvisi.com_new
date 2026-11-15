@@ -1,0 +1,18 @@
+import { chromium } from 'playwright';
+const S = '/tmp/claude-0/-home-claude/a36f7772-a762-51a3-9f5d-ca4a82d08706/scratchpad/';
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const p = await b.newPage({ viewport: { width: 1000, height: 600 } });
+p.on('pageerror', (e) => console.log('PAGEERROR', e.message.slice(0, 300), (e.stack || '').split('\n')[1]));
+await p.route(/fonts\.(googleapis|gstatic)/, (r) => r.abort());
+await p.goto('http://localhost:8765/test.html');
+await p.waitForFunction(() => window.__ready, null, { timeout: 90000 });
+await p.evaluate(() => window.__pan.setView({ x: -3990, y: 5200, dist: 120, heading: 200, tilt: 55 })); await p.waitForTimeout(4000);
+await p.evaluate(() => window.__pan.setMode('walk')); await p.waitForTimeout(30000);
+const a = await p.evaluate(() => { const W = window.__pan.WALK; return [W.x, W.y, W.z, W.yaw].map((v) => +v.toFixed(2)); });
+await p.screenshot({ path: S + 'wk1.png' });
+const r = await p.evaluate(() => { const P = window.__pan, W = P.WALK, out = []; for (const yaw of [0, 1.57, 3.14, 4.71]) { W.yaw = yaw; const x0 = W.x, y0 = W.y; P.vSim(20, ['w']); out.push([+(Math.hypot(W.x - x0, W.y - y0)).toFixed(1), +W.z.toFixed(2)]); } return out; });
+console.log(JSON.stringify({ start: a, walked: r, mode: await p.evaluate(() => window.__pan.VEH.mode) }));
+await p.waitForTimeout(20000); await p.screenshot({ path: S + 'wk2.png' });
+await p.evaluate(() => window.__pan.setMode('map')); await p.waitForTimeout(1500);
+console.log('back to map', await p.evaluate(() => window.__pan.VEH.mode));
+await b.close();

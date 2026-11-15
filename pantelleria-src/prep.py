@@ -50,6 +50,59 @@ land = landf > 0.5
 w = ndimage.gaussian_filter(land.astype(float), 1.0)
 zs = ndimage.gaussian_filter(np.where(land, z, 0), 1.0) / np.maximum(w, 1e-6)
 z = np.where(land, zs, 0.0)
+# ---- DEM fusion (2026-11-14). TINITALY is a smooth ramp over much of Pantelleria's west and south (interpolated from
+# sparse contours): the Kuddie Rosse cone behind the Mursia hotel is missing (11 m where the radar DSM has 44), the flat
+# Mursia shelf is a slope, Scauri is off by up to 40 m. Gianluca: 'the height map of the Mursia area is completely wrong',
+# 'most of the houses are underground'. Copernicus GLO-30 (radar, 30 m) has the real shapes, so its large-scale
+# difference (>4 m after a 40 m low-pass) is added to TINITALY; fine detail stays TINITALY's. Hand-tuned sites are left alone.
+def _cop(lon_, lat_):
+    out = np.full(lon_.shape, np.nan)
+    for f in ('Copernicus_DSM_COG_10_N36_00_E011_00_DEM.tif', 'Copernicus_DSM_COG_10_N36_00_E012_00_DEM.tif'):
+        p = os.path.join(D, f)
+        if not os.path.exists(p): continue
+        c = rasterio.open(p); B = c.read(1).astype(np.float64)
+        col = (lon_ - c.bounds.left) / c.res[0] - 0.5; row = (c.bounds.top - lat_) / c.res[1] - 0.5
+        ok = (col >= 0) & (col <= B.shape[1] - 1) & (row >= 0) & (row <= B.shape[0] - 1)
+        v = ndimage.map_coordinates(B, [np.clip(row, 0, B.shape[0] - 1), np.clip(col, 0, B.shape[1] - 1)], order=1)
+        out = np.where(ok & np.isnan(out), v, out)
+    return out
+_zc = _cop(lon, lat)
+if not np.all(np.isnan(_zc)):
+    _ok = land & ~np.isnan(_zc)
+    _dsea = ndimage.distance_transform_edt(land) * CELL
+    _in = _ok & (_dsea > 45)                                   # 30 m radar pixels near the shore mix in the sea: measure the difference inland only...
+    # v3/v4: the radar sees roofs and canopies (measured: +4.4 m over Scauri's houses, +2.3 m mean / +12 m p90 over woods).
+    # Woods are left out of the measurement and filled from around them. Houses are KEPT, less a fixed roof allowance: leaving
+    # them out (v3) emptied dense village cores, which were then filled from far-off ground (Scauri church square came out
+    # 10-15 m low and lumpy, the radar and the summits say ~95-100 m).
+    from shapely.geometry import Polygon as _P3
+    from rasterio.features import rasterize as _rz; from affine import Affine as _Af
+    def _mask(f, keep, buf):
+        sh = []
+        for _e in json.load(open(os.path.join(D, f)))['elements']:
+            if _e['type'] != 'way' or 'geometry' not in _e or not keep(_e.get('tags', {})) or len(_e['geometry']) < 4: continue
+            _p = _P3(np.array(to_local.transform([g['lon'] for g in _e['geometry']], [g['lat'] for g in _e['geometry']])).T).buffer(buf)
+            if not _p.is_empty: sh.append((_p, 1))
+        return _rz(sh, out_shape=z.shape, transform=_Af(CELL, 0, X0 - CELL / 2, 0, CELL, Y0 - CELL / 2), fill=0, dtype='uint8').astype(bool) if sh else np.zeros(z.shape, bool)
+    _woods = _mask('osm_land.json', lambda t: t.get('natural') == 'wood' or t.get('landuse') == 'forest', 0)
+    _bld = ndimage.gaussian_filter(_mask('osm_buildings.json', lambda t: True, 2).astype(float), 1.0)      # built fraction around each cell
+    _in &= ~_woods
+    _zc = _zc - 4.0 * np.clip(_bld * 1.6, 0, 1)                                                          # roof allowance, full where built-up
+    _SG = 2.5                                                  # v4: 25 m (was 40 m: smeared the cliff edge into Scauri, 7-10 m low); the radar pixel is 30 m
+    _wl = ndimage.gaussian_filter(_in.astype(float), _SG)
+    _D = ndimage.gaussian_filter(np.where(_in, _zc - z, 0.0), _SG) / np.maximum(_wl, 1e-6)
+    _far = _wl < 0.15                                          # ...and carry it out to the shore from the nearest inland cell (the coast road at Sataria is ~19 m, not 9)
+    _, (_ri, _rj) = ndimage.distance_transform_edt(_far, return_indices=True); _D = _D[_ri, _rj]
+    _D = ndimage.gaussian_filter(_D, 1.5)
+    _w = np.clip((np.abs(_D) - 1.5) / 2.5, 0, 1)               # v2: full correction from 4 m (v1 left up to 4.5 m: houses still 3-5 m in the ground)
+    _w *= np.clip((_dsea - 5.0) / 25.0, 0, 1)                  # the waterline itself stays at sea level
+    _prot = np.zeros(z.shape, bool)
+    for x0_, y0_, x1_, y1_ in [(-4600, 4500, -3300, 5800), (-3100, 2450, -1050, 3800), (-640, 3070, 60, 3990), (-3330, 5850, -2870, 6080)]:   # town core (surveyed streets), airport, lake, Bue Marino
+        _prot |= (GX > x0_ - 60) & (GX < x1_ + 60) & (GY > y0_ - 60) & (GY < y1_ + 60)
+    _w *= 1 - np.clip(ndimage.gaussian_filter(_prot.astype(float), 6.0) * 1.6, 0, 1)
+    _w = ndimage.gaussian_filter(_w, 2.0) * _ok
+    z = z + _D * _w
+    print('DEM fusion: cells corrected by > 4 m', int((np.abs(_D * _w) > 4).sum()), 'of', int(land.sum()), '· largest', round(float(np.abs(_D * _w).max()), 1), 'm')
 # ---- coastline from OSM (precise), signed distance at 2.5 m ----
 from shapely.geometry import LineString as _LS
 from shapely.ops import linemerge as _lm, polygonize as _pz, unary_union as _uu

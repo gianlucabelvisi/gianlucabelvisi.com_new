@@ -92,7 +92,7 @@ def detail_bin():
             if math.dist(P[i, :2], P[keep[-1], :2]) >= 6: keep.append(i)
         keep.append(len(P) - 1)
         P = P[keep]
-        out += struct.pack('<BBBH', TIER.get(r['cls'], 2) | (0x80 if r.get('lift') else 0), SC.get(r.get('surface'), 0), min(255, int(round(r['w'] * 10))), len(P))   # bit 7: lifted off the ground (use the profile)
+        out += struct.pack('<BBBH', TIER.get(r['cls'], 2) | (0x80 if r.get('lift') else 0), (3 if r['cls'] == 'steps' else SC.get(r.get('surface'), 0)), min(255, int(round(r['w'] * 10))), len(P))   # bit 7: lifted off the ground (use the profile)
         xy = np.column_stack([np.round(P[:, 0] * 4), np.round(P[:, 1] * 4)]).astype('<i2')
         zq = np.clip(np.round((P[:, 2] + 50) * 50), 0, 65535).astype('<u2')            # 2 cm steps (z*10 made 10 cm stairs on the graded roads)
         out += b''.join(xy[i].tobytes() + zq[i:i + 1].tobytes() for i in range(len(P)))
@@ -112,6 +112,10 @@ os.makedirs('data', exist_ok=True); json.dump(NUM, open(NUMF, 'w'), separators=(
 if TZ:
     for _b in TZ['blds']: _b['num'] = NUM[str(_b['id'])]
     json.dump(TZ, open(os.path.join(W, 'town.json'), 'w'), separators=(',', ':'), ensure_ascii=False)
+# surveyed village houses: their look, keyed by building number (the viewer knows numbers, not ids)
+if os.path.exists('prep/village_fac.json'):
+    _vf = json.load(open('prep/village_fac.json'))
+    json.dump({str(NUM[k]): v for k, v in _vf.items() if k in NUM}, open(os.path.join(W, 'village_fac.json'), 'w'), separators=(',', ':'))
 def bld_bin():
     import struct, zlib
     TIDS = set(b['id'] for b in TZ['blds']) if TZ else set()
