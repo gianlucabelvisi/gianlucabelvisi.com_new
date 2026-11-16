@@ -88,12 +88,16 @@ const PETRA = {
     { name: 'Sheepskin Sahara 17mm', kind: 'sheepskin', c: 0x76594a, tex: 'boucle', pile: 1.6, ids: [35185, 35182], kr: [25496, 25496], was: 33995 },
   ],
 };
-const petra = { pos: null, angle: 0, cover: 2, wood: 0, model: 0, group: null, parts: [] };
+const petra = { pos: null, angle: 0, cover: 2, wood: 0, model: 2, group: null, parts: [] };   // 2026-11-16: bought the ILVA Nilo + footstool (model 2)
+// ILVA Nilo loungestol, Glore Brown (ilva.dk, Nov 2026): L 84 × D 74 × H 96 cm, seat 46, 17 kg, 3.499 kr (før 4.999), variant 54317249429843.
+// Nilo fodskammel, Glore Brown: 60 × 50 × 40 cm, 1.399 kr (før 1.999), variant 55279393112403. Teddy-like bouclé, light oak tapered legs.
+const NILO = { c: 0x8c7660, kr: 3499, was: 4999, url: 'https://ilva.dk/products/nilo-loungestol-1?variant=54317249429843', fsKr: 1399, fsWas: 1999, fsUrl: 'https://ilva.dk/products/nilo-fodskammel?variant=55279393112403' };
 const GUDRUN = { name: 'House Nordic Gudrun', c: 0x9a8063, url: 'https://www.boozt.com/dk/da/house-nordic-aps/gudrun-lounge-chair_32977013', kr: 3974, was: 5677 };
 const petraDims = new THREE.Group(); dimsGroup.add(petraDims);
 const LIV_BOX = { x0: 0.5, x1: 4.46, y0: 0.5, y1: 8.45 };            // living room inner faces (Blender)
 function buildPetra(tryPos, tryAngle) {
-  if (!petra.pos) { petra.pos = [3.71, 7.82];   // 2026-11-16: 15 cm towards the outside wall with the sofa group
+  if (!petra.pos) { petra.pos = [3.75, 7.95];   // 2026-11-16: a bit deeper into the corner so the Nilo footstool clears the coffee table
+      // 2026-11-16: 15 cm towards the outside wall with the sofa group
     petra.angle = Math.atan2(-2.46, 1.42); }   // left of the TV (seen from the sofa), by the balcony door, turned towards the sofa
   let pos = tryPos || petra.pos, ang = tryAngle ?? petra.angle, ok = true;
   const R = 0.41, cx = THREE.MathUtils.clamp(pos[0], LIV_BOX.x0 + R, LIV_BOX.x1 - R), cy = THREE.MathUtils.clamp(pos[1], LIV_BOX.y0 + R, LIV_BOX.y1 - R);
@@ -107,7 +111,27 @@ function buildPetra(tryPos, tryAngle) {
   const g = new THREE.Group(); g.position.copy(b2t(pos[0], pos[1], 0)); g.rotation.y = ang;
   const parts = [];
   const add = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; g.add(o); parts.push(o); return o; };
-  if (petra.model === 1) {
+  if (petra.model === 2) {
+    // ILVA Nilo: wingback with a tall back that flares at the top, two buttons, rolled arms, deep cushion; footstool in front
+    const fab = new THREE.MeshPhysicalMaterial({ color: NILO.c, map: weaveTex('boucle'), bumpMap: weaveTex('boucle'), bumpScale: 0.03, roughness: 0.98, sheen: 0.55, sheenRoughness: 0.8, sheenColor: new THREE.Color(NILO.c).lerp(new THREE.Color(0xffffff), 0.2), envMapIntensity: 0.2 });
+    const oak = std({ color: 0xc9a074, roughness: 0.55 }), LG = 0.17, W2 = 0.42, D2 = 0.37;
+    add(softBox(0.66, 0.2, 0.64, 0.08, { front: 0.02 }), fab, 0, LG + 0.1, 0.04);                                   // seat box
+    add(softBox(0.58, 0.12, 0.58, 0.055, { top: 0.025, front: 0.02 }), fab, 0, 0.40, 0.07);                         // cushion, top at 46
+    { const bg = softBox(0.66, 0.6, 0.17, 0.075, { front: 0.05, top: 0.03 }); const P = bg.attributes.position;       // back, wider towards the top
+      for (let i = 0; i < P.count; i++) { const t = (P.getY(i) + 0.3) / 0.6; P.setX(i, P.getX(i) * (0.92 + 0.2 * t * t)); } bg.computeVertexNormals();
+      const b = add(bg, fab, 0, 0.66, -D2 + 0.1); b.rotation.x = -0.1; }
+    for (const sx of [-1, 1]) {
+      const arm = add(softBox(0.15, 0.27, 0.6, 0.07, { top: 0.03, side: 0.02 }), fab, sx * (W2 - 0.075), LG + 0.33, 0.02); arm.rotation.z = sx * 0.07;   // rolled arms
+      const wing = add(softBox(0.12, 0.3, 0.22, 0.055, { side: 0.02 }), fab, sx * (W2 - 0.1), 0.68, -D2 + 0.2); wing.rotation.set(-0.08, sx * 0.25, sx * 0.08);
+      for (const sz of [-1, 1]) { const leg = add(new THREE.CylinderGeometry(0.02, 0.012, LG + 0.02, 12), oak, sx * (W2 - 0.1), LG / 2, sz * (D2 - 0.1)); leg.rotation.x = sz * 0.16; leg.rotation.z = -sx * 0.12; }
+    }
+    const btn = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(NILO.c).multiplyScalar(0.7), roughness: 0.9 });
+    for (const bx of [-0.09, 0.09]) add(new THREE.SphereGeometry(0.013, 8, 6), btn, bx, 0.7, -D2 + 0.19);
+    // footstool, 30 cm in front of the seat
+    const fz = D2 + 0.3 + 0.25, FL = 0.16;
+    add(softBox(0.6, 0.24, 0.5, 0.08, { top: 0.03 }), fab, 0, FL + 0.12, fz);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const leg = add(new THREE.CylinderGeometry(0.018, 0.011, FL + 0.01, 10), oak, sx * 0.24, FL / 2, fz + sz * 0.19); leg.rotation.x = sz * 0.14; leg.rotation.z = -sx * 0.14; }
+  } else if (petra.model === 1) {
     // House Nordic Gudrun: a plump wingback in curly light-brown teddy fabric, 84 × 86 × 87 cm, short black splayed legs
     const G = GUDRUN, gf = new THREE.MeshPhysicalMaterial({ color: G.c, map: weaveTex('boucle'), bumpMap: weaveTex('boucle'), bumpScale: 0.035, roughness: 0.98, sheen: 0.6, sheenRoughness: 0.8, sheenColor: new THREE.Color(G.c).lerp(new THREE.Color(0xffffff), 0.2), envMapIntensity: 0.2 });
     const legM = std({ color: 0x1b1a19, roughness: 0.5 });
@@ -183,10 +207,10 @@ function petraGaps() {
 function petraDimsUpdate() {
   petraDims.clear(); const G = petraGaps(); if (!G) return;
   for (const o of Object.values(G)) if (o.d !== null && o.d !== undefined && o.d < 2.5) petraDims.add(dimLine(toBl(o.from), toBl(o.from.clone().addScaledVector(o.dir, o.d)), `${o.d.toFixed(2)} m`, 0.05));
-  const t = labelSprite(`Little Petra · ${PETRA.covers[petra.cover].name} · ${PETRA.woods[petra.wood].name}`, { h: 0.03 }); t.position.copy(petra.group.position).setY(1.0); petraDims.add(t);
+  const t = labelSprite(petra.model === 2 ? 'ILVA Nilo + footstool · Glore Brown' : `Little Petra · ${PETRA.covers[petra.cover].name} · ${PETRA.woods[petra.wood].name}`, { h: 0.03 }); t.position.copy(petra.group.position).setY(1.0); petraDims.add(t);
 }
 const petraMover = {
-  name: 'Lounge chair', title: () => (petra.model ? 'House Nordic Gudrun lounge chair · light brown' : `&Tradition Little Petra VB1 · ${PETRA.covers[petra.cover].name}`),
+  name: 'Lounge chair', title: () => (petra.model === 2 ? 'ILVA Nilo loungestol + fodskammel · Glore Brown' : petra.model ? 'House Nordic Gudrun lounge chair · light brown' : `&Tradition Little Petra VB1 · ${PETRA.covers[petra.cover].name}`),
   anchor: () => (petra.group ? petra.group.position.clone().setY(1.05) : null),
   axis: () => b2t(1, 0).normalize(), axis2: () => b2t(0, 1).normalize(),
   shift: (dir) => { const p0 = petra.pos; if (!buildPetra([p0[0] + dir * 0.05, p0[1]])) showToast('Can’t go further: wall'); },
@@ -194,9 +218,11 @@ const petraMover = {
   rotate: (dir) => { buildPetra(null, petra.angle + dir * Math.PI / 12); },
   angle: () => petra.angle,
   get selects() { const model = { id: 'pmodel', label: 'Chair', options: () => [{ label: '&Tradition Little Petra VB1' }, { label: `House Nordic Gudrun · ${GUDRUN.kr.toLocaleString('da-DK')} kr` }], get: () => petra.model, set: (i) => { petra.model = i; buildPetra(); buildMoverSelects(petraMover); } };
-    return petra.model ? [model] : [model, ...PETRA_SELECTS]; },
-  link: () => { if (petra.model) return { href: GUDRUN.url, text: `Boozt · Gudrun lounge chair · ${GUDRUN.kr.toLocaleString('da-DK')} kr (før ${GUDRUN.was.toLocaleString('da-DK')}) ↗` }; const C = PETRA.covers[petra.cover]; return { href: PETRA.url(C.ids[petra.wood]), text: `Interiorshop · ${C.name} / ${PETRA.woods[petra.wood].name} · ${C.kr[petra.wood].toLocaleString('da-DK')} kr ↗` }; },
+    return petra.model === 2 ? [] : petra.model ? [model] : [model, ...PETRA_SELECTS]; },
+  get readonly() { return petra.model === 2 ? [['Chair', 'ILVA Nilo loungestol · 84 × 74 × 96 cm, seat 46'], ['Footstool', 'Nilo fodskammel · 60 × 50 × 40 cm'], ['Fabric', 'Glore Brown'], ['Price', `${NILO.kr.toLocaleString('da-DK')} + ${NILO.fsKr.toLocaleString('da-DK')} kr`]] : null; },
+  link: () => { if (petra.model === 2) return { href: NILO.url, text: `ILVA · Nilo loungestol · ${NILO.kr.toLocaleString('da-DK')} kr ↗`, href2: NILO.fsUrl, text2: `ILVA · Nilo fodskammel · ${NILO.fsKr.toLocaleString('da-DK')} kr ↗` }; if (petra.model) return { href: GUDRUN.url, text: `Boozt · Gudrun lounge chair · ${GUDRUN.kr.toLocaleString('da-DK')} kr (før ${GUDRUN.was.toLocaleString('da-DK')}) ↗` }; const C = PETRA.covers[petra.cover]; return { href: PETRA.url(C.ids[petra.wood]), text: `Interiorshop · ${C.name} / ${PETRA.woods[petra.wood].name} · ${C.kr[petra.wood].toLocaleString('da-DK')} kr ↗` }; },
   info: () => { const C = PETRA.covers[petra.cover], G = petraGaps(), f = (o) => (o && o.d !== null ? o.d.toFixed(2) : '>5');
+    if (petra.model === 2) return `Bought · in the corner by the balcony door, footstool in front · free: ${f(G.N)} m towards the window wall, ${f(G.S)} m towards the TV wall, ${f(G.E)} m towards the balcony, ${f(G.W)} m towards the kitchen · ⟲ ⟳ turn 15°`;
     if (petra.model) return `84 × 86 × 87 cm wingback · curly light-brown teddy (polyester), black legs · ${GUDRUN.kr.toLocaleString('da-DK')} kr on Boozt (før ${GUDRUN.was.toLocaleString('da-DK')}) · free: ${f(G.N)} m towards the window wall, ${f(G.S)} m towards the TV wall, ${f(G.E)} m towards the balcony, ${f(G.W)} m towards the kitchen · ⟲ ⟳ turn 15°`;
     return `81 × 83 × 75 cm · seat 40 · ${C.kr[petra.wood].toLocaleString('da-DK')} kr (list ${C.was.toLocaleString('da-DK')}) · free: ${f(G.N)} m towards the window wall, ${f(G.S)} m towards the TV wall, ${f(G.E)} m towards the balcony, ${f(G.W)} m towards the kitchen · ⟲ ⟳ turn 15°`; },
 };
@@ -216,7 +242,7 @@ const BOOKT = {
   ],
   PIECE: 0.31, SH_W: 0.16, SH_D: 0.13, PITCH: 0.155, STRIP: 2.0,
 };
-const books = { pack: 2, s: null, z0: null, group: null, parts: [], seed: 7, gap: 1, hidden: false };
+const books = { pack: 2, s: null, z0: null, group: null, parts: [], seed: 7, gap: 1, hidden: false, where: 1, so: 0 };   // 2026-11-16 default: the balcony corner of the TV wall   // where: 0 TV wall · 1 TV wall, balcony corner · 2 outside (balcony) wall by the corner
 const BOOK_GAPS = [{ label: 'Pieces stacked tight (31 cm each)', g: 0 }, { label: 'Spaced like ours: 30 % taller (40 cm per piece)', g: 0.093 }];
 const booksDims = new THREE.Group(); dimsGroup.add(booksDims);
 MATS.booksMetal = std({ color: 0xf1f1ee, roughness: 0.42, metalness: 0.25 });
@@ -280,13 +306,14 @@ function buildBooks() {
   const M = liv.media, R = booksRange(); if (!M || !R) return false;
   if (books.hidden) { if (books.group) { scene.remove(books.group); dropParts(books.parts); books.group = null; books.parts = []; } const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Book tower'); if (di >= 0) doors.splice(di, 1); return true; }
   const P = BOOKT.packs[books.pack], PP = BOOKT.PIECE + BOOK_GAPS[books.gap].g, H = P.n * PP;
-  if (books.s === null) books.s = (M.offset + UNIT.W / 2 + 0.06 + R.hw + R.hi) / 2;   // default as before: centred between the TV unit and the hall opening
+  if (books.s === null) books.s = books.where === 1 ? R.lo : (M.offset + UNIT.W / 2 + 0.06 + R.hw + R.hi) / 2;   // default as before: centred between the TV unit and the hall opening
   if (books.z0 === null) books.z0 = 0.36;
   let ok = true;
   const s = THREE.MathUtils.clamp(books.s, R.lo, Math.max(R.lo, R.hi)); if (Math.abs(s - books.s) > 1e-6) ok = false; books.s = s;
   const zmax = Math.min(2.6 - 0.05 - H - 0.16, 1.4), z0 = THREE.MathUtils.clamp(books.z0, 0.12, zmax); if (Math.abs(z0 - books.z0) > 1e-6) ok = false; books.z0 = +z0.toFixed(3);
   if (books.group) { scene.remove(books.group); dropParts(books.parts); }
-  const { n, a } = M, O = M.base.clone().addScaledVector(a, books.s);
+  let { n, a } = M, O = M.base.clone().addScaledVector(a, books.s);
+  if (books.where === 2) { const F = booksOutFrame(); if (F) { n = F.n; a = F.a; books.so = THREE.MathUtils.clamp(books.so, F.lo, F.hi); O = F.p.clone().addScaledVector(a, books.so); } }
   const g = new THREE.Group(); g.position.copy(O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a, UP, n));
   const metal = [], paper = [], r = rng(books.seed * 7919 + 104729); for (let i = 0; i < 12; i++) r();
   const shelfYs = [];
@@ -329,13 +356,30 @@ function buildBooks() {
   if (typeof applyLights === 'function' && LIGHTS.books) applyLights();
   return ok;
 }
+// the facade wall between the balcony door and the TV-wall corner (≈45 cm of wall)
+function booksOutFrame() {
+  if (booksOutFrame.F !== undefined) return booksOutFrame.F;
+  const W = wallLine([4.3, 8.0], [4.16, 8.0], [0, 1]); if (!W) return (booksOutFrame.F = null);
+  const a = new THREE.Vector3().crossVectors(UP, W.n).normalize(), p = W.p.clone().setY(0);
+  const hw = 0.125, sx = (bx) => b2t(bx, toBl(p)[1], 0).sub(p).dot(a);           // along-wall coordinate of a plan x
+  const s1 = sx(4.04) , s2 = sx(4.44), lo = Math.min(s1, s2) + hw, hi = Math.max(s1, s2) - hw;
+  return (booksOutFrame.F = { p, n: W.n, a, lo, hi: Math.max(lo, hi) });
+}
+const BOOK_WHERE = ['TV wall, hall side of the TV', 'TV wall, balcony corner (other side of the TV)', 'Outside wall, in the corner by the balcony door', 'Hidden (not on the wall)'];
+function setBooksWhere(i) {
+  if (i === 3) { setBooksHidden(true); return; }
+  books.hidden = false; books.where = i;
+  const R = booksRange();
+  if (i === 0) books.s = null; else if (i === 1) books.s = R.lo; else { const F = booksOutFrame(); books.so = F ? (F.lo + F.hi) / 2 : 0; if (!F) { showToast('Couldn’t find that wall'); books.where = 0; } }
+  buildBooks(); if (selected === booksMover) updateMoverInfo();
+}
 function booksGaps() {
-  const M = liv.media, R = booksRange(); if (!M || !books.group) return null;
+  const M = liv.media, R = booksRange(); if (!M || !books.group || books.where === 2) return null;
   const toUnit = books.s - (M.offset + UNIT.W / 2) - R.hw, toEnd = M.half - books.s - R.hw;
   return { toUnit, toEnd };
 }
 function booksDimsUpdate() {
-  booksDims.clear(); const M = liv.media, G = booksGaps(); if (!G) return;
+  booksDims.clear(); const M = liv.media, G = booksGaps(); if (!G) return;   // (no gap lines on the outside wall)
   const R = booksRange(), y = 1.0, p = (s) => toBl(M.base.clone().addScaledVector(M.n, 0.12).addScaledVector(M.a, s));
   booksDims.add(dimLine(p(books.s - R.hw), p(M.offset + UNIT.W / 2), `${G.toUnit.toFixed(2)} m to TV unit`, 0.32));
   booksDims.add(dimLine(p(books.s + R.hw), p(M.half), `${G.toEnd.toFixed(2)} m to the hall opening`, 0.32));
@@ -344,21 +388,21 @@ function booksDimsUpdate() {
 }
 function setBooksHidden(h) {
   books.hidden = h; if (h && LIGHTS.books) { LIGHTS.books.on = false; applyLights(); }
-  if (h) selectFurniture(null); buildBooks(); showToast(h ? 'Book tower hidden · bring it back from either TV unit’s panel' : 'Book tower back');
+  if (h) selectFurniture(null); buildBooks(); showToast(h ? 'Book tower hidden · bring it back from a TV unit’s panel' : 'Book tower back');
 }
 const booksMover = {
   name: 'Book tower', title: () => `ART-GIFTREE floating book tower · ${BOOKT.packs[books.pack].n} pcs, ${BOOKT.packs[books.pack].n * 2} tiers · white`,
   anchor: () => (books.group ? books.group.position.clone().addScaledVector(liv.media.n, 0.2).setY(books.top + 0.1) : null),
-  axis: () => liv.media.a.clone(),
-  shift: (dir) => { books.s += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'Can’t go further: the opening to the hall' : 'Can’t go further: the TV unit'); },
+  axis: () => (books.where === 2 && booksOutFrame() ? booksOutFrame().a.clone() : liv.media.a.clone()),
+  shift: (dir) => { if (books.where === 2) { const b = books.so; books.so += dir * 0.05; buildBooks(); if (Math.abs(books.so - b) < 1e-6) showToast('That wall is only about 45 cm wide'); return; } books.s += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'Can’t go further: the opening to the hall' : 'Can’t go further: the corner'); },
   axis2: () => new THREE.Vector3(0, 1, 0),
   shift2: (dir) => { books.z0 += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'That’s as high as it goes under the ceiling' : 'That’s as low as it goes'); },
   variant: { label: () => 'New books', run: () => { books.seed++; buildBooks(); showToast('Shuffled the books'); } },
-  variant2: { label: () => 'Hide the book tower', run: () => { setBooksHidden(true); } },
   lights: ['books'],
   selects: [
     { id: 'bpack', label: 'Pack', options: () => BOOKT.packs.map((p) => ({ label: `${p.n} pieces · ${p.n * 2} tiers` })), get: () => books.pack,
       set: (i) => { books.pack = i; buildBooks(); } },
+    { id: 'bwhere', label: 'Where', options: () => BOOK_WHERE.map((l) => ({ label: l })), get: () => (books.hidden ? 3 : books.where), set: (i) => setBooksWhere(i) },
     { id: 'bgap', label: 'Spacing', options: () => BOOK_GAPS.map((g) => ({ label: g.label })), get: () => books.gap, set: (i) => { books.gap = i; buildBooks(); } },
   ],
   link: () => { const p = BOOKT.packs[books.pack]; return { href: BOOKT.url(p.asin), text: `Amazon · ${p.n}-pack white · SEK ${p.sek.toFixed(2).replace('.', ',')} ↗` }; },

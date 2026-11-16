@@ -594,10 +594,7 @@ const skaenkMover = {
   name: 'Mistral skænk', title: () => `Hammel Mistral skænk 177 cm · ${MISTRAL_COLS[skaenk.col].name}`,
   anchor: () => (skaenk.group ? skaenk.parts[0].getWorldPosition(new THREE.Vector3()).setY(1.15) : null),
   axis: () => sofaFrame().f, shift: (dir) => { const b = skaenk.s; skaenk.s += dir * 0.05; buildSkaenk(); if (Math.abs(skaenk.s - b) < 1e-6) showToast('That’s the end of the sofa'); },
-  selects: [
-    { id: 'skcol', label: 'Colour', options: () => MISTRAL_COLS.map((c) => ({ label: c.name })), get: () => skaenk.col, set: (i) => { skaenk.col = i; buildSkaenk(); } },
-    { id: 'sklg', label: 'Legs (konisk træben 14 cm)', options: () => SKAENK.legCols.map((c) => ({ label: c.name })), get: () => skaenk.legCol, set: (i) => { skaenk.legCol = i; buildSkaenk(); } },
-  ],
+  selects: [],   // bought (Gianluca 2026-11-16): colour and legs fixed
   link: () => ({ href: SKAENK.url, text: `Erling Christensen · Mistral skænk · 5.493 kr ↗`, href2: SKAENK.legUrl, text2: 'Mistral konisk træben 14 cm · 666 kr / 6 ↗' }),
   info: () => `177 × 42 × 61 cm + 14 cm legs = 75 cm high (sofa back 82) · along the sofa's ${Math.round((skaenk.R || 1.92) * 100)} cm end, fronts to the kitchen · ◀▶ slide it along · Gianluca: "a shade of marble or blue-grey", Mint is the closest Mistral colour`,
 };

@@ -392,6 +392,15 @@
     body.plan #modeSeg { display: none !important; }
   }
   body.coaching #hint { display: none !important; }
+  /* phones (2026-11-16): no room label, icon-only view switch in its place */
+  @media (max-width: 720px), (pointer: coarse) {
+    #room { display: none !important; }
+    #modeSeg { top: calc(var(--gut) + var(--safe-t)); left: var(--gut); padding: 3px; }
+    #modeSeg button { padding: 0; width: 44px; height: 40px; justify-content: center; }
+    #modeSeg button svg { width: 20px; height: 20px; }
+    #modeSeg .lbl { display: none; }
+    #busy { top: calc(var(--gut) + var(--safe-t) + 56px); }
+  }
 </style>
 
 <div id="hud3d" aria-label="Interaction points"></div>
@@ -430,8 +439,8 @@
 <div id="joy" hidden><i></i></div>
 <div id="toast" class="panel" hidden></div>
 <div id="modeSeg" class="panel" role="group" aria-label="View" hidden>
-  <button id="segOver" type="button" aria-pressed="true"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7.5 10 4l7 3.5-7 3.5z M3 11.5l7 3.5 7-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>From above</button>
-  <button id="segWalk" type="button" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="11" cy="3.6" r="1.7" fill="currentColor"/><path d="M8 18l2-5 2.5 2V18 M10 13l.8-4.5L8 10l-1.5 2.5 M10.8 8.5l2.2 2.3 2.2.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Walk</button>
+  <button id="segOver" type="button" aria-pressed="true" aria-label="From above" title="From above"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7.5 10 4l7 3.5-7 3.5z M3 11.5l7 3.5 7-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="lbl">From above</span></button>
+  <button id="segWalk" type="button" aria-pressed="false" aria-label="Walk" title="Walk"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="11" cy="3.6" r="1.7" fill="currentColor"/><path d="M8 18l2-5 2.5 2V18 M10 13l.8-4.5L8 10l-1.5 2.5 M10.8 8.5l2.2 2.3 2.2.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lbl">Walk</span></button>
 </div>
 <div id="placeBar" class="panel" hidden>
   <p><b>Where do you want to stand?</b> <span class="mouse-only-i">Click a floor · drag before letting go to choose which way you face.</span><span class="touch-only-i">Tap a floor · drag before lifting to choose which way you face.</span></p>
@@ -3016,7 +3025,8 @@ const UNIT_MODELS = [
 ];
 const unitSel = { m: UNIT_MODELS.findIndex((u) => u.front === 'mistralPair'), f: 0 };   // 2026-11-15: two Mistral wall units (was the Yasumi bench)
 const MPAIR = { up: { W: 1.33, H: 0.23, D: 0.325, label: 'TV unit · upper', name: 'Mistral Classic 114 (upper level)' }, lo: { W: 1.33, H: 0.23, D: 0.325, label: 'TV shelf · lower', name: 'Mistral Classic 114 (lower level)' } };   // Gianluca 2026-11-15: 133 × 23 × 32.5 cm each (was 140, guessed from the photo)
-const mpair = { up: { off: -0.3, y: 0.36 }, lo: { off: 0.3, y: 0.08 }, groups: [], parts: [], doors: [] };
+const mpair = { up: { off: -0.67, y: 0.25 }, lo: { off: 0.67, y: 0.25 },   // 2026-11-16 default: side by side, aligned, centred under the TV
+  groups: [], parts: [], doors: [] };
 const TVW = { W: 1.445, H: 0.828, D: 0.028, bottom: 0.74, off: 0.03 }, UNIT = { W: 1.8, H: 0.38, D: 0.42, bottom: 0.20 }, ARC = { W: 0.75, H: 0.065, D: 0.105, bottom: 0.62 };   // 2026-11-16: Sonos Beam Ultra (Gianluca will buy it): 750 × 65 × 105 mm, 5.699 kr (sonos.com/da-dk)
 function wallRun(C0, n, a, maxS = 6) {
   // how far the wall face runs from C0 along a: stop at a corner or where the wall steps back (an opening)
@@ -3267,7 +3277,8 @@ const mediaMover = {
     const UM = UNIT_MODELS[unitSel.m];
     return `${UM.note} · ${UM.price} · ${(UM.W * 100).toFixed(1)} × ${(UM.H * 100).toFixed(1)} × ${(UM.D * 100).toFixed(0)} cm · ${c} · wall ${(M.half * 2).toFixed(2)} m`; },
   title: () => `${UNIT_MODELS[unitSel.m].brand} ${UNIT_MODELS[unitSel.m].name} + 65" + Beam Ultra`,
-  selects: [
+  get selects() { return UNIT_MODELS[unitSel.m].front === 'mistralPair' ? [] : this._selects; },   // the Mistral pair is bought
+  _selects: [
     { id: 'umodel', label: 'TV unit', options: () => UNIT_MODELS.map((m) => ({ group: m.legH !== undefined ? 'Floor-standing, wood (vente-unique / Logo Møbler)' : 'Wall-hung', label: `${m.brand} ${m.name} · ${(m.W * 100).toFixed(0)} cm${m.legH !== undefined ? ` · ${Math.round((m.H + m.legH) * 100 + (m.lip ? 2.5 : m.topC ? 2 : 0))} cm high · ${m.price}` : ''}` })), get: () => unitSel.m,
       set: (i) => { unitSel.m = i; unitSel.f = 0; buildMedia(); livingDims(); buildMoverSelects(mediaMover); } },
     { id: 'ufin', label: 'Finish', options: () => UNIT_MODELS[unitSel.m].finishes.map((f) => ({ label: f.name })), get: () => unitSel.f,
@@ -3359,10 +3370,10 @@ const mpMover = (k) => ({
   name: MPAIR[k].name, title: () => `Hammel ${MPAIR[k].name} · ${MISTRAL_COLS[unitSel.f].name}`,
   anchor: () => (liv.media ? liv.media.base.clone().addScaledVector(liv.media.a, mpair[k].off).addScaledVector(liv.media.n, 0.45).setY(mpair[k].y + MPAIR[k].H + 0.2) : null),
   axis: () => liv.media.a, shift: (dir) => mpTry(k, dir * 0.05, 0),
-  variant: { label: () => (books.hidden ? 'Show the book tower' : 'Hide the book tower'), run: () => setBooksHidden(!books.hidden) },
+  get variant() { return books.hidden ? { label: () => 'Show the book tower again', run: () => setBooksHidden(false) } : null; },
   axis2: () => new THREE.Vector3(0, 1, 0), shift2: (dir) => mpTry(k, 0, dir * 0.05),
   selects: [{ id: 'mparr', label: 'Arrangement', options: () => MP_ARR.map((a) => ({ label: a.name })).concat(mpArrangement() < 0 ? [{ label: 'Custom (moved by hand)' }] : []), get: () => (mpArrangement() < 0 ? MP_ARR.length : mpArrangement()), set: (i) => { if (i < MP_ARR.length) mpSetArrangement(i); } },
-    { id: 'mpcol', label: 'Colour (both units)', options: () => MISTRAL_COLS.map((c) => ({ label: c.name })), get: () => unitSel.f, set: (i) => { unitSel.f = i; buildMedia(); livingDims(); } }],
+  ],   // colour: bought in 17 Eg lak olie (Gianluca 2026-11-16), no choices shown
   link: () => ({ href: 'https://erling-christensen.dk/shop/mistral-ben-1637c1.html', text: 'Erling Christensen · Hammel Mistral ↗' }),
   info: () => { const U = MPAIR[k], o = mpOverlap(), oth = k === 'up' ? mpair.lo : mpair.up, st = mpair[k];
     return `${Math.round(U.W * 100)} × ${Math.round(U.H * 100)} × ${+(U.D * 100).toFixed(1)} cm (W × H × D) · ${st.y.toFixed(2)}–${(st.y + U.H).toFixed(2)} m off the floor · ${o.h > 0 ? `${Math.round(o.h * 100)} cm overlap with the other unit` : `${Math.round(-o.h * 100)} cm apart sideways`} · ${k === 'up' ? 'the Beam Ultra stands on top, the TV sits just above' : 'Hue strip underneath'} · ▲▼ height, ◀▶ along the wall`; },
@@ -4764,12 +4775,16 @@ const PETRA = {
     { name: 'Sheepskin Sahara 17mm', kind: 'sheepskin', c: 0x76594a, tex: 'boucle', pile: 1.6, ids: [35185, 35182], kr: [25496, 25496], was: 33995 },
   ],
 };
-const petra = { pos: null, angle: 0, cover: 2, wood: 0, model: 0, group: null, parts: [] };
+const petra = { pos: null, angle: 0, cover: 2, wood: 0, model: 2, group: null, parts: [] };   // 2026-11-16: bought the ILVA Nilo + footstool (model 2)
+// ILVA Nilo loungestol, Glore Brown (ilva.dk, Nov 2026): L 84 × D 74 × H 96 cm, seat 46, 17 kg, 3.499 kr (før 4.999), variant 54317249429843.
+// Nilo fodskammel, Glore Brown: 60 × 50 × 40 cm, 1.399 kr (før 1.999), variant 55279393112403. Teddy-like bouclé, light oak tapered legs.
+const NILO = { c: 0x8c7660, kr: 3499, was: 4999, url: 'https://ilva.dk/products/nilo-loungestol-1?variant=54317249429843', fsKr: 1399, fsWas: 1999, fsUrl: 'https://ilva.dk/products/nilo-fodskammel?variant=55279393112403' };
 const GUDRUN = { name: 'House Nordic Gudrun', c: 0x9a8063, url: 'https://www.boozt.com/dk/da/house-nordic-aps/gudrun-lounge-chair_32977013', kr: 3974, was: 5677 };
 const petraDims = new THREE.Group(); dimsGroup.add(petraDims);
 const LIV_BOX = { x0: 0.5, x1: 4.46, y0: 0.5, y1: 8.45 };            // living room inner faces (Blender)
 function buildPetra(tryPos, tryAngle) {
-  if (!petra.pos) { petra.pos = [3.71, 7.82];   // 2026-11-16: 15 cm towards the outside wall with the sofa group
+  if (!petra.pos) { petra.pos = [3.75, 7.95];   // 2026-11-16: a bit deeper into the corner so the Nilo footstool clears the coffee table
+      // 2026-11-16: 15 cm towards the outside wall with the sofa group
     petra.angle = Math.atan2(-2.46, 1.42); }   // left of the TV (seen from the sofa), by the balcony door, turned towards the sofa
   let pos = tryPos || petra.pos, ang = tryAngle ?? petra.angle, ok = true;
   const R = 0.41, cx = THREE.MathUtils.clamp(pos[0], LIV_BOX.x0 + R, LIV_BOX.x1 - R), cy = THREE.MathUtils.clamp(pos[1], LIV_BOX.y0 + R, LIV_BOX.y1 - R);
@@ -4783,7 +4798,27 @@ function buildPetra(tryPos, tryAngle) {
   const g = new THREE.Group(); g.position.copy(b2t(pos[0], pos[1], 0)); g.rotation.y = ang;
   const parts = [];
   const add = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; g.add(o); parts.push(o); return o; };
-  if (petra.model === 1) {
+  if (petra.model === 2) {
+    // ILVA Nilo: wingback with a tall back that flares at the top, two buttons, rolled arms, deep cushion; footstool in front
+    const fab = new THREE.MeshPhysicalMaterial({ color: NILO.c, map: weaveTex('boucle'), bumpMap: weaveTex('boucle'), bumpScale: 0.03, roughness: 0.98, sheen: 0.55, sheenRoughness: 0.8, sheenColor: new THREE.Color(NILO.c).lerp(new THREE.Color(0xffffff), 0.2), envMapIntensity: 0.2 });
+    const oak = std({ color: 0xc9a074, roughness: 0.55 }), LG = 0.17, W2 = 0.42, D2 = 0.37;
+    add(softBox(0.66, 0.2, 0.64, 0.08, { front: 0.02 }), fab, 0, LG + 0.1, 0.04);                                   // seat box
+    add(softBox(0.58, 0.12, 0.58, 0.055, { top: 0.025, front: 0.02 }), fab, 0, 0.40, 0.07);                         // cushion, top at 46
+    { const bg = softBox(0.66, 0.6, 0.17, 0.075, { front: 0.05, top: 0.03 }); const P = bg.attributes.position;       // back, wider towards the top
+      for (let i = 0; i < P.count; i++) { const t = (P.getY(i) + 0.3) / 0.6; P.setX(i, P.getX(i) * (0.92 + 0.2 * t * t)); } bg.computeVertexNormals();
+      const b = add(bg, fab, 0, 0.66, -D2 + 0.1); b.rotation.x = -0.1; }
+    for (const sx of [-1, 1]) {
+      const arm = add(softBox(0.15, 0.27, 0.6, 0.07, { top: 0.03, side: 0.02 }), fab, sx * (W2 - 0.075), LG + 0.33, 0.02); arm.rotation.z = sx * 0.07;   // rolled arms
+      const wing = add(softBox(0.12, 0.3, 0.22, 0.055, { side: 0.02 }), fab, sx * (W2 - 0.1), 0.68, -D2 + 0.2); wing.rotation.set(-0.08, sx * 0.25, sx * 0.08);
+      for (const sz of [-1, 1]) { const leg = add(new THREE.CylinderGeometry(0.02, 0.012, LG + 0.02, 12), oak, sx * (W2 - 0.1), LG / 2, sz * (D2 - 0.1)); leg.rotation.x = sz * 0.16; leg.rotation.z = -sx * 0.12; }
+    }
+    const btn = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(NILO.c).multiplyScalar(0.7), roughness: 0.9 });
+    for (const bx of [-0.09, 0.09]) add(new THREE.SphereGeometry(0.013, 8, 6), btn, bx, 0.7, -D2 + 0.19);
+    // footstool, 30 cm in front of the seat
+    const fz = D2 + 0.3 + 0.25, FL = 0.16;
+    add(softBox(0.6, 0.24, 0.5, 0.08, { top: 0.03 }), fab, 0, FL + 0.12, fz);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const leg = add(new THREE.CylinderGeometry(0.018, 0.011, FL + 0.01, 10), oak, sx * 0.24, FL / 2, fz + sz * 0.19); leg.rotation.x = sz * 0.14; leg.rotation.z = -sx * 0.14; }
+  } else if (petra.model === 1) {
     // House Nordic Gudrun: a plump wingback in curly light-brown teddy fabric, 84 × 86 × 87 cm, short black splayed legs
     const G = GUDRUN, gf = new THREE.MeshPhysicalMaterial({ color: G.c, map: weaveTex('boucle'), bumpMap: weaveTex('boucle'), bumpScale: 0.035, roughness: 0.98, sheen: 0.6, sheenRoughness: 0.8, sheenColor: new THREE.Color(G.c).lerp(new THREE.Color(0xffffff), 0.2), envMapIntensity: 0.2 });
     const legM = std({ color: 0x1b1a19, roughness: 0.5 });
@@ -4859,10 +4894,10 @@ function petraGaps() {
 function petraDimsUpdate() {
   petraDims.clear(); const G = petraGaps(); if (!G) return;
   for (const o of Object.values(G)) if (o.d !== null && o.d !== undefined && o.d < 2.5) petraDims.add(dimLine(toBl(o.from), toBl(o.from.clone().addScaledVector(o.dir, o.d)), `${o.d.toFixed(2)} m`, 0.05));
-  const t = labelSprite(`Little Petra · ${PETRA.covers[petra.cover].name} · ${PETRA.woods[petra.wood].name}`, { h: 0.03 }); t.position.copy(petra.group.position).setY(1.0); petraDims.add(t);
+  const t = labelSprite(petra.model === 2 ? 'ILVA Nilo + footstool · Glore Brown' : `Little Petra · ${PETRA.covers[petra.cover].name} · ${PETRA.woods[petra.wood].name}`, { h: 0.03 }); t.position.copy(petra.group.position).setY(1.0); petraDims.add(t);
 }
 const petraMover = {
-  name: 'Lounge chair', title: () => (petra.model ? 'House Nordic Gudrun lounge chair · light brown' : `&Tradition Little Petra VB1 · ${PETRA.covers[petra.cover].name}`),
+  name: 'Lounge chair', title: () => (petra.model === 2 ? 'ILVA Nilo loungestol + fodskammel · Glore Brown' : petra.model ? 'House Nordic Gudrun lounge chair · light brown' : `&Tradition Little Petra VB1 · ${PETRA.covers[petra.cover].name}`),
   anchor: () => (petra.group ? petra.group.position.clone().setY(1.05) : null),
   axis: () => b2t(1, 0).normalize(), axis2: () => b2t(0, 1).normalize(),
   shift: (dir) => { const p0 = petra.pos; if (!buildPetra([p0[0] + dir * 0.05, p0[1]])) showToast('Can’t go further: wall'); },
@@ -4870,9 +4905,11 @@ const petraMover = {
   rotate: (dir) => { buildPetra(null, petra.angle + dir * Math.PI / 12); },
   angle: () => petra.angle,
   get selects() { const model = { id: 'pmodel', label: 'Chair', options: () => [{ label: '&Tradition Little Petra VB1' }, { label: `House Nordic Gudrun · ${GUDRUN.kr.toLocaleString('da-DK')} kr` }], get: () => petra.model, set: (i) => { petra.model = i; buildPetra(); buildMoverSelects(petraMover); } };
-    return petra.model ? [model] : [model, ...PETRA_SELECTS]; },
-  link: () => { if (petra.model) return { href: GUDRUN.url, text: `Boozt · Gudrun lounge chair · ${GUDRUN.kr.toLocaleString('da-DK')} kr (før ${GUDRUN.was.toLocaleString('da-DK')}) ↗` }; const C = PETRA.covers[petra.cover]; return { href: PETRA.url(C.ids[petra.wood]), text: `Interiorshop · ${C.name} / ${PETRA.woods[petra.wood].name} · ${C.kr[petra.wood].toLocaleString('da-DK')} kr ↗` }; },
+    return petra.model === 2 ? [] : petra.model ? [model] : [model, ...PETRA_SELECTS]; },
+  get readonly() { return petra.model === 2 ? [['Chair', 'ILVA Nilo loungestol · 84 × 74 × 96 cm, seat 46'], ['Footstool', 'Nilo fodskammel · 60 × 50 × 40 cm'], ['Fabric', 'Glore Brown'], ['Price', `${NILO.kr.toLocaleString('da-DK')} + ${NILO.fsKr.toLocaleString('da-DK')} kr`]] : null; },
+  link: () => { if (petra.model === 2) return { href: NILO.url, text: `ILVA · Nilo loungestol · ${NILO.kr.toLocaleString('da-DK')} kr ↗`, href2: NILO.fsUrl, text2: `ILVA · Nilo fodskammel · ${NILO.fsKr.toLocaleString('da-DK')} kr ↗` }; if (petra.model) return { href: GUDRUN.url, text: `Boozt · Gudrun lounge chair · ${GUDRUN.kr.toLocaleString('da-DK')} kr (før ${GUDRUN.was.toLocaleString('da-DK')}) ↗` }; const C = PETRA.covers[petra.cover]; return { href: PETRA.url(C.ids[petra.wood]), text: `Interiorshop · ${C.name} / ${PETRA.woods[petra.wood].name} · ${C.kr[petra.wood].toLocaleString('da-DK')} kr ↗` }; },
   info: () => { const C = PETRA.covers[petra.cover], G = petraGaps(), f = (o) => (o && o.d !== null ? o.d.toFixed(2) : '>5');
+    if (petra.model === 2) return `Bought · in the corner by the balcony door, footstool in front · free: ${f(G.N)} m towards the window wall, ${f(G.S)} m towards the TV wall, ${f(G.E)} m towards the balcony, ${f(G.W)} m towards the kitchen · ⟲ ⟳ turn 15°`;
     if (petra.model) return `84 × 86 × 87 cm wingback · curly light-brown teddy (polyester), black legs · ${GUDRUN.kr.toLocaleString('da-DK')} kr on Boozt (før ${GUDRUN.was.toLocaleString('da-DK')}) · free: ${f(G.N)} m towards the window wall, ${f(G.S)} m towards the TV wall, ${f(G.E)} m towards the balcony, ${f(G.W)} m towards the kitchen · ⟲ ⟳ turn 15°`;
     return `81 × 83 × 75 cm · seat 40 · ${C.kr[petra.wood].toLocaleString('da-DK')} kr (list ${C.was.toLocaleString('da-DK')}) · free: ${f(G.N)} m towards the window wall, ${f(G.S)} m towards the TV wall, ${f(G.E)} m towards the balcony, ${f(G.W)} m towards the kitchen · ⟲ ⟳ turn 15°`; },
 };
@@ -4892,7 +4929,7 @@ const BOOKT = {
   ],
   PIECE: 0.31, SH_W: 0.16, SH_D: 0.13, PITCH: 0.155, STRIP: 2.0,
 };
-const books = { pack: 2, s: null, z0: null, group: null, parts: [], seed: 7, gap: 1, hidden: false };
+const books = { pack: 2, s: null, z0: null, group: null, parts: [], seed: 7, gap: 1, hidden: false, where: 1, so: 0 };   // 2026-11-16 default: the balcony corner of the TV wall   // where: 0 TV wall · 1 TV wall, balcony corner · 2 outside (balcony) wall by the corner
 const BOOK_GAPS = [{ label: 'Pieces stacked tight (31 cm each)', g: 0 }, { label: 'Spaced like ours: 30 % taller (40 cm per piece)', g: 0.093 }];
 const booksDims = new THREE.Group(); dimsGroup.add(booksDims);
 MATS.booksMetal = std({ color: 0xf1f1ee, roughness: 0.42, metalness: 0.25 });
@@ -4956,13 +4993,14 @@ function buildBooks() {
   const M = liv.media, R = booksRange(); if (!M || !R) return false;
   if (books.hidden) { if (books.group) { scene.remove(books.group); dropParts(books.parts); books.group = null; books.parts = []; } const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Book tower'); if (di >= 0) doors.splice(di, 1); return true; }
   const P = BOOKT.packs[books.pack], PP = BOOKT.PIECE + BOOK_GAPS[books.gap].g, H = P.n * PP;
-  if (books.s === null) books.s = (M.offset + UNIT.W / 2 + 0.06 + R.hw + R.hi) / 2;   // default as before: centred between the TV unit and the hall opening
+  if (books.s === null) books.s = books.where === 1 ? R.lo : (M.offset + UNIT.W / 2 + 0.06 + R.hw + R.hi) / 2;   // default as before: centred between the TV unit and the hall opening
   if (books.z0 === null) books.z0 = 0.36;
   let ok = true;
   const s = THREE.MathUtils.clamp(books.s, R.lo, Math.max(R.lo, R.hi)); if (Math.abs(s - books.s) > 1e-6) ok = false; books.s = s;
   const zmax = Math.min(2.6 - 0.05 - H - 0.16, 1.4), z0 = THREE.MathUtils.clamp(books.z0, 0.12, zmax); if (Math.abs(z0 - books.z0) > 1e-6) ok = false; books.z0 = +z0.toFixed(3);
   if (books.group) { scene.remove(books.group); dropParts(books.parts); }
-  const { n, a } = M, O = M.base.clone().addScaledVector(a, books.s);
+  let { n, a } = M, O = M.base.clone().addScaledVector(a, books.s);
+  if (books.where === 2) { const F = booksOutFrame(); if (F) { n = F.n; a = F.a; books.so = THREE.MathUtils.clamp(books.so, F.lo, F.hi); O = F.p.clone().addScaledVector(a, books.so); } }
   const g = new THREE.Group(); g.position.copy(O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a, UP, n));
   const metal = [], paper = [], r = rng(books.seed * 7919 + 104729); for (let i = 0; i < 12; i++) r();
   const shelfYs = [];
@@ -5005,13 +5043,30 @@ function buildBooks() {
   if (typeof applyLights === 'function' && LIGHTS.books) applyLights();
   return ok;
 }
+// the facade wall between the balcony door and the TV-wall corner (≈45 cm of wall)
+function booksOutFrame() {
+  if (booksOutFrame.F !== undefined) return booksOutFrame.F;
+  const W = wallLine([4.3, 8.0], [4.16, 8.0], [0, 1]); if (!W) return (booksOutFrame.F = null);
+  const a = new THREE.Vector3().crossVectors(UP, W.n).normalize(), p = W.p.clone().setY(0);
+  const hw = 0.125, sx = (bx) => b2t(bx, toBl(p)[1], 0).sub(p).dot(a);           // along-wall coordinate of a plan x
+  const s1 = sx(4.04) , s2 = sx(4.44), lo = Math.min(s1, s2) + hw, hi = Math.max(s1, s2) - hw;
+  return (booksOutFrame.F = { p, n: W.n, a, lo, hi: Math.max(lo, hi) });
+}
+const BOOK_WHERE = ['TV wall, hall side of the TV', 'TV wall, balcony corner (other side of the TV)', 'Outside wall, in the corner by the balcony door', 'Hidden (not on the wall)'];
+function setBooksWhere(i) {
+  if (i === 3) { setBooksHidden(true); return; }
+  books.hidden = false; books.where = i;
+  const R = booksRange();
+  if (i === 0) books.s = null; else if (i === 1) books.s = R.lo; else { const F = booksOutFrame(); books.so = F ? (F.lo + F.hi) / 2 : 0; if (!F) { showToast('Couldn’t find that wall'); books.where = 0; } }
+  buildBooks(); if (selected === booksMover) updateMoverInfo();
+}
 function booksGaps() {
-  const M = liv.media, R = booksRange(); if (!M || !books.group) return null;
+  const M = liv.media, R = booksRange(); if (!M || !books.group || books.where === 2) return null;
   const toUnit = books.s - (M.offset + UNIT.W / 2) - R.hw, toEnd = M.half - books.s - R.hw;
   return { toUnit, toEnd };
 }
 function booksDimsUpdate() {
-  booksDims.clear(); const M = liv.media, G = booksGaps(); if (!G) return;
+  booksDims.clear(); const M = liv.media, G = booksGaps(); if (!G) return;   // (no gap lines on the outside wall)
   const R = booksRange(), y = 1.0, p = (s) => toBl(M.base.clone().addScaledVector(M.n, 0.12).addScaledVector(M.a, s));
   booksDims.add(dimLine(p(books.s - R.hw), p(M.offset + UNIT.W / 2), `${G.toUnit.toFixed(2)} m to TV unit`, 0.32));
   booksDims.add(dimLine(p(books.s + R.hw), p(M.half), `${G.toEnd.toFixed(2)} m to the hall opening`, 0.32));
@@ -5020,21 +5075,21 @@ function booksDimsUpdate() {
 }
 function setBooksHidden(h) {
   books.hidden = h; if (h && LIGHTS.books) { LIGHTS.books.on = false; applyLights(); }
-  if (h) selectFurniture(null); buildBooks(); showToast(h ? 'Book tower hidden · bring it back from either TV unit’s panel' : 'Book tower back');
+  if (h) selectFurniture(null); buildBooks(); showToast(h ? 'Book tower hidden · bring it back from a TV unit’s panel' : 'Book tower back');
 }
 const booksMover = {
   name: 'Book tower', title: () => `ART-GIFTREE floating book tower · ${BOOKT.packs[books.pack].n} pcs, ${BOOKT.packs[books.pack].n * 2} tiers · white`,
   anchor: () => (books.group ? books.group.position.clone().addScaledVector(liv.media.n, 0.2).setY(books.top + 0.1) : null),
-  axis: () => liv.media.a.clone(),
-  shift: (dir) => { books.s += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'Can’t go further: the opening to the hall' : 'Can’t go further: the TV unit'); },
+  axis: () => (books.where === 2 && booksOutFrame() ? booksOutFrame().a.clone() : liv.media.a.clone()),
+  shift: (dir) => { if (books.where === 2) { const b = books.so; books.so += dir * 0.05; buildBooks(); if (Math.abs(books.so - b) < 1e-6) showToast('That wall is only about 45 cm wide'); return; } books.s += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'Can’t go further: the opening to the hall' : 'Can’t go further: the corner'); },
   axis2: () => new THREE.Vector3(0, 1, 0),
   shift2: (dir) => { books.z0 += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'That’s as high as it goes under the ceiling' : 'That’s as low as it goes'); },
   variant: { label: () => 'New books', run: () => { books.seed++; buildBooks(); showToast('Shuffled the books'); } },
-  variant2: { label: () => 'Hide the book tower', run: () => { setBooksHidden(true); } },
   lights: ['books'],
   selects: [
     { id: 'bpack', label: 'Pack', options: () => BOOKT.packs.map((p) => ({ label: `${p.n} pieces · ${p.n * 2} tiers` })), get: () => books.pack,
       set: (i) => { books.pack = i; buildBooks(); } },
+    { id: 'bwhere', label: 'Where', options: () => BOOK_WHERE.map((l) => ({ label: l })), get: () => (books.hidden ? 3 : books.where), set: (i) => setBooksWhere(i) },
     { id: 'bgap', label: 'Spacing', options: () => BOOK_GAPS.map((g) => ({ label: g.label })), get: () => books.gap, set: (i) => { books.gap = i; buildBooks(); } },
   ],
   link: () => { const p = BOOKT.packs[books.pack]; return { href: BOOKT.url(p.asin), text: `Amazon · ${p.n}-pack white · SEK ${p.sek.toFixed(2).replace('.', ',')} ↗` }; },
@@ -6648,10 +6703,7 @@ const skaenkMover = {
   name: 'Mistral skænk', title: () => `Hammel Mistral skænk 177 cm · ${MISTRAL_COLS[skaenk.col].name}`,
   anchor: () => (skaenk.group ? skaenk.parts[0].getWorldPosition(new THREE.Vector3()).setY(1.15) : null),
   axis: () => sofaFrame().f, shift: (dir) => { const b = skaenk.s; skaenk.s += dir * 0.05; buildSkaenk(); if (Math.abs(skaenk.s - b) < 1e-6) showToast('That’s the end of the sofa'); },
-  selects: [
-    { id: 'skcol', label: 'Colour', options: () => MISTRAL_COLS.map((c) => ({ label: c.name })), get: () => skaenk.col, set: (i) => { skaenk.col = i; buildSkaenk(); } },
-    { id: 'sklg', label: 'Legs (konisk træben 14 cm)', options: () => SKAENK.legCols.map((c) => ({ label: c.name })), get: () => skaenk.legCol, set: (i) => { skaenk.legCol = i; buildSkaenk(); } },
-  ],
+  selects: [],   // bought (Gianluca 2026-11-16): colour and legs fixed
   link: () => ({ href: SKAENK.url, text: `Erling Christensen · Mistral skænk · 5.493 kr ↗`, href2: SKAENK.legUrl, text2: 'Mistral konisk træben 14 cm · 666 kr / 6 ↗' }),
   info: () => `177 × 42 × 61 cm + 14 cm legs = 75 cm high (sofa back 82) · along the sofa's ${Math.round((skaenk.R || 1.92) * 100)} cm end, fronts to the kitchen · ◀▶ slide it along · Gianluca: "a shade of marble or blue-grey", Mint is the closest Mistral colour`,
 };
@@ -7005,7 +7057,8 @@ function shopLines() {
     const Ch = CHAIR_MODELS[dining.c], V = Ch.variants[dining.cv], q = parseKr(V.name);
     add('Living', 'chairs', `${Ch.brand} ${Ch.name} chair`, { qty: dining.n, unit: q && q.kr, kr: q && q.kr * dining.n, detail: plainDetail(V.name), href: lk.href2 }); });
   safe(() => { const p = parseKr(PH5.price); add('Living', 'ph5', 'Louis Poulsen PH 5, grey', { detail: 'Ø50 cm pendant over the table', kr: p && p.kr, href: PH5.url }); });
-  safe(() => { if (petra.model) add('Living', 'lounge', 'House Nordic Gudrun lounge chair', { detail: 'teddy, black legs', kr: GUDRUN.kr, href: GUDRUN.url });
+  safe(() => { if (petra.model === 2) { add('Living', 'lounge', 'ILVA Nilo loungestol', { detail: 'Glore Brown · bought', kr: NILO.kr, href: NILO.url }); add('Living', 'nilofs', 'ILVA Nilo fodskammel', { detail: 'Glore Brown · bought', kr: NILO.fsKr, href: NILO.fsUrl }); return; }
+    if (petra.model) add('Living', 'lounge', 'House Nordic Gudrun lounge chair', { detail: 'teddy, black legs', kr: GUDRUN.kr, href: GUDRUN.url });
     else { const C = PETRA.covers[petra.cover]; add('Living', 'lounge', '&Tradition Little Petra VB1', { detail: `${C.name} · ${PETRA.woods[petra.wood].name}`, kr: C.kr[petra.wood], href: linkOf(petraMover).href }); } });
   safe(() => { if (!cons.on) return; const C = consoleCost(), lk = linkOf(consoleMover); add('Living', 'console', 'IKEA BESTÅ console behind the sofa', { detail: `${cons.n} frames, ${C.doorsN} doors${C.legsPacks ? `, ${C.legsPacks} × 2 legs` : ''}`, kr: C.kr, approx: true, href: lk.href, note: 'Plus the top board' }); });
   safe(() => holm.removed || add('Living', 'holm', 'IKEA HOLMERUD side table', { detail: HOLM.cols[holm.col].name, kr: HOLM.kr, href: HOLM.cols[holm.col].url }));
@@ -7033,8 +7086,8 @@ function shopLines() {
   return L;
 }
 // ticks for "we've decided on this one"; kept per browser and travel with shared layouts
-let shopDecided = { sofa: true, chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true };
-try { const v = JSON.parse(localStorage.getItem('aptDecided') || 'null'); if (v) { if (!v._nov26) Object.assign(v, { chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, _nov26: true }); shopDecided = v; } } catch (_) { /* ignore */ }
+let shopDecided = { sofa: true, lounge: true, nilofs: true, chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true };
+try { const v = JSON.parse(localStorage.getItem('aptDecided') || 'null'); if (v) { if (!v._nov26) Object.assign(v, { chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, _nov26: true }); if (!v._nov26b) Object.assign(v, { lounge: true, nilofs: true, _nov26b: true }); shopDecided = v; } } catch (_) { /* ignore */ }
 function saveDecided() { try { localStorage.setItem('aptDecided', JSON.stringify(shopDecided)); } catch (_) { /* ignore */ } }
 function shopTotals(lines) {
   let pick = 0, dec = 0, approx = false, missing = 0;
@@ -7390,7 +7443,7 @@ function sofaFrontInfo() {                               // where the open area 
 function buildCoffeeTable(tryPos) {
   if (ctab.group) { scene.remove(ctab.group); dropParts(ctab.parts); ctab.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); ctab.group = null; }
   const I = sofaFrontInfo(); if (!I) return false;
-  if (!ctab.pos) ctab.pos = I.P(I.cxl, I.zFront + 0.46 + CTAB.sizes[ctab.size].D / 2);   // 46 cm in front of the sofa
+  if (!ctab.pos) { ctab.pos = I.P(I.cxl, I.zFront + 0.46 + CTAB.sizes[ctab.size].D / 2); ctab.pos[1] = toBl(liv.media.base.clone().addScaledVector(liv.media.a, liv.media.offset))[1]; }   // 46 cm in front of the sofa, centred on the TV (clears the Nilo footstool)
   const p = tryPos || ctab.pos, cx = THREE.MathUtils.clamp(p[0], LIV_BOX.x0 + 0.5, LIV_BOX.x1 - 0.5), cy = THREE.MathUtils.clamp(p[1], LIV_BOX.y0 + 0.5, LIV_BOX.y1 - 0.5);
   const ok = Math.abs(cx - p[0]) < 1e-6 && Math.abs(cy - p[1]) < 1e-6; ctab.pos = [cx, cy];
   const Z = CTAB.sizes[ctab.size], R = Z.D / 2, H = Z.H, TT = 0.03;
@@ -7443,7 +7496,7 @@ function buildRug(tryPos) {
   if (!rug.on) { const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Rug'); if (di >= 0) doors.splice(di, 1); return true; }
   const I = sofaFrontInfo(); if (!I) return false;
   const R = RUGS[rug.m], Z = R.sizes[Math.min(rug.size, R.sizes.length - 1)], C = R.cols[Math.min(rug.col, R.cols.length - 1)];
-  if (!rug.pos) { rug.pos = I.P(I.cxl, I.zFront - 0.25 + Z.D / 2); rug.angle = I.ang; }
+  if (!rug.pos) { rug.pos = I.P(I.cxl, I.zFront - 0.25 + Z.D / 2); rug.pos[1] = toBl(liv.media.base.clone().addScaledVector(liv.media.a, liv.media.offset))[1]; rug.angle = I.ang; }   // centred on the TV like the coffee table
   const p = tryPos || rug.pos; rug.pos = [p[0], p[1]];
   const g = new THREE.Group(); g.position.copy(b2t(p[0], p[1], 0)); g.rotation.y = rug.angle - Math.PI / 2;
   const m = new THREE.MeshStandardMaterial({ color: C.c, roughness: 1, map: rugTex(R, C), bumpMap: weaveTex(R.kind), bumpScale: 0.003 });

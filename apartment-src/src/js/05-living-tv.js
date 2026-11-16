@@ -156,7 +156,8 @@ const UNIT_MODELS = [
 ];
 const unitSel = { m: UNIT_MODELS.findIndex((u) => u.front === 'mistralPair'), f: 0 };   // 2026-11-15: two Mistral wall units (was the Yasumi bench)
 const MPAIR = { up: { W: 1.33, H: 0.23, D: 0.325, label: 'TV unit · upper', name: 'Mistral Classic 114 (upper level)' }, lo: { W: 1.33, H: 0.23, D: 0.325, label: 'TV shelf · lower', name: 'Mistral Classic 114 (lower level)' } };   // Gianluca 2026-11-15: 133 × 23 × 32.5 cm each (was 140, guessed from the photo)
-const mpair = { up: { off: -0.3, y: 0.36 }, lo: { off: 0.3, y: 0.08 }, groups: [], parts: [], doors: [] };
+const mpair = { up: { off: -0.67, y: 0.25 }, lo: { off: 0.67, y: 0.25 },   // 2026-11-16 default: side by side, aligned, centred under the TV
+  groups: [], parts: [], doors: [] };
 const TVW = { W: 1.445, H: 0.828, D: 0.028, bottom: 0.74, off: 0.03 }, UNIT = { W: 1.8, H: 0.38, D: 0.42, bottom: 0.20 }, ARC = { W: 0.75, H: 0.065, D: 0.105, bottom: 0.62 };   // 2026-11-16: Sonos Beam Ultra (Gianluca will buy it): 750 × 65 × 105 mm, 5.699 kr (sonos.com/da-dk)
 function wallRun(C0, n, a, maxS = 6) {
   // how far the wall face runs from C0 along a: stop at a corner or where the wall steps back (an opening)
@@ -407,7 +408,8 @@ const mediaMover = {
     const UM = UNIT_MODELS[unitSel.m];
     return `${UM.note} · ${UM.price} · ${(UM.W * 100).toFixed(1)} × ${(UM.H * 100).toFixed(1)} × ${(UM.D * 100).toFixed(0)} cm · ${c} · wall ${(M.half * 2).toFixed(2)} m`; },
   title: () => `${UNIT_MODELS[unitSel.m].brand} ${UNIT_MODELS[unitSel.m].name} + 65" + Beam Ultra`,
-  selects: [
+  get selects() { return UNIT_MODELS[unitSel.m].front === 'mistralPair' ? [] : this._selects; },   // the Mistral pair is bought
+  _selects: [
     { id: 'umodel', label: 'TV unit', options: () => UNIT_MODELS.map((m) => ({ group: m.legH !== undefined ? 'Floor-standing, wood (vente-unique / Logo Møbler)' : 'Wall-hung', label: `${m.brand} ${m.name} · ${(m.W * 100).toFixed(0)} cm${m.legH !== undefined ? ` · ${Math.round((m.H + m.legH) * 100 + (m.lip ? 2.5 : m.topC ? 2 : 0))} cm high · ${m.price}` : ''}` })), get: () => unitSel.m,
       set: (i) => { unitSel.m = i; unitSel.f = 0; buildMedia(); livingDims(); buildMoverSelects(mediaMover); } },
     { id: 'ufin', label: 'Finish', options: () => UNIT_MODELS[unitSel.m].finishes.map((f) => ({ label: f.name })), get: () => unitSel.f,
@@ -499,10 +501,10 @@ const mpMover = (k) => ({
   name: MPAIR[k].name, title: () => `Hammel ${MPAIR[k].name} · ${MISTRAL_COLS[unitSel.f].name}`,
   anchor: () => (liv.media ? liv.media.base.clone().addScaledVector(liv.media.a, mpair[k].off).addScaledVector(liv.media.n, 0.45).setY(mpair[k].y + MPAIR[k].H + 0.2) : null),
   axis: () => liv.media.a, shift: (dir) => mpTry(k, dir * 0.05, 0),
-  variant: { label: () => (books.hidden ? 'Show the book tower' : 'Hide the book tower'), run: () => setBooksHidden(!books.hidden) },
+  get variant() { return books.hidden ? { label: () => 'Show the book tower again', run: () => setBooksHidden(false) } : null; },
   axis2: () => new THREE.Vector3(0, 1, 0), shift2: (dir) => mpTry(k, 0, dir * 0.05),
   selects: [{ id: 'mparr', label: 'Arrangement', options: () => MP_ARR.map((a) => ({ label: a.name })).concat(mpArrangement() < 0 ? [{ label: 'Custom (moved by hand)' }] : []), get: () => (mpArrangement() < 0 ? MP_ARR.length : mpArrangement()), set: (i) => { if (i < MP_ARR.length) mpSetArrangement(i); } },
-    { id: 'mpcol', label: 'Colour (both units)', options: () => MISTRAL_COLS.map((c) => ({ label: c.name })), get: () => unitSel.f, set: (i) => { unitSel.f = i; buildMedia(); livingDims(); } }],
+  ],   // colour: bought in 17 Eg lak olie (Gianluca 2026-11-16), no choices shown
   link: () => ({ href: 'https://erling-christensen.dk/shop/mistral-ben-1637c1.html', text: 'Erling Christensen · Hammel Mistral ↗' }),
   info: () => { const U = MPAIR[k], o = mpOverlap(), oth = k === 'up' ? mpair.lo : mpair.up, st = mpair[k];
     return `${Math.round(U.W * 100)} × ${Math.round(U.H * 100)} × ${+(U.D * 100).toFixed(1)} cm (W × H × D) · ${st.y.toFixed(2)}–${(st.y + U.H).toFixed(2)} m off the floor · ${o.h > 0 ? `${Math.round(o.h * 100)} cm overlap with the other unit` : `${Math.round(-o.h * 100)} cm apart sideways`} · ${k === 'up' ? 'the Beam Ultra stands on top, the TV sits just above' : 'Hue strip underneath'} · ▲▼ height, ◀▶ along the wall`; },

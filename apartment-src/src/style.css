@@ -385,3 +385,12 @@
     body.plan #modeSeg { display: none !important; }
   }
   body.coaching #hint { display: none !important; }
+  /* phones (2026-11-16): no room label, icon-only view switch in its place */
+  @media (max-width: 720px), (pointer: coarse) {
+    #room { display: none !important; }
+    #modeSeg { top: calc(var(--gut) + var(--safe-t)); left: var(--gut); padding: 3px; }
+    #modeSeg button { padding: 0; width: 44px; height: 40px; justify-content: center; }
+    #modeSeg button svg { width: 20px; height: 20px; }
+    #modeSeg .lbl { display: none; }
+    #busy { top: calc(var(--gut) + var(--safe-t) + 56px); }
+  }

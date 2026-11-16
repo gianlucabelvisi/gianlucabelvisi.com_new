@@ -28,7 +28,7 @@ function sofaFrontInfo() {                               // where the open area 
 function buildCoffeeTable(tryPos) {
   if (ctab.group) { scene.remove(ctab.group); dropParts(ctab.parts); ctab.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); ctab.group = null; }
   const I = sofaFrontInfo(); if (!I) return false;
-  if (!ctab.pos) ctab.pos = I.P(I.cxl, I.zFront + 0.46 + CTAB.sizes[ctab.size].D / 2);   // 46 cm in front of the sofa
+  if (!ctab.pos) { ctab.pos = I.P(I.cxl, I.zFront + 0.46 + CTAB.sizes[ctab.size].D / 2); ctab.pos[1] = toBl(liv.media.base.clone().addScaledVector(liv.media.a, liv.media.offset))[1]; }   // 46 cm in front of the sofa, centred on the TV (clears the Nilo footstool)
   const p = tryPos || ctab.pos, cx = THREE.MathUtils.clamp(p[0], LIV_BOX.x0 + 0.5, LIV_BOX.x1 - 0.5), cy = THREE.MathUtils.clamp(p[1], LIV_BOX.y0 + 0.5, LIV_BOX.y1 - 0.5);
   const ok = Math.abs(cx - p[0]) < 1e-6 && Math.abs(cy - p[1]) < 1e-6; ctab.pos = [cx, cy];
   const Z = CTAB.sizes[ctab.size], R = Z.D / 2, H = Z.H, TT = 0.03;
@@ -81,7 +81,7 @@ function buildRug(tryPos) {
   if (!rug.on) { const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Rug'); if (di >= 0) doors.splice(di, 1); return true; }
   const I = sofaFrontInfo(); if (!I) return false;
   const R = RUGS[rug.m], Z = R.sizes[Math.min(rug.size, R.sizes.length - 1)], C = R.cols[Math.min(rug.col, R.cols.length - 1)];
-  if (!rug.pos) { rug.pos = I.P(I.cxl, I.zFront - 0.25 + Z.D / 2); rug.angle = I.ang; }
+  if (!rug.pos) { rug.pos = I.P(I.cxl, I.zFront - 0.25 + Z.D / 2); rug.pos[1] = toBl(liv.media.base.clone().addScaledVector(liv.media.a, liv.media.offset))[1]; rug.angle = I.ang; }   // centred on the TV like the coffee table
   const p = tryPos || rug.pos; rug.pos = [p[0], p[1]];
   const g = new THREE.Group(); g.position.copy(b2t(p[0], p[1], 0)); g.rotation.y = rug.angle - Math.PI / 2;
   const m = new THREE.MeshStandardMaterial({ color: C.c, roughness: 1, map: rugTex(R, C), bumpMap: weaveTex(R.kind), bumpScale: 0.003 });
