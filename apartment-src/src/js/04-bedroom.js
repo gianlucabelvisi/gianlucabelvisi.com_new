@@ -272,6 +272,8 @@ MATS.rail = std({ color: 0xc7c9cc, roughness: 0.25, metalness: 0.9 });
 MATS.paxFrame = std({ color: 0xf1f0ec, roughness: 0.6 });            // PAX white
 MATS.paxIn = std({ color: 0xe9e7e2, roughness: 0.7 });
 MATS.paxDoor = std({ color: 0xd9cdb6, roughness: 0.65 });           // FLISBERGET light beige
+// 2026-11-15 (Gianluca): every bedroom closet gets IKEA TONSTAD fronts, egetræsfiner 50×229, 1,000 kr (90510262)
+MATS.tonstad = std({ color: 0xc89d6a, roughness: 0.5 }); MATS.paxDoor = MATS.tonstad;   // grain map added in buildClosets (grainTex lives in a later file)
 const clothMat = {};
 const cloth = (hex) => (clothMat[hex] ||= std({ color: hex, roughness: 0.95 }));
 const UP = new THREE.Vector3(0, 1, 0);
@@ -334,7 +336,7 @@ function makeRun(O, n, width, name, sections) {
       const hx = hingeLeft ? x0 + k * dw + 0.002 : x0 + (k + 1) * dw - 0.002;
       const d = addHinged({ id: `${name}_${made.length}`, label: 'Closet', name, shape: 'closet',
         hinge: toBlXZ(hx, D_CL + 0.012), closed: hingeLeft ? aBl : [-aBl[0], -aBl[1]], open: nBl,
-        len: dw - 0.004, h: DOOR_H, z0: Math.max(0.01, (H_CL - DOOR_H) / 2), thick: 0.02, doorMat: MATS.paxDoor, handle: false, grooves: true });
+        len: dw - 0.004, h: DOOR_H, z0: Math.max(0.01, (H_CL - DOOR_H) / 2), thick: 0.02, doorMat: MATS.paxDoor, handle: false, grooves: MATS.paxDoor !== MATS.tonstad, tonstad: MATS.paxDoor === MATS.tonstad });
       for (const p of d.parts) p.userData.furniture = true;
       made.push(d);
     }
@@ -393,6 +395,7 @@ function buildClosets() {
   // 236.4 cm tall (doors 229.4) or 201.2 cm (doors 194.6). Every 100 cm frame has a pair of doors opening outwards.
   for (const r of furn.runs || []) { scene.remove(r.g); dropParts(r.parts); for (const d of r.doors) removeHingedDoor(d); const i = doors.indexOf(r.swapDoor); if (i >= 0) doors.splice(i, 1); }
   furn.runs = [];
+  if (!MATS.tonstad.map) { MATS.tonstad.map = grainTex(); MATS.tonstad.needsUpdate = true; }
   const PAIR = (fills) => [{ w: 0.5, hinge: 'near', fill: fills[0] }, { w: 0.5, hinge: 'far', fill: fills[1] }];
   // a run along a wall starting `start` from the corner C, sections listed from the corner outwards
   const runAlong = (C, n, dir, start, width, name, secs) => {
@@ -448,9 +451,33 @@ function buildClosets() {
     if (lay === 'L-bath') { A = runAlong(C2, Bw.n, dirA, 0, 1.0, nm, PAIR([F[0], F[1]])); B = runAlong(C2, E2.n, dirB, gap, 1.0, nm, PAIR([F[2], F[3]])); }
     else if (lay === 'L-out') { B = runAlong(C2, E2.n, dirB, 0, 1.0, nm, PAIR([F[2], F[3]])); A = runAlong(C2, Bw.n, dirA, gap, 1.0, nm, PAIR([F[0], F[1]])); }
     else if (lay === 'I-bath') { A = runAlong(C2, Bw.n, dirA, 0, 1.5, nm, [{ w: 0.5, hinge: 'near', fill: F[2] }, ...PAIR([F[0], F[1]])]); }   // PAX 50 + 100: the single door in the corner, the pair towards the bedroom door
+    else if (lay === 'I-bath2') { A = runAlong(C2, Bw.n, dirA, 0, 2.0, nm, [...PAIR([F[2], F[3]]), ...PAIR([F[0], F[1]])]); }   // 2026-11-15: 50 cm more towards the door (two PAX 100)
     else { B = runAlong(C2, E2.n, dirB, 0, 2.0, nm, [...PAIR([F[0], F[1]]), ...PAIR([F[2], F[3]])]); }
     furn.svetlana = A || B; furn.svetlanaB = B;
     furn.svetlanaInfo = { C2, tB, sTip, tip, dirA, dirB, A, B, lay };
+    // the bedroom door now stops against the closet's end (Gianluca: fine, a rubber bumper protects it)
+    const bdoor = doors.find((d) => d.id === 'door_bed');
+    if (bdoor) {
+      if (bdoor._a1full === undefined) bdoor._a1full = bdoor.a1;
+      bdoor.a1 = bdoor._a1full; furn.doorStop = null;
+      if (A) {
+        const H = b2t(bd.hinge[0], bd.hinge[1], 0), P = C2.clone().addScaledVector(dirA, A.start + A.width).addScaledVector(Bw.n, 0.61).setY(0);
+        const v = P.clone().sub(H); v.y = 0; const dist = v.length();
+        if (dist < bd.len + 0.02) {
+          const cl = b2t(bd.closed[0], bd.closed[1]).normalize(), op = b2t(bd.open[0], bd.open[1]).normalize();
+          const ang = Math.atan2(v.clone().normalize().dot(op), v.clone().normalize().dot(cl)) - 0.035;   // leaf angle from closed when it touches the corner (minus the bumper)
+          const full = Math.abs(bdoor._a1full - bdoor.a0);
+          if (ang > 0 && ang < full) {
+            bdoor.a1 = bdoor.a0 + Math.sign(bdoor._a1full - bdoor.a0) * ang;
+            if (bdoor.t > 0) bdoor.pivot.rotation.y = bdoor.a0 + (bdoor.a1 - bdoor.a0) * bdoor.t;
+            furn.doorStop = { deg: Math.round(ang * 180 / Math.PI) };
+            const bump = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.014, 16), stdc({ color: 0x3a3a3a, roughness: 0.9 }));   // rubber door bumper on the closet's end
+            bump.position.copy(C2).addScaledVector(dirA, A.start + A.width + 0.007).addScaledVector(Bw.n, 0.56).setY(1.0);
+            bump.quaternion.setFromUnitVectors(UP, dirA); A.g.updateMatrixWorld(true); bump.quaternion.premultiply(A.g.getWorldQuaternion(new THREE.Quaternion()).invert()); A.g.worldToLocal(bump.position); A.g.add(bump);
+          }
+        }
+      }
+    }
   }
   // click a closet body -> the closet panel
   for (const r of furn.runs) {
@@ -464,8 +491,9 @@ function buildClosets() {
 const SV_LAYOUTS = [
   { id: 'L-out', name: 'L · footprint only (ready-made corner wardrobe, ~100 + 100)' },
   { id: 'I-bath', name: 'I · 150 cm on the bathroom wall (100 + 50, 3 doors)' },
+  { id: 'I-bath2', name: 'I · 200 cm on the bathroom wall (100 + 100, 4 doors)' },
 ];
-furn.svLayout = 1; furn.height = 0;   // default: I on the bathroom wall
+furn.svLayout = 2; furn.height = 0;   // default: I on the bathroom wall
 const PAX_H = [{ name: '236.4 cm (doors 229.4)', H: 2.364, door: 2.294 }, { name: '201.2 cm (doors 194.6)', H: 2.012, door: 1.946 }];
 // door swings: sweep each closet door from closed to 90° open, stop where it would hit something (bed, the other run, a wall)
 const swingGroup = new THREE.Group(); dimsGroup.add(swingGroup);
@@ -509,12 +537,12 @@ function closetSwings() {
   furn.swingReport = report;
 }
 const closetMover = {
-  name: 'Closets', title: () => 'Closets · IKEA PAX / FLISBERGET',
+  name: 'Closets', title: () => 'Closets · IKEA PAX / TONSTAD egetræsfiner',
   anchor: () => (furn.svetlana ? furn.svetlana.O.clone().addScaledVector(furn.svetlana.a, furn.svetlana.width / 2).addScaledVector(furn.svetlana.n, 0.6).setY(1.6) : null),
-  link: () => ({ href: 'https://www.ikea.com/dk/da/p/pax-flisberget-garderobeskab-hvid-lys-beige-s79480308/', text: 'PAX/FLISBERGET 100 cm ↗', href2: 'https://www.ikea.com/dk/da/p/pax-flisberget-garderobekombination-hvid-lys-beige-s59500680/', text2: 'PAX/FLISBERGET 150 cm (the one you sent) ↗' }),
+  link: () => ({ href: 'https://www.ikea.com/dk/da/p/pax-flisberget-garderobeskab-hvid-lys-beige-s79480308/', text: 'PAX/FLISBERGET 100 cm ↗', href2: 'https://www.ikea.com/dk/da/p/tonstad-lage-egetraesfiner-90510262/', text2: 'TONSTAD låge egetræsfiner 50×229 · 1.000 kr ↗' }),
   info: () => { const R = furn.swingReport || []; const S = furn.svetlanaInfo; let extra = '';
     if (S && S.lay === 'L-out') return `L shown as a footprint for a ready-made corner wardrobe (door swings not checked) · ${R.length ? 'Gianluca: ' + R.map((r) => `${r.deg}° (${r.by})`).join(', ') : 'Gianluca\'s doors open 90°'} · Sizes shows the gaps`;
-    if (S && S.A) { const reach = S.A.start + S.A.width, free = Math.abs(S.sTip); extra = reach > free - 0.02 ? ` · bedroom door blocked (${Math.round((reach - free + 0.02) * 100)} cm overlap)` : ` · ${(free - reach).toFixed(2)} m to the open bedroom door`; }
+    if (S && S.A) { const reach = S.A.start + S.A.width, free = Math.abs(S.sTip); extra = reach > free - 0.02 ? ` · the bedroom door now opens ${furn.doorStop ? furn.doorStop.deg + '°' : 'part way'} and rests on a rubber bumper on the closet's end` : ` · ${(free - reach).toFixed(2)} m to the open bedroom door`; }
     return (R.length ? `${R.length} door${R.length > 1 ? 's' : ''} can't open fully: ` + R.map((r) => `${r.deg}° (${r.by})`).join(', ') : 'all doors open 90°') + extra + ' · Sizes shows the swings'; },
   selects: [
     { id: 'svl', label: "Svetlana's closet", options: () => SV_LAYOUTS.map((l) => ({ label: l.name })), get: () => furn.svLayout, set: (i) => { furn.svLayout = i; buildClosets(); if (tv.E) buildTV(); } },

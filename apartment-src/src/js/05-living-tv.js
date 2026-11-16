@@ -1,5 +1,5 @@
-// ------------------------------------------------------------ living room: 65" TV wall (TV + Sonos Arc Ultra + wall-hung media unit) and the L sofa
-// Samsung 65" QN90F: 1445 × 828 × 28 mm (spec sheet). Sonos Arc Ultra: 1178 × 75 × 110.6 mm. Media unit: 180 × 38 × 40 cm, wall-hung.
+// ------------------------------------------------------------ living room: 65" TV wall (TV + Sonos Beam Ultra + wall-hung media unit) and the L sofa
+// Samsung 65" QN90F: 1445 × 828 × 28 mm (spec sheet). Sonos Beam Ultra: 750 × 65 × 105 mm. Media unit: 180 × 38 × 40 cm, wall-hung.
 MATS.tvScreen = std({ color: 0x08090b, roughness: 0.12, metalness: 0.4 });
 MATS.tvFrame = std({ color: 0x1b1c1f, roughness: 0.4, metalness: 0.5 });
 MATS.sonos = std({ color: 0x161616, roughness: 0.85 });
@@ -109,7 +109,19 @@ function buildBenchFront(add, UM, UF, bodyM, inM, ub, uh, uw, ud) {
     const l = add(geo, lm, lx, LH / 2, sz); if (UM.legs === 'splay') { l.rotation.z = -sx * 0.25; l.position.x += sx * 0.012; }
   }
 }
+// Hammel Mistral colours (erling-christensen.dk swatches, Nov 2026)
+const MISTRAL_COLS = [
+  { name: '17 Eg lak olie', c: 0xc99b63, grain: true }, { name: '81 Snehvid', c: 0xf2f1ec }, { name: '82 Antracit', c: 0x4a4b4c },
+  { name: '15 Hvidpigmenteret eg', c: 0xdccaa9, grain: true }, { name: '75 Sortbejdset', c: 0x221f1c, grain: true }, { name: '73 Lys rosa', c: 0xeac5ae },
+  { name: '74 Støvet rosa', c: 0xdfa290 }, { name: '76 Mint', c: 0xbac6c1 }, { name: '77 Olivengrøn', c: 0x8f927a },
+  { name: '89 Light yellow', c: 0xf5ebbf }, { name: '95 Grafit', c: 0x6a6b6b }, { name: '99 Beige', c: 0xd2c6a7 },
+];
 const UNIT_MODELS = [
+  // Gianluca (2026-11-15, photo from the showroom): two Hammel Mistral wall units, 140 cm each, hung on two levels with some overlap,
+  // each moved on its own. Higher level: the closed TV unit (drawer + flap door); lower level: the open shelf with two drawers in the middle.
+  // Depths and heights estimated from the photo (not measured).
+  { brand: 'Hammel', name: 'Mistral Classic 114 × 2, two levels', W: 1.33, H: 0.23, D: 0.325, front: 'mistralPair', price: 'price from the store', note: 'two Mistral Classic 114 wall units (133 × 23 × 32.5 cm), each moved on its own (pick one to move it)',
+    finishes: MISTRAL_COLS.map((c) => ({ ...c, body: c.c, front: c.c, url: 'https://erling-christensen.dk/shop/mistral-ben-1637c1.html' })) },
   { brand: 'IKEA', name: 'BESTÅ tv-bord med låger', W: 1.80, H: 0.38, D: 0.42, front: 'doors', n: 3, price: 'from ≈ 1,400 kr + wall rail', note: '3 soft-close doors · hangs on the BESTÅ suspension rail',
     finishes: [
       { name: 'Sortbrun / Lappviken brun valnøddemønster', body: 0x2c2420, front: 0x6a4a33, url: IKEA_DK('besta-tv-bord-med-lager-sortbrun-lappviken-brun-valnoddetraesmonster-s09612171') },
@@ -142,8 +154,10 @@ const UNIT_MODELS = [
     ] },
   ...BENCH_MODELS,
 ];
-const unitSel = { m: UNIT_MODELS.findIndex((u) => u.name === 'Yasumi RTV195'), f: 0 };   // Gianluca: source the bench from vente-unique / Yasumi
-const TVW = { W: 1.445, H: 0.828, D: 0.028, bottom: 0.74, off: 0.03 }, UNIT = { W: 1.8, H: 0.38, D: 0.42, bottom: 0.20 }, ARC = { W: 1.178, H: 0.075, D: 0.1106, bottom: 0.62 };
+const unitSel = { m: UNIT_MODELS.findIndex((u) => u.front === 'mistralPair'), f: 0 };   // 2026-11-15: two Mistral wall units (was the Yasumi bench)
+const MPAIR = { up: { W: 1.33, H: 0.23, D: 0.325, label: 'TV unit · upper', name: 'Mistral Classic 114 (upper level)' }, lo: { W: 1.33, H: 0.23, D: 0.325, label: 'TV shelf · lower', name: 'Mistral Classic 114 (lower level)' } };   // Gianluca 2026-11-15: 133 × 23 × 32.5 cm each (was 140, guessed from the photo)
+const mpair = { up: { off: -0.3, y: 0.36 }, lo: { off: 0.3, y: 0.08 }, groups: [], parts: [], doors: [] };
+const TVW = { W: 1.445, H: 0.828, D: 0.028, bottom: 0.74, off: 0.03 }, UNIT = { W: 1.8, H: 0.38, D: 0.42, bottom: 0.20 }, ARC = { W: 0.75, H: 0.065, D: 0.105, bottom: 0.62 };   // 2026-11-16: Sonos Beam Ultra (Gianluca will buy it): 750 × 65 × 105 mm, 5.699 kr (sonos.com/da-dk)
 function wallRun(C0, n, a, maxS = 6) {
   // how far the wall face runs from C0 along a: stop at a corner or where the wall steps back (an opening)
   const along = gapTo(C0.clone().addScaledVector(n, 0.05).setY(1.2), a, maxS) ?? maxS;
@@ -173,7 +187,8 @@ function buildMedia() {
     M.aToBalcony = toBl(a)[1] > 0;
   }
   if (M.group) { scene.remove(M.group); dropParts(M.parts); for (const d of M.doors) removeHingedDoor(d); M.doors = []; }
-  { const UM = UNIT_MODELS[unitSel.m]; UNIT.W = UM.W; UNIT.H = UM.H; UNIT.D = UM.D; UNIT.bottom = UM.legH ?? 0.20; ARC.bottom = UM.legH !== undefined ? UM.legH + UM.H + (UM.lip ? 0.002 : UM.topC ? 0.02 : 0) : 0.62; }   // floor benches: the soundbar stands on top
+  { const UM = UNIT_MODELS[unitSel.m]; UNIT.W = UM.W; UNIT.H = UM.H; UNIT.D = UM.D; UNIT.bottom = UM.legH ?? 0.20; ARC.bottom = UM.legH !== undefined ? UM.legH + UM.H + (UM.lip ? 0.002 : UM.topC ? 0.02 : 0) : 0.62; TVW.bottom = 0.74;
+    if (UM.front === 'mistralPair') { UNIT.bottom = mpair.lo.y; UNIT.H = MPAIR.lo.H; ARC.bottom = Math.max(mpair.up.y + MPAIR.up.H, mpair.lo.y + MPAIR.lo.H); TVW.bottom = Math.max(0.74, ARC.bottom + ARC.H + 0.035); } }   // the Arc stands on the higher unit, the TV just above it   // floor benches: the soundbar stands on top
   M.offset = Math.max(-(M.half - UNIT.W / 2 - 0.02), Math.min(M.half - UNIT.W / 2 - 0.02, M.offset));
   const { n, a } = M, O = M.base.clone().addScaledVector(a, M.offset);
   const g = new THREE.Group(); g.position.copy(O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a, UP, n));
@@ -185,15 +200,18 @@ function buildMedia() {
   const screen = add(new THREE.PlaneGeometry(TVW.W - 0.012, TVW.H - 0.012), (typeof tvState !== 'undefined' && tvState.on) ? MATS.tvOn : MATS.tvScreen, 0, ty, TVW.off + TVW.D + 0.0006, false);
   screen.castShadow = false;
   add(new THREE.BoxGeometry(0.4, 0.3, 0.02), MATS.blackMetal, 0, ty, 0.012, false);                 // wall plate (VESA 400 × 300)
-  // Sonos Arc Ultra right below, on its own wall mount
+  // Sonos Beam Ultra right below
   const sy = ARC.bottom + ARC.H / 2, sz = 0.02 + ARC.D / 2;
-  const bar = add(new THREE.CapsuleGeometry(ARC.H / 2, ARC.W - ARC.H, 6, 16), MATS.sonos, 0, sy, sz); bar.rotation.z = Math.PI / 2; bar.scale.set(1, 1, ARC.D / ARC.H);
-  add(new THREE.BoxGeometry(ARC.W - 0.1, 0.004, ARC.D * 0.7), MATS.tvFrame, 0, ARC.bottom + ARC.H - 0.001, sz, false);
+  add(softBox(ARC.W, ARC.H, ARC.D, 0.024), MATS.sonos, 0, sy, sz);                        // Sonos Beam Ultra: slim rounded bar, matte black
+  { MATS.sonosGrille = MATS.sonosGrille || std({ color: 0x0c0c0d, roughness: 0.95 });
+    add(new THREE.BoxGeometry(ARC.W - 0.05, ARC.H - 0.026, 0.002), MATS.sonosGrille, 0, sy, sz + ARC.D / 2 + 0.0005, false);   // perforated front grille
+    add(new THREE.BoxGeometry(0.06, 0.002, 0.012), MATS.tvFrame, 0, ARC.bottom + ARC.H + 0.0005, sz - 0.01, false); }   // touch controls on top
   // wall-hung media unit (the selected real model); inside a PS5 and an Apple TV
   const UM = UNIT_MODELS[unitSel.m], UF = UM.finishes[unitSel.f];
   const bodyM = UM.front === 'bench' ? std({ color: UF.body, roughness: 0.78, envMapIntensity: 0.5, ...(UF.grain ? { map: weaveTex('flat') } : {}) }) : std({ color: UF.body, roughness: 0.55 }), frontM = UM.front === 'fabric' ? std({ color: UF.front, roughness: 1 }) : std({ color: UF.front, roughness: 0.5 });
   const inM = std({ color: new THREE.Color(UF.body).multiplyScalar(UM.front === 'bench' ? 0.5 : 0.8), roughness: 0.7 });
   const ub = UNIT.bottom, uh = UNIT.H, uw = UNIT.W, ud = UNIT.D, T2 = 0.018;
+  if (UM.front !== 'mistralPair') {
   add(new THREE.BoxGeometry(uw, T2, ud), bodyM, 0, ub + uh - T2 / 2, ud / 2);
   add(new THREE.BoxGeometry(uw, T2, ud), bodyM, 0, ub + T2 / 2, ud / 2);
   add(new THREE.BoxGeometry(uw, uh, T2), inM, 0, ub + uh / 2, T2 / 2);
@@ -234,6 +252,7 @@ function buildMedia() {
       if (!perf) add(new THREE.BoxGeometry(0.12, 0.012, 0.004), inM, x, ub + uh - 0.03, ud + 0.011, false);   // finger groove
     }
   }
+  }
   g.remove(screen);
   { const mg = mergeByMaterial(g, new Set(parts)); parts.length = 0; parts.push(...mg.solids); }
   g.add(screen); M.screen = screen;
@@ -252,8 +271,10 @@ function buildMedia() {
   doors.push(door);
   scene.add(g); g.updateMatrixWorld(true);
   M.group = g; M.parts = parts;
+  buildMistralPair();
   // Hue Lightstrip under the unit: 8 cm in from the wall, just below its bottom panel, pointing down
   { const L = UNIT.W - 0.1, P = O.clone().addScaledVector(n, 0.08).setY(UNIT.bottom - 0.006);
+    if (UNIT_MODELS[unitSel.m].front === 'mistralPair') P.addScaledVector(a, mpair.lo.off - M.offset);   // the strip goes under the lower unit
     stripMesh.position.copy(P); stripMesh.quaternion.copy(g.quaternion); stripMesh.scale.set(L, 1, 1);
     stripLight.width = L; stripLight.height = 0.04; stripLight.position.copy(P).setY(UNIT.bottom - 0.012);
     stripLight.lookAt(P.clone().setY(0).addScaledVector(n, 0.25));
@@ -379,13 +400,13 @@ function placeTVGlow() {
   tvGlow.position.copy(P); tvGlow.lookAt(P.clone().add(M.n));
 }
 const mediaMover = {
-  name: '65" TV + Arc + unit', anchor: () => (liv.media && liv.media.group ? liv.media.group.position.clone().addScaledVector(liv.media.n, 0.5).setY(0.6) : null),
+  name: '65" TV + Beam Ultra + unit', anchor: () => (liv.media && liv.media.group ? liv.media.group.position.clone().addScaledVector(liv.media.n, 0.5).setY(0.6) : null),
   axis: () => liv.media.a,
   shift: (dir) => { const M = liv.media, before = M.offset; M.offset += dir * 0.05; buildMedia(); livingDims(); if (Math.abs(M.offset - before) < 1e-6) showToast('Can’t go further: end of the wall'); },
   info: () => { const M = liv.media; const c = Math.abs(M.offset) < 0.025 ? 'centred on the wall' : `${Math.round(Math.abs(M.offset) * 100)} cm towards the ${(M.offset > 0) === M.aToBalcony ? 'balcony' : 'hallway'}`;
     const UM = UNIT_MODELS[unitSel.m];
     return `${UM.note} · ${UM.price} · ${(UM.W * 100).toFixed(1)} × ${(UM.H * 100).toFixed(1)} × ${(UM.D * 100).toFixed(0)} cm · ${c} · wall ${(M.half * 2).toFixed(2)} m`; },
-  title: () => `${UNIT_MODELS[unitSel.m].brand} ${UNIT_MODELS[unitSel.m].name} + 65" + Arc`,
+  title: () => `${UNIT_MODELS[unitSel.m].brand} ${UNIT_MODELS[unitSel.m].name} + 65" + Beam Ultra`,
   selects: [
     { id: 'umodel', label: 'TV unit', options: () => UNIT_MODELS.map((m) => ({ group: m.legH !== undefined ? 'Floor-standing, wood (vente-unique / Logo Møbler)' : 'Wall-hung', label: `${m.brand} ${m.name} · ${(m.W * 100).toFixed(0)} cm${m.legH !== undefined ? ` · ${Math.round((m.H + m.legH) * 100 + (m.lip ? 2.5 : m.topC ? 2 : 0))} cm high · ${m.price}` : ''}` })), get: () => unitSel.m,
       set: (i) => { unitSel.m = i; unitSel.f = 0; buildMedia(); livingDims(); buildMoverSelects(mediaMover); } },
@@ -394,6 +415,99 @@ const mediaMover = {
   ],
   link: () => { const UM = UNIT_MODELS[unitSel.m]; return { href: UM.finishes[unitSel.f].url, text: `${UM.brand} ${UM.name} ↗` }; },
 };
+// ---- the two Mistral wall units under the TV: each its own piece (info button, arrows along the wall and up/down)
+function mpRemove() {
+  for (const g of mpair.groups) { scene.remove(g); g.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
+  dropParts(mpair.parts); for (const d of mpair.doors) { const i = doors.indexOf(d); if (i >= 0) doors.splice(i, 1); }
+  mpair.groups = []; mpair.parts = []; mpair.doors = [];
+}
+function buildMistralPair() {
+  mpRemove();
+  const M = liv.media; if (!M || UNIT_MODELS[unitSel.m].front !== 'mistralPair') return;
+  const F = MISTRAL_COLS[unitSel.f] || MISTRAL_COLS[0];
+  const body = stdc({ color: F.c, roughness: 0.55, ...(F.grain ? { map: grainTex() } : {}) }), inner = stdc({ color: new THREE.Color(F.c).multiplyScalar(0.86).getHex(), roughness: 0.6, ...(F.grain ? { map: grainTex() } : {}) });
+  const knobM = stdc({ color: 0xb9bbbd, roughness: 0.3, metalness: 0.85 }), gapM = stdc({ color: new THREE.Color(F.c).multiplyScalar(0.55).getHex(), roughness: 0.8 });
+  for (const k of ['up', 'lo']) {
+    const U = MPAIR[k], st = mpair[k], W = U.W, H = U.H, D = U.D, T = 0.022, S2 = 0.018;
+    const O = M.base.clone().addScaledVector(M.a, st.off), g = new THREE.Group(); g.position.copy(O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(M.a, UP, M.n));
+    const parts = [], add = (geo, m, x, y, z, solid = true) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; g.add(o); if (solid) parts.push(o); return o; };
+    const y0 = st.y;
+    add(softBox(W, T, D, 0.008), body, 0, y0 + H - T / 2, D / 2);                                 // top and bottom boards run the full width, soft front edge
+    add(softBox(W, T, D, 0.008), body, 0, y0 + T / 2, D / 2);
+    for (const x of [-W / 2 + 0.012 + S2 / 2, W / 2 - 0.012 - S2 / 2]) add(new THREE.BoxGeometry(S2, H - 2 * T, D - 0.01), body, x, y0 + H / 2, (D - 0.01) / 2);
+    add(new THREE.BoxGeometry(W - 0.03, H - 2 * T, 0.008), inner, 0, y0 + H / 2, 0.004);          // back
+    const knob = (x, y) => add(new THREE.SphereGeometry(0.011, 14, 10), knobM, x, y, D + 0.006, false);
+    if (k === 'up') {                                   // closed TV unit: drawer on the left, flap door on the right
+      const xd = -W / 2 + 0.03 + 0.58;
+      add(new THREE.BoxGeometry(S2, H - 2 * T, D - 0.02), inner, xd, y0 + H / 2, (D - 0.02) / 2);
+      const fh = H - 2 * T - 0.006, fl = xd - (-W / 2 + 0.03) - 0.006, fr = (W / 2 - 0.03) - xd - 0.006;
+      add(new THREE.BoxGeometry(fl, fh, 0.018), body, (-W / 2 + 0.03 + xd) / 2, y0 + H / 2, D - 0.009);
+      add(new THREE.BoxGeometry(fr, fh, 0.018), body, (xd + W / 2 - 0.03) / 2, y0 + H / 2, D - 0.009);
+      knob((-W / 2 + 0.03 + xd) / 2, y0 + H / 2); knob((xd + W / 2 - 0.03) / 2, y0 + H - T - 0.045);
+      add(new THREE.BoxGeometry(0.003, fh, 0.004), gapM, xd, y0 + H / 2, D + 0.0005, false);
+    } else {                                            // open shelf with a two-drawer module in the middle
+      const x1 = -W / 2 + 0.03 + 0.52, x2 = x1 + 0.53;
+      for (const x of [x1, x2]) add(new THREE.BoxGeometry(S2, H - 2 * T, D - 0.01), body, x, y0 + H / 2, (D - 0.01) / 2);
+      const dh = (H - 2 * T - 0.012) / 2, dw = x2 - x1 - S2 - 0.008;
+      for (let i = 0; i < 2; i++) { const yy = y0 + T + 0.004 + dh / 2 + i * (dh + 0.004); add(new THREE.BoxGeometry(dw, dh, 0.018), body, (x1 + x2) / 2, yy, D - 0.03); knob((x1 + x2) / 2, yy); }
+      // a few things in the open parts: books lying flat, a speckled candle holder
+      const r = rng(k === 'lo' ? 41 : 42), bc = [0x2f4a3a, 0xc9b48a, 0x7a2e2a, 0x1f2a44, 0xe8e2d4];
+      for (let i = 0, yy = y0 + T; i < 3; i++) { const t = 0.03 + r() * 0.02; add(new THREE.BoxGeometry(0.24, t, 0.17), stdc({ color: bc[i % 5], roughness: 0.8 }), -W / 2 + 0.2, yy + t / 2, D * 0.5, false); yy += t; }
+      add(new THREE.CylinderGeometry(0.045, 0.045, 0.1, 22), stdc({ color: 0xece8e2, roughness: 0.4 }), W / 2 - 0.14, y0 + T + 0.05, D * 0.55, false);
+    }
+    { const mg = mergeByMaterial(g, new Set(parts)); parts.length = 0; parts.push(...mg.solids); }
+    scene.add(g); g.updateMatrixWorld(true);
+    const mover = k === 'up' ? mpMoverUp : mpMoverLo;
+    const door = { kind: 'swap', label: U.label, name: U.name, parts, center: O.clone().setY(y0 + H / 2).addScaledVector(M.n, D / 2),
+      swap: () => selectFurniture(selected === mover ? null : mover), prompt: () => (selected === mover ? 'Done' : `${U.name}: options`) };
+    door._mover = mover;
+    for (const p of parts) { p.userData.door = door; p.userData.furniture = true; collidables.push(p); }
+    doors.push(door); mpair.groups.push(g); mpair.parts.push(...parts); mpair.doors.push(door);
+  }
+  shadowDirty = true;
+}
+function mpOverlap() {                                   // horizontal and vertical overlap of the two units (m)
+  const A = mpair.up, B = mpair.lo, h = Math.min(A.off + MPAIR.up.W / 2, B.off + MPAIR.lo.W / 2) - Math.max(A.off - MPAIR.up.W / 2, B.off - MPAIR.lo.W / 2);
+  const v = Math.min(A.y + MPAIR.up.H, B.y + MPAIR.lo.H) - Math.max(A.y, B.y);
+  return { h, v };
+}
+function mpTry(k, dOff, dY) {
+  const M = liv.media, st = mpair[k], U = MPAIR[k], b = { off: st.off, y: st.y };
+  st.off = THREE.MathUtils.clamp(+(st.off + dOff).toFixed(3), -(M.half - U.W / 2 - 0.01), M.half - U.W / 2 - 0.01);
+  st.y = THREE.MathUtils.clamp(+(st.y + dY).toFixed(3), 0.02, 1.2);
+  const o = mpOverlap();
+  if (o.h > 0.005 && o.v > 0.005) { Object.assign(st, b); showToast('It would hit the other unit: move it up or down first'); return; }
+  if (Math.abs(st.off - b.off) < 1e-6 && Math.abs(st.y - b.y) < 1e-6) { showToast('Can’t go further'); return; }
+  buildMedia(); livingDims(); if (selected) updateMoverInfo();
+}
+const MP_ARR = [
+  { name: 'Two levels, overlapping', up: { off: -0.3, y: 0.36 }, lo: { off: 0.3, y: 0.08 } },
+  { name: 'Stacked, aligned (one above the other)', up: { off: 0, y: 0.36 }, lo: { off: 0, y: 0.08 } },
+  { name: 'Side by side, aligned (one long line)', up: { off: -0.67, y: 0.25 }, lo: { off: 0.67, y: 0.25 } },
+];
+function mpArrangement() { const e = (a, b) => Math.abs(a.off - b.off) < 0.01 && Math.abs(a.y - b.y) < 0.01; const i = MP_ARR.findIndex((A) => e(A.up, mpair.up) && e(A.lo, mpair.lo)); return i; }
+function mpSetArrangement(i) {
+  const A = MP_ARR[i], M = liv.media; Object.assign(mpair.up, A.up); Object.assign(mpair.lo, A.lo);
+  for (const k of ['up', 'lo']) { const lim = M.half - MPAIR[k].W / 2 - 0.01; if (Math.abs(mpair[k].off) > lim) { mpair[k].off = Math.sign(mpair[k].off) * lim; showToast('The wall is a little short for that: the units touch the corners'); } }
+  if (!books.hidden && books.s !== null) {              // keep the book tower clear of the units on the hall side
+    const R = booksRange(), end = Math.max(mpair.up.off + MPAIR.up.W / 2, mpair.lo.off + MPAIR.lo.W / 2);
+    if (books.s - R.hw < end + 0.03) { books.s = Math.min(R.hi, end + 0.03 + R.hw); showToast('Moved the book tower towards the hall to clear the units'); }
+  }
+  buildMedia(); livingDims(); buildMoverSelects(selected || mpMoverUp);
+}
+const mpMover = (k) => ({
+  name: MPAIR[k].name, title: () => `Hammel ${MPAIR[k].name} · ${MISTRAL_COLS[unitSel.f].name}`,
+  anchor: () => (liv.media ? liv.media.base.clone().addScaledVector(liv.media.a, mpair[k].off).addScaledVector(liv.media.n, 0.45).setY(mpair[k].y + MPAIR[k].H + 0.2) : null),
+  axis: () => liv.media.a, shift: (dir) => mpTry(k, dir * 0.05, 0),
+  variant: { label: () => (books.hidden ? 'Show the book tower' : 'Hide the book tower'), run: () => setBooksHidden(!books.hidden) },
+  axis2: () => new THREE.Vector3(0, 1, 0), shift2: (dir) => mpTry(k, 0, dir * 0.05),
+  selects: [{ id: 'mparr', label: 'Arrangement', options: () => MP_ARR.map((a) => ({ label: a.name })).concat(mpArrangement() < 0 ? [{ label: 'Custom (moved by hand)' }] : []), get: () => (mpArrangement() < 0 ? MP_ARR.length : mpArrangement()), set: (i) => { if (i < MP_ARR.length) mpSetArrangement(i); } },
+    { id: 'mpcol', label: 'Colour (both units)', options: () => MISTRAL_COLS.map((c) => ({ label: c.name })), get: () => unitSel.f, set: (i) => { unitSel.f = i; buildMedia(); livingDims(); } }],
+  link: () => ({ href: 'https://erling-christensen.dk/shop/mistral-ben-1637c1.html', text: 'Erling Christensen · Hammel Mistral ↗' }),
+  info: () => { const U = MPAIR[k], o = mpOverlap(), oth = k === 'up' ? mpair.lo : mpair.up, st = mpair[k];
+    return `${Math.round(U.W * 100)} × ${Math.round(U.H * 100)} × ${+(U.D * 100).toFixed(1)} cm (W × H × D) · ${st.y.toFixed(2)}–${(st.y + U.H).toFixed(2)} m off the floor · ${o.h > 0 ? `${Math.round(o.h * 100)} cm overlap with the other unit` : `${Math.round(-o.h * 100)} cm apart sideways`} · ${k === 'up' ? 'the Beam Ultra stands on top, the TV sits just above' : 'Hue strip underneath'} · ▲▼ height, ◀▶ along the wall`; },
+});
+const mpMoverUp = mpMover('up'), mpMoverLo = mpMover('lo');
 // ---- sofa models to compare. Each has its own configurations (names as the shop writes them), fabrics/colours and legs.
 // sided configs come as left/right: "right" = the corner / chaise / open end sits on your right standing in front of the sofa (as in the shops' drawings).
 // Colours are matched by eye from the shops' swatches. (est.) marks a measure the shop doesn't list, read from its drawings.
@@ -552,12 +666,17 @@ function sofaClear(O, cfg, side) {
   const P = (lx, lz) => O.clone().addScaledVector(x, lx).addScaledVector(f, lz).setY(0.3);
   const g = (p, d) => gapTo(p, d, 6) ?? 6;
   let worst = 9;
-  for (const lz of [0.1, SD / 2, SD - 0.1]) worst = Math.min(worst, g(P(0, lz), x) - L / 2, g(P(0, lz), x.clone().negate()) - L / 2);
+  const rides = new Set([...(typeof skaenk !== 'undefined' ? skaenk.parts : []), ...(typeof ctab !== 'undefined' ? ctab.parts : [])]);   // these move with the sofa
+  const keep = collidables.slice(); for (let i = collidables.length - 1; i >= 0; i--) if (rides.has(collidables[i])) collidables.splice(i, 1);
+  const extra = typeof skaenk !== 'undefined' && skaenk.group ? 0.03 + SKAENK.D : 0;   // the skænk sticks out past the return end (−x)
+  try {
+  for (const lz of [0.1, SD / 2, SD - 0.1]) worst = Math.min(worst, g(P(0, lz), x) - L / 2, g(P(0, lz), x.clone().negate()) - L / 2 - extra);
   for (const lx of [-L / 2 + 0.1, 0, L / 2 - 0.1]) worst = Math.min(worst, g(P(lx, SD / 2), f.clone().negate()) - SD / 2, g(P(lx, SD / 2), f) - SD / 2);
   for (const e of sofaEnds(cfg, side)) if (e.t !== 'arm') {
     const cx = e.s * (L / 2 - e.W / 2), cz = (SD + e.R) / 2;
-    worst = Math.min(worst, g(P(cx, cz), f) - (e.R - SD) / 2, g(P(cx, cz), x) - e.W / 2, g(P(cx, cz), x.clone().negate()) - e.W / 2);
+    worst = Math.min(worst, g(P(cx, cz), f) - (e.R - SD) / 2, g(P(cx, cz), x) - e.W / 2 - (e.s < 0 ? extra : 0), g(P(cx, cz), x.clone().negate()) - e.W / 2 - (e.s < 0 ? extra : 0));
   }
+  } finally { collidables.length = 0; collidables.push(...keep); }
   return worst;
 }
 // rounded, subdivided box with analytic normals and metric UVs (for fabric); o.top / o.front / o.side crown the faces like a filled cushion
@@ -590,7 +709,7 @@ function buildSofa(tryMove) {
     // back of the sofa 90 cm off the window wall (a proper walkway), centred on the TV
     const WW = wallLine([2.5, 7.6], [2.5, 4.9], [-1, 0]);
     const depth = WW ? M.base.clone().sub(WW.p).dot(WW.n) : 4.0;
-    S = liv.sofa = { model: 0, cfg: SOFA_MODELS[0].defaultCfg, flip: false, fabric: 0, legs: SOFA_MODELS[0].defaultLegs ?? 0, fill: 1, pouf: 0, O: M.base.clone().addScaledVector(M.n, depth - 0.92), group: null, parts: [] };
+    S = liv.sofa = { model: 0, cfg: SOFA_MODELS[0].defaultCfg, flip: false, fabric: 0, legs: SOFA_MODELS[0].defaultLegs ?? 0, fill: 1, pouf: 0, O: M.base.clone().addScaledVector(M.n, depth - 0.77), group: null, parts: [] };   // 2026-11-16: 15 cm closer to the outside wall (room for the TV units side by side)
   }
   if (S.group) { scene.remove(S.group); dropParts(S.parts); }
   applyFabric(S);
@@ -697,7 +816,8 @@ function buildSofa(tryMove) {
   doors.push(door);
   scene.add(g); g.updateMatrixWorld(true);
   S.group = g; S.parts = parts; S.seatIn = seatIn;
-  if (typeof buildConsole === 'function' && typeof cons !== 'undefined') setTimeout(buildConsole, 0);   // the IKEA-hack console follows the sofa
+  if (typeof buildConsole === 'function' && typeof cons !== 'undefined') setTimeout(buildConsole, 0);
+  if (typeof buildSkaenk === 'function' && typeof skaenk !== 'undefined') setTimeout(buildSkaenk, 0);   // the Mistral skænk follows the sofa   // the IKEA-hack console follows the sofa
   return moved;
 }
 function sofaGaps() {
@@ -744,6 +864,16 @@ function livingDims() {
     tag.position.copy(G.eye).setY(1.25); livDims.add(tag);
   }
 }
+function sofaGroupMove(v, d) {                          // the sofa group: sofa + skænk (rebuilt with it) + coffee table + rug
+  const before = liv.sofa.O.clone();
+  if (!buildSofa((O) => O.addScaledVector(v, d))) { const why = lastGapHit && lastGapHit.userData && lastGapHit.userData.door ? ` (${lastGapHit.userData.door.label || lastGapHit.userData.door.name})` : ''; showToast(`Can’t go further: wall or furniture${why}`); }
+  const dl = liv.sofa.O.clone().sub(before), db = [dl.x, -dl.z];
+  if (dl.lengthSq() > 1e-8) {
+    if (typeof ctab !== 'undefined' && ctab.pos) { ctab.pos = [ctab.pos[0] + db[0], ctab.pos[1] + db[1]]; buildCoffeeTable(); }
+    if (typeof rug !== 'undefined' && rug.pos) { rug.pos = [rug.pos[0] + db[0], rug.pos[1] + db[1]]; buildRug(); }
+  }
+  livingDims();
+}
 const sofaMover = {
   name: 'Sofa', anchor: () => (liv.sofa && liv.sofa.group ? liv.sofa.O.clone().addScaledVector(sofaFrame().f, SD / 2).setY(1.1) : null),
   axis: () => sofaFrame().x, axis2: () => sofaFrame().f,
@@ -751,8 +881,8 @@ const sofaMover = {
   link: () => { const S = liv.sofa, u = nyUrl(S), pf = SMODEL.ilva ? nyPouf(S) : null;
     const L = { href: u || SOFAS[S.cfg].url || SMODEL.url, text: u ? `ILVA · Nyland in ${FABRICS[S.fabric].c} · ${nyKr(nyProd(S).p[S.fabric])} ↗` : `${SMODEL.brand} product page ↗` };
     if (pf) { L.href2 = pf.url; L.text2 = `ILVA · Nyland puf ${pf.size} · ${nyKr(pf.price)} ↗`; } return L; },
-  shift: (dir) => { if (!buildSofa((O) => O.addScaledVector(sofaFrame().x, dir * 0.05))) showToast('Can’t go further: wall or furniture'); livingDims(); },
-  shift2: (dir) => { if (!buildSofa((O) => O.addScaledVector(sofaFrame().f, dir * 0.05))) showToast('Can’t go further: wall or furniture'); livingDims(); },
+  shift: (dir) => sofaGroupMove(sofaFrame().x, dir * 0.05),
+  shift2: (dir) => sofaGroupMove(sofaFrame().f, dir * 0.05),
   info: () => { const G = sofaGaps(), S = liv.sofa, cfg = SOFAS[S.cfg], P = nyProd(S), pf = SMODEL.ilva ? nyPouf(S) : null;
     const price = P ? ` · ${nyKr(P.p[S.fabric])}${pf ? ` + puf ${nyKr(pf.price)}` : ''} · seat ${NY_FILL[S.fill].toLowerCase()}` : '';
     return `L ${Math.round(cfg.L * 100)} × D ${Math.round(cfg.R * 100)} cm${price} · ${G && G.back.d !== null ? G.back.d.toFixed(2) : '–'} m behind · ${G && G.front.d !== null ? G.front.d.toFixed(2) : '–'} m to TV unit · ${G ? G.view.toFixed(1) : '–'} m to screen${pf && pf.missing ? ' · puf not made in this fabric (price shown for Winter Moss)' : ''}`; },

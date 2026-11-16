@@ -19,29 +19,44 @@ function shopLines() {
   // bedroom
   add('Bedroom', 'bed', `Bed ${Math.round(bed.width * 100)} × 200 cm`, { note: 'No product picked yet' });
   safe(() => { const N = NIGHT[night.m], c = N.cols[night.col]; add('Bedroom', 'night', `${N.brand} ${N.name} nightstand`, { qty: 2, unit: N.kr, kr: N.kr * 2, detail: `${Math.round(N.W * 100)} × ${Math.round(N.D * 100)} × ${Math.round(N.H * 100)} cm · ${c.name}`, href: c.url || N.url }); });
-  safe(() => { const lk = linkOf(closetMover); add('Bedroom', 'closets', 'PAX / FLISBERGET closets', { detail: `${PAX_H[furn.height].name} · Gianluca + Svetlana`, href: lk.href, note: 'Price comes from the IKEA planner' }); });
+  safe(() => { const nd = (furn.runs || []).reduce((n, r) => n + r.doors.length, 0), H = furn.height ? '50×195' : '50×229';
+    add('Bedroom', 'closets', 'PAX frames (Gianluca 100 + Svetlana)', { detail: `${PAX_H[furn.height].name} · ${SV_LAYOUTS[furn.svLayout].name.split(' (')[0]}`, href: 'https://www.ikea.com/dk/da/p/pax-flisberget-garderobeskab-hvid-lys-beige-s79480308/', note: 'Frame price from the IKEA planner' });
+    add('Bedroom', 'tonstad', `IKEA TONSTAD låge egetræsfiner ${H}`, { qty: nd, unit: 1000, kr: nd * 1000, detail: 'integrated solid-oak grip · + KOMPLEMENT soft-close hinges (200 kr / door)', href: 'https://www.ikea.com/dk/da/p/tonstad-lage-egetraesfiner-90510262/' });
+    add('Bedroom', 'hinges', 'KOMPLEMENT soft-close hinges for TONSTAD', { qty: nd, unit: 200, kr: nd * 200, detail: '4 per door, sold in sets' }); });
   safe(() => { const F = FRAME_SIZES[tv.size], p = parseKr(F.price); add('Bedroom', 'frame', `Samsung The Frame ${F.inch}″`, { detail: `${F.note} · white bezel`, kr: p && p.kr, approx: p && p.approx, href: linkOf(tvMover).href || F.url }); });
   add('Bedroom', 'bedcurt', 'Blackout curtains', { note: 'No product picked yet' });
   // living
   safe(() => { const ro = Object.fromEntries(sofaMover.readonly); const p = parseKr(ro.Price); add('Living', 'sofa', `${ro.Model || 'Sofa'}`, { detail: [ro.Size, ro.Fabric, ro.Legs, ro.Seat].filter(Boolean).join(' · '), kr: p && p.kr, href: linkOf(sofaMover).href }); });
-  safe(() => { const UM = UNIT_MODELS[unitSel.m], p = parseKr(UM.price); add('Living', 'tvunit', `${UM.brand} ${UM.name}`, { detail: `TV bench · ${UM.finishes[unitSel.f].name}`, kr: p && p.kr, approx: p && p.approx, href: UM.finishes[unitSel.f].url || UM.url }); });
+  safe(() => { const UM = UNIT_MODELS[unitSel.m]; if (UM.front !== 'mistralPair') return; const F = UM.finishes[unitSel.f];
+    add('Living', 'tvunit', 'Hammel Mistral Classic 114, closed (upper)', { detail: `133 × 23 × 32.5 cm · drawer + flap · ${F.name}`, href: UM.url, note: 'Price from the store' });
+    add('Living', 'tvshelf', 'Hammel Mistral Classic 114, shelf with drawers (lower)', { detail: `133 × 23 × 32.5 cm · ${F.name}`, href: UM.url, note: 'Price from the store' }); });
+  safe(() => { const UM = UNIT_MODELS[unitSel.m], p = parseKr(UM.price); if (UM.front === 'mistralPair') return; add('Living', 'tvunit', `${UM.brand} ${UM.name}`, { detail: `TV bench · ${UM.finishes[unitSel.f].name}`, kr: p && p.kr, approx: p && p.approx, href: UM.finishes[unitSel.f].url || UM.url }); });
+  add('Living', 'sonos', 'Sonos Beam Ultra (black)', { detail: '75 × 6.5 × 10.5 cm soundbar under the TV', kr: 5699, href: 'https://www.sonos.com/da-dk/shop/beam-ultra' });
   safe(() => { const Tm = TABLE_MODELS[dining.t], C = Tm.configs[dining.tc], p = parseKr(C.name), lk = linkOf(diningMover);
-    add('Living', 'table', `${Tm.brand} ${Tm.name} dining table`, { detail: C.name.split('·')[0].trim(), kr: p && p.kr, href: lk.href });
+    add('Living', 'table', `${Tm.brand} ${Tm.name} dining table`, { detail: `${C.name.split('·')[0].trim()} · ${Tm.finishes[dining.tf].name}`, kr: p && p.kr, href: lk.href, note: 'Placeholder: table not decided' });
     const Ch = CHAIR_MODELS[dining.c], V = Ch.variants[dining.cv], q = parseKr(V.name);
     add('Living', 'chairs', `${Ch.brand} ${Ch.name} chair`, { qty: dining.n, unit: q && q.kr, kr: q && q.kr * dining.n, detail: plainDetail(V.name), href: lk.href2 }); });
   safe(() => { const p = parseKr(PH5.price); add('Living', 'ph5', 'Louis Poulsen PH 5, grey', { detail: 'Ø50 cm pendant over the table', kr: p && p.kr, href: PH5.url }); });
   safe(() => { if (petra.model) add('Living', 'lounge', 'House Nordic Gudrun lounge chair', { detail: 'teddy, black legs', kr: GUDRUN.kr, href: GUDRUN.url });
     else { const C = PETRA.covers[petra.cover]; add('Living', 'lounge', '&Tradition Little Petra VB1', { detail: `${C.name} · ${PETRA.woods[petra.wood].name}`, kr: C.kr[petra.wood], href: linkOf(petraMover).href }); } });
   safe(() => { if (!cons.on) return; const C = consoleCost(), lk = linkOf(consoleMover); add('Living', 'console', 'IKEA BESTÅ console behind the sofa', { detail: `${cons.n} frames, ${C.doorsN} doors${C.legsPacks ? `, ${C.legsPacks} × 2 legs` : ''}`, kr: C.kr, approx: true, href: lk.href, note: 'Plus the top board' }); });
-  safe(() => add('Living', 'holm', 'IKEA HOLMERUD side table', { detail: HOLM.cols[holm.col].name, kr: HOLM.kr, href: HOLM.cols[holm.col].url }));
-  safe(() => { const p = BOOKT.packs[books.pack]; add('Living', 'books', `Book tower, ${p.n}-pack (white)`, { detail: `Amazon · SEK ${Math.round(p.sek)}`, kr: p.sek * SEK_DKK, approx: true, href: BOOKT.url(p.asin), note: 'converted from SEK' }); });
+  safe(() => holm.removed || add('Living', 'holm', 'IKEA HOLMERUD side table', { detail: HOLM.cols[holm.col].name, kr: HOLM.kr, href: HOLM.cols[holm.col].url }));
+  safe(() => { const C = MISTRAL_COLS[skaenk.col], Lg = SKAENK.legCols[skaenk.legCol];
+    add('Living', 'skaenk', 'Hammel Mistral skænk', { detail: `177 × 42 × 61 cm · ${C.name} · by the sofa`, kr: SKAENK.kr, href: SKAENK.url });
+    add('Living', 'skaenklegs', 'Konisk træben 14 cm (6-pack)', { detail: Lg.name, kr: SKAENK.legKr, href: SKAENK.legUrl }); });
+  safe(() => { const Z = CTAB.sizes[ctab.size]; add('Living', 'ctab', 'MAX | Zen coffee table', { detail: `${Z.name.split(' · ')[0]} · travertine, oak`, kr: Z.kr, href: CTAB.url }); });
+  safe(() => { if (!rug.on) return; const R = RUGS[rug.m], Z = R.sizes[rug.size]; add('Living', 'rug', `ILVA ${R.name}`, { detail: `${Z.name.split(' · ')[0]} · ${R.cols[rug.col].name}`, kr: Z.kr, href: R.url, note: 'Placeholder' }); });
+  safe(() => { if (books.hidden) return; const p = BOOKT.packs[books.pack]; add('Living', 'books', `Book tower, ${p.n}-pack (white)`, { detail: `Amazon · SEK ${Math.round(p.sek)}`, kr: p.sek * SEK_DKK, approx: true, href: BOOKT.url(p.asin), note: 'converted from SEK' }); });
   add('Living', 'plant', `${PLANTS[plant.kind] ? PLANTS[plant.kind].name || 'Plant' : 'Plant'} + pot`, { note: 'No product picked yet' });
   add('Living', 'balcurt', 'Balcony-door curtains (light)', { note: 'No product picked yet' });
   // værelse
   safe(() => { const p = parseKr(GS.price); add('Værelse', 'guest', 'Møbelkompagniet Arezzo sofa bed', { detail: '237 cm, 3 seats', kr: p && p.kr, href: GS.url }); });
-  safe(() => { const lk = linkOf(vpaxMover), p = parseKr(vpaxMover.info()); add('Værelse', 'vpax', 'IKEA PAX closet', { detail: 'by the window wall', kr: p && p.kr * SEK_DKK, approx: true, href: lk.href, note: 'IKEA SE price, converted from SEK' }); });
-  safe(() => { const Dm = DESKS[desk.m]; add('Værelse', 'desk', `ILVA ${Dm.name} desk`, { detail: Dm.desc, kr: Dm.kr, href: linkOf(deskMover).href }); });
-  add('Værelse', 'nook', 'IKEA PAX + FLISBERGET nook closet', { detail: '50 × 58 × 236 cm', kr: 1300, href: linkOf(nookMover).href });
+  safe(() => { if (vpax.model !== 2) return; add('Værelse', 'vpax', 'Lattice closet (already ours)', { detail: '85 × 37 × 180 cm, between the desk and the door', kr: 0 }); });
+  safe(() => { if (vpax.model === 2) return; const lk = linkOf(vpaxMover), p = parseKr(vpaxMover.info()); add('Værelse', 'vpax', 'IKEA PAX closet', { detail: 'by the window wall', kr: p && p.kr * SEK_DKK, approx: true, href: lk.href, note: 'IKEA SE price, converted from SEK' }); });
+  safe(() => { const Dm = deskModel(); if (Dm.fit) add('Værelse', 'desk', `Brown desk ${Math.round(Dm.W * 100)} × ${Math.round(Dm.D * 100)} cm`, { detail: `max ${Math.round(deskMaxW() * 100)} cm next to the closet`, note: 'No product picked yet' });
+    else add('Værelse', 'desk', `ILVA ${Dm.name} desk`, { detail: Dm.desc, kr: Dm.kr, href: `https://ilva.dk/kontoret/skriveborde/${Dm.url}/` });
+    const C = DCHAIRS[dchair.m]; add('Værelse', 'dchair', C.name, { detail: C.cols[dchair.col].name, kr: C.kr, href: C.url }); });
+  if (!nook.removed) add('Værelse', 'nook', 'IKEA PAX + FLISBERGET nook closet', { detail: '50 × 58 × 236 cm', kr: 1300, href: linkOf(nookMover).href });
   add('Værelse', 'alcove', alc.model ? 'Alcove shelves + ceiling-track curtain' : 'Alcove built-in closet (carpenter)', { note: 'Needs a quote' });
   // entrance, bathroom, balcony (built by add_rooms)
   safe(() => roomShopLines(add));
@@ -50,8 +65,8 @@ function shopLines() {
   return L;
 }
 // ticks for "we've decided on this one"; kept per browser and travel with shared layouts
-let shopDecided = { sofa: true };
-try { const v = JSON.parse(localStorage.getItem('aptDecided') || 'null'); if (v) shopDecided = v; } catch (_) { /* ignore */ }
+let shopDecided = { sofa: true, chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true };
+try { const v = JSON.parse(localStorage.getItem('aptDecided') || 'null'); if (v) { if (!v._nov26) Object.assign(v, { chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, _nov26: true }); shopDecided = v; } } catch (_) { /* ignore */ }
 function saveDecided() { try { localStorage.setItem('aptDecided', JSON.stringify(shopDecided)); } catch (_) { /* ignore */ } }
 function shopTotals(lines) {
   let pick = 0, dec = 0, approx = false, missing = 0;
@@ -83,7 +98,7 @@ async function copyText(t, msg) {
   catch (_) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (_) { /* ignore */ } ta.remove(); showToast(ok ? msg : 'Couldn’t copy'); return ok; }
 }
 // ---- layouts: the whole furniture state (choices, positions), the lights and the clock, in a link or saved by name
-const LAYOUT_OBJS = () => ({ bed, furn, tv, liv, unitSel, lamp, dining, petra, guest, vpax, nook, books, plant, art, cons, alc, desk, holm, night, rooms: roomsState });
+const LAYOUT_OBJS = () => ({ bed, furn, tv, liv, unitSel, lamp, dining, petra, guest, vpax, nook, books, plant, art, cons, alc, desk, holm, night, skaenk, mpair, ctab, rug, dchair, rooms: roomsState });
 const LAYOUT_SKIP = new Set(['group', 'parts', 'doors', 'door', 'dims', 'wall', 'base', 'run', 'runs', 'swap', 'box', 'E', 'a', 'n', 'room', 'curtain', 'hitDoor', 'swapDoor',
   'svetlanaInfo', 'swingReport', 'gianluca', 'svetlana', 'svetlanaB', 'swingDoors', 'mesh', 'hit']);
 function ser(o, depth = 0) {
@@ -120,7 +135,7 @@ function layoutApply(S) {
   if (PAX_H[furn.height]) { H_CL = PAX_H[furn.height].H; DOOR_H = PAX_H[furn.height].door; }
   if (selected) selectFurniture(null);
   const steps = [buildBed, buildClosets, buildTV, buildMedia, buildSofa, livingDims, buildDining, buildGuestSofa, buildVaerCloset, buildNookCloset,
-    buildPetra, buildBooks, buildPlant, buildArt, buildConsole, buildAlcove, buildDesk, buildHolm, buildRoomFurniture];
+    buildPetra, buildBooks, buildPlant, buildArt, buildConsole, buildAlcove, buildDesk, buildHolm, buildSkaenk, buildCoffeeTable, buildRug, buildRoomFurniture];
   for (const f of steps) { try { f(); } catch (e) { console.warn('layout rebuild', f.name, e); } }
   if (typeof S.h === 'number') { const r = $('sunrange'); r.value = S.h; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); }
   autoLightsCfg.last = null; applyLights(); if (lightPanelSync) lightPanelSync();
@@ -361,7 +376,7 @@ $('qPlan').addEventListener('click', () => setPlan(!PLAN_UI.open));
 addEventListener('keydown', (e) => { if (e.code === 'KeyO' && !e.repeat && e.target.tagName !== 'INPUT' && !e.metaKey && !e.ctrlKey && !e.altKey) setPlan(!PLAN_UI.open); else if (e.code === 'Escape' && PLAN_UI.open) setPlan(false); });
 bedMover.selects = [{ id: 'nstand', label: 'Nightstands', options: () => NIGHT.map((n) => ({ label: `${n.brand} ${n.name} · ${Math.round(n.W * 100)} × ${Math.round(n.D * 100)} × ${Math.round(n.H * 100)} cm · ${n.kr} kr` })), get: () => night.m, set: (i) => { night.m = i; night.col = 0; buildBed(); } }];
 bedMover.link = () => { const N = NIGHT[night.m]; return { href: N.url, text: `IKEA · ${N.name} nightstand · ${N.kr} kr ↗` }; };
-function furnish() { fridgeSideSkin(); buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); buildHolm(); buildRoomFixtures(); buildRoomSwitches(); buildRoomFurniture(); autoLightTick(clockHour, dayLevel, true); try { updateNight(); } catch (_) { /* ok */ } layoutBoot(); }
+function furnish() { fridgeSideSkin(); buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); buildHolm(); buildSkaenk(); buildCoffeeTable(); buildRug(); buildRoomFixtures(); buildRoomSwitches(); buildRoomFurniture(); autoLightTick(clockHour, dayLevel, true); try { updateNight(); } catch (_) { /* ok */ } layoutBoot(); }
 function prewarmShaders() {
   // compile every material variant now (incl. hidden things: ceiling, upper floors, closed panels), not the first time it comes into view
   // lights first exactly as perfTick leaves them (light counts are part of every shader), then the meshes

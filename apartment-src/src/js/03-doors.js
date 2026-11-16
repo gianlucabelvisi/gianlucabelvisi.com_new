@@ -28,6 +28,12 @@ function buildLeaf(d, pivot) {
     if (d.handle !== false) for (const zz of [-1, 1]) add(new THREE.BoxGeometry(0.014, Math.min(0.32, d.h * 0.5), 0.022), MATS.steel, d.len - 0.05, d.z0 + d.h * 0.45, zz * (d.thick / 2 + 0.012));
     if (d.grooves) { MATS.groove = MATS.groove || std({ color: 0x000000, roughness: 1, transparent: true, opacity: 0.18 });   // FLISBERGET: three panels split by two fine grooves
       for (const f of [1 / 3, 2 / 3]) add(new THREE.BoxGeometry(d.len - 0.004, 0.004, d.thick + 0.002), MATS.groove, d.len / 2, d.z0 + d.h * f); }
+    if (d.tonstad) {                                // IKEA TONSTAD: solid-oak edge with a milled finger grip instead of a handle
+      MATS.tonstadEdge = MATS.tonstadEdge || std({ color: 0xb98a55, roughness: 0.55, map: grainTex() });
+      MATS.groove = MATS.groove || std({ color: 0x000000, roughness: 1, transparent: true, opacity: 0.18 });
+      add(new THREE.BoxGeometry(0.03, d.h, d.thick + 0.002), MATS.tonstadEdge, d.len - 0.015, d.z0 + d.h / 2);
+      for (const zz of [-1, 1]) add(new THREE.BoxGeometry(0.008, Math.min(0.4, d.h * 0.2), 0.004), MATS.groove, d.len - 0.032, d.z0 + d.h * 0.45, zz * (d.thick / 2 + 0.0015));
+    }
   } else {                                        // door or fridge front
     add(new THREE.BoxGeometry(d.len, d.h, d.thick), d.mat === 'oak' ? MATS.oak : MATS.door, d.len / 2, d.z0 + d.h / 2);
     if (d.handle) add(new THREE.BoxGeometry(0.13, 0.022, 0.12), MATS.steel, d.len - 0.08, 1.0);

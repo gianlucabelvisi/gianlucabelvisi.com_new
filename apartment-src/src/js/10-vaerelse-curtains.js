@@ -34,11 +34,11 @@ const PAXF = {
     'grabeige|50x58x201': ['90458216', 900], 'grabeige|50x58x236': ['10458220', 1100], 'grabeige|100x58x201': ['90458202', 1100], 'grabeige|100x58x236': ['00458206', 1300],
   },
 };
-const vpax = { model: 1, w: 1, h: 0, f: 0, d: 0, fw: 1, fd: 0, fh: 0, fc: 0, fdoor: 0, off: 0, atWin: true, run: null, wall: null, swap: null };
+const vpax = { model: 2, w: 1, h: 0, f: 0, d: 0, fw: 1, fd: 0, fh: 0, fc: 0, fdoor: 0, off: 0, atWin: false, run: null, wall: null, swap: null };
 const paxfItem = () => { const C = PAXF.colours[vpax.fc]; return PAXF.items[`${C.slug}|${PAXF.widths[vpax.fw].cm}x${PAXF.depths[vpax.fd].cm}x${PAXF.heights[vpax.fh].cm}`]; };
-const vpaxW = () => (vpax.model ? PAXF.widths[vpax.fw].w : VPAX.widths[vpax.w]);
-const vpaxDepth = () => (vpax.model ? PAXF.depths[vpax.fd].d + (vpax.fdoor ? 0.024 : 0) : 0.60);
-const vpaxH = () => (vpax.model ? PAXF.heights[vpax.fh].H : VPAX.heights[vpax.h].H);
+const vpaxW = () => (vpax.model === 2 ? LATTICE.W : vpax.model ? PAXF.widths[vpax.fw].w : VPAX.widths[vpax.w]);
+const vpaxDepth = () => (vpax.model === 2 ? LATTICE.D + 0.03 : vpax.model ? PAXF.depths[vpax.fd].d + (vpax.fdoor ? 0.024 : 0) : 0.60);
+const vpaxH = () => (vpax.model === 2 ? LATTICE.H : vpax.model ? PAXF.heights[vpax.fh].H : VPAX.heights[vpax.h].H);
 const vpaxDims = new THREE.Group(); dimsGroup.add(vpaxDims);
 function vpaxUrl() {
   if (vpax.model) { const C = PAXF.colours[vpax.fc], it = paxfItem(), W = PAXF.widths[vpax.fw].cm, D = PAXF.depths[vpax.fd].cm, H = PAXF.heights[vpax.fh].cm;
@@ -62,6 +62,15 @@ function buildVaerCloset() {
   if (vpax.atWin) vpax.off = maxOff;                                                   // default: against the window wall (Gianluca)
   vpax.off = Math.max(-0.5, Math.min(maxOff, vpax.off)); vpax.atWin = vpax.off >= maxOff - 1e-4;                               // 0 = right after the door; + = towards the window
   const sEnd = sDoor - vpax.off, O = p.clone().addScaledVector(a, sEnd - W).addScaledVector(n, 0.005);
+  if (vpax.model === 2) {                                                              // their own lattice closet (17-study.js)
+    const r = buildLatticeCloset(O, n, a); vpax.run = r;
+    const door = { kind: 'swap', label: 'Closet', parts: r.parts, center: O.clone().addScaledVector(a, W / 2).addScaledVector(n, LATTICE.D / 2).setY(1.2),
+      swap: () => selectFurniture(selected === vpaxMover ? null : vpaxMover), prompt: () => (selected === vpaxMover ? 'Done with the closet' : 'Closet options') };
+    for (const q of r.parts) q.userData.door = door;
+    vpax.swap = door; doors.push(door); vpaxDimsUpdate();
+    if (window.__deskReady) window.__buildDesk();
+    return;
+  }
   // temporarily point the shared PAX builder at this closet's height and colours
   const keep = { H: H_CL, D: DOOR_H, fr: MATS.paxFrame, dr: MATS.paxDoor, dc: D_CL, zc, pin: MATS.paxIn };
   H_CL = HH.H; DOOR_H = HH.door;
@@ -106,8 +115,8 @@ function vpaxDimsUpdate() {
   if (G.toWin !== null) vpaxDims.add(dimLine(P(0, zq), P(-G.toWin, zq), `${G.toWin.toFixed(2)} m`, 0.9));
   if (G.toSofa !== null) vpaxDims.add(dimLine(P(r.width / 2, D), P(r.width / 2, D + G.toSofa), `${G.toSofa.toFixed(2)} m to the sofa${guest.open ? ' bed' : ''}${G.toSofa < 0.5 ? ' (doors can’t fully open)' : ''}`, 0.5));
 }
-const VPAX_MODEL = { id: 'vm', label: 'Model', options: () => [{ label: 'PAX + FLISBERGET doors' }, { label: 'PAX frame (garderobsstomme)' }], get: () => vpax.model,
-  set: (i) => { vpax.model = i; vpax.atWin = true; buildVaerCloset(); selectFurniture(vpaxMover); } };
+const VPAX_MODEL = { id: 'vm', label: 'Model', options: () => [{ label: 'PAX + FLISBERGET doors' }, { label: 'PAX frame (garderobsstomme)' }, { label: 'Our lattice closet 85 × 37 × 180' }], get: () => vpax.model,
+  set: (i) => { vpax.model = i; if (i !== 2) vpax.atWin = true; buildVaerCloset(); selectFurniture(vpaxMover); } };
 const VPAX_SELECTS = [VPAX_MODEL,
   { id: 'vw', label: 'Width', options: () => VPAX.widths.map((w) => ({ label: `${Math.round(w * 100)} cm · ${Math.round(w * 2)} door${w > 0.5 ? 's' : ''}` })), get: () => vpax.w, set: (i) => { vpax.w = i; buildVaerCloset(); } },
   { id: 'vh', label: 'Height', options: () => VPAX.heights.map((h) => ({ label: h.name })), get: () => vpax.h, set: (i) => { vpax.h = i; buildVaerCloset(); } },
@@ -125,24 +134,26 @@ const PAXF_SELECTS = [VPAX_MODEL,
 ];
 const vpaxMover = {
   name: 'Værelse closet',
-  title: () => (vpax.model ? `PAX frame · ${PAXF.widths[vpax.fw].cm} × ${PAXF.depths[vpax.fd].cm} × ${PAXF.heights[vpax.fh].cm}` : `PAX / FLISBERGET · ${Math.round(VPAX.widths[vpax.w] * 100)} cm`),
+  title: () => (vpax.model === 2 ? 'Our lattice closet · 85 × 37 × 180 cm' : vpax.model ? `PAX frame · ${PAXF.widths[vpax.fw].cm} × ${PAXF.depths[vpax.fd].cm} × ${PAXF.heights[vpax.fh].cm}` : `PAX / FLISBERGET · ${Math.round(VPAX.widths[vpax.w] * 100)} cm`),
   anchor: () => (vpax.run ? vpax.run.O.clone().addScaledVector(vpax.wall.a, vpax.run.width / 2).addScaledVector(vpax.wall.n, vpaxDepth() + 0.3).setY(1.3) : null),
   axis: () => vpax.wall.a,
   shift: (dir) => { const b = vpax.off; vpax.atWin = false; vpax.off -= dir * 0.05; buildVaerCloset(); if (Math.abs(vpax.off - b) < 1e-6) showToast(dir > 0 ? 'Any closer and the room door hits it' : 'Can’t go further: window wall'); },
-  get variant() { return vpax.model ? { label: () => (vpax.fw === 1 && vpax.fd === 0 ? 'Try 50 × 58' : 'Try 100 × 35'),
+  get variant() { return vpax.model === 2 ? null : vpax.model ? { label: () => (vpax.fw === 1 && vpax.fd === 0 ? 'Try 50 × 58' : 'Try 100 × 35'),
     run: () => { const to100 = !(vpax.fw === 1 && vpax.fd === 0); vpax.fw = to100 ? 1 : 0; vpax.fd = to100 ? 0 : 1; if (to100 && PAXF.colours[vpax.fc].deep === 1) vpax.fc = 0; buildVaerCloset(); buildMoverSelects(vpaxMover); showToast(to100 ? 'PAX frame 100 × 35' : 'PAX frame 50 × 58'); } } : undefined; },
-  get selects() { return vpax.model ? PAXF_SELECTS : VPAX_SELECTS; },
-  link: () => vpaxUrl(),
+  get selects() { return vpax.model === 2 ? [VPAX_MODEL] : vpax.model ? PAXF_SELECTS : VPAX_SELECTS; },
+  get link() { return vpax.model === 2 ? undefined : () => vpaxUrl(); },
   info: () => { const G = vpaxGaps(); const t = (x) => (x === null ? '—' : `${x.toFixed(2)} m`);
+    if (vpax.model === 2) return `The one you already have: solid wood, lattice doors · ${t(G.toDoor)} to the door end · ${t(G.toWin)} to the window wall · ${t(G.toSofa)} to the sofa${guest.open ? ' bed' : ''} · ◀▶ slides it along the wall`;
     if (vpax.model) { const it = paxfItem(), Wc = PAXF.widths[vpax.fw], Dc = PAXF.depths[vpax.fd];
       return `${(Wc.w * 100).toFixed(1)} × ${(Dc.d * 100).toFixed(1)} × ${(PAXF.heights[vpax.fh].H * 100).toFixed(1)} cm · ${it[1].toLocaleString('en')} kr (IKEA SE) · ${t(G.toWin)} to the window wall · ${t(G.toDoor)} to the door end · ${t(G.toSofa)} to the sofa${guest.open ? ' bed' : ''} · ${vpax.fdoor ? 'doors + hinges extra (FLISBERGET 50 per door)' : 'frame only: doors'}, shelves and rail sold separately${Wc.cm === 100 ? ' · the 100 frame has no middle side' : ''}`; }
     return `${t(G.toDoor)} to the door end · ${t(G.toWin)} to the window wall · ${t(G.toSofa)} to the sofa${guest.open ? ' bed' : ''}${G.toSofa !== null && G.toSofa < 0.5 ? ' — doors can’t open fully' : ''} · white/lys beige is the standard combo; other frame colours: check IKEA` },
 };
 // ------------------------------------------------------------ Værelse: PAX 50 × 60 × 236 + one FLISBERGET door in the nook just left of the door as you come in
 // (the jog between the door jamb x≈6.2 and the short wall x≈5.63, 70 cm deep) — IKEA planner price 1,300 kr; frame/door colours follow the big closet
-const nook = { h: 0, run: null, swap: null };
+const nook = { h: 0, run: null, swap: null, removed: true };   // 2026-11-16 Gianluca: switches and sockets are in that nook; left empty while they decide
 function buildNookCloset() {
-  if (nook.run) { scene.remove(nook.run.g); dropParts(nook.run.parts); for (const d of nook.run.doors) removeHingedDoor(d); const i = doors.indexOf(nook.swap); if (i >= 0) doors.splice(i, 1); }
+  if (nook.run) { scene.remove(nook.run.g); dropParts(nook.run.parts); for (const d of nook.run.doors) removeHingedDoor(d); const i = doors.indexOf(nook.swap); if (i >= 0) doors.splice(i, 1); nook.run = null; nook.swap = null; }
+  if (nook.removed) return;
   const Wl = wallLine([5.8, 5.0], [6.05, 5.0], [0, -1]); if (!Wl) return;       // the south wall face inside the nook
   const n = Wl.n, a = new THREE.Vector3().crossVectors(UP, n).normalize();
   const eastX = 5.64 + 0.498;                                                     // 1 cm off the jog wall, 49.8 wide

@@ -1,7 +1,32 @@
 // ------------------------------------------------------------ dining: table + chairs, moved and rotated as one group
 // Table and chair candidates are separate lists, so each can be swapped independently (sizes, finishes, colours).
 const ILVA = (p) => `https://ilva.dk/${p}/`;
+const IL = (h, v) => `https://ilva.dk/products/${h}${v ? `?variant=${v}` : ''}`;   // ilva.dk moved to Shopify (Nov 2026)
 const TABLE_MODELS = [
+  // Gianluca (2026-11-15): not decided, but thinking of ILVA's Ø120 round tables (extendable or not), in a wood colour. All four from ilva.dk,
+  // Nov 2026, 75 cm high. Torsby is the only Ø120 that extends (2 × 50 cm leaves, 1.699 kr each).
+  { brand: 'ILVA', name: 'Torsby Ø120', style: 'straight', url: IL('torsby-spisebord-d-120-cm'),
+    configs: [
+      { name: 'Ø120 cm · 4.499 kr (lysegrå HPL 4.999 kr)', D: 1.2, L: 1.2, H: 0.75, leaves: 0, seats: 6, urls: [IL('torsby-spisebord-d-120-cm', 54352960356691), IL('torsby-spisebord-d-120-cm', 54352960323923)] },
+      { name: 'Ø120 + 1 tillægsplade 50 cm (170 × 120) · 4.499 + 1.699 kr', D: 1.2, L: 1.7, H: 0.75, leaves: 1, seats: 8, urls: [IL('torsby-tillaegsplade-120-x-50-cm'), IL('torsby-tillaegsplade-120-x-50-cm')] },
+      { name: 'Ø120 + 2 tillægsplader (220 × 120) · 4.499 + 3.398 kr', D: 1.2, L: 2.2, H: 0.75, leaves: 2, seats: 10, urls: [IL('torsby-tillaegsplade-120-x-50-cm'), IL('torsby-tillaegsplade-120-x-50-cm')] },
+    ],
+    finishes: [
+      { name: 'Natur eg finér · ben i lakeret massiv eg', top: 0xd1aa78, edge: 0xc69e6c, legs: 0xcfa877, grain: true },
+      { name: 'Lysegrå HPL-laminat · egekant og egeben', top: 0xb9bab5, edge: 0xc69e6c, legs: 0xcfa877 },
+    ] },
+  { brand: 'ILVA', name: 'Alvik Ø120', style: 'splay', taper: true, url: IL('alvik-spisebord-d-120-cm', 54539677958483),
+    configs: [{ name: 'Ø120 cm · 2.999 kr', D: 1.2, L: 1.2, H: 0.75, leaves: 0, seats: 4, urls: [IL('alvik-spisebord-d-120-cm', 54539677958483)] }],
+    finishes: [{ name: 'Natur eg finér lagt i sol · oliebehandlede ben i massiv eg', top: 0xcb9b66, edge: 0xb88856, legs: 0x7d5133, sunburst: true }] },
+  { brand: 'ILVA', name: 'Richmont Ø120', style: 'splay', url: IL('richmont-spisebord-d-120-cm'),
+    configs: [{ name: 'Ø120 cm · 2.999 kr (før 4.999)', D: 1.2, L: 1.2, H: 0.75, leaves: 0, seats: 4, urls: [IL('richmont-spisebord-d-120-cm', 54352954622291), IL('richmont-spisebord-d-120-cm', 54352954589523)] }],
+    finishes: [
+      { name: 'Natur eg finér · matlakerede egeben', top: 0xc9a072, edge: 0xbb9264, legs: 0xc09868, grain: true },
+      { name: 'Røgfarvet eg finér · bejdsede egeben', top: 0x4b3b30, edge: 0x3f3128, legs: 0x30251e, grain: true },
+    ] },
+  { brand: 'ILVA', name: 'Landholm Ø120', style: 'fluted', url: IL('landholm-spisebord-d-120-cm', 54352951673171),
+    configs: [{ name: 'Ø120 cm · 2.899 kr (før 5.799)', D: 1.2, L: 1.2, H: 0.75, leaves: 0, seats: 5, urls: [IL('landholm-spisebord-d-120-cm', 54352951673171)] }],
+    finishes: [{ name: 'Mat natur eg finér · riflet søjlefod', top: 0xbd9060, edge: 0xad8152, legs: 0xa97d4f, grain: true }] },
   { brand: 'ILVA', name: 'Besalu', maker: 'Hammel Furniture', url: ILVA('spisestuen/spiseborde/besalu/top-i-egemelamin/p-1085382-5643266318'),
     configs: [   // round top that pulls apart for leaves; with leaves it becomes a stadium (round ends)
       // prices from ilva.dk (Sept 2026); urls per finish: [egemelamin, hvid melamin]
@@ -35,6 +60,18 @@ const TABLE_MODELS = [
     ] },
 ];
 const CHAIR_MODELS = [
+  // DECIDED (Gianluca, 2026-11-15): ILVA Swan "in the darker colour" = Crush Taupe. ilva.dk Nov 2026: oak-leg version 55 × 59 × 81.5 cm, seat 49 cm,
+  // 6.65 kg, bouclé-like Crush cover, lacquered solid oak legs, 1.999 kr (Off White / Taupe); black powder-coated metal legs 54 × 58.5 × 81.5,
+  // 1.099 kr (før 1.599) in Taupe / Forest / Off White. Shape from the product photos: a wide padded shell wrapping round the back,
+  // a thick round-fronted seat, the rear legs rising up behind the shell.
+  { brand: 'ILVA', name: 'Swan', style: 'swan', url: IL('swan-spisebordsstol-1', 54315331027283), W: 0.55, D: 0.59, H: 0.815, SH: 0.49,
+    variants: [
+      { name: 'Egeben · Crush Taupe · 1.999 kr', seat: 0x584a40, rough: 1, legs: 0x986a46, url: IL('swan-spisebordsstol-1', 54315331027283) },
+      { name: 'Egeben · Crush Off White · 1.999 kr', seat: 0xe2dccf, rough: 1, legs: 0x986a46, url: IL('swan-spisebordsstol-1', 54315330994515) },
+      { name: 'Sorte metalben · Crush Taupe · 1.099 kr (før 1.599)', seat: 0x584a40, rough: 1, legs: 0x1c1c1c, metal: true, url: IL('swan-spisebordsstol', 54315322573139) },
+      { name: 'Sorte metalben · Crush Forest · 1.099 kr (før 1.599)', seat: 0x3e4a3c, rough: 1, legs: 0x1c1c1c, metal: true, url: IL('swan-spisebordsstol', 54315322605907) },
+      { name: 'Sorte metalben · Crush Off White · 1.099 kr (før 1.599)', seat: 0xe2dccf, rough: 1, legs: 0x1c1c1c, metal: true, url: IL('swan-spisebordsstol', 54315322638675) },
+    ] },
   // ilva.dk (checked 2026-10-05): L 48 × D 54.5 × H 80 cm, seat 45 cm, 5 kg, matlakeret massiv eg + papirflet, 2.099 kr (før 3.499)
   { brand: 'ILVA', name: 'Kasami', style: 'kasami', url: ILVA('spisestuen/spisebordsstole/kasami/saede-i-naturfarvet-papirflet/p-1086846-5643326834'), W: 0.48, D: 0.545, H: 0.80, SH: 0.45,
     variants: [   // massiv eg, matlakeret; sæde + ryg i papirflet · 2.099 kr (før 3.499)
@@ -45,7 +82,7 @@ const CHAIR_MODELS = [
 MATS.tTop = std({ color: 0xd8c29f, roughness: 0.55 }); MATS.tEdge = std({ color: 0xcfb58c, roughness: 0.6 }); MATS.tLegs = std({ color: 0xe2d3b8, roughness: 0.6 });
 MATS.cSeat = std({ color: 0x958777, roughness: 1, side: THREE.DoubleSide }); MATS.cLegs = std({ color: 0xc9a473, roughness: 0.5 });
 MATS.seam = std({ color: 0x8a7658, roughness: 0.8 });
-const dining = { t: 0, tc: 0, tf: 1, c: 0, cv: 0, n: 4, out: false, angle: 0, O: null, group: null, parts: [] };
+const dining = { t: 0, tc: 0, tf: 0, c: 0, cv: 0, n: 4, out: false, angle: 0, O: null, group: null, parts: [] };
 const diningDims = new THREE.Group(); dimsGroup.add(diningDims);
 function dFrame() { const a = dining.angle; return { x: new THREE.Vector3(Math.cos(a), 0, -Math.sin(a)), z: new THREE.Vector3(Math.sin(a), 0, Math.cos(a)) }; }
 function chairSpots() {
@@ -97,12 +134,24 @@ function diningClear(O, angle) {
 function applyDiningMats() {
   const F = TABLE_MODELS[dining.t].finishes[dining.tf], V = CHAIR_MODELS[dining.c].variants[dining.cv];
   MATS.tTop.color.setHex(F.top); MATS.tEdge.color.setHex(F.edge); MATS.tLegs.color.setHex(F.legs);
-  { const m = F.stone ? stoneTex() : F.grain ? grainTex() : null; if (MATS.tTop.map !== m) { MATS.tTop.map = m; MATS.tTop.needsUpdate = true; } }
+  { const m = F.stone ? stoneTex() : F.sunburst ? sunburstTex() : F.grain ? grainTex() : null; if (MATS.tTop.map !== m) { MATS.tTop.map = m; MATS.tTop.needsUpdate = true; } }
   MATS.cSeat.color.setHex(V.seat); MATS.cSeat.roughness = V.rough; MATS.cLegs.color.setHex(V.legs);
-  const cord = CHAIR_MODELS[dining.c].style === 'kasami' ? cordTex() : null;
+  MATS.cLegs.metalness = V.metal ? 0.6 : 0; MATS.cLegs.roughness = V.metal ? 0.4 : 0.5;
+  const st = CHAIR_MODELS[dining.c].style, cord = st === 'kasami' ? cordTex() : st === 'swan' ? weaveTex('boucle') : null;
   if (MATS.cSeat.map !== cord) { MATS.cSeat.map = cord; MATS.cSeat.needsUpdate = true; }
 }
-let _stoneTex = null, _grainTex = null;
+let _stoneTex = null, _grainTex = null, _sunTex = null;
+function sunburstTex() {                                // Alvik: oak veneer laid in 16 wedges round the centre (UVs of the round top are metres, centred)
+  if (_sunTex) return _sunTex;
+  const t = canvasTex(1024, 1024, (g, W) => { const r = rng(93); g.fillStyle = '#f0f0f0'; g.fillRect(0, 0, W, W);
+    for (let k = 0; k < 16; k++) { g.save(); g.translate(W / 2, W / 2); g.rotate(k * Math.PI / 8); g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, W, -Math.PI / 16, Math.PI / 16); g.closePath(); g.clip();
+      g.fillStyle = k % 2 ? '#e9e9e9' : '#f6f6f6'; g.fillRect(0, -W, W, 2 * W);
+      for (let i = 0; i < 90; i++) { const y = (r() - 0.5) * W * 0.2, v = 150 + r() * 70 | 0; g.strokeStyle = `rgba(${v},${v},${v},0.35)`; g.lineWidth = 0.5 + r() * 2; g.beginPath(); g.moveTo(0, y * 0.1); g.lineTo(W, y * 1.6); g.stroke(); }
+      g.restore(); }
+  }, [1.2, 1.2]);
+  t.offset.set(0.5, 0.5);
+  return (_sunTex = t);
+}
 function stoneTex() {                                   // travertine: warm beige with soft horizontal bands and small pits
   return (_stoneTex ||= canvasTex(512, 512, (g, W) => { const r = rng(91); g.fillStyle = '#f4f0ea'; g.fillRect(0, 0, W, W);
     for (let k = 0; k < 70; k++) { const y = r() * W, v = 225 + r() * 25 | 0; g.fillStyle = `rgba(${v},${v - 6},${v - 14},0.5)`; g.fillRect(0, y, W, 1 + r() * 6); }
@@ -146,6 +195,44 @@ function kasamiChair(ch, C, add) {
   add(new THREE.CylinderGeometry(R + 0.012, R + 0.012, 0.035, 24, 1, true, Math.PI - span / 2, span), legs, 0, C.H - 0.075, back + R, ch);
   add(new THREE.CylinderGeometry(R - 0.012, R - 0.012, 0.035, 24, 1, true, Math.PI - span / 2, span), legs, 0, C.H - 0.075, back + R, ch);
 }
+// soft shapes for the Swan: squash a softBox's plan or face to a superellipse (corners pulled in), and bend a slab round a vertical axis
+function superRound(geo, axis, a, b, nPos, nNeg) {
+  const P = geo.attributes.position;
+  for (let i = 0; i < P.count; i++) {
+    const u = P.getX(i), v = axis === 'xz' ? P.getZ(i) : P.getY(i); if (Math.abs(u) < 1e-9 && Math.abs(v) < 1e-9) continue;
+    const th = Math.atan2(v / b, u / a), c = Math.abs(Math.cos(th)), s = Math.abs(Math.sin(th)), n = v > 0 ? nPos : nNeg;
+    const k = Math.pow(Math.pow(c, n) + Math.pow(s, n), -1 / n) * Math.max(c, s);
+    P.setX(i, u * k); if (axis === 'xz') P.setZ(i, v * k); else P.setY(i, v * k);
+  }
+}
+function bendAroundY(geo, R) {                          // +z (front) side becomes the inside of the curve; x = arc length
+  const P = geo.attributes.position;
+  for (let i = 0; i < P.count; i++) { const x = P.getX(i), z = P.getZ(i), th = x / R, rho = R - z; P.setX(i, rho * Math.sin(th)); P.setZ(i, R - rho * Math.cos(th)); }
+}
+function swanChair(ch, C, add) {
+  const V = CHAIR_MODELS[dining.c].variants[dining.cv], metal = !!V.metal, legs = MATS.cLegs, d = C.D, SH = C.SH;
+  // seat: a thick soft cushion, round at the front, flatter at the back
+  const sw = C.W - 0.02, sd = d - 0.13, st = 0.085, sz = 0.04;
+  const seat = softBox(sw, st, sd, 0.034, { top: 0.008 }); superRound(seat, 'xz', sw / 2, sd / 2, 2.3, 4.5); seat.computeVertexNormals();
+  add(seat, MATS.cSeat, 0, SH - st / 2, sz, ch);
+  // back: a wide padded shell that wraps round the sitter like a wing
+  const bw = 0.60, bh = 0.29, bt = 0.07, R = 0.30;
+  const back = softBox(bw, bh, bt, 0.032, { front: 0.005 }); superRound(back, 'xy', bw / 2, bh / 2, 2.2, 3.4); bendAroundY(back, R); back.computeVertexNormals();
+  const zb = -d / 2 + bt / 2 + 0.005, yb = C.H - bh / 2 - 0.004;
+  const bm = add(back, MATS.cSeat, 0, yb, zb, ch); bm.rotation.x = -0.12;
+  // legs: oak (square-ish, tapering) or thin black steel tubes; the rear pair rises behind the shell
+  const leg = (x0, y0, z0, x1, y1, z1, rt, rb) => { const p0 = new THREE.Vector3(x0, y0, z0), p1 = new THREE.Vector3(x1, y1, z1), v = p1.clone().sub(p0);
+    const m = add(new THREE.CylinderGeometry(rt, rb, v.length(), metal ? 12 : 4), legs, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, ch);
+    m.quaternion.setFromUnitVectors(UP, v.normalize()); if (!metal) m.rotateY(Math.PI / 4); return m; };
+  const r0 = metal ? 0.011 : 0.024, r1 = metal ? 0.011 : 0.017, under = SH - st, fx = sw / 2 - 0.085, rx = sw / 2 - 0.1;
+  for (const sx of [1, -1]) {
+    leg(sx * (fx + 0.025), 0, sz + sd / 2 - 0.05, sx * fx, under, sz + sd / 2 - 0.1, r0 * 0.9, r1);                          // front legs, splayed a little
+    leg(sx * (rx + 0.02), 0, -d / 2 + 0.13, sx * rx, yb + 0.02, -d / 2 + 0.035, r0, r1);                                      // rear legs up behind the shell
+    if (!metal) add(new THREE.BoxGeometry(0.022, 0.05, sd - 0.12), legs, sx * (fx - 0.01), under - 0.03, sz - 0.02, ch);       // side rails under the seat
+  }
+  if (!metal) for (const z of [sz + sd / 2 - 0.1, -d / 2 + 0.1]) add(new THREE.BoxGeometry(2 * fx - 0.02, 0.045, 0.022), legs, 0, under - 0.03, z, ch);
+  else add(new THREE.BoxGeometry(sw - 0.16, 0.012, sd - 0.16), legs, 0, under - 0.008, sz, ch);                                 // steel seat plate
+}
 function stadiumShape(L, D) {
   const r = D / 2, s = (L - D) / 2, sh = new THREE.Shape();
   if (s < 0.001) { sh.absarc(0, 0, r, 0, Math.PI * 2, false); return sh; }
@@ -178,17 +265,31 @@ function buildDining(tryPlace) {
   for (let i = 0; i < T.leaves + (T.leaves ? 1 : 0); i++) {        // seams where the leaves meet
     const x = T.leaves ? -s + (2 * s) * i / T.leaves : 0; add(new THREE.BoxGeometry(0.003, 0.002, T.D * 0.98), MATS.seam, x, T.H + 0.0005, 0);
   }
-  const apR = T.D / 2 - 0.12, legH = T.H - TT;
-  add(new THREE.BoxGeometry(T.L - T.D + apR * 1.6, 0.07, apR * 1.6), MATS.tLegs, 0, T.H - TT - 0.035, 0).visible = true;
-  for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
-    const lx = sx * (s + apR * 0.62), lz = sz * apR * 0.62;
-    const leg = add(new THREE.CylinderGeometry(0.022, 0.016, legH, TABLE_MODELS[dining.t].roundLegs ? 14 : 4), MATS.tLegs, lx + sx * 0.04, legH / 2, lz + sz * 0.04);
-    leg.rotation.set(sz * 0.07, Math.PI / 4, -sx * 0.07);
+  const apR = T.D / 2 - 0.12, legH = T.H - TT, TM = TABLE_MODELS[dining.t], tstyle = TM.style || 'splay';
+  if (tstyle === 'straight') {                          // Torsby: a deep skirt under the top, four straight round legs; each half takes two when it pulls apart
+    const ro = T.D / 2 - 0.035, ri = ro - 0.022, skirt = stadiumShape(T.L - (T.D - 2 * ro), 2 * ro); skirt.holes.push(new THREE.Path(stadiumShape(T.L - (T.D - 2 * ri), 2 * ri).getPoints(64).reverse()));
+    const sk = add(new THREE.ExtrudeGeometry(skirt, { depth: 0.075, bevelEnabled: false, curveSegments: 48 }), MATS.tLegs, 0, T.H - TT, 0); sk.rotation.x = Math.PI / 2;
+    const lr = ro - 0.045;
+    for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) add(new THREE.CylinderGeometry(0.026, 0.024, legH, 20), MATS.tLegs, sx * (s + lr * Math.SQRT1_2), legH / 2, sz * lr * Math.SQRT1_2);
+  } else if (tstyle === 'fluted') {                     // Landholm: a fluted square column with a cross of thin fins
+    const C2 = 0.56, rib = 0.017, nr = Math.round(C2 / (2 * rib));
+    add(new THREE.BoxGeometry(C2 - 0.02, legH, C2 - 0.02), MATS.tLegs, 0, legH / 2, 0);
+    for (let k = 0; k < nr; k++) { const t = -C2 / 2 + rib + k * 2 * rib;
+      for (const [x, z] of [[t, C2 / 2 - rib], [t, -C2 / 2 + rib], [C2 / 2 - rib, t], [-C2 / 2 + rib, t]]) add(new THREE.CylinderGeometry(rib, rib, legH, 8), MATS.tLegs, x, legH / 2, z); }
+    for (const rot of [0, Math.PI / 2]) { const fin = add(new THREE.BoxGeometry(0.86, legH, 0.03), MATS.tLegs, 0, legH / 2, 0); fin.rotation.y = rot; }
+  } else {
+    add(new THREE.BoxGeometry(T.L - T.D + apR * 1.6, 0.07, apR * 1.6), MATS.tLegs, 0, T.H - TT - 0.035, 0).visible = true;
+    for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const lx = sx * (s + apR * 0.62), lz = sz * apR * 0.62;
+      const leg = add(new THREE.CylinderGeometry(TM.taper ? 0.026 : 0.022, TM.taper ? 0.012 : 0.016, legH, TM.roundLegs || TM.taper ? 14 : 4), MATS.tLegs, lx + sx * 0.04, legH / 2, lz + sz * 0.04);
+      leg.rotation.set(sz * 0.07, Math.PI / 4, -sx * 0.07);
+    }
   }
   // chairs (Adler-like): upholstered seat, curved upholstered back band, oak legs, rear legs rising into the back
   for (const [cx, cz, face] of chairSpots()) {
     const ch = new THREE.Group(); ch.position.set(cx, 0, cz); ch.rotation.y = -face + Math.PI / 2; g.add(ch);
     if (C.style === 'kasami') { kasamiChair(ch, C, add); continue; }
+    if (C.style === 'swan') { swanChair(ch, C, add); continue; }
     const w = C.W - 0.08, d = C.D - 0.08, sh2 = C.SH;
     add(new THREE.BoxGeometry(w, 0.07, d), MATS.cSeat, 0, sh2 - 0.035, 0, ch);
     add(new THREE.BoxGeometry(w - 0.04, 0.025, d - 0.06), MATS.cLegs, 0, sh2 - 0.085, 0, ch);
@@ -581,8 +682,10 @@ const diningMover = {
       set: (i) => { dining.tc = i; buildDining(); } },
     { id: 'tfin', label: 'Table finish', options: () => TABLE_MODELS[dining.t].finishes.map((f) => ({ label: f.name })), get: () => dining.tf,
       set: (i) => { dining.tf = i; applyDiningMats(); } },
+    { id: 'cmod', label: 'Chairs', options: () => CHAIR_MODELS.map((m) => ({ label: `${m.brand} ${m.name}` })), get: () => dining.c,
+      set: (i) => { dining.c = i; dining.cv = 0; buildDining(); buildMoverSelects(diningMover); } },
     { id: 'cvar', label: 'Chair colour', options: () => CHAIR_MODELS[dining.c].variants.map((v) => ({ label: v.name })), get: () => dining.cv,
-      set: (i) => { dining.cv = i; applyDiningMats(); } },
+      set: (i) => { dining.cv = i; buildDining(); } },
   ],
 };
 

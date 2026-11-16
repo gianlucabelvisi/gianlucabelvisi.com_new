@@ -163,7 +163,7 @@ function otApply() {
   orbit.target.copy(t); camera.position.copy(t).add(new THREE.Vector3().setFromSpherical(sph)); camera.lookAt(t);
 }
 canvas.addEventListener('pointerdown', (e) => {
-  if (e.pointerType !== 'touch' || mode !== 'over' || camTween) return;
+  if (e.pointerType !== 'touch' || mode !== 'over' || camTween || place.on) return;
   otouch.pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); otBase();
   try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* optional */ }
 });
@@ -198,6 +198,7 @@ function setMode(m, internal) {
   }
   $('cross').hidden = true;
   showHint();
+  syncModeUI();
 }
 $('mWalk').addEventListener('click', () => { setMode('walk'); closeMenu(); });
 $('mOver').addEventListener('click', () => { setMode('over'); closeMenu(); });
@@ -212,7 +213,7 @@ canvas.addEventListener('pointerdown', (e) => {
 addEventListener('pointercancel', (e) => tapDown.delete(e.pointerId));
 canvas.addEventListener('pointerup', (e) => {
   const d = tapDown.get(e.pointerId); tapDown.delete(e.pointerId);
-  if (mode !== 'over' || focus) return;
+  if (mode !== 'over' || focus || place.on) return;
   const now = performance.now();
   if (!d || d.multi || now - d.t > 300 || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8) { lastTap = null; return; }
   const prev = lastTap; lastTap = { t: now, x: e.clientX, y: e.clientY };
@@ -284,13 +285,13 @@ function stepAuto(dt) {
 // its toggles stay hidden in the DOM as the state the quick-bar buttons drive)
 function openMenu() { /* no drawer any more */ }
 function closeMenu() { $('timePop').hidden = true; $('qTime').setAttribute('aria-pressed', 'false'); }
-$('qView').addEventListener('click', () => setMode(mode === 'walk' ? 'over' : 'walk'));
+$('qView').addEventListener('click', () => toggleView());
 { const pop = $('timePop'); pop.append($('sun'), document.querySelector('.sunmarks'), $('sunlabel')); }
 $('qTime').addEventListener('click', () => { const open = $('timePop').hidden; if (open) $('timePop').style.top = `${Math.max(8, $('qTime').getBoundingClientRect().top - 6)}px`; $('timePop').hidden = !open; $('qTime').setAttribute('aria-pressed', open); if (open && document.pointerLockElement) document.exitPointerLock(); });
 canvas.addEventListener('pointerdown', () => { if (!$('timePop').hidden) closeMenu(); });
 addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey || !$('lightbox').hidden) return;
-  if (e.code === 'KeyV' && !e.repeat) setMode(mode === 'walk' ? 'over' : 'walk');
+  if (e.code === 'KeyV' && !e.repeat) toggleView();
   else if (e.code === 'KeyH' && !e.repeat) $('qTime').click();
   else if (e.code === 'Escape' && !$('timePop').hidden) closeMenu();
 });
@@ -318,7 +319,8 @@ function showHint() {
   const h = $('hint');
   if (!started || coarse) { h.hidden = true; return; }
   if (measuring) { h.textContent = locked ? 'Aim the dot and click to drop a point · Esc to use the pointer' : 'Click two points to measure · Ctrl/Cmd+Z undoes the last one'; h.hidden = false; }
-  else if (mode === 'over') { h.textContent = 'Drag to orbit · scroll to zoom · double-click a floor to walk there'; h.hidden = false; }
+  else if (place.on) { h.hidden = true; }
+  else if (mode === 'over') { h.textContent = 'Drag to turn · scroll to zoom · Walk (V) to step inside, or double-click a floor'; h.hidden = false; }
   else if (!locked) { h.textContent = 'Click the view to look around · W A S D to move · R to run'; h.hidden = false; }
   else h.hidden = true;
 }
@@ -386,6 +388,11 @@ let currentRoom = null;
 function updateRoom() {
   const x = player.pos.x, y = -player.pos.z;
   let found = null;
+  if (mode === 'over' && !focus && !camTween) {            // from above: name the flat, not the spot you last stood on
+    if (updateRoom.key === 'over') return; updateRoom.key = 'over'; currentRoom = null;
+    $('roomDa').textContent = 'Belvisi Jensen'; $('roomEn').textContent = 'The whole flat · from above'; $('roomDim').textContent = '';
+    return;
+  }
   if (player.fy < -0.3 || player.fy > 0.3) {
     const lab = levelLabel(), key = lab ? lab.join('|') : 'out';
     if (key === updateRoom.key) return; updateRoom.key = key; currentRoom = null;

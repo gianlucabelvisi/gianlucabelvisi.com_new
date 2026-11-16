@@ -343,6 +343,55 @@
   #mover.docked .mvtop { cursor: default; }
   #mover.docked #mvGrip { display: none !important; }
   @media (max-width: 640px) { body.focus #quick, body.focus #joy { display: none !important; } }
+  /* ---- UX pass 2026-11-16: view switch, pick-where-to-stand, busy chip, coach card, loader ---- */
+  #modeSeg { position: fixed; left: 50%; top: calc(var(--gut) + var(--safe-t)); transform: translateX(-50%); display: flex; gap: 2px; padding: 4px; border-radius: 999px; z-index: 7; }
+  #modeSeg button { display: flex; align-items: center; gap: 7px; font: 600 13.5px/1 var(--ui); color: var(--muted); background: transparent; border: 0; border-radius: 999px; padding: 10px 15px; cursor: pointer; transition: background .18s, color .18s; min-height: 40px; }
+  #modeSeg button svg { width: 17px; height: 17px; }
+  #modeSeg button:hover { color: var(--ink); }
+  #modeSeg button[aria-pressed="true"] { background: var(--oak); color: #1a1208; }
+  #placeBar { position: fixed; left: 50%; bottom: calc(var(--gut) + var(--safe-b)); transform: translateX(-50%); width: min(560px, calc(100% - 2 * var(--gut)));
+    padding: 14px 16px; display: grid; grid-template-columns: 1fr auto; gap: 10px 14px; align-items: start; z-index: 8; border-radius: 16px; }
+  #placeBar p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--muted); }
+  #placeBar p b { color: var(--ink); display: block; font-size: 15.5px; margin-bottom: 2px; }
+  #placeBar .pb-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; min-width: 0; }
+  #placeChips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
+  #placeChips::-webkit-scrollbar { display: none; }
+  #placeChips button, #placeCancel, #coach button { font: 600 13px/1 var(--ui); color: var(--ink); background: rgba(242,237,228,.07); border: 1px solid var(--line); border-radius: 999px; padding: 9px 12px; cursor: pointer; white-space: nowrap; }
+  #placeChips button:hover, #placeCancel:hover, #coach button:hover { background: rgba(242,237,228,.14); }
+  #placeCancel { grid-row: 1; grid-column: 2; }
+  body.placing #hint, body.placing #doorTip, body.placing #joyBase, body.placing #hud3d { display: none !important; }
+  #busy { position: fixed; left: 50%; top: calc(var(--gut) + var(--safe-t) + 60px); transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 10px 14px 10px 12px;
+    font: 600 13px/1 var(--ui); color: var(--ink); border-radius: 999px; z-index: 9; pointer-events: none; animation: busyIn .18s ease-out; }
+  #busy .spin, #intro .bar i { will-change: transform; }
+  #busy .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(242,237,228,.22); border-top-color: var(--oak); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes busyIn { from { opacity: 0; transform: translate(-50%, -4px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  #coach { position: fixed; left: 50%; bottom: calc(var(--gut) + var(--safe-b)); transform: translateX(-50%); width: min(420px, calc(100% - 2 * var(--gut))); padding: 16px 18px; display: grid; gap: 8px; z-index: 8; border-radius: 16px; }
+  #coach b { font-size: 16px; }
+  #coach p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  #coach .ci { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(242,237,228,.85); color: #1a1814; font: italic 700 12px/1 Georgia, serif; vertical-align: -3px; }
+  #coach .row { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+  #coach button.primary, #placeBar .primary { background: var(--oak); color: #1a1208; border-color: var(--oak); }
+  body.placing #coach { display: none; }
+  .touch-only-i { display: none; }
+  @media (pointer: coarse) { .touch-only-i { display: inline; } p.touch-only-i { display: block; } .mouse-only-i { display: none; } }
+  #intro { background: radial-gradient(ellipse at 50% 40%, #1d1a15, #0b0a09 70%); }
+  #intro .card { max-width: 360px; text-align: left; }
+  #intro .bar { height: 3px; border-radius: 3px; background: rgba(242,237,228,.12); overflow: hidden; position: relative; }
+  #intro .bar i { position: absolute; inset: 0 auto 0 0; width: 40%; background: var(--oak); border-radius: 3px; animation: introBar 1.2s ease-in-out infinite; }
+  @keyframes introBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+  #intro #go { font: 500 12.5px/1.3 var(--mono); color: var(--muted); background: none; border: 0; padding: 0; text-align: left; }
+  #intro #go:not(:disabled) { display: none; }
+  @media (prefers-reduced-motion: reduce) { #busy .spin, #intro .bar i { animation-duration: 3s; } #busy { animation: none; } }
+  body.focus #modeSeg, body.flying #modeSeg { display: none !important; }
+  @media (max-width: 720px), (pointer: coarse) {
+    #modeSeg { left: var(--gut); transform: none; top: calc(var(--gut) + var(--safe-t) + 58px); }
+    #modeSeg button { padding: 9px 12px; font-size: 13px; }
+    #busy { top: calc(var(--gut) + var(--safe-t) + 110px); left: var(--gut); transform: none; animation: none; }
+    #placeBar { bottom: calc(var(--gut) + var(--safe-b)); }
+    body.plan #modeSeg { display: none !important; }
+  }
+  body.coaching #hint { display: none !important; }
 </style>
 
 <div id="hud3d" aria-label="Interaction points"></div>
@@ -380,6 +429,22 @@
 <div id="joyBase" hidden aria-hidden="true"><i></i><b>Move</b></div>
 <div id="joy" hidden><i></i></div>
 <div id="toast" class="panel" hidden></div>
+<div id="modeSeg" class="panel" role="group" aria-label="View" hidden>
+  <button id="segOver" type="button" aria-pressed="true"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7.5 10 4l7 3.5-7 3.5z M3 11.5l7 3.5 7-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>From above</button>
+  <button id="segWalk" type="button" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="11" cy="3.6" r="1.7" fill="currentColor"/><path d="M8 18l2-5 2.5 2V18 M10 13l.8-4.5L8 10l-1.5 2.5 M10.8 8.5l2.2 2.3 2.2.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Walk</button>
+</div>
+<div id="placeBar" class="panel" hidden>
+  <p><b>Where do you want to stand?</b> <span class="mouse-only-i">Click a floor · drag before letting go to choose which way you face.</span><span class="touch-only-i">Tap a floor · drag before lifting to choose which way you face.</span></p>
+  <div class="pb-row"><span class="eyebrow">Or jump to</span><div id="placeChips"></div></div>
+  <button id="placeCancel" type="button">Cancel</button>
+</div>
+<div id="busy" class="panel" hidden role="status" aria-live="polite"><span class="spin" aria-hidden="true"></span><span id="busyTxt">Updating…</span></div>
+<div id="coach" class="panel" hidden>
+  <b>This is the flat from above</b>
+  <p class="mouse-only-i">Drag to turn, scroll to zoom, right-drag to slide. Click an <span class="ci">i</span> to look at a piece of furniture.</p>
+  <p class="touch-only-i">Drag to turn, pinch to zoom and twist, two fingers to slide. Tap an <span class="ci">i</span> to look at a piece of furniture.</p>
+  <div class="row"><button id="coachWalk" type="button" class="primary">Walk inside</button><button id="coachOk" type="button">Look around first</button></div>
+</div>
 <div id="mover" class="panel" hidden role="group" aria-label="Move furniture">
   <div class="mvtop"><span id="mvGrip" class="mouse-grip" title="Drag to move this panel · double-click to let it follow the furniture again" aria-hidden="true">⠿</span><b id="mvName">Bed</b><button id="mvDone" aria-label="Done">Done</button></div>
   <div class="mvrow" id="mvRow1"><button id="mvLeft" aria-label="Move 5 cm left" title="5 cm left" class="mvarrow">◀</button><button id="mvVar">Try 180 cm</button><button id="mvRight" aria-label="Move 5 cm right" title="5 cm right" class="mvarrow">▶</button></div>
@@ -465,19 +530,10 @@
 
 <div id="intro">
   <div class="card panel">
-    <h1>Welcome to Belvisi Jensen</h1>
-    <p>You start on the landing outside the front door: open it to step inside. Built from the floor plan in Blender, with oak floors and the kitchen as delivered. Camera pins open the Blender render taken from that spot. The bar on the right switches to the view from above, shows sizes, sockets, the tape measure and the map, and sets the time of day. Tap the map to jump somewhere.</p>
-    <dl class="help mouse-only">
-      <dt>W A S D</dt><dd>Walk, with the mouse to look around</dd>
-      <dt>E / Space</dt><dd>Open doors, the fridge and the balcony door</dd>
-      <dt>R · V · H</dt><dd>Run, view from above, time of day</dd>
-    </dl>
-    <dl class="help touch-only">
-      <dt>Joystick</dt><dd>Bottom left: push to walk</dd>
-      <dt>Drag</dt><dd>Anywhere else to look around</dd>
-      <dt>Tap floor</dt><dd>Walk to that spot</dd>
-      <dt>Right bar</dt><dd>View from above, sizes, map, run, time of day</dd>
-    </dl>
+    <span class="eyebrow">Copenhagen · Sluseholmen</span>
+    <h1>Belvisi Jensen</h1>
+    <p>Loading the apartment in 3D…</p>
+    <div class="bar" aria-hidden="true"><i></i></div>
     <button id="go" disabled>Loading model…</button>
   </div>
 </div>
@@ -847,6 +903,7 @@ new GLTFLoader().parse(glbBytes.buffer, '', (gltf) => {
   setTimeout(() => { if (window.__afterModel) window.__afterModel(); }, 0);
   $('go').disabled = false;
   $('go').textContent = 'Start walking';
+  setTimeout(() => { if (window.__onModelReady) window.__onModelReady(); }, 0);
   updateSun(+$('sunrange').value, true);
 }, (err) => {
   $('go').textContent = 'Could not load the 3D model. Reload the page to try again.';
@@ -1034,7 +1091,7 @@ function updateSun(h, rebuildEnv) {
   }
 }
 $('sunrange').addEventListener('input', (e) => updateSun(+e.target.value, false));
-$('sunrange').addEventListener('change', (e) => updateSun(+e.target.value, true));
+$('sunrange').addEventListener('change', (e) => { const v = +e.target.value; if (typeof busyRun === 'function' && started) busyRun('Changing the time of day…', () => updateSun(v, true)); else updateSun(v, true); });
 
 // ------------------------------------------------------------ post-processing (desktop)
 let composer = null, gtao = null;
@@ -1224,7 +1281,7 @@ function otApply() {
   orbit.target.copy(t); camera.position.copy(t).add(new THREE.Vector3().setFromSpherical(sph)); camera.lookAt(t);
 }
 canvas.addEventListener('pointerdown', (e) => {
-  if (e.pointerType !== 'touch' || mode !== 'over' || camTween) return;
+  if (e.pointerType !== 'touch' || mode !== 'over' || camTween || place.on) return;
   otouch.pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); otBase();
   try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* optional */ }
 });
@@ -1259,6 +1316,7 @@ function setMode(m, internal) {
   }
   $('cross').hidden = true;
   showHint();
+  syncModeUI();
 }
 $('mWalk').addEventListener('click', () => { setMode('walk'); closeMenu(); });
 $('mOver').addEventListener('click', () => { setMode('over'); closeMenu(); });
@@ -1273,7 +1331,7 @@ canvas.addEventListener('pointerdown', (e) => {
 addEventListener('pointercancel', (e) => tapDown.delete(e.pointerId));
 canvas.addEventListener('pointerup', (e) => {
   const d = tapDown.get(e.pointerId); tapDown.delete(e.pointerId);
-  if (mode !== 'over' || focus) return;
+  if (mode !== 'over' || focus || place.on) return;
   const now = performance.now();
   if (!d || d.multi || now - d.t > 300 || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8) { lastTap = null; return; }
   const prev = lastTap; lastTap = { t: now, x: e.clientX, y: e.clientY };
@@ -1345,13 +1403,13 @@ function stepAuto(dt) {
 // its toggles stay hidden in the DOM as the state the quick-bar buttons drive)
 function openMenu() { /* no drawer any more */ }
 function closeMenu() { $('timePop').hidden = true; $('qTime').setAttribute('aria-pressed', 'false'); }
-$('qView').addEventListener('click', () => setMode(mode === 'walk' ? 'over' : 'walk'));
+$('qView').addEventListener('click', () => toggleView());
 { const pop = $('timePop'); pop.append($('sun'), document.querySelector('.sunmarks'), $('sunlabel')); }
 $('qTime').addEventListener('click', () => { const open = $('timePop').hidden; if (open) $('timePop').style.top = `${Math.max(8, $('qTime').getBoundingClientRect().top - 6)}px`; $('timePop').hidden = !open; $('qTime').setAttribute('aria-pressed', open); if (open && document.pointerLockElement) document.exitPointerLock(); });
 canvas.addEventListener('pointerdown', () => { if (!$('timePop').hidden) closeMenu(); });
 addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey || !$('lightbox').hidden) return;
-  if (e.code === 'KeyV' && !e.repeat) setMode(mode === 'walk' ? 'over' : 'walk');
+  if (e.code === 'KeyV' && !e.repeat) toggleView();
   else if (e.code === 'KeyH' && !e.repeat) $('qTime').click();
   else if (e.code === 'Escape' && !$('timePop').hidden) closeMenu();
 });
@@ -1379,7 +1437,8 @@ function showHint() {
   const h = $('hint');
   if (!started || coarse) { h.hidden = true; return; }
   if (measuring) { h.textContent = locked ? 'Aim the dot and click to drop a point · Esc to use the pointer' : 'Click two points to measure · Ctrl/Cmd+Z undoes the last one'; h.hidden = false; }
-  else if (mode === 'over') { h.textContent = 'Drag to orbit · scroll to zoom · double-click a floor to walk there'; h.hidden = false; }
+  else if (place.on) { h.hidden = true; }
+  else if (mode === 'over') { h.textContent = 'Drag to turn · scroll to zoom · Walk (V) to step inside, or double-click a floor'; h.hidden = false; }
   else if (!locked) { h.textContent = 'Click the view to look around · W A S D to move · R to run'; h.hidden = false; }
   else h.hidden = true;
 }
@@ -1447,6 +1506,11 @@ let currentRoom = null;
 function updateRoom() {
   const x = player.pos.x, y = -player.pos.z;
   let found = null;
+  if (mode === 'over' && !focus && !camTween) {            // from above: name the flat, not the spot you last stood on
+    if (updateRoom.key === 'over') return; updateRoom.key = 'over'; currentRoom = null;
+    $('roomDa').textContent = 'Belvisi Jensen'; $('roomEn').textContent = 'The whole flat · from above'; $('roomDim').textContent = '';
+    return;
+  }
   if (player.fy < -0.3 || player.fy > 0.3) {
     const lab = levelLabel(), key = lab ? lab.join('|') : 'out';
     if (key === updateRoom.key) return; updateRoom.key = key; currentRoom = null;
@@ -1874,6 +1938,12 @@ function buildLeaf(d, pivot) {
     if (d.handle !== false) for (const zz of [-1, 1]) add(new THREE.BoxGeometry(0.014, Math.min(0.32, d.h * 0.5), 0.022), MATS.steel, d.len - 0.05, d.z0 + d.h * 0.45, zz * (d.thick / 2 + 0.012));
     if (d.grooves) { MATS.groove = MATS.groove || std({ color: 0x000000, roughness: 1, transparent: true, opacity: 0.18 });   // FLISBERGET: three panels split by two fine grooves
       for (const f of [1 / 3, 2 / 3]) add(new THREE.BoxGeometry(d.len - 0.004, 0.004, d.thick + 0.002), MATS.groove, d.len / 2, d.z0 + d.h * f); }
+    if (d.tonstad) {                                // IKEA TONSTAD: solid-oak edge with a milled finger grip instead of a handle
+      MATS.tonstadEdge = MATS.tonstadEdge || std({ color: 0xb98a55, roughness: 0.55, map: grainTex() });
+      MATS.groove = MATS.groove || std({ color: 0x000000, roughness: 1, transparent: true, opacity: 0.18 });
+      add(new THREE.BoxGeometry(0.03, d.h, d.thick + 0.002), MATS.tonstadEdge, d.len - 0.015, d.z0 + d.h / 2);
+      for (const zz of [-1, 1]) add(new THREE.BoxGeometry(0.008, Math.min(0.4, d.h * 0.2), 0.004), MATS.groove, d.len - 0.032, d.z0 + d.h * 0.45, zz * (d.thick / 2 + 0.0015));
+    }
   } else {                                        // door or fridge front
     add(new THREE.BoxGeometry(d.len, d.h, d.thick), d.mat === 'oak' ? MATS.oak : MATS.door, d.len / 2, d.z0 + d.h / 2);
     if (d.handle) add(new THREE.BoxGeometry(0.13, 0.022, 0.12), MATS.steel, d.len - 0.08, 1.0);
@@ -2276,6 +2346,8 @@ MATS.rail = std({ color: 0xc7c9cc, roughness: 0.25, metalness: 0.9 });
 MATS.paxFrame = std({ color: 0xf1f0ec, roughness: 0.6 });            // PAX white
 MATS.paxIn = std({ color: 0xe9e7e2, roughness: 0.7 });
 MATS.paxDoor = std({ color: 0xd9cdb6, roughness: 0.65 });           // FLISBERGET light beige
+// 2026-11-15 (Gianluca): every bedroom closet gets IKEA TONSTAD fronts, egetræsfiner 50×229, 1,000 kr (90510262)
+MATS.tonstad = std({ color: 0xc89d6a, roughness: 0.5 }); MATS.paxDoor = MATS.tonstad;   // grain map added in buildClosets (grainTex lives in a later file)
 const clothMat = {};
 const cloth = (hex) => (clothMat[hex] ||= std({ color: hex, roughness: 0.95 }));
 const UP = new THREE.Vector3(0, 1, 0);
@@ -2338,7 +2410,7 @@ function makeRun(O, n, width, name, sections) {
       const hx = hingeLeft ? x0 + k * dw + 0.002 : x0 + (k + 1) * dw - 0.002;
       const d = addHinged({ id: `${name}_${made.length}`, label: 'Closet', name, shape: 'closet',
         hinge: toBlXZ(hx, D_CL + 0.012), closed: hingeLeft ? aBl : [-aBl[0], -aBl[1]], open: nBl,
-        len: dw - 0.004, h: DOOR_H, z0: Math.max(0.01, (H_CL - DOOR_H) / 2), thick: 0.02, doorMat: MATS.paxDoor, handle: false, grooves: true });
+        len: dw - 0.004, h: DOOR_H, z0: Math.max(0.01, (H_CL - DOOR_H) / 2), thick: 0.02, doorMat: MATS.paxDoor, handle: false, grooves: MATS.paxDoor !== MATS.tonstad, tonstad: MATS.paxDoor === MATS.tonstad });
       for (const p of d.parts) p.userData.furniture = true;
       made.push(d);
     }
@@ -2397,6 +2469,7 @@ function buildClosets() {
   // 236.4 cm tall (doors 229.4) or 201.2 cm (doors 194.6). Every 100 cm frame has a pair of doors opening outwards.
   for (const r of furn.runs || []) { scene.remove(r.g); dropParts(r.parts); for (const d of r.doors) removeHingedDoor(d); const i = doors.indexOf(r.swapDoor); if (i >= 0) doors.splice(i, 1); }
   furn.runs = [];
+  if (!MATS.tonstad.map) { MATS.tonstad.map = grainTex(); MATS.tonstad.needsUpdate = true; }
   const PAIR = (fills) => [{ w: 0.5, hinge: 'near', fill: fills[0] }, { w: 0.5, hinge: 'far', fill: fills[1] }];
   // a run along a wall starting `start` from the corner C, sections listed from the corner outwards
   const runAlong = (C, n, dir, start, width, name, secs) => {
@@ -2452,9 +2525,33 @@ function buildClosets() {
     if (lay === 'L-bath') { A = runAlong(C2, Bw.n, dirA, 0, 1.0, nm, PAIR([F[0], F[1]])); B = runAlong(C2, E2.n, dirB, gap, 1.0, nm, PAIR([F[2], F[3]])); }
     else if (lay === 'L-out') { B = runAlong(C2, E2.n, dirB, 0, 1.0, nm, PAIR([F[2], F[3]])); A = runAlong(C2, Bw.n, dirA, gap, 1.0, nm, PAIR([F[0], F[1]])); }
     else if (lay === 'I-bath') { A = runAlong(C2, Bw.n, dirA, 0, 1.5, nm, [{ w: 0.5, hinge: 'near', fill: F[2] }, ...PAIR([F[0], F[1]])]); }   // PAX 50 + 100: the single door in the corner, the pair towards the bedroom door
+    else if (lay === 'I-bath2') { A = runAlong(C2, Bw.n, dirA, 0, 2.0, nm, [...PAIR([F[2], F[3]]), ...PAIR([F[0], F[1]])]); }   // 2026-11-15: 50 cm more towards the door (two PAX 100)
     else { B = runAlong(C2, E2.n, dirB, 0, 2.0, nm, [...PAIR([F[0], F[1]]), ...PAIR([F[2], F[3]])]); }
     furn.svetlana = A || B; furn.svetlanaB = B;
     furn.svetlanaInfo = { C2, tB, sTip, tip, dirA, dirB, A, B, lay };
+    // the bedroom door now stops against the closet's end (Gianluca: fine, a rubber bumper protects it)
+    const bdoor = doors.find((d) => d.id === 'door_bed');
+    if (bdoor) {
+      if (bdoor._a1full === undefined) bdoor._a1full = bdoor.a1;
+      bdoor.a1 = bdoor._a1full; furn.doorStop = null;
+      if (A) {
+        const H = b2t(bd.hinge[0], bd.hinge[1], 0), P = C2.clone().addScaledVector(dirA, A.start + A.width).addScaledVector(Bw.n, 0.61).setY(0);
+        const v = P.clone().sub(H); v.y = 0; const dist = v.length();
+        if (dist < bd.len + 0.02) {
+          const cl = b2t(bd.closed[0], bd.closed[1]).normalize(), op = b2t(bd.open[0], bd.open[1]).normalize();
+          const ang = Math.atan2(v.clone().normalize().dot(op), v.clone().normalize().dot(cl)) - 0.035;   // leaf angle from closed when it touches the corner (minus the bumper)
+          const full = Math.abs(bdoor._a1full - bdoor.a0);
+          if (ang > 0 && ang < full) {
+            bdoor.a1 = bdoor.a0 + Math.sign(bdoor._a1full - bdoor.a0) * ang;
+            if (bdoor.t > 0) bdoor.pivot.rotation.y = bdoor.a0 + (bdoor.a1 - bdoor.a0) * bdoor.t;
+            furn.doorStop = { deg: Math.round(ang * 180 / Math.PI) };
+            const bump = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.014, 16), stdc({ color: 0x3a3a3a, roughness: 0.9 }));   // rubber door bumper on the closet's end
+            bump.position.copy(C2).addScaledVector(dirA, A.start + A.width + 0.007).addScaledVector(Bw.n, 0.56).setY(1.0);
+            bump.quaternion.setFromUnitVectors(UP, dirA); A.g.updateMatrixWorld(true); bump.quaternion.premultiply(A.g.getWorldQuaternion(new THREE.Quaternion()).invert()); A.g.worldToLocal(bump.position); A.g.add(bump);
+          }
+        }
+      }
+    }
   }
   // click a closet body -> the closet panel
   for (const r of furn.runs) {
@@ -2468,8 +2565,9 @@ function buildClosets() {
 const SV_LAYOUTS = [
   { id: 'L-out', name: 'L · footprint only (ready-made corner wardrobe, ~100 + 100)' },
   { id: 'I-bath', name: 'I · 150 cm on the bathroom wall (100 + 50, 3 doors)' },
+  { id: 'I-bath2', name: 'I · 200 cm on the bathroom wall (100 + 100, 4 doors)' },
 ];
-furn.svLayout = 1; furn.height = 0;   // default: I on the bathroom wall
+furn.svLayout = 2; furn.height = 0;   // default: I on the bathroom wall
 const PAX_H = [{ name: '236.4 cm (doors 229.4)', H: 2.364, door: 2.294 }, { name: '201.2 cm (doors 194.6)', H: 2.012, door: 1.946 }];
 // door swings: sweep each closet door from closed to 90° open, stop where it would hit something (bed, the other run, a wall)
 const swingGroup = new THREE.Group(); dimsGroup.add(swingGroup);
@@ -2513,12 +2611,12 @@ function closetSwings() {
   furn.swingReport = report;
 }
 const closetMover = {
-  name: 'Closets', title: () => 'Closets · IKEA PAX / FLISBERGET',
+  name: 'Closets', title: () => 'Closets · IKEA PAX / TONSTAD egetræsfiner',
   anchor: () => (furn.svetlana ? furn.svetlana.O.clone().addScaledVector(furn.svetlana.a, furn.svetlana.width / 2).addScaledVector(furn.svetlana.n, 0.6).setY(1.6) : null),
-  link: () => ({ href: 'https://www.ikea.com/dk/da/p/pax-flisberget-garderobeskab-hvid-lys-beige-s79480308/', text: 'PAX/FLISBERGET 100 cm ↗', href2: 'https://www.ikea.com/dk/da/p/pax-flisberget-garderobekombination-hvid-lys-beige-s59500680/', text2: 'PAX/FLISBERGET 150 cm (the one you sent) ↗' }),
+  link: () => ({ href: 'https://www.ikea.com/dk/da/p/pax-flisberget-garderobeskab-hvid-lys-beige-s79480308/', text: 'PAX/FLISBERGET 100 cm ↗', href2: 'https://www.ikea.com/dk/da/p/tonstad-lage-egetraesfiner-90510262/', text2: 'TONSTAD låge egetræsfiner 50×229 · 1.000 kr ↗' }),
   info: () => { const R = furn.swingReport || []; const S = furn.svetlanaInfo; let extra = '';
     if (S && S.lay === 'L-out') return `L shown as a footprint for a ready-made corner wardrobe (door swings not checked) · ${R.length ? 'Gianluca: ' + R.map((r) => `${r.deg}° (${r.by})`).join(', ') : 'Gianluca\'s doors open 90°'} · Sizes shows the gaps`;
-    if (S && S.A) { const reach = S.A.start + S.A.width, free = Math.abs(S.sTip); extra = reach > free - 0.02 ? ` · bedroom door blocked (${Math.round((reach - free + 0.02) * 100)} cm overlap)` : ` · ${(free - reach).toFixed(2)} m to the open bedroom door`; }
+    if (S && S.A) { const reach = S.A.start + S.A.width, free = Math.abs(S.sTip); extra = reach > free - 0.02 ? ` · the bedroom door now opens ${furn.doorStop ? furn.doorStop.deg + '°' : 'part way'} and rests on a rubber bumper on the closet's end` : ` · ${(free - reach).toFixed(2)} m to the open bedroom door`; }
     return (R.length ? `${R.length} door${R.length > 1 ? 's' : ''} can't open fully: ` + R.map((r) => `${r.deg}° (${r.by})`).join(', ') : 'all doors open 90°') + extra + ' · Sizes shows the swings'; },
   selects: [
     { id: 'svl', label: "Svetlana's closet", options: () => SV_LAYOUTS.map((l) => ({ label: l.name })), get: () => furn.svLayout, set: (i) => { furn.svLayout = i; buildClosets(); if (tv.E) buildTV(); } },
@@ -2760,8 +2858,8 @@ const tvMover = {
     return { href: F.url || 'https://www.samsung.com/dk/lifestyle-tvs/the-frame/highlights/', text: F.url ? `Samsung DK · ${F.inch}" The Frame ↗` : 'Samsung DK · The Frame range ↗',
       href2: 'https://prisjagt.dk/s/samsung-the-frame/', text2: 'Prices on prisjagt.dk ↗' }; },
 };
-// ------------------------------------------------------------ living room: 65" TV wall (TV + Sonos Arc Ultra + wall-hung media unit) and the L sofa
-// Samsung 65" QN90F: 1445 × 828 × 28 mm (spec sheet). Sonos Arc Ultra: 1178 × 75 × 110.6 mm. Media unit: 180 × 38 × 40 cm, wall-hung.
+// ------------------------------------------------------------ living room: 65" TV wall (TV + Sonos Beam Ultra + wall-hung media unit) and the L sofa
+// Samsung 65" QN90F: 1445 × 828 × 28 mm (spec sheet). Sonos Beam Ultra: 750 × 65 × 105 mm. Media unit: 180 × 38 × 40 cm, wall-hung.
 MATS.tvScreen = std({ color: 0x08090b, roughness: 0.12, metalness: 0.4 });
 MATS.tvFrame = std({ color: 0x1b1c1f, roughness: 0.4, metalness: 0.5 });
 MATS.sonos = std({ color: 0x161616, roughness: 0.85 });
@@ -2871,7 +2969,19 @@ function buildBenchFront(add, UM, UF, bodyM, inM, ub, uh, uw, ud) {
     const l = add(geo, lm, lx, LH / 2, sz); if (UM.legs === 'splay') { l.rotation.z = -sx * 0.25; l.position.x += sx * 0.012; }
   }
 }
+// Hammel Mistral colours (erling-christensen.dk swatches, Nov 2026)
+const MISTRAL_COLS = [
+  { name: '17 Eg lak olie', c: 0xc99b63, grain: true }, { name: '81 Snehvid', c: 0xf2f1ec }, { name: '82 Antracit', c: 0x4a4b4c },
+  { name: '15 Hvidpigmenteret eg', c: 0xdccaa9, grain: true }, { name: '75 Sortbejdset', c: 0x221f1c, grain: true }, { name: '73 Lys rosa', c: 0xeac5ae },
+  { name: '74 Støvet rosa', c: 0xdfa290 }, { name: '76 Mint', c: 0xbac6c1 }, { name: '77 Olivengrøn', c: 0x8f927a },
+  { name: '89 Light yellow', c: 0xf5ebbf }, { name: '95 Grafit', c: 0x6a6b6b }, { name: '99 Beige', c: 0xd2c6a7 },
+];
 const UNIT_MODELS = [
+  // Gianluca (2026-11-15, photo from the showroom): two Hammel Mistral wall units, 140 cm each, hung on two levels with some overlap,
+  // each moved on its own. Higher level: the closed TV unit (drawer + flap door); lower level: the open shelf with two drawers in the middle.
+  // Depths and heights estimated from the photo (not measured).
+  { brand: 'Hammel', name: 'Mistral Classic 114 × 2, two levels', W: 1.33, H: 0.23, D: 0.325, front: 'mistralPair', price: 'price from the store', note: 'two Mistral Classic 114 wall units (133 × 23 × 32.5 cm), each moved on its own (pick one to move it)',
+    finishes: MISTRAL_COLS.map((c) => ({ ...c, body: c.c, front: c.c, url: 'https://erling-christensen.dk/shop/mistral-ben-1637c1.html' })) },
   { brand: 'IKEA', name: 'BESTÅ tv-bord med låger', W: 1.80, H: 0.38, D: 0.42, front: 'doors', n: 3, price: 'from ≈ 1,400 kr + wall rail', note: '3 soft-close doors · hangs on the BESTÅ suspension rail',
     finishes: [
       { name: 'Sortbrun / Lappviken brun valnøddemønster', body: 0x2c2420, front: 0x6a4a33, url: IKEA_DK('besta-tv-bord-med-lager-sortbrun-lappviken-brun-valnoddetraesmonster-s09612171') },
@@ -2904,8 +3014,10 @@ const UNIT_MODELS = [
     ] },
   ...BENCH_MODELS,
 ];
-const unitSel = { m: UNIT_MODELS.findIndex((u) => u.name === 'Yasumi RTV195'), f: 0 };   // Gianluca: source the bench from vente-unique / Yasumi
-const TVW = { W: 1.445, H: 0.828, D: 0.028, bottom: 0.74, off: 0.03 }, UNIT = { W: 1.8, H: 0.38, D: 0.42, bottom: 0.20 }, ARC = { W: 1.178, H: 0.075, D: 0.1106, bottom: 0.62 };
+const unitSel = { m: UNIT_MODELS.findIndex((u) => u.front === 'mistralPair'), f: 0 };   // 2026-11-15: two Mistral wall units (was the Yasumi bench)
+const MPAIR = { up: { W: 1.33, H: 0.23, D: 0.325, label: 'TV unit · upper', name: 'Mistral Classic 114 (upper level)' }, lo: { W: 1.33, H: 0.23, D: 0.325, label: 'TV shelf · lower', name: 'Mistral Classic 114 (lower level)' } };   // Gianluca 2026-11-15: 133 × 23 × 32.5 cm each (was 140, guessed from the photo)
+const mpair = { up: { off: -0.3, y: 0.36 }, lo: { off: 0.3, y: 0.08 }, groups: [], parts: [], doors: [] };
+const TVW = { W: 1.445, H: 0.828, D: 0.028, bottom: 0.74, off: 0.03 }, UNIT = { W: 1.8, H: 0.38, D: 0.42, bottom: 0.20 }, ARC = { W: 0.75, H: 0.065, D: 0.105, bottom: 0.62 };   // 2026-11-16: Sonos Beam Ultra (Gianluca will buy it): 750 × 65 × 105 mm, 5.699 kr (sonos.com/da-dk)
 function wallRun(C0, n, a, maxS = 6) {
   // how far the wall face runs from C0 along a: stop at a corner or where the wall steps back (an opening)
   const along = gapTo(C0.clone().addScaledVector(n, 0.05).setY(1.2), a, maxS) ?? maxS;
@@ -2935,7 +3047,8 @@ function buildMedia() {
     M.aToBalcony = toBl(a)[1] > 0;
   }
   if (M.group) { scene.remove(M.group); dropParts(M.parts); for (const d of M.doors) removeHingedDoor(d); M.doors = []; }
-  { const UM = UNIT_MODELS[unitSel.m]; UNIT.W = UM.W; UNIT.H = UM.H; UNIT.D = UM.D; UNIT.bottom = UM.legH ?? 0.20; ARC.bottom = UM.legH !== undefined ? UM.legH + UM.H + (UM.lip ? 0.002 : UM.topC ? 0.02 : 0) : 0.62; }   // floor benches: the soundbar stands on top
+  { const UM = UNIT_MODELS[unitSel.m]; UNIT.W = UM.W; UNIT.H = UM.H; UNIT.D = UM.D; UNIT.bottom = UM.legH ?? 0.20; ARC.bottom = UM.legH !== undefined ? UM.legH + UM.H + (UM.lip ? 0.002 : UM.topC ? 0.02 : 0) : 0.62; TVW.bottom = 0.74;
+    if (UM.front === 'mistralPair') { UNIT.bottom = mpair.lo.y; UNIT.H = MPAIR.lo.H; ARC.bottom = Math.max(mpair.up.y + MPAIR.up.H, mpair.lo.y + MPAIR.lo.H); TVW.bottom = Math.max(0.74, ARC.bottom + ARC.H + 0.035); } }   // the Arc stands on the higher unit, the TV just above it   // floor benches: the soundbar stands on top
   M.offset = Math.max(-(M.half - UNIT.W / 2 - 0.02), Math.min(M.half - UNIT.W / 2 - 0.02, M.offset));
   const { n, a } = M, O = M.base.clone().addScaledVector(a, M.offset);
   const g = new THREE.Group(); g.position.copy(O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a, UP, n));
@@ -2947,15 +3060,18 @@ function buildMedia() {
   const screen = add(new THREE.PlaneGeometry(TVW.W - 0.012, TVW.H - 0.012), (typeof tvState !== 'undefined' && tvState.on) ? MATS.tvOn : MATS.tvScreen, 0, ty, TVW.off + TVW.D + 0.0006, false);
   screen.castShadow = false;
   add(new THREE.BoxGeometry(0.4, 0.3, 0.02), MATS.blackMetal, 0, ty, 0.012, false);                 // wall plate (VESA 400 × 300)
-  // Sonos Arc Ultra right below, on its own wall mount
+  // Sonos Beam Ultra right below
   const sy = ARC.bottom + ARC.H / 2, sz = 0.02 + ARC.D / 2;
-  const bar = add(new THREE.CapsuleGeometry(ARC.H / 2, ARC.W - ARC.H, 6, 16), MATS.sonos, 0, sy, sz); bar.rotation.z = Math.PI / 2; bar.scale.set(1, 1, ARC.D / ARC.H);
-  add(new THREE.BoxGeometry(ARC.W - 0.1, 0.004, ARC.D * 0.7), MATS.tvFrame, 0, ARC.bottom + ARC.H - 0.001, sz, false);
+  add(softBox(ARC.W, ARC.H, ARC.D, 0.024), MATS.sonos, 0, sy, sz);                        // Sonos Beam Ultra: slim rounded bar, matte black
+  { MATS.sonosGrille = MATS.sonosGrille || std({ color: 0x0c0c0d, roughness: 0.95 });
+    add(new THREE.BoxGeometry(ARC.W - 0.05, ARC.H - 0.026, 0.002), MATS.sonosGrille, 0, sy, sz + ARC.D / 2 + 0.0005, false);   // perforated front grille
+    add(new THREE.BoxGeometry(0.06, 0.002, 0.012), MATS.tvFrame, 0, ARC.bottom + ARC.H + 0.0005, sz - 0.01, false); }   // touch controls on top
   // wall-hung media unit (the selected real model); inside a PS5 and an Apple TV
   const UM = UNIT_MODELS[unitSel.m], UF = UM.finishes[unitSel.f];
   const bodyM = UM.front === 'bench' ? std({ color: UF.body, roughness: 0.78, envMapIntensity: 0.5, ...(UF.grain ? { map: weaveTex('flat') } : {}) }) : std({ color: UF.body, roughness: 0.55 }), frontM = UM.front === 'fabric' ? std({ color: UF.front, roughness: 1 }) : std({ color: UF.front, roughness: 0.5 });
   const inM = std({ color: new THREE.Color(UF.body).multiplyScalar(UM.front === 'bench' ? 0.5 : 0.8), roughness: 0.7 });
   const ub = UNIT.bottom, uh = UNIT.H, uw = UNIT.W, ud = UNIT.D, T2 = 0.018;
+  if (UM.front !== 'mistralPair') {
   add(new THREE.BoxGeometry(uw, T2, ud), bodyM, 0, ub + uh - T2 / 2, ud / 2);
   add(new THREE.BoxGeometry(uw, T2, ud), bodyM, 0, ub + T2 / 2, ud / 2);
   add(new THREE.BoxGeometry(uw, uh, T2), inM, 0, ub + uh / 2, T2 / 2);
@@ -2996,6 +3112,7 @@ function buildMedia() {
       if (!perf) add(new THREE.BoxGeometry(0.12, 0.012, 0.004), inM, x, ub + uh - 0.03, ud + 0.011, false);   // finger groove
     }
   }
+  }
   g.remove(screen);
   { const mg = mergeByMaterial(g, new Set(parts)); parts.length = 0; parts.push(...mg.solids); }
   g.add(screen); M.screen = screen;
@@ -3014,8 +3131,10 @@ function buildMedia() {
   doors.push(door);
   scene.add(g); g.updateMatrixWorld(true);
   M.group = g; M.parts = parts;
+  buildMistralPair();
   // Hue Lightstrip under the unit: 8 cm in from the wall, just below its bottom panel, pointing down
   { const L = UNIT.W - 0.1, P = O.clone().addScaledVector(n, 0.08).setY(UNIT.bottom - 0.006);
+    if (UNIT_MODELS[unitSel.m].front === 'mistralPair') P.addScaledVector(a, mpair.lo.off - M.offset);   // the strip goes under the lower unit
     stripMesh.position.copy(P); stripMesh.quaternion.copy(g.quaternion); stripMesh.scale.set(L, 1, 1);
     stripLight.width = L; stripLight.height = 0.04; stripLight.position.copy(P).setY(UNIT.bottom - 0.012);
     stripLight.lookAt(P.clone().setY(0).addScaledVector(n, 0.25));
@@ -3141,13 +3260,13 @@ function placeTVGlow() {
   tvGlow.position.copy(P); tvGlow.lookAt(P.clone().add(M.n));
 }
 const mediaMover = {
-  name: '65" TV + Arc + unit', anchor: () => (liv.media && liv.media.group ? liv.media.group.position.clone().addScaledVector(liv.media.n, 0.5).setY(0.6) : null),
+  name: '65" TV + Beam Ultra + unit', anchor: () => (liv.media && liv.media.group ? liv.media.group.position.clone().addScaledVector(liv.media.n, 0.5).setY(0.6) : null),
   axis: () => liv.media.a,
   shift: (dir) => { const M = liv.media, before = M.offset; M.offset += dir * 0.05; buildMedia(); livingDims(); if (Math.abs(M.offset - before) < 1e-6) showToast('Can’t go further: end of the wall'); },
   info: () => { const M = liv.media; const c = Math.abs(M.offset) < 0.025 ? 'centred on the wall' : `${Math.round(Math.abs(M.offset) * 100)} cm towards the ${(M.offset > 0) === M.aToBalcony ? 'balcony' : 'hallway'}`;
     const UM = UNIT_MODELS[unitSel.m];
     return `${UM.note} · ${UM.price} · ${(UM.W * 100).toFixed(1)} × ${(UM.H * 100).toFixed(1)} × ${(UM.D * 100).toFixed(0)} cm · ${c} · wall ${(M.half * 2).toFixed(2)} m`; },
-  title: () => `${UNIT_MODELS[unitSel.m].brand} ${UNIT_MODELS[unitSel.m].name} + 65" + Arc`,
+  title: () => `${UNIT_MODELS[unitSel.m].brand} ${UNIT_MODELS[unitSel.m].name} + 65" + Beam Ultra`,
   selects: [
     { id: 'umodel', label: 'TV unit', options: () => UNIT_MODELS.map((m) => ({ group: m.legH !== undefined ? 'Floor-standing, wood (vente-unique / Logo Møbler)' : 'Wall-hung', label: `${m.brand} ${m.name} · ${(m.W * 100).toFixed(0)} cm${m.legH !== undefined ? ` · ${Math.round((m.H + m.legH) * 100 + (m.lip ? 2.5 : m.topC ? 2 : 0))} cm high · ${m.price}` : ''}` })), get: () => unitSel.m,
       set: (i) => { unitSel.m = i; unitSel.f = 0; buildMedia(); livingDims(); buildMoverSelects(mediaMover); } },
@@ -3156,6 +3275,99 @@ const mediaMover = {
   ],
   link: () => { const UM = UNIT_MODELS[unitSel.m]; return { href: UM.finishes[unitSel.f].url, text: `${UM.brand} ${UM.name} ↗` }; },
 };
+// ---- the two Mistral wall units under the TV: each its own piece (info button, arrows along the wall and up/down)
+function mpRemove() {
+  for (const g of mpair.groups) { scene.remove(g); g.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
+  dropParts(mpair.parts); for (const d of mpair.doors) { const i = doors.indexOf(d); if (i >= 0) doors.splice(i, 1); }
+  mpair.groups = []; mpair.parts = []; mpair.doors = [];
+}
+function buildMistralPair() {
+  mpRemove();
+  const M = liv.media; if (!M || UNIT_MODELS[unitSel.m].front !== 'mistralPair') return;
+  const F = MISTRAL_COLS[unitSel.f] || MISTRAL_COLS[0];
+  const body = stdc({ color: F.c, roughness: 0.55, ...(F.grain ? { map: grainTex() } : {}) }), inner = stdc({ color: new THREE.Color(F.c).multiplyScalar(0.86).getHex(), roughness: 0.6, ...(F.grain ? { map: grainTex() } : {}) });
+  const knobM = stdc({ color: 0xb9bbbd, roughness: 0.3, metalness: 0.85 }), gapM = stdc({ color: new THREE.Color(F.c).multiplyScalar(0.55).getHex(), roughness: 0.8 });
+  for (const k of ['up', 'lo']) {
+    const U = MPAIR[k], st = mpair[k], W = U.W, H = U.H, D = U.D, T = 0.022, S2 = 0.018;
+    const O = M.base.clone().addScaledVector(M.a, st.off), g = new THREE.Group(); g.position.copy(O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(M.a, UP, M.n));
+    const parts = [], add = (geo, m, x, y, z, solid = true) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; g.add(o); if (solid) parts.push(o); return o; };
+    const y0 = st.y;
+    add(softBox(W, T, D, 0.008), body, 0, y0 + H - T / 2, D / 2);                                 // top and bottom boards run the full width, soft front edge
+    add(softBox(W, T, D, 0.008), body, 0, y0 + T / 2, D / 2);
+    for (const x of [-W / 2 + 0.012 + S2 / 2, W / 2 - 0.012 - S2 / 2]) add(new THREE.BoxGeometry(S2, H - 2 * T, D - 0.01), body, x, y0 + H / 2, (D - 0.01) / 2);
+    add(new THREE.BoxGeometry(W - 0.03, H - 2 * T, 0.008), inner, 0, y0 + H / 2, 0.004);          // back
+    const knob = (x, y) => add(new THREE.SphereGeometry(0.011, 14, 10), knobM, x, y, D + 0.006, false);
+    if (k === 'up') {                                   // closed TV unit: drawer on the left, flap door on the right
+      const xd = -W / 2 + 0.03 + 0.58;
+      add(new THREE.BoxGeometry(S2, H - 2 * T, D - 0.02), inner, xd, y0 + H / 2, (D - 0.02) / 2);
+      const fh = H - 2 * T - 0.006, fl = xd - (-W / 2 + 0.03) - 0.006, fr = (W / 2 - 0.03) - xd - 0.006;
+      add(new THREE.BoxGeometry(fl, fh, 0.018), body, (-W / 2 + 0.03 + xd) / 2, y0 + H / 2, D - 0.009);
+      add(new THREE.BoxGeometry(fr, fh, 0.018), body, (xd + W / 2 - 0.03) / 2, y0 + H / 2, D - 0.009);
+      knob((-W / 2 + 0.03 + xd) / 2, y0 + H / 2); knob((xd + W / 2 - 0.03) / 2, y0 + H - T - 0.045);
+      add(new THREE.BoxGeometry(0.003, fh, 0.004), gapM, xd, y0 + H / 2, D + 0.0005, false);
+    } else {                                            // open shelf with a two-drawer module in the middle
+      const x1 = -W / 2 + 0.03 + 0.52, x2 = x1 + 0.53;
+      for (const x of [x1, x2]) add(new THREE.BoxGeometry(S2, H - 2 * T, D - 0.01), body, x, y0 + H / 2, (D - 0.01) / 2);
+      const dh = (H - 2 * T - 0.012) / 2, dw = x2 - x1 - S2 - 0.008;
+      for (let i = 0; i < 2; i++) { const yy = y0 + T + 0.004 + dh / 2 + i * (dh + 0.004); add(new THREE.BoxGeometry(dw, dh, 0.018), body, (x1 + x2) / 2, yy, D - 0.03); knob((x1 + x2) / 2, yy); }
+      // a few things in the open parts: books lying flat, a speckled candle holder
+      const r = rng(k === 'lo' ? 41 : 42), bc = [0x2f4a3a, 0xc9b48a, 0x7a2e2a, 0x1f2a44, 0xe8e2d4];
+      for (let i = 0, yy = y0 + T; i < 3; i++) { const t = 0.03 + r() * 0.02; add(new THREE.BoxGeometry(0.24, t, 0.17), stdc({ color: bc[i % 5], roughness: 0.8 }), -W / 2 + 0.2, yy + t / 2, D * 0.5, false); yy += t; }
+      add(new THREE.CylinderGeometry(0.045, 0.045, 0.1, 22), stdc({ color: 0xece8e2, roughness: 0.4 }), W / 2 - 0.14, y0 + T + 0.05, D * 0.55, false);
+    }
+    { const mg = mergeByMaterial(g, new Set(parts)); parts.length = 0; parts.push(...mg.solids); }
+    scene.add(g); g.updateMatrixWorld(true);
+    const mover = k === 'up' ? mpMoverUp : mpMoverLo;
+    const door = { kind: 'swap', label: U.label, name: U.name, parts, center: O.clone().setY(y0 + H / 2).addScaledVector(M.n, D / 2),
+      swap: () => selectFurniture(selected === mover ? null : mover), prompt: () => (selected === mover ? 'Done' : `${U.name}: options`) };
+    door._mover = mover;
+    for (const p of parts) { p.userData.door = door; p.userData.furniture = true; collidables.push(p); }
+    doors.push(door); mpair.groups.push(g); mpair.parts.push(...parts); mpair.doors.push(door);
+  }
+  shadowDirty = true;
+}
+function mpOverlap() {                                   // horizontal and vertical overlap of the two units (m)
+  const A = mpair.up, B = mpair.lo, h = Math.min(A.off + MPAIR.up.W / 2, B.off + MPAIR.lo.W / 2) - Math.max(A.off - MPAIR.up.W / 2, B.off - MPAIR.lo.W / 2);
+  const v = Math.min(A.y + MPAIR.up.H, B.y + MPAIR.lo.H) - Math.max(A.y, B.y);
+  return { h, v };
+}
+function mpTry(k, dOff, dY) {
+  const M = liv.media, st = mpair[k], U = MPAIR[k], b = { off: st.off, y: st.y };
+  st.off = THREE.MathUtils.clamp(+(st.off + dOff).toFixed(3), -(M.half - U.W / 2 - 0.01), M.half - U.W / 2 - 0.01);
+  st.y = THREE.MathUtils.clamp(+(st.y + dY).toFixed(3), 0.02, 1.2);
+  const o = mpOverlap();
+  if (o.h > 0.005 && o.v > 0.005) { Object.assign(st, b); showToast('It would hit the other unit: move it up or down first'); return; }
+  if (Math.abs(st.off - b.off) < 1e-6 && Math.abs(st.y - b.y) < 1e-6) { showToast('Can’t go further'); return; }
+  buildMedia(); livingDims(); if (selected) updateMoverInfo();
+}
+const MP_ARR = [
+  { name: 'Two levels, overlapping', up: { off: -0.3, y: 0.36 }, lo: { off: 0.3, y: 0.08 } },
+  { name: 'Stacked, aligned (one above the other)', up: { off: 0, y: 0.36 }, lo: { off: 0, y: 0.08 } },
+  { name: 'Side by side, aligned (one long line)', up: { off: -0.67, y: 0.25 }, lo: { off: 0.67, y: 0.25 } },
+];
+function mpArrangement() { const e = (a, b) => Math.abs(a.off - b.off) < 0.01 && Math.abs(a.y - b.y) < 0.01; const i = MP_ARR.findIndex((A) => e(A.up, mpair.up) && e(A.lo, mpair.lo)); return i; }
+function mpSetArrangement(i) {
+  const A = MP_ARR[i], M = liv.media; Object.assign(mpair.up, A.up); Object.assign(mpair.lo, A.lo);
+  for (const k of ['up', 'lo']) { const lim = M.half - MPAIR[k].W / 2 - 0.01; if (Math.abs(mpair[k].off) > lim) { mpair[k].off = Math.sign(mpair[k].off) * lim; showToast('The wall is a little short for that: the units touch the corners'); } }
+  if (!books.hidden && books.s !== null) {              // keep the book tower clear of the units on the hall side
+    const R = booksRange(), end = Math.max(mpair.up.off + MPAIR.up.W / 2, mpair.lo.off + MPAIR.lo.W / 2);
+    if (books.s - R.hw < end + 0.03) { books.s = Math.min(R.hi, end + 0.03 + R.hw); showToast('Moved the book tower towards the hall to clear the units'); }
+  }
+  buildMedia(); livingDims(); buildMoverSelects(selected || mpMoverUp);
+}
+const mpMover = (k) => ({
+  name: MPAIR[k].name, title: () => `Hammel ${MPAIR[k].name} · ${MISTRAL_COLS[unitSel.f].name}`,
+  anchor: () => (liv.media ? liv.media.base.clone().addScaledVector(liv.media.a, mpair[k].off).addScaledVector(liv.media.n, 0.45).setY(mpair[k].y + MPAIR[k].H + 0.2) : null),
+  axis: () => liv.media.a, shift: (dir) => mpTry(k, dir * 0.05, 0),
+  variant: { label: () => (books.hidden ? 'Show the book tower' : 'Hide the book tower'), run: () => setBooksHidden(!books.hidden) },
+  axis2: () => new THREE.Vector3(0, 1, 0), shift2: (dir) => mpTry(k, 0, dir * 0.05),
+  selects: [{ id: 'mparr', label: 'Arrangement', options: () => MP_ARR.map((a) => ({ label: a.name })).concat(mpArrangement() < 0 ? [{ label: 'Custom (moved by hand)' }] : []), get: () => (mpArrangement() < 0 ? MP_ARR.length : mpArrangement()), set: (i) => { if (i < MP_ARR.length) mpSetArrangement(i); } },
+    { id: 'mpcol', label: 'Colour (both units)', options: () => MISTRAL_COLS.map((c) => ({ label: c.name })), get: () => unitSel.f, set: (i) => { unitSel.f = i; buildMedia(); livingDims(); } }],
+  link: () => ({ href: 'https://erling-christensen.dk/shop/mistral-ben-1637c1.html', text: 'Erling Christensen · Hammel Mistral ↗' }),
+  info: () => { const U = MPAIR[k], o = mpOverlap(), oth = k === 'up' ? mpair.lo : mpair.up, st = mpair[k];
+    return `${Math.round(U.W * 100)} × ${Math.round(U.H * 100)} × ${+(U.D * 100).toFixed(1)} cm (W × H × D) · ${st.y.toFixed(2)}–${(st.y + U.H).toFixed(2)} m off the floor · ${o.h > 0 ? `${Math.round(o.h * 100)} cm overlap with the other unit` : `${Math.round(-o.h * 100)} cm apart sideways`} · ${k === 'up' ? 'the Beam Ultra stands on top, the TV sits just above' : 'Hue strip underneath'} · ▲▼ height, ◀▶ along the wall`; },
+});
+const mpMoverUp = mpMover('up'), mpMoverLo = mpMover('lo');
 // ---- sofa models to compare. Each has its own configurations (names as the shop writes them), fabrics/colours and legs.
 // sided configs come as left/right: "right" = the corner / chaise / open end sits on your right standing in front of the sofa (as in the shops' drawings).
 // Colours are matched by eye from the shops' swatches. (est.) marks a measure the shop doesn't list, read from its drawings.
@@ -3314,12 +3526,17 @@ function sofaClear(O, cfg, side) {
   const P = (lx, lz) => O.clone().addScaledVector(x, lx).addScaledVector(f, lz).setY(0.3);
   const g = (p, d) => gapTo(p, d, 6) ?? 6;
   let worst = 9;
-  for (const lz of [0.1, SD / 2, SD - 0.1]) worst = Math.min(worst, g(P(0, lz), x) - L / 2, g(P(0, lz), x.clone().negate()) - L / 2);
+  const rides = new Set([...(typeof skaenk !== 'undefined' ? skaenk.parts : []), ...(typeof ctab !== 'undefined' ? ctab.parts : [])]);   // these move with the sofa
+  const keep = collidables.slice(); for (let i = collidables.length - 1; i >= 0; i--) if (rides.has(collidables[i])) collidables.splice(i, 1);
+  const extra = typeof skaenk !== 'undefined' && skaenk.group ? 0.03 + SKAENK.D : 0;   // the skænk sticks out past the return end (−x)
+  try {
+  for (const lz of [0.1, SD / 2, SD - 0.1]) worst = Math.min(worst, g(P(0, lz), x) - L / 2, g(P(0, lz), x.clone().negate()) - L / 2 - extra);
   for (const lx of [-L / 2 + 0.1, 0, L / 2 - 0.1]) worst = Math.min(worst, g(P(lx, SD / 2), f.clone().negate()) - SD / 2, g(P(lx, SD / 2), f) - SD / 2);
   for (const e of sofaEnds(cfg, side)) if (e.t !== 'arm') {
     const cx = e.s * (L / 2 - e.W / 2), cz = (SD + e.R) / 2;
-    worst = Math.min(worst, g(P(cx, cz), f) - (e.R - SD) / 2, g(P(cx, cz), x) - e.W / 2, g(P(cx, cz), x.clone().negate()) - e.W / 2);
+    worst = Math.min(worst, g(P(cx, cz), f) - (e.R - SD) / 2, g(P(cx, cz), x) - e.W / 2 - (e.s < 0 ? extra : 0), g(P(cx, cz), x.clone().negate()) - e.W / 2 - (e.s < 0 ? extra : 0));
   }
+  } finally { collidables.length = 0; collidables.push(...keep); }
   return worst;
 }
 // rounded, subdivided box with analytic normals and metric UVs (for fabric); o.top / o.front / o.side crown the faces like a filled cushion
@@ -3352,7 +3569,7 @@ function buildSofa(tryMove) {
     // back of the sofa 90 cm off the window wall (a proper walkway), centred on the TV
     const WW = wallLine([2.5, 7.6], [2.5, 4.9], [-1, 0]);
     const depth = WW ? M.base.clone().sub(WW.p).dot(WW.n) : 4.0;
-    S = liv.sofa = { model: 0, cfg: SOFA_MODELS[0].defaultCfg, flip: false, fabric: 0, legs: SOFA_MODELS[0].defaultLegs ?? 0, fill: 1, pouf: 0, O: M.base.clone().addScaledVector(M.n, depth - 0.92), group: null, parts: [] };
+    S = liv.sofa = { model: 0, cfg: SOFA_MODELS[0].defaultCfg, flip: false, fabric: 0, legs: SOFA_MODELS[0].defaultLegs ?? 0, fill: 1, pouf: 0, O: M.base.clone().addScaledVector(M.n, depth - 0.77), group: null, parts: [] };   // 2026-11-16: 15 cm closer to the outside wall (room for the TV units side by side)
   }
   if (S.group) { scene.remove(S.group); dropParts(S.parts); }
   applyFabric(S);
@@ -3459,7 +3676,8 @@ function buildSofa(tryMove) {
   doors.push(door);
   scene.add(g); g.updateMatrixWorld(true);
   S.group = g; S.parts = parts; S.seatIn = seatIn;
-  if (typeof buildConsole === 'function' && typeof cons !== 'undefined') setTimeout(buildConsole, 0);   // the IKEA-hack console follows the sofa
+  if (typeof buildConsole === 'function' && typeof cons !== 'undefined') setTimeout(buildConsole, 0);
+  if (typeof buildSkaenk === 'function' && typeof skaenk !== 'undefined') setTimeout(buildSkaenk, 0);   // the Mistral skænk follows the sofa   // the IKEA-hack console follows the sofa
   return moved;
 }
 function sofaGaps() {
@@ -3506,6 +3724,16 @@ function livingDims() {
     tag.position.copy(G.eye).setY(1.25); livDims.add(tag);
   }
 }
+function sofaGroupMove(v, d) {                          // the sofa group: sofa + skænk (rebuilt with it) + coffee table + rug
+  const before = liv.sofa.O.clone();
+  if (!buildSofa((O) => O.addScaledVector(v, d))) { const why = lastGapHit && lastGapHit.userData && lastGapHit.userData.door ? ` (${lastGapHit.userData.door.label || lastGapHit.userData.door.name})` : ''; showToast(`Can’t go further: wall or furniture${why}`); }
+  const dl = liv.sofa.O.clone().sub(before), db = [dl.x, -dl.z];
+  if (dl.lengthSq() > 1e-8) {
+    if (typeof ctab !== 'undefined' && ctab.pos) { ctab.pos = [ctab.pos[0] + db[0], ctab.pos[1] + db[1]]; buildCoffeeTable(); }
+    if (typeof rug !== 'undefined' && rug.pos) { rug.pos = [rug.pos[0] + db[0], rug.pos[1] + db[1]]; buildRug(); }
+  }
+  livingDims();
+}
 const sofaMover = {
   name: 'Sofa', anchor: () => (liv.sofa && liv.sofa.group ? liv.sofa.O.clone().addScaledVector(sofaFrame().f, SD / 2).setY(1.1) : null),
   axis: () => sofaFrame().x, axis2: () => sofaFrame().f,
@@ -3513,8 +3741,8 @@ const sofaMover = {
   link: () => { const S = liv.sofa, u = nyUrl(S), pf = SMODEL.ilva ? nyPouf(S) : null;
     const L = { href: u || SOFAS[S.cfg].url || SMODEL.url, text: u ? `ILVA · Nyland in ${FABRICS[S.fabric].c} · ${nyKr(nyProd(S).p[S.fabric])} ↗` : `${SMODEL.brand} product page ↗` };
     if (pf) { L.href2 = pf.url; L.text2 = `ILVA · Nyland puf ${pf.size} · ${nyKr(pf.price)} ↗`; } return L; },
-  shift: (dir) => { if (!buildSofa((O) => O.addScaledVector(sofaFrame().x, dir * 0.05))) showToast('Can’t go further: wall or furniture'); livingDims(); },
-  shift2: (dir) => { if (!buildSofa((O) => O.addScaledVector(sofaFrame().f, dir * 0.05))) showToast('Can’t go further: wall or furniture'); livingDims(); },
+  shift: (dir) => sofaGroupMove(sofaFrame().x, dir * 0.05),
+  shift2: (dir) => sofaGroupMove(sofaFrame().f, dir * 0.05),
   info: () => { const G = sofaGaps(), S = liv.sofa, cfg = SOFAS[S.cfg], P = nyProd(S), pf = SMODEL.ilva ? nyPouf(S) : null;
     const price = P ? ` · ${nyKr(P.p[S.fabric])}${pf ? ` + puf ${nyKr(pf.price)}` : ''} · seat ${NY_FILL[S.fill].toLowerCase()}` : '';
     return `L ${Math.round(cfg.L * 100)} × D ${Math.round(cfg.R * 100)} cm${price} · ${G && G.back.d !== null ? G.back.d.toFixed(2) : '–'} m behind · ${G && G.front.d !== null ? G.front.d.toFixed(2) : '–'} m to TV unit · ${G ? G.view.toFixed(1) : '–'} m to screen${pf && pf.missing ? ' · puf not made in this fabric (price shown for Winter Moss)' : ''}`; },
@@ -3528,7 +3756,32 @@ const sofaMover = {
 // ------------------------------------------------------------ dining: table + chairs, moved and rotated as one group
 // Table and chair candidates are separate lists, so each can be swapped independently (sizes, finishes, colours).
 const ILVA = (p) => `https://ilva.dk/${p}/`;
+const IL = (h, v) => `https://ilva.dk/products/${h}${v ? `?variant=${v}` : ''}`;   // ilva.dk moved to Shopify (Nov 2026)
 const TABLE_MODELS = [
+  // Gianluca (2026-11-15): not decided, but thinking of ILVA's Ø120 round tables (extendable or not), in a wood colour. All four from ilva.dk,
+  // Nov 2026, 75 cm high. Torsby is the only Ø120 that extends (2 × 50 cm leaves, 1.699 kr each).
+  { brand: 'ILVA', name: 'Torsby Ø120', style: 'straight', url: IL('torsby-spisebord-d-120-cm'),
+    configs: [
+      { name: 'Ø120 cm · 4.499 kr (lysegrå HPL 4.999 kr)', D: 1.2, L: 1.2, H: 0.75, leaves: 0, seats: 6, urls: [IL('torsby-spisebord-d-120-cm', 54352960356691), IL('torsby-spisebord-d-120-cm', 54352960323923)] },
+      { name: 'Ø120 + 1 tillægsplade 50 cm (170 × 120) · 4.499 + 1.699 kr', D: 1.2, L: 1.7, H: 0.75, leaves: 1, seats: 8, urls: [IL('torsby-tillaegsplade-120-x-50-cm'), IL('torsby-tillaegsplade-120-x-50-cm')] },
+      { name: 'Ø120 + 2 tillægsplader (220 × 120) · 4.499 + 3.398 kr', D: 1.2, L: 2.2, H: 0.75, leaves: 2, seats: 10, urls: [IL('torsby-tillaegsplade-120-x-50-cm'), IL('torsby-tillaegsplade-120-x-50-cm')] },
+    ],
+    finishes: [
+      { name: 'Natur eg finér · ben i lakeret massiv eg', top: 0xd1aa78, edge: 0xc69e6c, legs: 0xcfa877, grain: true },
+      { name: 'Lysegrå HPL-laminat · egekant og egeben', top: 0xb9bab5, edge: 0xc69e6c, legs: 0xcfa877 },
+    ] },
+  { brand: 'ILVA', name: 'Alvik Ø120', style: 'splay', taper: true, url: IL('alvik-spisebord-d-120-cm', 54539677958483),
+    configs: [{ name: 'Ø120 cm · 2.999 kr', D: 1.2, L: 1.2, H: 0.75, leaves: 0, seats: 4, urls: [IL('alvik-spisebord-d-120-cm', 54539677958483)] }],
+    finishes: [{ name: 'Natur eg finér lagt i sol · oliebehandlede ben i massiv eg', top: 0xcb9b66, edge: 0xb88856, legs: 0x7d5133, sunburst: true }] },
+  { brand: 'ILVA', name: 'Richmont Ø120', style: 'splay', url: IL('richmont-spisebord-d-120-cm'),
+    configs: [{ name: 'Ø120 cm · 2.999 kr (før 4.999)', D: 1.2, L: 1.2, H: 0.75, leaves: 0, seats: 4, urls: [IL('richmont-spisebord-d-120-cm', 54352954622291), IL('richmont-spisebord-d-120-cm', 54352954589523)] }],
+    finishes: [
+      { name: 'Natur eg finér · matlakerede egeben', top: 0xc9a072, edge: 0xbb9264, legs: 0xc09868, grain: true },
+      { name: 'Røgfarvet eg finér · bejdsede egeben', top: 0x4b3b30, edge: 0x3f3128, legs: 0x30251e, grain: true },
+    ] },
+  { brand: 'ILVA', name: 'Landholm Ø120', style: 'fluted', url: IL('landholm-spisebord-d-120-cm', 54352951673171),
+    configs: [{ name: 'Ø120 cm · 2.899 kr (før 5.799)', D: 1.2, L: 1.2, H: 0.75, leaves: 0, seats: 5, urls: [IL('landholm-spisebord-d-120-cm', 54352951673171)] }],
+    finishes: [{ name: 'Mat natur eg finér · riflet søjlefod', top: 0xbd9060, edge: 0xad8152, legs: 0xa97d4f, grain: true }] },
   { brand: 'ILVA', name: 'Besalu', maker: 'Hammel Furniture', url: ILVA('spisestuen/spiseborde/besalu/top-i-egemelamin/p-1085382-5643266318'),
     configs: [   // round top that pulls apart for leaves; with leaves it becomes a stadium (round ends)
       // prices from ilva.dk (Sept 2026); urls per finish: [egemelamin, hvid melamin]
@@ -3562,6 +3815,18 @@ const TABLE_MODELS = [
     ] },
 ];
 const CHAIR_MODELS = [
+  // DECIDED (Gianluca, 2026-11-15): ILVA Swan "in the darker colour" = Crush Taupe. ilva.dk Nov 2026: oak-leg version 55 × 59 × 81.5 cm, seat 49 cm,
+  // 6.65 kg, bouclé-like Crush cover, lacquered solid oak legs, 1.999 kr (Off White / Taupe); black powder-coated metal legs 54 × 58.5 × 81.5,
+  // 1.099 kr (før 1.599) in Taupe / Forest / Off White. Shape from the product photos: a wide padded shell wrapping round the back,
+  // a thick round-fronted seat, the rear legs rising up behind the shell.
+  { brand: 'ILVA', name: 'Swan', style: 'swan', url: IL('swan-spisebordsstol-1', 54315331027283), W: 0.55, D: 0.59, H: 0.815, SH: 0.49,
+    variants: [
+      { name: 'Egeben · Crush Taupe · 1.999 kr', seat: 0x584a40, rough: 1, legs: 0x986a46, url: IL('swan-spisebordsstol-1', 54315331027283) },
+      { name: 'Egeben · Crush Off White · 1.999 kr', seat: 0xe2dccf, rough: 1, legs: 0x986a46, url: IL('swan-spisebordsstol-1', 54315330994515) },
+      { name: 'Sorte metalben · Crush Taupe · 1.099 kr (før 1.599)', seat: 0x584a40, rough: 1, legs: 0x1c1c1c, metal: true, url: IL('swan-spisebordsstol', 54315322573139) },
+      { name: 'Sorte metalben · Crush Forest · 1.099 kr (før 1.599)', seat: 0x3e4a3c, rough: 1, legs: 0x1c1c1c, metal: true, url: IL('swan-spisebordsstol', 54315322605907) },
+      { name: 'Sorte metalben · Crush Off White · 1.099 kr (før 1.599)', seat: 0xe2dccf, rough: 1, legs: 0x1c1c1c, metal: true, url: IL('swan-spisebordsstol', 54315322638675) },
+    ] },
   // ilva.dk (checked 2026-10-05): L 48 × D 54.5 × H 80 cm, seat 45 cm, 5 kg, matlakeret massiv eg + papirflet, 2.099 kr (før 3.499)
   { brand: 'ILVA', name: 'Kasami', style: 'kasami', url: ILVA('spisestuen/spisebordsstole/kasami/saede-i-naturfarvet-papirflet/p-1086846-5643326834'), W: 0.48, D: 0.545, H: 0.80, SH: 0.45,
     variants: [   // massiv eg, matlakeret; sæde + ryg i papirflet · 2.099 kr (før 3.499)
@@ -3572,7 +3837,7 @@ const CHAIR_MODELS = [
 MATS.tTop = std({ color: 0xd8c29f, roughness: 0.55 }); MATS.tEdge = std({ color: 0xcfb58c, roughness: 0.6 }); MATS.tLegs = std({ color: 0xe2d3b8, roughness: 0.6 });
 MATS.cSeat = std({ color: 0x958777, roughness: 1, side: THREE.DoubleSide }); MATS.cLegs = std({ color: 0xc9a473, roughness: 0.5 });
 MATS.seam = std({ color: 0x8a7658, roughness: 0.8 });
-const dining = { t: 0, tc: 0, tf: 1, c: 0, cv: 0, n: 4, out: false, angle: 0, O: null, group: null, parts: [] };
+const dining = { t: 0, tc: 0, tf: 0, c: 0, cv: 0, n: 4, out: false, angle: 0, O: null, group: null, parts: [] };
 const diningDims = new THREE.Group(); dimsGroup.add(diningDims);
 function dFrame() { const a = dining.angle; return { x: new THREE.Vector3(Math.cos(a), 0, -Math.sin(a)), z: new THREE.Vector3(Math.sin(a), 0, Math.cos(a)) }; }
 function chairSpots() {
@@ -3624,12 +3889,24 @@ function diningClear(O, angle) {
 function applyDiningMats() {
   const F = TABLE_MODELS[dining.t].finishes[dining.tf], V = CHAIR_MODELS[dining.c].variants[dining.cv];
   MATS.tTop.color.setHex(F.top); MATS.tEdge.color.setHex(F.edge); MATS.tLegs.color.setHex(F.legs);
-  { const m = F.stone ? stoneTex() : F.grain ? grainTex() : null; if (MATS.tTop.map !== m) { MATS.tTop.map = m; MATS.tTop.needsUpdate = true; } }
+  { const m = F.stone ? stoneTex() : F.sunburst ? sunburstTex() : F.grain ? grainTex() : null; if (MATS.tTop.map !== m) { MATS.tTop.map = m; MATS.tTop.needsUpdate = true; } }
   MATS.cSeat.color.setHex(V.seat); MATS.cSeat.roughness = V.rough; MATS.cLegs.color.setHex(V.legs);
-  const cord = CHAIR_MODELS[dining.c].style === 'kasami' ? cordTex() : null;
+  MATS.cLegs.metalness = V.metal ? 0.6 : 0; MATS.cLegs.roughness = V.metal ? 0.4 : 0.5;
+  const st = CHAIR_MODELS[dining.c].style, cord = st === 'kasami' ? cordTex() : st === 'swan' ? weaveTex('boucle') : null;
   if (MATS.cSeat.map !== cord) { MATS.cSeat.map = cord; MATS.cSeat.needsUpdate = true; }
 }
-let _stoneTex = null, _grainTex = null;
+let _stoneTex = null, _grainTex = null, _sunTex = null;
+function sunburstTex() {                                // Alvik: oak veneer laid in 16 wedges round the centre (UVs of the round top are metres, centred)
+  if (_sunTex) return _sunTex;
+  const t = canvasTex(1024, 1024, (g, W) => { const r = rng(93); g.fillStyle = '#f0f0f0'; g.fillRect(0, 0, W, W);
+    for (let k = 0; k < 16; k++) { g.save(); g.translate(W / 2, W / 2); g.rotate(k * Math.PI / 8); g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, W, -Math.PI / 16, Math.PI / 16); g.closePath(); g.clip();
+      g.fillStyle = k % 2 ? '#e9e9e9' : '#f6f6f6'; g.fillRect(0, -W, W, 2 * W);
+      for (let i = 0; i < 90; i++) { const y = (r() - 0.5) * W * 0.2, v = 150 + r() * 70 | 0; g.strokeStyle = `rgba(${v},${v},${v},0.35)`; g.lineWidth = 0.5 + r() * 2; g.beginPath(); g.moveTo(0, y * 0.1); g.lineTo(W, y * 1.6); g.stroke(); }
+      g.restore(); }
+  }, [1.2, 1.2]);
+  t.offset.set(0.5, 0.5);
+  return (_sunTex = t);
+}
 function stoneTex() {                                   // travertine: warm beige with soft horizontal bands and small pits
   return (_stoneTex ||= canvasTex(512, 512, (g, W) => { const r = rng(91); g.fillStyle = '#f4f0ea'; g.fillRect(0, 0, W, W);
     for (let k = 0; k < 70; k++) { const y = r() * W, v = 225 + r() * 25 | 0; g.fillStyle = `rgba(${v},${v - 6},${v - 14},0.5)`; g.fillRect(0, y, W, 1 + r() * 6); }
@@ -3673,6 +3950,44 @@ function kasamiChair(ch, C, add) {
   add(new THREE.CylinderGeometry(R + 0.012, R + 0.012, 0.035, 24, 1, true, Math.PI - span / 2, span), legs, 0, C.H - 0.075, back + R, ch);
   add(new THREE.CylinderGeometry(R - 0.012, R - 0.012, 0.035, 24, 1, true, Math.PI - span / 2, span), legs, 0, C.H - 0.075, back + R, ch);
 }
+// soft shapes for the Swan: squash a softBox's plan or face to a superellipse (corners pulled in), and bend a slab round a vertical axis
+function superRound(geo, axis, a, b, nPos, nNeg) {
+  const P = geo.attributes.position;
+  for (let i = 0; i < P.count; i++) {
+    const u = P.getX(i), v = axis === 'xz' ? P.getZ(i) : P.getY(i); if (Math.abs(u) < 1e-9 && Math.abs(v) < 1e-9) continue;
+    const th = Math.atan2(v / b, u / a), c = Math.abs(Math.cos(th)), s = Math.abs(Math.sin(th)), n = v > 0 ? nPos : nNeg;
+    const k = Math.pow(Math.pow(c, n) + Math.pow(s, n), -1 / n) * Math.max(c, s);
+    P.setX(i, u * k); if (axis === 'xz') P.setZ(i, v * k); else P.setY(i, v * k);
+  }
+}
+function bendAroundY(geo, R) {                          // +z (front) side becomes the inside of the curve; x = arc length
+  const P = geo.attributes.position;
+  for (let i = 0; i < P.count; i++) { const x = P.getX(i), z = P.getZ(i), th = x / R, rho = R - z; P.setX(i, rho * Math.sin(th)); P.setZ(i, R - rho * Math.cos(th)); }
+}
+function swanChair(ch, C, add) {
+  const V = CHAIR_MODELS[dining.c].variants[dining.cv], metal = !!V.metal, legs = MATS.cLegs, d = C.D, SH = C.SH;
+  // seat: a thick soft cushion, round at the front, flatter at the back
+  const sw = C.W - 0.02, sd = d - 0.13, st = 0.085, sz = 0.04;
+  const seat = softBox(sw, st, sd, 0.034, { top: 0.008 }); superRound(seat, 'xz', sw / 2, sd / 2, 2.3, 4.5); seat.computeVertexNormals();
+  add(seat, MATS.cSeat, 0, SH - st / 2, sz, ch);
+  // back: a wide padded shell that wraps round the sitter like a wing
+  const bw = 0.60, bh = 0.29, bt = 0.07, R = 0.30;
+  const back = softBox(bw, bh, bt, 0.032, { front: 0.005 }); superRound(back, 'xy', bw / 2, bh / 2, 2.2, 3.4); bendAroundY(back, R); back.computeVertexNormals();
+  const zb = -d / 2 + bt / 2 + 0.005, yb = C.H - bh / 2 - 0.004;
+  const bm = add(back, MATS.cSeat, 0, yb, zb, ch); bm.rotation.x = -0.12;
+  // legs: oak (square-ish, tapering) or thin black steel tubes; the rear pair rises behind the shell
+  const leg = (x0, y0, z0, x1, y1, z1, rt, rb) => { const p0 = new THREE.Vector3(x0, y0, z0), p1 = new THREE.Vector3(x1, y1, z1), v = p1.clone().sub(p0);
+    const m = add(new THREE.CylinderGeometry(rt, rb, v.length(), metal ? 12 : 4), legs, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, ch);
+    m.quaternion.setFromUnitVectors(UP, v.normalize()); if (!metal) m.rotateY(Math.PI / 4); return m; };
+  const r0 = metal ? 0.011 : 0.024, r1 = metal ? 0.011 : 0.017, under = SH - st, fx = sw / 2 - 0.085, rx = sw / 2 - 0.1;
+  for (const sx of [1, -1]) {
+    leg(sx * (fx + 0.025), 0, sz + sd / 2 - 0.05, sx * fx, under, sz + sd / 2 - 0.1, r0 * 0.9, r1);                          // front legs, splayed a little
+    leg(sx * (rx + 0.02), 0, -d / 2 + 0.13, sx * rx, yb + 0.02, -d / 2 + 0.035, r0, r1);                                      // rear legs up behind the shell
+    if (!metal) add(new THREE.BoxGeometry(0.022, 0.05, sd - 0.12), legs, sx * (fx - 0.01), under - 0.03, sz - 0.02, ch);       // side rails under the seat
+  }
+  if (!metal) for (const z of [sz + sd / 2 - 0.1, -d / 2 + 0.1]) add(new THREE.BoxGeometry(2 * fx - 0.02, 0.045, 0.022), legs, 0, under - 0.03, z, ch);
+  else add(new THREE.BoxGeometry(sw - 0.16, 0.012, sd - 0.16), legs, 0, under - 0.008, sz, ch);                                 // steel seat plate
+}
 function stadiumShape(L, D) {
   const r = D / 2, s = (L - D) / 2, sh = new THREE.Shape();
   if (s < 0.001) { sh.absarc(0, 0, r, 0, Math.PI * 2, false); return sh; }
@@ -3705,17 +4020,31 @@ function buildDining(tryPlace) {
   for (let i = 0; i < T.leaves + (T.leaves ? 1 : 0); i++) {        // seams where the leaves meet
     const x = T.leaves ? -s + (2 * s) * i / T.leaves : 0; add(new THREE.BoxGeometry(0.003, 0.002, T.D * 0.98), MATS.seam, x, T.H + 0.0005, 0);
   }
-  const apR = T.D / 2 - 0.12, legH = T.H - TT;
-  add(new THREE.BoxGeometry(T.L - T.D + apR * 1.6, 0.07, apR * 1.6), MATS.tLegs, 0, T.H - TT - 0.035, 0).visible = true;
-  for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
-    const lx = sx * (s + apR * 0.62), lz = sz * apR * 0.62;
-    const leg = add(new THREE.CylinderGeometry(0.022, 0.016, legH, TABLE_MODELS[dining.t].roundLegs ? 14 : 4), MATS.tLegs, lx + sx * 0.04, legH / 2, lz + sz * 0.04);
-    leg.rotation.set(sz * 0.07, Math.PI / 4, -sx * 0.07);
+  const apR = T.D / 2 - 0.12, legH = T.H - TT, TM = TABLE_MODELS[dining.t], tstyle = TM.style || 'splay';
+  if (tstyle === 'straight') {                          // Torsby: a deep skirt under the top, four straight round legs; each half takes two when it pulls apart
+    const ro = T.D / 2 - 0.035, ri = ro - 0.022, skirt = stadiumShape(T.L - (T.D - 2 * ro), 2 * ro); skirt.holes.push(new THREE.Path(stadiumShape(T.L - (T.D - 2 * ri), 2 * ri).getPoints(64).reverse()));
+    const sk = add(new THREE.ExtrudeGeometry(skirt, { depth: 0.075, bevelEnabled: false, curveSegments: 48 }), MATS.tLegs, 0, T.H - TT, 0); sk.rotation.x = Math.PI / 2;
+    const lr = ro - 0.045;
+    for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) add(new THREE.CylinderGeometry(0.026, 0.024, legH, 20), MATS.tLegs, sx * (s + lr * Math.SQRT1_2), legH / 2, sz * lr * Math.SQRT1_2);
+  } else if (tstyle === 'fluted') {                     // Landholm: a fluted square column with a cross of thin fins
+    const C2 = 0.56, rib = 0.017, nr = Math.round(C2 / (2 * rib));
+    add(new THREE.BoxGeometry(C2 - 0.02, legH, C2 - 0.02), MATS.tLegs, 0, legH / 2, 0);
+    for (let k = 0; k < nr; k++) { const t = -C2 / 2 + rib + k * 2 * rib;
+      for (const [x, z] of [[t, C2 / 2 - rib], [t, -C2 / 2 + rib], [C2 / 2 - rib, t], [-C2 / 2 + rib, t]]) add(new THREE.CylinderGeometry(rib, rib, legH, 8), MATS.tLegs, x, legH / 2, z); }
+    for (const rot of [0, Math.PI / 2]) { const fin = add(new THREE.BoxGeometry(0.86, legH, 0.03), MATS.tLegs, 0, legH / 2, 0); fin.rotation.y = rot; }
+  } else {
+    add(new THREE.BoxGeometry(T.L - T.D + apR * 1.6, 0.07, apR * 1.6), MATS.tLegs, 0, T.H - TT - 0.035, 0).visible = true;
+    for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const lx = sx * (s + apR * 0.62), lz = sz * apR * 0.62;
+      const leg = add(new THREE.CylinderGeometry(TM.taper ? 0.026 : 0.022, TM.taper ? 0.012 : 0.016, legH, TM.roundLegs || TM.taper ? 14 : 4), MATS.tLegs, lx + sx * 0.04, legH / 2, lz + sz * 0.04);
+      leg.rotation.set(sz * 0.07, Math.PI / 4, -sx * 0.07);
+    }
   }
   // chairs (Adler-like): upholstered seat, curved upholstered back band, oak legs, rear legs rising into the back
   for (const [cx, cz, face] of chairSpots()) {
     const ch = new THREE.Group(); ch.position.set(cx, 0, cz); ch.rotation.y = -face + Math.PI / 2; g.add(ch);
     if (C.style === 'kasami') { kasamiChair(ch, C, add); continue; }
+    if (C.style === 'swan') { swanChair(ch, C, add); continue; }
     const w = C.W - 0.08, d = C.D - 0.08, sh2 = C.SH;
     add(new THREE.BoxGeometry(w, 0.07, d), MATS.cSeat, 0, sh2 - 0.035, 0, ch);
     add(new THREE.BoxGeometry(w - 0.04, 0.025, d - 0.06), MATS.cLegs, 0, sh2 - 0.085, 0, ch);
@@ -4108,8 +4437,10 @@ const diningMover = {
       set: (i) => { dining.tc = i; buildDining(); } },
     { id: 'tfin', label: 'Table finish', options: () => TABLE_MODELS[dining.t].finishes.map((f) => ({ label: f.name })), get: () => dining.tf,
       set: (i) => { dining.tf = i; applyDiningMats(); } },
+    { id: 'cmod', label: 'Chairs', options: () => CHAIR_MODELS.map((m) => ({ label: `${m.brand} ${m.name}` })), get: () => dining.c,
+      set: (i) => { dining.c = i; dining.cv = 0; buildDining(); buildMoverSelects(diningMover); } },
     { id: 'cvar', label: 'Chair colour', options: () => CHAIR_MODELS[dining.c].variants.map((v) => ({ label: v.name })), get: () => dining.cv,
-      set: (i) => { dining.cv = i; applyDiningMats(); } },
+      set: (i) => { dining.cv = i; buildDining(); } },
   ],
 };
 
@@ -4438,7 +4769,8 @@ const GUDRUN = { name: 'House Nordic Gudrun', c: 0x9a8063, url: 'https://www.boo
 const petraDims = new THREE.Group(); dimsGroup.add(petraDims);
 const LIV_BOX = { x0: 0.5, x1: 4.46, y0: 0.5, y1: 8.45 };            // living room inner faces (Blender)
 function buildPetra(tryPos, tryAngle) {
-  if (!petra.pos) { petra.pos = [3.86, 7.82]; petra.angle = Math.atan2(-2.46, 1.42); }   // left of the TV (seen from the sofa), by the balcony door, turned towards the sofa
+  if (!petra.pos) { petra.pos = [3.71, 7.82];   // 2026-11-16: 15 cm towards the outside wall with the sofa group
+    petra.angle = Math.atan2(-2.46, 1.42); }   // left of the TV (seen from the sofa), by the balcony door, turned towards the sofa
   let pos = tryPos || petra.pos, ang = tryAngle ?? petra.angle, ok = true;
   const R = 0.41, cx = THREE.MathUtils.clamp(pos[0], LIV_BOX.x0 + R, LIV_BOX.x1 - R), cy = THREE.MathUtils.clamp(pos[1], LIV_BOX.y0 + R, LIV_BOX.y1 - R);
   if (Math.abs(cx - pos[0]) > 1e-6 || Math.abs(cy - pos[1]) > 1e-6) ok = false;
@@ -4560,7 +4892,7 @@ const BOOKT = {
   ],
   PIECE: 0.31, SH_W: 0.16, SH_D: 0.13, PITCH: 0.155, STRIP: 2.0,
 };
-const books = { pack: 2, s: null, z0: null, group: null, parts: [], seed: 7, gap: 1 };
+const books = { pack: 2, s: null, z0: null, group: null, parts: [], seed: 7, gap: 1, hidden: false };
 const BOOK_GAPS = [{ label: 'Pieces stacked tight (31 cm each)', g: 0 }, { label: 'Spaced like ours: 30 % taller (40 cm per piece)', g: 0.093 }];
 const booksDims = new THREE.Group(); dimsGroup.add(booksDims);
 MATS.booksMetal = std({ color: 0xf1f1ee, roughness: 0.42, metalness: 0.25 });
@@ -4588,7 +4920,7 @@ const BOOK_COLS = ['#1f2a44', '#7a2e2a', '#2f4a3a', '#c9b48a', '#e8e2d4', '#3a3a
 function booksRange() {
   const M = liv.media; if (!M) return null;
   const hw = 0.125;                                                       // books overhang the 16 cm plates: half the widest book
-  return { lo: M.offset + UNIT.W / 2 + 0.06 + hw, hi: M.half - 0.05 - hw, hw };
+  return { lo: -M.half + 0.05 + hw, hi: M.half - 0.05 - hw, hw };     // 2026-11-16: free along the whole TV wall (Gianluca); the units no longer limit it
 }
 function bookStackGeo(r, W, h0, h1, list) {
   // books lying flat from h0 up to h1, spines facing the room (+z), fore-edge against the wall
@@ -4622,8 +4954,9 @@ function bookStackGeo(r, W, h0, h1, list) {
 }
 function buildBooks() {
   const M = liv.media, R = booksRange(); if (!M || !R) return false;
+  if (books.hidden) { if (books.group) { scene.remove(books.group); dropParts(books.parts); books.group = null; books.parts = []; } const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Book tower'); if (di >= 0) doors.splice(di, 1); return true; }
   const P = BOOKT.packs[books.pack], PP = BOOKT.PIECE + BOOK_GAPS[books.gap].g, H = P.n * PP;
-  if (books.s === null) books.s = (R.lo + R.hi) / 2;
+  if (books.s === null) books.s = (M.offset + UNIT.W / 2 + 0.06 + R.hw + R.hi) / 2;   // default as before: centred between the TV unit and the hall opening
   if (books.z0 === null) books.z0 = 0.36;
   let ok = true;
   const s = THREE.MathUtils.clamp(books.s, R.lo, Math.max(R.lo, R.hi)); if (Math.abs(s - books.s) > 1e-6) ok = false; books.s = s;
@@ -4685,6 +5018,10 @@ function booksDimsUpdate() {
   const t = labelSprite(`Book tower · ${BOOKT.packs[books.pack].n * 2} tiers · ${Math.round((books.top - books.z0) * 100)} cm`, { h: 0.03 });
   t.position.copy(books.group.position).addScaledVector(M.n, 0.25).setY(books.top + 0.18); booksDims.add(t);
 }
+function setBooksHidden(h) {
+  books.hidden = h; if (h && LIGHTS.books) { LIGHTS.books.on = false; applyLights(); }
+  if (h) selectFurniture(null); buildBooks(); showToast(h ? 'Book tower hidden · bring it back from either TV unit’s panel' : 'Book tower back');
+}
 const booksMover = {
   name: 'Book tower', title: () => `ART-GIFTREE floating book tower · ${BOOKT.packs[books.pack].n} pcs, ${BOOKT.packs[books.pack].n * 2} tiers · white`,
   anchor: () => (books.group ? books.group.position.clone().addScaledVector(liv.media.n, 0.2).setY(books.top + 0.1) : null),
@@ -4693,6 +5030,7 @@ const booksMover = {
   axis2: () => new THREE.Vector3(0, 1, 0),
   shift2: (dir) => { books.z0 += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'That’s as high as it goes under the ceiling' : 'That’s as low as it goes'); },
   variant: { label: () => 'New books', run: () => { books.seed++; buildBooks(); showToast('Shuffled the books'); } },
+  variant2: { label: () => 'Hide the book tower', run: () => { setBooksHidden(true); } },
   lights: ['books'],
   selects: [
     { id: 'bpack', label: 'Pack', options: () => BOOKT.packs.map((p) => ({ label: `${p.n} pieces · ${p.n * 2} tiers` })), get: () => books.pack,
@@ -5487,11 +5825,11 @@ const PAXF = {
     'grabeige|50x58x201': ['90458216', 900], 'grabeige|50x58x236': ['10458220', 1100], 'grabeige|100x58x201': ['90458202', 1100], 'grabeige|100x58x236': ['00458206', 1300],
   },
 };
-const vpax = { model: 1, w: 1, h: 0, f: 0, d: 0, fw: 1, fd: 0, fh: 0, fc: 0, fdoor: 0, off: 0, atWin: true, run: null, wall: null, swap: null };
+const vpax = { model: 2, w: 1, h: 0, f: 0, d: 0, fw: 1, fd: 0, fh: 0, fc: 0, fdoor: 0, off: 0, atWin: false, run: null, wall: null, swap: null };
 const paxfItem = () => { const C = PAXF.colours[vpax.fc]; return PAXF.items[`${C.slug}|${PAXF.widths[vpax.fw].cm}x${PAXF.depths[vpax.fd].cm}x${PAXF.heights[vpax.fh].cm}`]; };
-const vpaxW = () => (vpax.model ? PAXF.widths[vpax.fw].w : VPAX.widths[vpax.w]);
-const vpaxDepth = () => (vpax.model ? PAXF.depths[vpax.fd].d + (vpax.fdoor ? 0.024 : 0) : 0.60);
-const vpaxH = () => (vpax.model ? PAXF.heights[vpax.fh].H : VPAX.heights[vpax.h].H);
+const vpaxW = () => (vpax.model === 2 ? LATTICE.W : vpax.model ? PAXF.widths[vpax.fw].w : VPAX.widths[vpax.w]);
+const vpaxDepth = () => (vpax.model === 2 ? LATTICE.D + 0.03 : vpax.model ? PAXF.depths[vpax.fd].d + (vpax.fdoor ? 0.024 : 0) : 0.60);
+const vpaxH = () => (vpax.model === 2 ? LATTICE.H : vpax.model ? PAXF.heights[vpax.fh].H : VPAX.heights[vpax.h].H);
 const vpaxDims = new THREE.Group(); dimsGroup.add(vpaxDims);
 function vpaxUrl() {
   if (vpax.model) { const C = PAXF.colours[vpax.fc], it = paxfItem(), W = PAXF.widths[vpax.fw].cm, D = PAXF.depths[vpax.fd].cm, H = PAXF.heights[vpax.fh].cm;
@@ -5515,6 +5853,15 @@ function buildVaerCloset() {
   if (vpax.atWin) vpax.off = maxOff;                                                   // default: against the window wall (Gianluca)
   vpax.off = Math.max(-0.5, Math.min(maxOff, vpax.off)); vpax.atWin = vpax.off >= maxOff - 1e-4;                               // 0 = right after the door; + = towards the window
   const sEnd = sDoor - vpax.off, O = p.clone().addScaledVector(a, sEnd - W).addScaledVector(n, 0.005);
+  if (vpax.model === 2) {                                                              // their own lattice closet (17-study.js)
+    const r = buildLatticeCloset(O, n, a); vpax.run = r;
+    const door = { kind: 'swap', label: 'Closet', parts: r.parts, center: O.clone().addScaledVector(a, W / 2).addScaledVector(n, LATTICE.D / 2).setY(1.2),
+      swap: () => selectFurniture(selected === vpaxMover ? null : vpaxMover), prompt: () => (selected === vpaxMover ? 'Done with the closet' : 'Closet options') };
+    for (const q of r.parts) q.userData.door = door;
+    vpax.swap = door; doors.push(door); vpaxDimsUpdate();
+    if (window.__deskReady) window.__buildDesk();
+    return;
+  }
   // temporarily point the shared PAX builder at this closet's height and colours
   const keep = { H: H_CL, D: DOOR_H, fr: MATS.paxFrame, dr: MATS.paxDoor, dc: D_CL, zc, pin: MATS.paxIn };
   H_CL = HH.H; DOOR_H = HH.door;
@@ -5559,8 +5906,8 @@ function vpaxDimsUpdate() {
   if (G.toWin !== null) vpaxDims.add(dimLine(P(0, zq), P(-G.toWin, zq), `${G.toWin.toFixed(2)} m`, 0.9));
   if (G.toSofa !== null) vpaxDims.add(dimLine(P(r.width / 2, D), P(r.width / 2, D + G.toSofa), `${G.toSofa.toFixed(2)} m to the sofa${guest.open ? ' bed' : ''}${G.toSofa < 0.5 ? ' (doors can’t fully open)' : ''}`, 0.5));
 }
-const VPAX_MODEL = { id: 'vm', label: 'Model', options: () => [{ label: 'PAX + FLISBERGET doors' }, { label: 'PAX frame (garderobsstomme)' }], get: () => vpax.model,
-  set: (i) => { vpax.model = i; vpax.atWin = true; buildVaerCloset(); selectFurniture(vpaxMover); } };
+const VPAX_MODEL = { id: 'vm', label: 'Model', options: () => [{ label: 'PAX + FLISBERGET doors' }, { label: 'PAX frame (garderobsstomme)' }, { label: 'Our lattice closet 85 × 37 × 180' }], get: () => vpax.model,
+  set: (i) => { vpax.model = i; if (i !== 2) vpax.atWin = true; buildVaerCloset(); selectFurniture(vpaxMover); } };
 const VPAX_SELECTS = [VPAX_MODEL,
   { id: 'vw', label: 'Width', options: () => VPAX.widths.map((w) => ({ label: `${Math.round(w * 100)} cm · ${Math.round(w * 2)} door${w > 0.5 ? 's' : ''}` })), get: () => vpax.w, set: (i) => { vpax.w = i; buildVaerCloset(); } },
   { id: 'vh', label: 'Height', options: () => VPAX.heights.map((h) => ({ label: h.name })), get: () => vpax.h, set: (i) => { vpax.h = i; buildVaerCloset(); } },
@@ -5578,24 +5925,26 @@ const PAXF_SELECTS = [VPAX_MODEL,
 ];
 const vpaxMover = {
   name: 'Værelse closet',
-  title: () => (vpax.model ? `PAX frame · ${PAXF.widths[vpax.fw].cm} × ${PAXF.depths[vpax.fd].cm} × ${PAXF.heights[vpax.fh].cm}` : `PAX / FLISBERGET · ${Math.round(VPAX.widths[vpax.w] * 100)} cm`),
+  title: () => (vpax.model === 2 ? 'Our lattice closet · 85 × 37 × 180 cm' : vpax.model ? `PAX frame · ${PAXF.widths[vpax.fw].cm} × ${PAXF.depths[vpax.fd].cm} × ${PAXF.heights[vpax.fh].cm}` : `PAX / FLISBERGET · ${Math.round(VPAX.widths[vpax.w] * 100)} cm`),
   anchor: () => (vpax.run ? vpax.run.O.clone().addScaledVector(vpax.wall.a, vpax.run.width / 2).addScaledVector(vpax.wall.n, vpaxDepth() + 0.3).setY(1.3) : null),
   axis: () => vpax.wall.a,
   shift: (dir) => { const b = vpax.off; vpax.atWin = false; vpax.off -= dir * 0.05; buildVaerCloset(); if (Math.abs(vpax.off - b) < 1e-6) showToast(dir > 0 ? 'Any closer and the room door hits it' : 'Can’t go further: window wall'); },
-  get variant() { return vpax.model ? { label: () => (vpax.fw === 1 && vpax.fd === 0 ? 'Try 50 × 58' : 'Try 100 × 35'),
+  get variant() { return vpax.model === 2 ? null : vpax.model ? { label: () => (vpax.fw === 1 && vpax.fd === 0 ? 'Try 50 × 58' : 'Try 100 × 35'),
     run: () => { const to100 = !(vpax.fw === 1 && vpax.fd === 0); vpax.fw = to100 ? 1 : 0; vpax.fd = to100 ? 0 : 1; if (to100 && PAXF.colours[vpax.fc].deep === 1) vpax.fc = 0; buildVaerCloset(); buildMoverSelects(vpaxMover); showToast(to100 ? 'PAX frame 100 × 35' : 'PAX frame 50 × 58'); } } : undefined; },
-  get selects() { return vpax.model ? PAXF_SELECTS : VPAX_SELECTS; },
-  link: () => vpaxUrl(),
+  get selects() { return vpax.model === 2 ? [VPAX_MODEL] : vpax.model ? PAXF_SELECTS : VPAX_SELECTS; },
+  get link() { return vpax.model === 2 ? undefined : () => vpaxUrl(); },
   info: () => { const G = vpaxGaps(); const t = (x) => (x === null ? '—' : `${x.toFixed(2)} m`);
+    if (vpax.model === 2) return `The one you already have: solid wood, lattice doors · ${t(G.toDoor)} to the door end · ${t(G.toWin)} to the window wall · ${t(G.toSofa)} to the sofa${guest.open ? ' bed' : ''} · ◀▶ slides it along the wall`;
     if (vpax.model) { const it = paxfItem(), Wc = PAXF.widths[vpax.fw], Dc = PAXF.depths[vpax.fd];
       return `${(Wc.w * 100).toFixed(1)} × ${(Dc.d * 100).toFixed(1)} × ${(PAXF.heights[vpax.fh].H * 100).toFixed(1)} cm · ${it[1].toLocaleString('en')} kr (IKEA SE) · ${t(G.toWin)} to the window wall · ${t(G.toDoor)} to the door end · ${t(G.toSofa)} to the sofa${guest.open ? ' bed' : ''} · ${vpax.fdoor ? 'doors + hinges extra (FLISBERGET 50 per door)' : 'frame only: doors'}, shelves and rail sold separately${Wc.cm === 100 ? ' · the 100 frame has no middle side' : ''}`; }
     return `${t(G.toDoor)} to the door end · ${t(G.toWin)} to the window wall · ${t(G.toSofa)} to the sofa${guest.open ? ' bed' : ''}${G.toSofa !== null && G.toSofa < 0.5 ? ' — doors can’t open fully' : ''} · white/lys beige is the standard combo; other frame colours: check IKEA` },
 };
 // ------------------------------------------------------------ Værelse: PAX 50 × 60 × 236 + one FLISBERGET door in the nook just left of the door as you come in
 // (the jog between the door jamb x≈6.2 and the short wall x≈5.63, 70 cm deep) — IKEA planner price 1,300 kr; frame/door colours follow the big closet
-const nook = { h: 0, run: null, swap: null };
+const nook = { h: 0, run: null, swap: null, removed: true };   // 2026-11-16 Gianluca: switches and sockets are in that nook; left empty while they decide
 function buildNookCloset() {
-  if (nook.run) { scene.remove(nook.run.g); dropParts(nook.run.parts); for (const d of nook.run.doors) removeHingedDoor(d); const i = doors.indexOf(nook.swap); if (i >= 0) doors.splice(i, 1); }
+  if (nook.run) { scene.remove(nook.run.g); dropParts(nook.run.parts); for (const d of nook.run.doors) removeHingedDoor(d); const i = doors.indexOf(nook.swap); if (i >= 0) doors.splice(i, 1); nook.run = null; nook.swap = null; }
+  if (nook.removed) return;
   const Wl = wallLine([5.8, 5.0], [6.05, 5.0], [0, -1]); if (!Wl) return;       // the south wall face inside the nook
   const n = Wl.n, a = new THREE.Vector3().crossVectors(UP, n).normalize();
   const eastX = 5.64 + 0.498;                                                     // 1 cm off the jog wall, 49.8 wide
@@ -5838,7 +6187,8 @@ const CONSOLE = {
   ],
   tops: [{ name: 'Oak board (cut to size)', c: 0xc69a64, grain: true }, { name: 'Walnut board', c: 0x6a4a33, grain: true }, { name: 'White board', c: 0xf3f2ee }, { name: 'No board (frames only)', c: null }],
 };
-const cons = { frame: 0, front: 4, layout: 1, legs: 0, top: 0, h: 0, decor: true, on: true, group: null, parts: [], n: 0 };
+const cons = { frame: 0, front: 4, layout: 1, legs: 0, top: 0, h: 0, decor: true, on: false,   // 2026-11-15: replaced by the Mistral skænk
+  group: null, parts: [], n: 0 };
 const consLow = () => CONSOLE.heights[cons.h].H < 0.5;
 const consFrontOK = (F) => F.open || !consLow() || !!F.art38;
 const ikeaUrl = (art) => `https://www.ikea.com/dk/da/p/${art}/`;
@@ -5949,7 +6299,7 @@ const consoleMover = {
 // on a ceiling track (same curtain mechanics: E/click, scroll, or drag the point).
 const ALC = {
   models: ['Custom built-in closet', 'Open shelves + curtain'],
-  fronts: [{ name: 'Painted like the walls (handleless)', c: 0xeeeeea }, { name: 'Oak veneer', c: 0xc69a64, grain: true }, { name: 'Sage green', c: 0x8f9a84 }, { name: 'Warm grey', c: 0x8a847b }],
+  fronts: [{ name: 'Oak veneer like IKEA TONSTAD (as the bedroom)', c: 0xc89d6a, tonstad: true }, { name: 'Painted like the walls (handleless)', c: 0xeeeeea }, { name: 'Oak veneer', c: 0xc69a64, grain: true }, { name: 'Sage green', c: 0x8f9a84 }, { name: 'Warm grey', c: 0x8a847b }],
   shelves: [{ name: 'Oak', c: 0xc69a64, grain: true }, { name: 'White', c: 0xf2f1ec }, { name: 'Walnut', c: 0x6a4a33, grain: true }],
   linens: [{ name: 'Natural linen', c: 0xd8cdb8 }, { name: 'White linen', c: 0xf1eee6 }, { name: 'Terracotta', c: 0xb8694a }, { name: 'Sage', c: 0x9aa58c }],
 };
@@ -5986,12 +6336,12 @@ function buildAlcove() {
     for (let i = 0; i < 4; i++) { const x = B.x0 + 0.16 + i * (B.W - 0.32) / 3, L = 0.9 + rr() * 0.25; add(new THREE.BoxGeometry(0.06 + rr() * 0.04, L, 0.42), stdc({ color: coatC[i], roughness: 0.9 }), x, (yIn0 + yIn1) / 2, 1.98 - L / 2); }
     for (let i = 0; i < 4; i++) { stuff(B.x0 + 0.15 + i * 0.24, yIn1 - 0.2, 0.031, 0.1, 0.26, 0.09, [0x222222, 0x7a5236, 0xe8e2d4, 0x3f4a3a][i]); stuff(B.x0 + 0.15 + i * 0.24, yIn1 - 0.2, 0.231, 0.1, 0.26, 0.11, [0x6b4a33, 0x1f2a44, 0x9a9a9a, 0x5a2f2a][i]); }
     stuff(cx - 0.2, (yIn0 + yIn1) / 2, 2.13, 0.3, 0.35, 0.18, 0xbf9d6a); stuff(cx + 0.22, (yIn0 + yIn1) / 2, 2.13, 0.32, 0.36, 0.2, 0xe8e2d4);
-    const F = ALC.fronts[alc.front], fm = F.grain ? stdc({ color: F.c, roughness: 0.55, map: weaveTex('flat') }) : stdc({ color: F.c, roughness: 0.7 });
+    const F = ALC.fronts[alc.front], fm = F.tonstad ? MATS.tonstad : F.grain ? stdc({ color: F.c, roughness: 0.55, map: weaveTex('flat') }) : stdc({ color: F.c, roughness: 0.7 });
     const dw = (B.W - 0.006) / 2, hd = Hc - 0.04;
     for (const k of [0, 1]) {
       const left = k === 0, hx = left ? B.x0 + 0.002 : B.x1 - 0.002;
       const d = addHinged({ id: `alcove_door_${k}`, label: 'Closet', name: 'the hall closet', shape: 'closet', hinge: [hx, B.yF - 0.011], closed: left ? [1, 0] : [-1, 0], open: [0, -1],
-        len: dw - 0.002, h: hd, z0: 0.012, thick: 0.022, doorMat: fm, handle: false, grooves: false, swingDeg: 100 });
+        len: dw - 0.002, h: hd, z0: 0.012, thick: 0.022, doorMat: fm, handle: false, grooves: false, tonstad: !!F.tonstad, swingDeg: 100 });
       for (const p of d.parts) p.userData.furniture = true;
       alc.doors.push(d);
     }
@@ -6043,9 +6393,10 @@ const DESKS = [
   { name: 'Torsby 140 × 60', W: 1.4, D: 0.6, H: 0.75, kr: 3999, top: 0xaeafab, hpl: true, legs: 'round', leg: 0xcfae80, apron: 'drawers2', url: 'torsby/bordplade-i-lysgraa-hpl-laminat/p-1086853-5643327580', desc: 'light-grey HPL top, lacquered solid oak legs, 2 drawers + open niche' },
   { name: 'Wilton 120 × 60', W: 1.2, D: 0.6, H: 0.75, kr: 2999, top: 0xb98b56, grain: true, legs: 'square', leg: 0xb58852, apron: 'drawer1', url: 'wilton/top-i-olieret-egefiner/p-1078250-5642877578', desc: 'oiled oak veneer, solid oak legs, drawer + open niche' },
   { name: 'Richmont 120 × 60', W: 1.2, D: 0.6, H: 0.76, kr: 2999, was: 4299, top: 0xb4875a, grain: true, legs: 'splay', leg: 0xb3885a, apron: 'drawers2', url: 'richmont/bordplade-i-olieret-egefiner/p-1085316-5643267757', desc: 'oiled oak veneer top, splayed solid oak legs, 2 drawers + open niche' },
+  { name: 'Brown desk, as wide as fits', fit: true, W: 1.4, D: 0.6, H: 0.74, kr: null, top: 0x5e3d26, grain: true, legs: 'square', leg: 0x4a3020, apron: 'plain', desc: 'placeholder: dark walnut-brown top and legs, sized to the free wall' },
   { name: 'Landholm 120 × 60', W: 1.2, D: 0.6, H: 0.75, kr: 3199, top: 0xbb9465, grain: true, legs: 'panel', leg: 0xbb9465, apron: 'plain', url: 'landholm/bordplade-i-matlakeret-egefiner/p-1080578-5642948860', desc: 'matt-lacquered oak veneer, fluted panel legs' },
 ];
-const desk = { m: 1, arm: 0, mac: 0, group: null, parts: [] };          // default Wilton (oak) — Gianluca doesn't like white desks
+const desk = { m: 3, arm: 0, mac: 0, fw: 0, fd: 0, group: null, parts: [] };   // 2026-11-15: brown desk by the window, as wide as fits next to their closet          // default Wilton (oak) — Gianluca doesn't like white desks
 const DESK_ARMS = ['ProArt stand', 'Monitor arm (clamped, frees the desk)'];
 const MACS = [{ name: 'MacBook Pro 14″', W: 0.3126, D: 0.2212, T: 0.0155 }, { name: 'MacBook Pro 16″', W: 0.3557, D: 0.2481, T: 0.0168 }];
 function screenTex(kind) {
@@ -6060,23 +6411,30 @@ function screenTex(kind) {
     g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(0, H - H * 0.06, W, H * 0.06);
   }, [1, 1]);
 }
+function deskFree() {                                    // the stretch of wall the closet leaves for the desk
+  const w = vpax.wall; if (!w) return null; const cEnd = w.sDoor - vpax.off, cStart = cEnd - vpaxW();
+  return vpax.atWin ? { s0: cEnd + 0.02, s1: w.sDoor } : { s0: w.sWin + 0.02, s1: cStart - 0.02 };
+}
+function deskMaxW() { const f = deskFree(); return f ? Math.floor((f.s1 - f.s0) * 100 + 1e-6) / 100 : 1.2; }
+function deskFitWidths() { const mx = deskMaxW(), out = [{ w: mx, label: `As wide as fits: ${Math.round(mx * 100)} cm` }]; for (let c = 180; c >= 80; c -= 20) if (c / 100 < mx - 0.005) out.push({ w: c / 100, label: `${c} cm` }); return out; }
+function deskModel() { const d = DESKS[desk.m]; if (!d.fit) return d; const L = deskFitWidths(); return { ...d, W: (L[desk.fw] || L[0]).w, D: desk.fd ? 0.7 : 0.6 }; }
 function deskSpan() {
-  const w = vpax.wall; if (!w) return null; const Dm = DESKS[desk.m];
+  const w = vpax.wall; if (!w) return null; const Dm = deskModel(), F = deskFree();
   const room = w.sDoor - w.sWin, need = Dm.W + vpaxW() + 0.04;
   const s0 = vpax.atWin ? w.sDoor - Dm.W : w.sWin + 0.02;
-  return { s0, s1: s0 + Dm.W, fits: need <= room + 1e-6, room, need };
+  return { s0, s1: s0 + Dm.W, fits: Dm.W <= F.s1 - F.s0 + 1e-6, room, need, free: F.s1 - F.s0 };
 }
 function buildDesk() {
   if (desk.group) { scene.remove(desk.group); dropParts(desk.parts); desk.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); desk.group = null; }
   const w = vpax.wall, sp = deskSpan(); if (!w || !sp) return;
-  const Dm = DESKS[desk.m], { n, a, p } = w, sc = (sp.s0 + sp.s1) / 2;
+  const Dm = deskModel(), { n, a, p } = w, sc = (sp.s0 + sp.s1) / 2;
   const g = new THREE.Group(); g.position.copy(p).addScaledVector(a, sc).addScaledVector(n, 0.01 + Dm.D / 2);
   g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a.clone().negate(), UP, n.clone().negate()));   // local +z = towards the wall, x = along it
   // local frame: x along the wall (+x = towards the window), z = 0 desk centre, +z towards the wall (back edge at +D/2), user sits at -z
   const parts = [], add = (geo, m, x, y, z, solid = false) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; g.add(o); if (solid) parts.push(o); return o; };
   const W = Dm.W, D = Dm.D, H = Dm.H, tt = 0.025;
-  const topM = Dm.grain ? stdc({ color: Dm.top, roughness: 0.5, map: weaveTex('flat') }) : stdc({ color: Dm.top, roughness: 0.45 });
-  const legM = stdc({ color: Dm.leg, roughness: 0.55, map: weaveTex('flat') });
+  const topM = Dm.fit ? stdc({ color: Dm.top, roughness: 0.62, map: grainTex() }) : Dm.grain ? stdc({ color: Dm.top, roughness: 0.5, map: weaveTex('flat') }) : stdc({ color: Dm.top, roughness: 0.45 });
+  const legM = stdc({ color: Dm.leg, roughness: 0.55, map: Dm.fit ? grainTex() : weaveTex('flat') });
   add(new THREE.BoxGeometry(W, tt, D), topM, 0, H - tt / 2, 0, true);
   if (Dm.hpl) add(new THREE.BoxGeometry(W + 0.002, 0.006, D + 0.002), stdc({ color: 0xcfae80, roughness: 0.5 }), 0, H - tt + 0.003, 0);   // oak edge band under the HPL
   // apron with drawers / niche
@@ -6119,7 +6477,8 @@ function buildDesk() {
   }
   // MacBook Pro (space grey), open ~110°, to the left of the monitor, turned slightly towards you
   const M = MACS[desk.mac], mac = new THREE.Group(); g.add(mac); const alu = stdc({ color: 0x5c5e62, roughness: 0.32, metalness: 0.75 });
-  mac.position.set(W / 2 - M.W / 2 - 0.08, H, -D / 2 + M.D / 2 + 0.08); mac.rotation.y = -0.32;
+  { const xl = Math.min(W / 2 - M.W / 2 - 0.05, mx + PW / 2 + 0.07 + M.W / 2), roomL = xl - (mx + PW / 2) - M.W / 2;
+    mac.position.set(xl, H, roomL > 0.02 ? -D / 2 + M.D / 2 + 0.13 : -D / 2 + M.D / 2 + 0.05); mac.rotation.y = roomL > 0.02 ? -0.22 : -0.08; }   // beside the screen, 13 cm in from the edge, angled towards you
   const base = new THREE.Mesh(new THREE.BoxGeometry(M.W, M.T * 0.6, M.D), alu); base.position.y = M.T * 0.3; base.castShadow = true; mac.add(base);
   const kb = new THREE.Mesh(new THREE.PlaneGeometry(M.W * 0.86, M.D * 0.42), stdc({ color: 0x141416, roughness: 0.6 })); kb.rotation.x = -Math.PI / 2; kb.position.set(0, M.T * 0.6 + 0.0005, M.D * 0.14); mac.add(kb);
   const tp = new THREE.Mesh(new THREE.PlaneGeometry(M.W * 0.42, M.D * 0.3), stdc({ color: 0x6a6c70, roughness: 0.3, metalness: 0.6 })); tp.rotation.x = -Math.PI / 2; tp.position.set(0, M.T * 0.6 + 0.0006, -M.D * 0.27); mac.add(tp);
@@ -6146,6 +6505,7 @@ function buildDesk() {
   const mesh = new THREE.Mesh(new THREE.CircleGeometry(0.073, 32), new THREE.MeshStandardMaterial({ color: 0x111111, transparent: true, opacity: 0.55, side: THREE.DoubleSide, roughness: 0.9 })); pf.add(mesh);
   const goose = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.14, 8), armM2); goose.position.set(0.05, 0.08, 0.06); goose.rotation.set(0.6, 0, -0.5); pf.add(goose);
   { const mg = mergeByMaterial(g, new Set(parts)); parts.length = 0; parts.push(...mg.solids); }   // perf: direct children merged per material (monitor, laptop, pop filter groups stay)
+  deskChair(g, mx, -D / 2 - 0.16, 0);   // the chair, pulled in front of the screen
   scene.add(g); g.updateMatrixWorld(true);
   const hitC = new THREE.Vector3(0, H, 0).applyMatrix4(g.matrixWorld);
   const door = { kind: 'swap', label: 'Desk', parts, center: hitC.clone().setY(H + 0.2),
@@ -6162,22 +6522,29 @@ function swapDeskCloset() {
   const sp = deskSpan(); showToast(`Desk by the ${vpax.atWin ? 'door' : 'window'}, closet by the ${vpax.atWin ? 'window' : 'door'}${sp && !sp.fits ? ' — they overlap: pick a narrower closet or desk' : ''}`);
 }
 const deskMover = {
-  name: 'Desk', title: () => `ILVA ${DESKS[desk.m].name} · desk by the ${vpax.atWin ? 'door' : 'window'}`,
+  name: 'Desk', title: () => `${DESKS[desk.m].fit ? `Brown desk ${Math.round(deskModel().W * 100)} cm` : `ILVA ${DESKS[desk.m].name}`} · by the ${vpax.atWin ? 'door' : 'window'}`,
   anchor: () => (desk.group ? desk.group.position.clone().setY(1.5) : null),
   variant: { label: () => `Swap: desk by the ${vpax.atWin ? 'window' : 'door'}, closet by the ${vpax.atWin ? 'door' : 'window'}`, run: () => { swapDeskCloset(); if (selected === deskMover) updateMoverInfo(); } },
-  selects: [
-    { id: 'dmod', label: 'Desk (ILVA)', options: () => DESKS.map((d) => ({ label: `${d.name} · ${d.kr.toLocaleString('da-DK')} kr` })), get: () => desk.m, set: (i) => { desk.m = i; buildDesk(); const sp = deskSpan(); if (sp && !sp.fits) showToast('Desk + closet are wider than the wall here'); } },
+  get selects() { const L = [
+    { id: 'dmod', label: 'Desk', options: () => DESKS.map((d) => ({ label: d.fit ? d.name : `ILVA ${d.name} · ${d.kr.toLocaleString('da-DK')} kr` })), get: () => desk.m, set: (i) => { desk.m = i; buildDesk(); buildMoverSelects(deskMover); const sp = deskSpan(); if (sp && !sp.fits) showToast('Desk + closet are wider than the wall here'); } }];
+    if (DESKS[desk.m].fit) L.push({ id: 'dfw', label: 'Width', options: () => deskFitWidths().map((x) => ({ label: x.label })), get: () => Math.min(desk.fw, deskFitWidths().length - 1), set: (i) => { desk.fw = i; buildDesk(); } },
+      { id: 'dfd', label: 'Depth', options: () => [{ label: '60 cm' }, { label: '70 cm' }], get: () => desk.fd, set: (i) => { desk.fd = i; buildDesk(); } });
+    return L.concat([
     { id: 'darm', label: 'Monitor', options: () => DESK_ARMS.map((v) => ({ label: `ASUS ProArt 32″ · ${v}` })), get: () => desk.arm, set: (i) => { desk.arm = i; buildDesk(); } },
     { id: 'dmac', label: 'Laptop', options: () => MACS.map((v) => ({ label: `${v.name} · space grey` })), get: () => desk.mac, set: (i) => { desk.mac = i; buildDesk(); } },
-  ],
-  link: () => ({ href: `https://ilva.dk/kontoret/skriveborde/${DESKS[desk.m].url}/`, text: `ILVA · ${DESKS[desk.m].name.split(' ')[0]} skrivebord ↗` }),
-  info: () => { const Dm = DESKS[desk.m], sp = deskSpan();
+    { id: 'dch', label: 'Chair', options: () => DCHAIRS.map((c) => ({ label: `${c.name} · ${c.kr.toLocaleString('da-DK')} kr` })), get: () => dchair.m, set: (i) => { dchair.m = i; dchair.col = 0; buildDesk(); buildMoverSelects(deskMover); } },
+    { id: 'dchc', label: 'Chair colour', options: () => DCHAIRS[dchair.m].cols.map((c) => ({ label: c.name })), get: () => dchair.col, set: (i) => { dchair.col = i; buildDesk(); } },
+  ]); },
+  link: () => { const C = DCHAIRS[dchair.m], Dm = DESKS[desk.m]; return Dm.fit ? { href: C.url, text: `${C.name} ↗` } : { href: `https://ilva.dk/kontoret/skriveborde/${Dm.url}/`, text: `ILVA · ${Dm.name.split(' ')[0]} skrivebord ↗`, href2: C.url, text2: `${C.name} ↗` }; },
+  info: () => { const Dm = deskModel(), sp = deskSpan();
+    if (Dm.fit) return `${Math.round(Dm.W * 100)} × ${Math.round(Dm.D * 100)} × ${Math.round(Dm.H * 100)} cm · the most that fits between the window wall and the closet is ${Math.round(deskMaxW() * 100)} cm · chair: ${DCHAIRS[dchair.m].name}, ${DCHAIRS[dchair.m].note}`;
     return `${Math.round(Dm.W * 100)} × ${Math.round(Dm.D * 100)} × ${Math.round(Dm.H * 100)} cm · ${Dm.desc} · ${Dm.kr.toLocaleString('da-DK')} kr${Dm.was ? ` (før ${Dm.was.toLocaleString('da-DK')})` : ''} · the 32″ screen sits ≈${desk.arm ? 50 : 45} cm from the front edge (≈70–75 cm from your eyes)${sp && !sp.fits ? ' · ⚠ desk + closet don’t fit on this wall together' : ''}`; },
 };
 // ------------------------------------------------------------ living: IKEA HOLMERUD side table (80 × 31 × 52) at the sofa's free end
 const HOLM = { cols: [{ name: 'Egetræsmønstret', c: 0xc8a06e, url: 'https://www.ikea.com/dk/da/p/holmerud-sidebord-egetraesmonstret-40541421/' }, { name: 'Mørkebrun', c: 0x47352a, url: 'https://www.ikea.com/dk/da/p/holmerud-sidebord-morkebrun-20538721/' }], kr: 499 };
-const holm = { pos: null, angle: 0, col: 0, group: null, parts: [] };
+const holm = { pos: null, angle: 0, col: 0, group: null, parts: [], removed: true };   // 2026-11-15 Gianluca: "we do not need it"
 function buildHolm(tryPos, tryAngle) {
+  if (holm.removed) { if (holm.group) { scene.remove(holm.group); dropParts(holm.parts); holm.group = null; holm.parts = []; } const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Side table'); if (di >= 0) doors.splice(di, 1); return false; }
   const S = liv.sofa; if (!S || !S.group) return false;
   if (!holm.pos) { const { f, x } = sofaFrame(), L = SOFAS[S.cfg].L; const P = S.O.clone().addScaledVector(x, L / 2 + 0.03 + 0.155).addScaledVector(f, SD / 2); holm.pos = toBl(P); holm.angle = Math.atan2(-f.z, f.x); }
   let pos = tryPos || holm.pos, ok = true;
@@ -6219,6 +6586,74 @@ const holmMover = {
   selects: [{ id: 'hcol', label: 'Colour', options: () => HOLM.cols.map((c) => ({ label: `${c.name} · ${HOLM.kr} kr` })), get: () => holm.col, set: (i) => { holm.col = i; buildHolm(); } }],
   link: () => ({ href: HOLM.cols[holm.col].url, text: `IKEA · HOLMERUD ${HOLM.cols[holm.col].name.toLowerCase()} · ${HOLM.kr} kr ↗` }),
   info: () => '80 × 31 × 52 cm · open shelf + half-height shelf, base 7 cm off the floor · max 15 kg on top, 5 kg per shelf · ⟲ ⟳ turn 15°',
+};
+
+// ------------------------------------------------------------ living: Hammel Mistral skænk along the sofa's kitchen-side end (2026-11-15, replaces the BESTÅ console)
+// erling-christensen.dk/shop/mistral-skaenk-315138p.html: 177 × 42 × 61 cm, two doors (one shelf behind each) and an open 2 × 2 middle,
+// 5.493 kr (vejl. 7.630); on Mistral's conical wooden legs, 14 cm, 3.5 × 3.5 cm, 6 per pack, 666 kr (vejl. 925) → 75 cm high, under the 82 cm sofa back.
+// Colour: Gianluca says not white but a marble / blue-grey shade → 76 Mint by default (closest swatch); every Mistral colour in the panel.
+const SKAENK = { W: 1.77, D: 0.42, H: 0.61, leg: 0.14, kr: 5493, was: 7630, legKr: 666, url: 'https://erling-christensen.dk/shop/mistral-skaenk-315138p.html', legUrl: 'https://erling-christensen.dk/shop/mistral-konisk-traeben-250441p.html',
+  legCols: [{ name: 'Lys eg (sæbe)', c: 0xc9a376 }, { name: 'Eg lak olie', c: 0xb98b58 }, { name: 'Sort', c: 0x1f1d1b }] };
+const skaenk = { col: 7, legCol: 0, s: null, group: null, parts: [] };
+function buildSkaenk() {
+  if (skaenk.group) { scene.remove(skaenk.group); dropParts(skaenk.parts); skaenk.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); skaenk.group = null; }
+  const S = liv.sofa; if (!S || !S.group) return;
+  const cfg = SOFAS[S.cfg], L = cfg.L, end = sofaEnds(cfg, -1)[0], R = end.t !== 'arm' ? end.R : SD;
+  const { W, D, H, leg: LEG } = SKAENK, half = W / 2;
+  if (skaenk.s === null) skaenk.s = R / 2;                                // centred on the sofa's return
+  skaenk.s = THREE.MathUtils.clamp(skaenk.s, half - 0.1, R + 0.1 - half); skaenk.R = R;
+  const F = MISTRAL_COLS[skaenk.col] || MISTRAL_COLS[0], LC = SKAENK.legCols[skaenk.legCol];
+  const { f, x } = sofaFrame(), g = new THREE.Group(); g.position.copy(S.O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, UP, f));
+  const parts = [], add = (geo, m, px, py, pz, solid = false) => { const o = new THREE.Mesh(geo, m); o.position.set(px, py, pz); o.castShadow = o.receiveShadow = true; g.add(o); if (solid) parts.push(o); return o; };
+  const body = stdc({ color: F.c, roughness: 0.55, ...(F.grain ? { map: grainTex() } : {}) }), inner = stdc({ color: new THREE.Color(F.c).multiplyScalar(0.86).getHex(), roughness: 0.6 });
+  const knobM = stdc({ color: 0xb9bbbd, roughness: 0.3, metalness: 0.85 }), legM = stdc({ color: LC.c, roughness: 0.6 });
+  const gap = 0.03, xo = -L / 2 - gap, xc = xo - D / 2, zc = skaenk.s, T = 0.022, S2 = 0.018, y0 = LEG;
+  // carcass: full-width top and bottom with soft front edges, sides, back (against the sofa)
+  add(softBox(D, T, W, 0.008), body, xc, y0 + H - T / 2, zc); add(softBox(D, T, W, 0.008), body, xc, y0 + T / 2, zc);
+  for (const sz of [-1, 1]) add(new THREE.BoxGeometry(D - 0.01, H - 2 * T, S2), body, xc + 0.005, y0 + H / 2, zc + sz * (half - 0.012 - S2 / 2));
+  add(new THREE.BoxGeometry(0.008, H - 2 * T, W - 0.03), inner, xo - 0.004, y0 + H / 2, zc);
+  // four 44 cm bays: doors at the ends, the middle two open with a shelf each
+  const bay = (W - 0.03) / 4, zL = zc - (W - 0.03) / 2, fx = xo - D;
+  for (let k = 1; k < 4; k++) add(new THREE.BoxGeometry(D - 0.02, H - 2 * T, S2), k === 2 ? body : inner, xc + 0.01, y0 + H / 2, zL + k * bay);
+  for (const k of [1, 2]) add(new THREE.BoxGeometry(D - 0.03, S2, bay - S2), body, xc + 0.015, y0 + H / 2, zL + (k + 0.5) * bay);
+  for (const k of [0, 3]) { const zz = zL + (k + 0.5) * bay; add(new THREE.BoxGeometry(0.018, H - 2 * T - 0.006, bay - 0.006), body, fx + 0.009, y0 + H / 2, zz);
+    add(new THREE.SphereGeometry(0.011, 14, 10), knobM, fx - 0.004, y0 + H / 2 + 0.12, zz + (k === 0 ? 1 : -1) * (bay / 2 - 0.05)); }
+  // in the open bays: books, a vase, a basket
+  { const r = rng(57), bc = [0x2f4a3a, 0xc9b48a, 0x7a2e2a, 0x1f2a44, 0xe8e2d4]; let yy = y0 + T;
+    for (let i = 0; i < 4; i++) { const t = 0.025 + r() * 0.02; add(new THREE.BoxGeometry(0.24, t, 0.17), stdc({ color: bc[i % 5], roughness: 0.8 }), xc - 0.02, yy + t / 2, zL + 1.5 * bay); yy += t; }
+    add(new THREE.CylinderGeometry(0.05, 0.04, 0.16, 20), stdc({ color: 0xd9cfc0, roughness: 0.5 }), xc - 0.04, y0 + H / 2 + S2 / 2 + 0.08, zL + 1.5 * bay);
+    add(new THREE.BoxGeometry(0.26, 0.2, 0.3), new THREE.MeshStandardMaterial({ color: 0xbf9d6a, map: weaveTex('canvas'), roughness: 0.95 }), xc - 0.02, y0 + T + 0.1, zL + 2.5 * bay);
+    for (let i = 0; i < 6; i++) { const w = 0.02 + r() * 0.015, h = 0.17 + r() * 0.05; add(new THREE.BoxGeometry(0.18, h, w), stdc({ color: bc[(i + 2) % 5], roughness: 0.8 }), xc - 0.03, y0 + H / 2 + S2 / 2 + h / 2, zL + 2.15 * bay + i * 0.026); } }
+  // six conical wooden legs, 14 cm
+  for (const lz of [zL + 0.05, zc, zL + W - 0.08]) for (const lx of [xo - 0.05, xo - D + 0.05]) add(new THREE.CylinderGeometry(0.0175, 0.011, LEG, 4), legM, lx, LEG / 2, lz).rotation.y = Math.PI / 4;
+  // on top: a table lamp shape, a stack of books, a small plant
+  const topY = y0 + H;
+  add(new THREE.CylinderGeometry(0.06, 0.07, 0.03, 24), stdc({ color: 0x2b2a28, roughness: 0.4 }), xc - 0.02, topY + 0.015, zc - 0.62);
+  add(new THREE.CylinderGeometry(0.008, 0.008, 0.3, 10), stdc({ color: 0x2b2a28, roughness: 0.4 }), xc - 0.02, topY + 0.18, zc - 0.62);
+  add(new THREE.CylinderGeometry(0.1, 0.14, 0.17, 28, 1, true), new THREE.MeshStandardMaterial({ color: 0xefe7d8, roughness: 0.9, side: THREE.DoubleSide }), xc - 0.02, topY + 0.38, zc - 0.62);
+  add(new THREE.BoxGeometry(0.15, 0.035, 0.22), stdc({ color: 0x2c5d63, roughness: 0.8 }), xc - 0.02, topY + 0.0175, zc + 0.1);
+  add(new THREE.BoxGeometry(0.14, 0.025, 0.2), stdc({ color: 0xe8e2d4, roughness: 0.8 }), xc - 0.02, topY + 0.0475, zc + 0.1);
+  add(new THREE.CylinderGeometry(0.06, 0.05, 0.11, 22), stdc({ color: 0xb06a43, roughness: 0.9 }), xc - 0.02, topY + 0.055, zc + 0.6);
+  add(new THREE.SphereGeometry(0.1, 14, 12), stdc({ color: 0x4f7a3a, roughness: 1 }), xc - 0.02, topY + 0.17, zc + 0.6);
+  mergeByMaterial(g);
+  const hit = add(new THREE.BoxGeometry(D + 0.02, topY + 0.02, W + 0.02), new THREE.MeshBasicMaterial({ visible: false }), xc, (topY + 0.02) / 2, zc, true); hit.castShadow = false;
+  scene.add(g); g.updateMatrixWorld(true);
+  const door = { kind: 'swap', label: 'Skænk', name: 'Mistral skænk', parts: [hit], center: hit.getWorldPosition(new THREE.Vector3()),
+    swap: () => selectFurniture(selected === skaenkMover ? null : skaenkMover), prompt: () => (selected === skaenkMover ? 'Done with the skænk' : 'Change the skænk') };
+  hit.userData.door = door; hit.userData.furniture = true; collidables.push(hit);
+  const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Skænk'); if (di >= 0) doors.splice(di, 1);
+  doors.push(door); skaenk.group = g; skaenk.parts = [hit]; shadowDirty = true;
+}
+const skaenkMover = {
+  name: 'Mistral skænk', title: () => `Hammel Mistral skænk 177 cm · ${MISTRAL_COLS[skaenk.col].name}`,
+  anchor: () => (skaenk.group ? skaenk.parts[0].getWorldPosition(new THREE.Vector3()).setY(1.15) : null),
+  axis: () => sofaFrame().f, shift: (dir) => { const b = skaenk.s; skaenk.s += dir * 0.05; buildSkaenk(); if (Math.abs(skaenk.s - b) < 1e-6) showToast('That’s the end of the sofa'); },
+  selects: [
+    { id: 'skcol', label: 'Colour', options: () => MISTRAL_COLS.map((c) => ({ label: c.name })), get: () => skaenk.col, set: (i) => { skaenk.col = i; buildSkaenk(); } },
+    { id: 'sklg', label: 'Legs (konisk træben 14 cm)', options: () => SKAENK.legCols.map((c) => ({ label: c.name })), get: () => skaenk.legCol, set: (i) => { skaenk.legCol = i; buildSkaenk(); } },
+  ],
+  link: () => ({ href: SKAENK.url, text: `Erling Christensen · Mistral skænk · 5.493 kr ↗`, href2: SKAENK.legUrl, text2: 'Mistral konisk træben 14 cm · 666 kr / 6 ↗' }),
+  info: () => `177 × 42 × 61 cm + 14 cm legs = 75 cm high (sofa back 82) · along the sofa's ${Math.round((skaenk.R || 1.92) * 100)} cm end, fronts to the kitchen · ◀▶ slide it along · Gianluca: "a shade of marble or blue-grey", Mint is the closest Mistral colour`,
 };
 // ------------------------------------------------------------ room lights: entrance, bedroom (over the nightstands), værelse, bathroom
 // All Philips Hue like the living room. Perf: the new fixtures don't each get a three.js light. A fixed pool of 4 point lights
@@ -6262,8 +6697,8 @@ MATS.fxCove = new THREE.MeshStandardMaterial({ color: 0xf6f1e8, emissive: 0xffb0
 MATS.fxCoveHalo = new THREE.MeshBasicMaterial({ map: booksHaloTex, color: 0x000000, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
 const fxWhite = stdc({ color: 0xf2f2ef, roughness: 0.4 });
 Object.assign(LIGHTS, {
-  hall: { name: 'Entrance spots', room: 'hall', model: '3 × Philips Hue surface-mounted ceiling spots (White & Color Ambiance)', on: false, bri: 0.75, ct: 2900, mode: 'ct', color: '#ffd9a0',
-    apply: (L, rgb, lv) => { fxGlow(MATS.fxHall, L, rgb, lv, 3.5); fxAssign(true); } },
+  hall: { name: 'Entrance spots', room: 'hall', model: '6 × Philips Hue recessed spots, flush with the ceiling (White & Color Ambiance)', on: false, bri: 0.6, ct: 2900, mode: 'ct', color: '#ffd9a0',
+    apply: (L, rgb, lv) => { fxGlow(MATS.fxHall, L, rgb, lv, 2.4); fxAssign(true); } },
   bedA: { name: 'Bedside · door', room: 'bed', model: 'Philips Hue E27 globe in an opal-glass pendant over the nightstand', on: false, bri: 0.55, ct: 2400, mode: 'ct', color: '#ffb36b',
     apply: (L, rgb, lv) => { fxGlow(MATS.fxBedA, L, rgb, lv, 1.6); fxAssign(true); } },
   bedB: { name: 'Bedside · window', room: 'bed', model: 'Philips Hue E27 globe in an opal-glass pendant over the nightstand', on: false, bri: 0.55, ct: 2400, mode: 'ct', color: '#ffb36b',
@@ -6275,11 +6710,11 @@ Object.assign(LIGHTS, {
 });
 function buildRoomFixtures() {
   const g = new THREE.Group(); scene.add(g); const CEIL = 2.6;
-  // entrance: three small white cylinders on the ceiling along the hall, glowing lens underneath
-  for (const [x, y] of [[6.1, 1.15], [6.1, 2.75], [5.75, 4.25]]) {
-    const c = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.1, 24), fxWhite); c.position.copy(b2t(x, y, CEIL - 0.05)); g.add(c);
-    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.03, 20), MATS.fxHall); lens.rotation.x = Math.PI / 2; lens.position.copy(b2t(x, y, CEIL - 0.101)); g.add(lens);
-    FX.push({ id: 'hall', room: 'hall', pos: b2t(x, y, CEIL - 0.3), power: 1.3, dist: 4 });
+  // entrance (2026-11-16, Gianluca): six recessed spots flush with the ceiling along the hall, soft and fairly dim overall
+  for (const [x, y] of [[6.1, 0.8], [6.1, 1.55], [6.1, 2.3], [6.05, 3.0], [5.9, 3.65], [5.75, 4.3]]) {
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.004, 24), fxWhite); rim.position.copy(b2t(x, y, CEIL - 0.002)); g.add(rim);
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.028, 20), MATS.fxHall); lens.rotation.x = Math.PI / 2; lens.position.copy(b2t(x, y, CEIL - 0.005)); g.add(lens);
+    FX.push({ id: 'hall', room: 'hall', pos: b2t(x, y, CEIL - 0.25), power: 0.55, dist: 3 });
   }
   // bathroom: two flush recessed spots
   for (const [x, y] of [[7.95, 2.2], [9.1, 2.05]]) {
@@ -6313,7 +6748,7 @@ function placeBedPendants(spots) {
 }
 // wall switches: one by each room's door, opening that room's Hue panel (like the kitchen/living one)
 const roomLightMovers = {
-  hall: { name: 'Lights · entrance', title: () => 'Lights · entrance', lights: ['hall'], info: () => 'Philips Hue ceiling spots along the hall. Comes on by itself at dusk.' },
+  hall: { name: 'Lights · entrance', title: () => 'Lights · entrance', lights: ['hall'], info: () => '6 Philips Hue recessed spots along the hall, flush with the ceiling, soft light. Comes on by itself at dusk.' },
   bed: { name: 'Lights · bedroom', title: () => 'Lights · bedroom', lights: ['bedA', 'bedB'], info: () => 'No ceiling light here: two opal pendants over the nightstands, 2400 K for reading.' },
   vaer: { name: 'Lights · værelse', title: () => 'Lights · værelse', lights: ['vaer'], info: () => 'A hidden Lightstrip high on the wall washes the ceiling: soft, no fixture in sight.' },
   bath: { name: 'Lights · bathroom', title: () => 'Lights · bathroom', lights: ['bath'], info: () => 'Two flush recessed spots.' },
@@ -6426,6 +6861,7 @@ const ROOMF = {
     { name: 'SUNDSÖ bord 65 × 65 + 2 klapstole, gul', brand: 'IKEA', kind: 'bistro', kr: 799, c: 0xe2b23a, url: IK('sundsoe-bord-og-2-klapstole-udendors-gul-gul-s29573022'), desc: 'powder-coated steel, folding' },
     { name: 'VISINGSÖ bord 70 × 70 + 2 stole, mørkegrøn', brand: 'IKEA', kind: 'bistro', kr: 1735, c: 0x2f4a3a, cush: 0xd8ccb4, url: IK('visingsoe-visingsoe-bord-og-2-stole-udendors-morkegron-morkegron-froesoen-duvholmen-beige-s89615533'), desc: 'steel, with beige seat pads' }],
 };
+const ENTRANCE_EMPTY = true;   // the drop zone by the living-room opening is undecided: nothing built, nothing on the list
 const roomsState = { shoe: 1, above: 1, rail: 0, cab: 1, balc: 1 };   // rail off: the bathroom already has a towel ladder
 const roomF = { groups: [], parts: [], doorObjs: [] };
 function clearRoomFurniture() {
@@ -6447,8 +6883,9 @@ function buildRoomFurniture() {
   clearRoomFurniture();
   const mk = (g, parts) => (geo, mat, x, y, z, solid = true) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); if (solid) parts.push(m); return m; };
   // entrance: a drop zone on the teknik cupboard's end wall (faces the hall, next to the opening into the living room)
+  // 2026-11-16 Gianluca: "remove all options here, we are not set with what to put there yet" → the spot stays empty (ENTRANCE_EMPTY)
   { const S = ROOMF.shoe[roomsState.shoe], A = ROOMF.above[roomsState.above];
-    if (S.W || A.W) {
+    if (!ENTRANCE_EMPTY && (S.W || A.W)) {
       const g = wallGroup(4.92, 2.982, 0, 1), parts = [], add = mk(g, parts);
       if (S.W) { const m = stdc({ color: S.c, roughness: 0.5 }), sh = stdc({ color: new THREE.Color(S.c).multiplyScalar(0.86).getHex(), roughness: 0.5 }), yb = S.legs ? 0.1 : 0;
         add(new THREE.BoxGeometry(S.D, S.H - yb, S.W), m, S.D / 2, yb + (S.H - yb) / 2, 0);
@@ -6524,7 +6961,7 @@ const balconyMover = { name: 'Balcony', title: () => 'Balcony', selects: [roomSe
   info: () => { const B = ROOMF.balc[roomsState.balc]; return B.kind ? `${B.desc} · west of the balcony door, clear of both leaves; about 1.7 m deep there` : 'Empty balcony'; } };
 function roomShopLines(add) {
   const R = roomsState, put = (room, key, o, detail) => { if (o && o.kr) add(room, key, `${o.brand} ${o.name}`, { kr: o.kr, href: o.url, detail: detail || '' }); };
-  put('Entrance', 'shoe', ROOMF.shoe[R.shoe]); put('Entrance', 'above', ROOMF.above[R.above]);
+  if (!ENTRANCE_EMPTY) { put('Entrance', 'shoe', ROOMF.shoe[R.shoe]); put('Entrance', 'above', ROOMF.above[R.above]); }
   put('Bathroom', 'rail', ROOMF.rail[R.rail]); put('Bathroom', 'cab', ROOMF.cab[R.cab]);
   put('Balcony', 'balc', ROOMF.balc[R.balc], ROOMF.balc[R.balc].desc);
 }
@@ -6550,29 +6987,44 @@ function shopLines() {
   // bedroom
   add('Bedroom', 'bed', `Bed ${Math.round(bed.width * 100)} × 200 cm`, { note: 'No product picked yet' });
   safe(() => { const N = NIGHT[night.m], c = N.cols[night.col]; add('Bedroom', 'night', `${N.brand} ${N.name} nightstand`, { qty: 2, unit: N.kr, kr: N.kr * 2, detail: `${Math.round(N.W * 100)} × ${Math.round(N.D * 100)} × ${Math.round(N.H * 100)} cm · ${c.name}`, href: c.url || N.url }); });
-  safe(() => { const lk = linkOf(closetMover); add('Bedroom', 'closets', 'PAX / FLISBERGET closets', { detail: `${PAX_H[furn.height].name} · Gianluca + Svetlana`, href: lk.href, note: 'Price comes from the IKEA planner' }); });
+  safe(() => { const nd = (furn.runs || []).reduce((n, r) => n + r.doors.length, 0), H = furn.height ? '50×195' : '50×229';
+    add('Bedroom', 'closets', 'PAX frames (Gianluca 100 + Svetlana)', { detail: `${PAX_H[furn.height].name} · ${SV_LAYOUTS[furn.svLayout].name.split(' (')[0]}`, href: 'https://www.ikea.com/dk/da/p/pax-flisberget-garderobeskab-hvid-lys-beige-s79480308/', note: 'Frame price from the IKEA planner' });
+    add('Bedroom', 'tonstad', `IKEA TONSTAD låge egetræsfiner ${H}`, { qty: nd, unit: 1000, kr: nd * 1000, detail: 'integrated solid-oak grip · + KOMPLEMENT soft-close hinges (200 kr / door)', href: 'https://www.ikea.com/dk/da/p/tonstad-lage-egetraesfiner-90510262/' });
+    add('Bedroom', 'hinges', 'KOMPLEMENT soft-close hinges for TONSTAD', { qty: nd, unit: 200, kr: nd * 200, detail: '4 per door, sold in sets' }); });
   safe(() => { const F = FRAME_SIZES[tv.size], p = parseKr(F.price); add('Bedroom', 'frame', `Samsung The Frame ${F.inch}″`, { detail: `${F.note} · white bezel`, kr: p && p.kr, approx: p && p.approx, href: linkOf(tvMover).href || F.url }); });
   add('Bedroom', 'bedcurt', 'Blackout curtains', { note: 'No product picked yet' });
   // living
   safe(() => { const ro = Object.fromEntries(sofaMover.readonly); const p = parseKr(ro.Price); add('Living', 'sofa', `${ro.Model || 'Sofa'}`, { detail: [ro.Size, ro.Fabric, ro.Legs, ro.Seat].filter(Boolean).join(' · '), kr: p && p.kr, href: linkOf(sofaMover).href }); });
-  safe(() => { const UM = UNIT_MODELS[unitSel.m], p = parseKr(UM.price); add('Living', 'tvunit', `${UM.brand} ${UM.name}`, { detail: `TV bench · ${UM.finishes[unitSel.f].name}`, kr: p && p.kr, approx: p && p.approx, href: UM.finishes[unitSel.f].url || UM.url }); });
+  safe(() => { const UM = UNIT_MODELS[unitSel.m]; if (UM.front !== 'mistralPair') return; const F = UM.finishes[unitSel.f];
+    add('Living', 'tvunit', 'Hammel Mistral Classic 114, closed (upper)', { detail: `133 × 23 × 32.5 cm · drawer + flap · ${F.name}`, href: UM.url, note: 'Price from the store' });
+    add('Living', 'tvshelf', 'Hammel Mistral Classic 114, shelf with drawers (lower)', { detail: `133 × 23 × 32.5 cm · ${F.name}`, href: UM.url, note: 'Price from the store' }); });
+  safe(() => { const UM = UNIT_MODELS[unitSel.m], p = parseKr(UM.price); if (UM.front === 'mistralPair') return; add('Living', 'tvunit', `${UM.brand} ${UM.name}`, { detail: `TV bench · ${UM.finishes[unitSel.f].name}`, kr: p && p.kr, approx: p && p.approx, href: UM.finishes[unitSel.f].url || UM.url }); });
+  add('Living', 'sonos', 'Sonos Beam Ultra (black)', { detail: '75 × 6.5 × 10.5 cm soundbar under the TV', kr: 5699, href: 'https://www.sonos.com/da-dk/shop/beam-ultra' });
   safe(() => { const Tm = TABLE_MODELS[dining.t], C = Tm.configs[dining.tc], p = parseKr(C.name), lk = linkOf(diningMover);
-    add('Living', 'table', `${Tm.brand} ${Tm.name} dining table`, { detail: C.name.split('·')[0].trim(), kr: p && p.kr, href: lk.href });
+    add('Living', 'table', `${Tm.brand} ${Tm.name} dining table`, { detail: `${C.name.split('·')[0].trim()} · ${Tm.finishes[dining.tf].name}`, kr: p && p.kr, href: lk.href, note: 'Placeholder: table not decided' });
     const Ch = CHAIR_MODELS[dining.c], V = Ch.variants[dining.cv], q = parseKr(V.name);
     add('Living', 'chairs', `${Ch.brand} ${Ch.name} chair`, { qty: dining.n, unit: q && q.kr, kr: q && q.kr * dining.n, detail: plainDetail(V.name), href: lk.href2 }); });
   safe(() => { const p = parseKr(PH5.price); add('Living', 'ph5', 'Louis Poulsen PH 5, grey', { detail: 'Ø50 cm pendant over the table', kr: p && p.kr, href: PH5.url }); });
   safe(() => { if (petra.model) add('Living', 'lounge', 'House Nordic Gudrun lounge chair', { detail: 'teddy, black legs', kr: GUDRUN.kr, href: GUDRUN.url });
     else { const C = PETRA.covers[petra.cover]; add('Living', 'lounge', '&Tradition Little Petra VB1', { detail: `${C.name} · ${PETRA.woods[petra.wood].name}`, kr: C.kr[petra.wood], href: linkOf(petraMover).href }); } });
   safe(() => { if (!cons.on) return; const C = consoleCost(), lk = linkOf(consoleMover); add('Living', 'console', 'IKEA BESTÅ console behind the sofa', { detail: `${cons.n} frames, ${C.doorsN} doors${C.legsPacks ? `, ${C.legsPacks} × 2 legs` : ''}`, kr: C.kr, approx: true, href: lk.href, note: 'Plus the top board' }); });
-  safe(() => add('Living', 'holm', 'IKEA HOLMERUD side table', { detail: HOLM.cols[holm.col].name, kr: HOLM.kr, href: HOLM.cols[holm.col].url }));
-  safe(() => { const p = BOOKT.packs[books.pack]; add('Living', 'books', `Book tower, ${p.n}-pack (white)`, { detail: `Amazon · SEK ${Math.round(p.sek)}`, kr: p.sek * SEK_DKK, approx: true, href: BOOKT.url(p.asin), note: 'converted from SEK' }); });
+  safe(() => holm.removed || add('Living', 'holm', 'IKEA HOLMERUD side table', { detail: HOLM.cols[holm.col].name, kr: HOLM.kr, href: HOLM.cols[holm.col].url }));
+  safe(() => { const C = MISTRAL_COLS[skaenk.col], Lg = SKAENK.legCols[skaenk.legCol];
+    add('Living', 'skaenk', 'Hammel Mistral skænk', { detail: `177 × 42 × 61 cm · ${C.name} · by the sofa`, kr: SKAENK.kr, href: SKAENK.url });
+    add('Living', 'skaenklegs', 'Konisk træben 14 cm (6-pack)', { detail: Lg.name, kr: SKAENK.legKr, href: SKAENK.legUrl }); });
+  safe(() => { const Z = CTAB.sizes[ctab.size]; add('Living', 'ctab', 'MAX | Zen coffee table', { detail: `${Z.name.split(' · ')[0]} · travertine, oak`, kr: Z.kr, href: CTAB.url }); });
+  safe(() => { if (!rug.on) return; const R = RUGS[rug.m], Z = R.sizes[rug.size]; add('Living', 'rug', `ILVA ${R.name}`, { detail: `${Z.name.split(' · ')[0]} · ${R.cols[rug.col].name}`, kr: Z.kr, href: R.url, note: 'Placeholder' }); });
+  safe(() => { if (books.hidden) return; const p = BOOKT.packs[books.pack]; add('Living', 'books', `Book tower, ${p.n}-pack (white)`, { detail: `Amazon · SEK ${Math.round(p.sek)}`, kr: p.sek * SEK_DKK, approx: true, href: BOOKT.url(p.asin), note: 'converted from SEK' }); });
   add('Living', 'plant', `${PLANTS[plant.kind] ? PLANTS[plant.kind].name || 'Plant' : 'Plant'} + pot`, { note: 'No product picked yet' });
   add('Living', 'balcurt', 'Balcony-door curtains (light)', { note: 'No product picked yet' });
   // værelse
   safe(() => { const p = parseKr(GS.price); add('Værelse', 'guest', 'Møbelkompagniet Arezzo sofa bed', { detail: '237 cm, 3 seats', kr: p && p.kr, href: GS.url }); });
-  safe(() => { const lk = linkOf(vpaxMover), p = parseKr(vpaxMover.info()); add('Værelse', 'vpax', 'IKEA PAX closet', { detail: 'by the window wall', kr: p && p.kr * SEK_DKK, approx: true, href: lk.href, note: 'IKEA SE price, converted from SEK' }); });
-  safe(() => { const Dm = DESKS[desk.m]; add('Værelse', 'desk', `ILVA ${Dm.name} desk`, { detail: Dm.desc, kr: Dm.kr, href: linkOf(deskMover).href }); });
-  add('Værelse', 'nook', 'IKEA PAX + FLISBERGET nook closet', { detail: '50 × 58 × 236 cm', kr: 1300, href: linkOf(nookMover).href });
+  safe(() => { if (vpax.model !== 2) return; add('Værelse', 'vpax', 'Lattice closet (already ours)', { detail: '85 × 37 × 180 cm, between the desk and the door', kr: 0 }); });
+  safe(() => { if (vpax.model === 2) return; const lk = linkOf(vpaxMover), p = parseKr(vpaxMover.info()); add('Værelse', 'vpax', 'IKEA PAX closet', { detail: 'by the window wall', kr: p && p.kr * SEK_DKK, approx: true, href: lk.href, note: 'IKEA SE price, converted from SEK' }); });
+  safe(() => { const Dm = deskModel(); if (Dm.fit) add('Værelse', 'desk', `Brown desk ${Math.round(Dm.W * 100)} × ${Math.round(Dm.D * 100)} cm`, { detail: `max ${Math.round(deskMaxW() * 100)} cm next to the closet`, note: 'No product picked yet' });
+    else add('Værelse', 'desk', `ILVA ${Dm.name} desk`, { detail: Dm.desc, kr: Dm.kr, href: `https://ilva.dk/kontoret/skriveborde/${Dm.url}/` });
+    const C = DCHAIRS[dchair.m]; add('Værelse', 'dchair', C.name, { detail: C.cols[dchair.col].name, kr: C.kr, href: C.url }); });
+  if (!nook.removed) add('Værelse', 'nook', 'IKEA PAX + FLISBERGET nook closet', { detail: '50 × 58 × 236 cm', kr: 1300, href: linkOf(nookMover).href });
   add('Værelse', 'alcove', alc.model ? 'Alcove shelves + ceiling-track curtain' : 'Alcove built-in closet (carpenter)', { note: 'Needs a quote' });
   // entrance, bathroom, balcony (built by add_rooms)
   safe(() => roomShopLines(add));
@@ -6581,8 +7033,8 @@ function shopLines() {
   return L;
 }
 // ticks for "we've decided on this one"; kept per browser and travel with shared layouts
-let shopDecided = { sofa: true };
-try { const v = JSON.parse(localStorage.getItem('aptDecided') || 'null'); if (v) shopDecided = v; } catch (_) { /* ignore */ }
+let shopDecided = { sofa: true, chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true };
+try { const v = JSON.parse(localStorage.getItem('aptDecided') || 'null'); if (v) { if (!v._nov26) Object.assign(v, { chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, _nov26: true }); shopDecided = v; } } catch (_) { /* ignore */ }
 function saveDecided() { try { localStorage.setItem('aptDecided', JSON.stringify(shopDecided)); } catch (_) { /* ignore */ } }
 function shopTotals(lines) {
   let pick = 0, dec = 0, approx = false, missing = 0;
@@ -6614,7 +7066,7 @@ async function copyText(t, msg) {
   catch (_) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (_) { /* ignore */ } ta.remove(); showToast(ok ? msg : 'Couldn’t copy'); return ok; }
 }
 // ---- layouts: the whole furniture state (choices, positions), the lights and the clock, in a link or saved by name
-const LAYOUT_OBJS = () => ({ bed, furn, tv, liv, unitSel, lamp, dining, petra, guest, vpax, nook, books, plant, art, cons, alc, desk, holm, night, rooms: roomsState });
+const LAYOUT_OBJS = () => ({ bed, furn, tv, liv, unitSel, lamp, dining, petra, guest, vpax, nook, books, plant, art, cons, alc, desk, holm, night, skaenk, mpair, ctab, rug, dchair, rooms: roomsState });
 const LAYOUT_SKIP = new Set(['group', 'parts', 'doors', 'door', 'dims', 'wall', 'base', 'run', 'runs', 'swap', 'box', 'E', 'a', 'n', 'room', 'curtain', 'hitDoor', 'swapDoor',
   'svetlanaInfo', 'swingReport', 'gianluca', 'svetlana', 'svetlanaB', 'swingDoors', 'mesh', 'hit']);
 function ser(o, depth = 0) {
@@ -6651,7 +7103,7 @@ function layoutApply(S) {
   if (PAX_H[furn.height]) { H_CL = PAX_H[furn.height].H; DOOR_H = PAX_H[furn.height].door; }
   if (selected) selectFurniture(null);
   const steps = [buildBed, buildClosets, buildTV, buildMedia, buildSofa, livingDims, buildDining, buildGuestSofa, buildVaerCloset, buildNookCloset,
-    buildPetra, buildBooks, buildPlant, buildArt, buildConsole, buildAlcove, buildDesk, buildHolm, buildRoomFurniture];
+    buildPetra, buildBooks, buildPlant, buildArt, buildConsole, buildAlcove, buildDesk, buildHolm, buildSkaenk, buildCoffeeTable, buildRug, buildRoomFurniture];
   for (const f of steps) { try { f(); } catch (e) { console.warn('layout rebuild', f.name, e); } }
   if (typeof S.h === 'number') { const r = $('sunrange'); r.value = S.h; r.dispatchEvent(new Event('input')); r.dispatchEvent(new Event('change')); }
   autoLightsCfg.last = null; applyLights(); if (lightPanelSync) lightPanelSync();
@@ -6892,7 +7344,7 @@ $('qPlan').addEventListener('click', () => setPlan(!PLAN_UI.open));
 addEventListener('keydown', (e) => { if (e.code === 'KeyO' && !e.repeat && e.target.tagName !== 'INPUT' && !e.metaKey && !e.ctrlKey && !e.altKey) setPlan(!PLAN_UI.open); else if (e.code === 'Escape' && PLAN_UI.open) setPlan(false); });
 bedMover.selects = [{ id: 'nstand', label: 'Nightstands', options: () => NIGHT.map((n) => ({ label: `${n.brand} ${n.name} · ${Math.round(n.W * 100)} × ${Math.round(n.D * 100)} × ${Math.round(n.H * 100)} cm · ${n.kr} kr` })), get: () => night.m, set: (i) => { night.m = i; night.col = 0; buildBed(); } }];
 bedMover.link = () => { const N = NIGHT[night.m]; return { href: N.url, text: `IKEA · ${N.name} nightstand · ${N.kr} kr ↗` }; };
-function furnish() { fridgeSideSkin(); buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); buildHolm(); buildRoomFixtures(); buildRoomSwitches(); buildRoomFurniture(); autoLightTick(clockHour, dayLevel, true); try { updateNight(); } catch (_) { /* ok */ } layoutBoot(); }
+function furnish() { fridgeSideSkin(); buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); buildHolm(); buildSkaenk(); buildCoffeeTable(); buildRug(); buildRoomFixtures(); buildRoomSwitches(); buildRoomFurniture(); autoLightTick(clockHour, dayLevel, true); try { updateNight(); } catch (_) { /* ok */ } layoutBoot(); }
 function prewarmShaders() {
   // compile every material variant now (incl. hidden things: ceiling, upper floors, closed panels), not the first time it comes into view
   // lights first exactly as perfTick leaves them (light counts are part of every shader), then the meshes
@@ -6908,6 +7360,372 @@ function prewarmShaders() {
 const furnishAll = () => { furnish(); setTimeout(prewarmShaders, 0); };
 if (modelRoot) furnishAll(); else window.__afterModel = furnishAll;
 
+// ------------------------------------------------------------ living: MAX | Zen coffee table and a rug under the sofa group (2026-11-15)
+// Zen (max-jessen.dk/max-i-zen-sofabord, Nov 2026): grey travertine top on an oiled oak-veneer base of three radiating panels.
+// Ø95 × 40 cm 3.299 kr (før 4.499) = Gianluca's pick ("the larger version"); Ø65 2.599 kr (før 3.499).
+const CTAB = { sizes: [{ name: 'Ø95 × 40 cm · 3.299 kr (før 4.499)', D: 0.95, H: 0.40, kr: 3299 }, { name: 'Ø65 cm · 2.599 kr (før 3.499)', D: 0.65, H: 0.40, kr: 2599 }],
+  url: 'https://www.max-jessen.dk/max-i-zen-sofabord' };
+const ctab = { size: 0, pos: null, angle: 0, group: null, parts: [] };
+// Rugs: Gianluca asked to assume one and show colours. Three ILVA rugs (ilva.dk, Nov 2026) in their sizes and colours; colours by eye from the names.
+const RUGS = [
+  { name: 'Sofus tuftet tæppe', kind: 'boucle', pile: 0.014, url: 'https://ilva.dk/products/sofus-tuftet-taeppe-250-x-350-cm',
+    sizes: [{ name: '250 × 350 cm · 4.999 kr', W: 3.5, D: 2.5, kr: 4999 }, { name: '160 × 230 cm · 2.399 kr', W: 2.3, D: 1.6, kr: 2399 }, { name: 'Ø250 cm · 3.499 kr', W: 2.5, D: 2.5, kr: 3499, round: true }],
+    cols: [{ name: 'Sand', c: 0xcdbd9f }, { name: 'Taupe', c: 0x8f8273 }, { name: 'Cappuccino (tilbud)', c: 0xa98d72 }, { name: 'Chokolade', c: 0x4f3b2f }, { name: 'Københavnergrøn', c: 0x4d5e4a }, { name: 'Off white', c: 0xebe5d9 }] },
+  { name: 'Cana tuftet tæppe', kind: 'velvet', pile: 0.012, url: 'https://ilva.dk/products/cana-tuftet-taeppe-200-x-300-cm',
+    sizes: [{ name: '200 × 300 cm · 2.999 kr', W: 3.0, D: 2.0, kr: 2999 }, { name: '160 × 230 cm · 1.799 kr', W: 2.3, D: 1.6, kr: 1799 }],
+    cols: [{ name: 'Lysegrå', c: 0xc8c6c1 }, { name: 'Grå', c: 0x7b7b79 }, { name: 'Taupe', c: 0x8b7f72 }, { name: 'Chokolade', c: 0x4b3a30 }, { name: 'Indigo (tilbud)', c: 0x2f3d5a }] },
+  { name: 'Runi kelim tæppe (uld)', kind: 'canvas', pile: 0.007, url: 'https://ilva.dk/products/runi-kelim-taeppe-250-x-350-cm',
+    sizes: [{ name: '250 × 350 cm · 2.999 kr', W: 3.5, D: 2.5, kr: 2999 }, { name: '190 × 290 cm · 1.999 kr', W: 2.9, D: 1.9, kr: 1999 }, { name: '160 × 230 cm · 1.399 kr', W: 2.3, D: 1.6, kr: 1399 }],
+    cols: [{ name: 'Sand', c: 0xd3c4a6 }, { name: 'Lysegrå', c: 0xc5c3bd }, { name: 'Hvid', c: 0xefebe3 }, { name: 'Hvid / sand (stribet)', c: 0xe6dccb, stripe: 0xc9b48f }] },
+];
+const rug = { m: 0, size: 0, col: 0, pos: null, angle: null, on: true, group: null, parts: [] };
+function sofaFrontInfo() {                               // where the open area in front of the sofa is (Blender coords) and which way the sofa faces
+  const S = liv.sofa, M = liv.media; if (!S || !M) return null;
+  const { f, x } = sofaFrame(), cfg = SOFAS[S.cfg], L = cfg.L, end = sofaEnds(cfg, -1)[0], RW = end.t !== 'arm' ? (end.W || SD) : 0;
+  const tvDist = S.O.clone().sub(M.base).dot(M.n);        // sofa back → TV wall
+  const zFront = SD, zTV = tvDist - 0.325;
+  const cxl = (-L / 2 + RW + L / 2) / 2;                  // middle of the seats that face the TV (the return is on the −x side)
+  return { f, x, S, L, RW, zFront, zTV, cxl, P: (lx, lz) => toBl(S.O.clone().addScaledVector(x, lx).addScaledVector(f, lz)), ang: Math.atan2(-f.z, f.x) };
+}
+function buildCoffeeTable(tryPos) {
+  if (ctab.group) { scene.remove(ctab.group); dropParts(ctab.parts); ctab.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); ctab.group = null; }
+  const I = sofaFrontInfo(); if (!I) return false;
+  if (!ctab.pos) ctab.pos = I.P(I.cxl, I.zFront + 0.46 + CTAB.sizes[ctab.size].D / 2);   // 46 cm in front of the sofa
+  const p = tryPos || ctab.pos, cx = THREE.MathUtils.clamp(p[0], LIV_BOX.x0 + 0.5, LIV_BOX.x1 - 0.5), cy = THREE.MathUtils.clamp(p[1], LIV_BOX.y0 + 0.5, LIV_BOX.y1 - 0.5);
+  const ok = Math.abs(cx - p[0]) < 1e-6 && Math.abs(cy - p[1]) < 1e-6; ctab.pos = [cx, cy];
+  const Z = CTAB.sizes[ctab.size], R = Z.D / 2, H = Z.H, TT = 0.03;
+  const g = new THREE.Group(); g.position.copy(b2t(cx, cy, 0)); g.rotation.y = ctab.angle;
+  const parts = [], add = (geo, m, px, py, pz, solid = true) => { const o = new THREE.Mesh(geo, m); o.position.set(px, py, pz); o.castShadow = o.receiveShadow = true; g.add(o); if (solid) parts.push(o); return o; };
+  const trav = stdc({ color: 0xb3aba0, roughness: 0.5, map: stoneTex() }), oak = stdc({ color: 0xd2ad7c, roughness: 0.6, map: grainTex() });
+  add(new THREE.CylinderGeometry(R, R, TT, 64), trav, 0, H - TT / 2, 0);
+  add(new THREE.CylinderGeometry(R - 0.004, R - 0.012, 0.004, 64), stdc({ color: 0xb9b0a3, roughness: 0.6 }), 0, H - TT - 0.002, 0, false);
+  const reach = R * 0.62, ph = H - TT;
+  for (let k = 0; k < 3; k++) {                            // three oak panels radiating from the centre, each with an arch cut out on its inner side
+    const a = k * Math.PI * 2 / 3 + Math.PI / 6, sh = new THREE.Shape(), c0 = 0.03, ar = ph * 0.55;
+    sh.moveTo(c0 + ar, 0); sh.lineTo(reach, 0); sh.lineTo(reach, ph); sh.lineTo(c0, ph); sh.lineTo(c0, ar); sh.absarc(c0, 0, ar, Math.PI / 2, 0, true);
+    const pan = add(new THREE.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: false }), oak, 0, 0, 0);
+    pan.geometry.translate(0, 0, -0.02); pan.rotation.y = -a;
+  }
+  add(new THREE.CylinderGeometry(0.05, 0.05, ph, 20), oak, 0, ph / 2, 0);   // the panels meet in a core
+  // a few things on top: two books, a bowl
+  add(new THREE.BoxGeometry(0.24, 0.035, 0.17), stdc({ color: 0x7a2e2a, roughness: 0.8 }), -0.12, H + 0.0175, 0.05, false);
+  add(new THREE.BoxGeometry(0.21, 0.025, 0.15), stdc({ color: 0xe8e2d4, roughness: 0.8 }), -0.12, H + 0.0475, 0.05, false);
+  add(new THREE.CylinderGeometry(0.085, 0.05, 0.055, 28), stdc({ color: 0x3b3a36, roughness: 0.5 }), 0.16, H + 0.03, -0.08, false);
+  { const mg = mergeByMaterial(g, new Set(parts)); parts.length = 0; parts.push(...mg.solids); }
+  scene.add(g); g.updateMatrixWorld(true);
+  const door = { kind: 'swap', label: 'Coffee table', name: 'MAX Zen coffee table', parts, center: g.position.clone().setY(0.3),
+    swap: () => selectFurniture(selected === ctabMover ? null : ctabMover), prompt: () => (selected === ctabMover ? 'Done with the coffee table' : 'Move the coffee table') };
+  door._mover = ctabMover;
+  for (const q of parts) { q.userData.door = door; q.userData.furniture = true; collidables.push(q); }
+  const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Coffee table'); if (di >= 0) doors.splice(di, 1);
+  doors.push(door); ctab.group = g; ctab.parts = parts; shadowDirty = true;
+  return ok;
+}
+const ctabMover = {
+  name: 'Coffee table', title: () => `MAX | Zen sofabord · ${CTAB.sizes[ctab.size].name.split(' · ')[0]}`,
+  anchor: () => (ctab.group ? ctab.group.position.clone().setY(0.9) : null),
+  axis: () => b2t(1, 0).normalize(), axis2: () => b2t(0, 1).normalize(),
+  shift: (dir) => { if (!buildCoffeeTable([ctab.pos[0] + dir * 0.05, ctab.pos[1]])) showToast('Can’t go further'); },
+  shift2: (dir) => { if (!buildCoffeeTable([ctab.pos[0], ctab.pos[1] + dir * 0.05])) showToast('Can’t go further'); },
+  selects: [{ id: 'ctsz', label: 'Size', options: () => CTAB.sizes.map((z) => ({ label: z.name })), get: () => ctab.size, set: (i) => { ctab.size = i; buildCoffeeTable(); } }],
+  link: () => ({ href: CTAB.url, text: 'Max Jessen · MAX | Zen sofabord ↗' }),
+  info: () => { const I = sofaFrontInfo(), Z = CTAB.sizes[ctab.size]; let gaps = '';
+    if (I && ctab.group) { const c = ctab.group.position.clone().sub(I.S.O), z = c.dot(I.f); gaps = ` · ${(z - Z.D / 2 - I.zFront).toFixed(2)} m to the sofa · ${(I.zTV - z - Z.D / 2).toFixed(2)} m to the TV units`; }
+    return `Grey travertine top, oiled oak-veneer base · Ø${Math.round(Z.D * 100)} × ${Math.round(Z.H * 100)} cm${gaps}`; },
+};
+function rugTex(R, C) {                                   // a striped kelim gets its stripes; the others the shared fabric texture
+  if (!C.stripe) return weaveTex(R.kind);
+  const k = new THREE.Color(C.stripe).getStyle();
+  return canvasTex(256, 256, (g, W) => { g.fillStyle = '#ffffff'; g.fillRect(0, 0, W, W); g.fillStyle = 'rgba(205,185,150,1)'; for (let y = 0; y < W; y += 64) g.fillRect(0, y, W, 22); }, [0.5, 0.5]);
+}
+function buildRug(tryPos) {
+  if (rug.group) { scene.remove(rug.group); dropParts(rug.parts); rug.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); rug.group = null; }
+  if (!rug.on) { const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Rug'); if (di >= 0) doors.splice(di, 1); return true; }
+  const I = sofaFrontInfo(); if (!I) return false;
+  const R = RUGS[rug.m], Z = R.sizes[Math.min(rug.size, R.sizes.length - 1)], C = R.cols[Math.min(rug.col, R.cols.length - 1)];
+  if (!rug.pos) { rug.pos = I.P(I.cxl, I.zFront - 0.25 + Z.D / 2); rug.angle = I.ang; }
+  const p = tryPos || rug.pos; rug.pos = [p[0], p[1]];
+  const g = new THREE.Group(); g.position.copy(b2t(p[0], p[1], 0)); g.rotation.y = rug.angle - Math.PI / 2;
+  const m = new THREE.MeshStandardMaterial({ color: C.c, roughness: 1, map: rugTex(R, C), bumpMap: weaveTex(R.kind), bumpScale: 0.003 });
+  const geo = Z.round ? new THREE.CylinderGeometry(Z.W / 2, Z.W / 2, R.pile, 72) : softBox(Z.W, R.pile, Z.D, R.pile / 2 - 0.0005);
+  if (Z.round) { const P = geo.attributes.position, UVa = geo.attributes.uv; for (let i = 0; i < P.count; i++) UVa.setXY(i, P.getX(i), P.getZ(i)); }
+  const o = new THREE.Mesh(geo, m); o.position.y = R.pile / 2 + 0.001; o.receiveShadow = true; g.add(o);
+  // a thin invisible slab for the info button and the panel (low enough that it never blocks walking)
+  const hit = new THREE.Mesh(Z.round ? new THREE.CylinderGeometry(Z.W / 2, Z.W / 2, 0.02, 32) : new THREE.BoxGeometry(Z.W, 0.02, Z.D), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 0.01; g.add(hit);
+  scene.add(g); g.updateMatrixWorld(true);
+  const door = { kind: 'swap', label: 'Rug', name: R.name, parts: [hit], center: g.position.clone().setY(0.05),
+    swap: () => selectFurniture(selected === rugMover ? null : rugMover), prompt: () => (selected === rugMover ? 'Done with the rug' : 'Change the rug') };
+  door._mover = rugMover; hit.userData.door = door; hit.userData.furniture = true;
+  const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Rug'); if (di >= 0) doors.splice(di, 1);
+  doors.push(door); rug.group = g; rug.parts = []; shadowDirty = true;
+  return true;
+}
+const rugMover = {
+  name: 'Rug', title: () => `ILVA ${RUGS[rug.m].name} · ${RUGS[rug.m].cols[rug.col].name}`,
+  anchor: () => (rug.group ? rug.group.position.clone().setY(0.6) : null),
+  axis: () => b2t(1, 0).normalize(), axis2: () => b2t(0, 1).normalize(),
+  shift: (dir) => buildRug([rug.pos[0] + dir * 0.05, rug.pos[1]]), shift2: (dir) => buildRug([rug.pos[0], rug.pos[1] + dir * 0.05]),
+  rotate: (dir) => { rug.angle += dir * Math.PI / 12; buildRug(); }, angle: () => rug.angle,
+  get selects() { return [
+    { id: 'rgm', label: 'Rug', options: () => RUGS.map((r) => ({ label: r.name })), get: () => rug.m, set: (i) => { rug.m = i; rug.size = 0; rug.col = 0; buildRug(); buildMoverSelects(rugMover); } },
+    { id: 'rgs', label: 'Size', options: () => RUGS[rug.m].sizes.map((z) => ({ label: z.name })), get: () => rug.size, set: (i) => { rug.size = i; buildRug(); } },
+    { id: 'rgc', label: 'Colour', options: () => RUGS[rug.m].cols.map((c) => ({ label: c.name })), get: () => rug.col, set: (i) => { rug.col = i; buildRug(); } },
+  ]; },
+  variant: { label: () => (rug.on ? 'No rug' : 'Put the rug back'), run: () => { rug.on = !rug.on; buildRug(); if (!rug.on) { selectFurniture(null); showToast('Rug removed (open Plan → Layouts or reload to bring it back)'); } } },
+  link: () => ({ href: RUGS[rug.m].url, text: `ILVA · ${RUGS[rug.m].name} ↗` }),
+  info: () => { const Z = RUGS[rug.m].sizes[rug.size]; return `${Z.name.split(' · ')[0]} · reaches ~25 cm under the sofa's front legs, coffee table in the middle · ◀▶ ▲▼ move, ⟲ ⟳ turn`; },
+};
+// ------------------------------------------------------------ værelse (2026-11-15): Gianluca's own lattice closet + a desk chair
+// The closet is one they already own (photo IMG_1011): honey-coloured solid wood, crown cornice, plinth with a scalloped skirt,
+// two doors with four studded diagonal-lattice panels each, iron ring pulls. 85 × 37 × 180 cm (Gianluca).
+const LATTICE = { W: 0.85, D: 0.37, H: 1.80, wood: 0xb5763f };
+let _latticeTex = null;
+function latticeDoorTex() {                               // one door leaf (frame + 4 lattice panels), drawn once; x = leaf width, y = leaf height
+  if (_latticeTex) return _latticeTex;
+  const c = document.createElement('canvas'); c.width = 256; c.height = 1024; const g = c.getContext('2d'), W = 256, H = 1024;
+  g.fillStyle = '#b8783f'; g.fillRect(0, 0, W, H);
+  const r = rng(77); for (let i = 0; i < 160; i++) { g.strokeStyle = `rgba(${90 + r() * 40 | 0},${50 + r() * 20 | 0},20,${0.05 + r() * 0.08})`; g.lineWidth = 1 + r() * 2; const x = r() * W; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + r() * 8 - 4, H * 0.3, x + r() * 8 - 4, H * 0.7, x + r() * 6 - 3, H); g.stroke(); }
+  // panels (fractions of the leaf height from the top): a taller top panel, then three, as in the photo
+  const fr = [[0.05, 0.31], [0.35, 0.56], [0.60, 0.80], [0.84, 0.97]], m = 34;
+  for (const [t0, t1] of fr) {
+    const x0 = m, x1 = W - m, y0 = t0 * H, y1 = t1 * H;
+    g.fillStyle = 'rgba(70,38,16,0.55)'; g.fillRect(x0 - 6, y0 - 6, x1 - x0 + 12, y1 - y0 + 12);      // moulding shadow
+    g.fillStyle = '#c98c4f'; g.fillRect(x0 - 3, y0 - 3, x1 - x0 + 6, 3); g.fillRect(x0 - 3, y0 - 3, 3, y1 - y0 + 6);
+    g.save(); g.beginPath(); g.rect(x0, y0, x1 - x0, y1 - y0); g.clip();
+    g.fillStyle = '#1e140d'; g.fillRect(x0, y0, x1 - x0, y1 - y0);                                      // the dark inside, seen through the holes
+    const s = 30, lw = 13;
+    for (const dir of [1, -1]) {
+      for (let k = -H; k < H + W; k += s) {
+        g.strokeStyle = '#7a4a24'; g.lineWidth = lw + 3; g.beginPath(); g.moveTo(x0 - 10, y0 + k); g.lineTo(x0 - 10 + 600, y0 + k - dir * 600); g.stroke();
+        g.strokeStyle = '#b4733a'; g.lineWidth = lw; g.beginPath(); g.moveTo(x0 - 10, y0 + k); g.lineTo(x0 - 10 + 600, y0 + k - dir * 600); g.stroke();
+      }
+    }
+    g.fillStyle = '#d4b06a';                                                                            // brass studs where the slats cross
+    for (let yy = y0 - 40; yy < y1 + 40; yy += s / 2) for (let xx = x0 - 40; xx < x1 + 40; xx += s / 2) {
+      const u = xx - (x0 - 10), v = yy - y0; if (Math.abs(((u + v) / s) % 1) < 0.08 || Math.abs(((u + v) / s) % 1) > 0.92) if (Math.abs(((v - u) / s) % 1) < 0.08 || Math.abs(((v - u) / s) % 1) > 0.92) { g.beginPath(); g.arc(xx, yy, 2.6, 0, 7); g.fill(); }
+    }
+    g.restore();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return (_latticeTex = t);
+}
+function buildLatticeCloset(O, n, a) {                   // returns a run-like object for buildVaerCloset: { g, parts, doors, O, width }
+  const { W, D, H } = LATTICE, g = new THREE.Group(); g.position.copy(O);
+  g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a, UP, n));      // local x along the wall (0..W), z out of the wall (front at D)
+  const parts = [], add = (geo, mat, x, y, z, solid = true) => { const o = new THREE.Mesh(geo, mat); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; g.add(o); if (solid) parts.push(o); return o; };
+  const wood = stdc({ color: LATTICE.wood, roughness: 0.6, map: grainTex() }), dark = stdc({ color: 0x8a5428, roughness: 0.65, map: grainTex() });
+  const pl = 0.075, cor = 0.11, bodyH = H - pl - cor;
+  add(new THREE.BoxGeometry(W - 0.03, bodyH, D - 0.04), wood, W / 2, pl + bodyH / 2, (D - 0.04) / 2);                     // carcass
+  add(new THREE.BoxGeometry(W - 0.01, pl, D - 0.02), dark, W / 2, pl / 2, (D - 0.02) / 2);                                  // plinth
+  { const sk = new THREE.Shape(); sk.moveTo(0, 0); sk.lineTo(W, 0); sk.lineTo(W, pl); sk.lineTo(0, pl); sk.lineTo(0, 0);    // scalloped skirt in front of the plinth
+    const hole = new THREE.Path(); hole.moveTo(0.12, 0); hole.quadraticCurveTo(0.2, 0.045, W / 2, 0.03); hole.quadraticCurveTo(W - 0.2, 0.045, W - 0.12, 0); hole.lineTo(0.12, 0); sk.holes.push(hole);
+    add(new THREE.ExtrudeGeometry(sk, { depth: 0.018, bevelEnabled: false }), wood, 0, 0, D - 0.02, false); }
+  // crown cornice: three stepped mouldings, the top one widest
+  [[W + 0.02, 0.035, D + 0.01, 0], [W + 0.05, 0.03, D + 0.025, 0.035], [W + 0.08, 0.045, D + 0.04, 0.065]].forEach(([w, h, d, y]) =>
+    add(softBox(w, h, d, 0.008), wood, W / 2, H - cor + y + h / 2, d / 2 - 0.0));
+  // doors: two leaves, front face carries the lattice drawing
+  const lw = (W - 0.07) / 2, lh = bodyH - 0.07, ly = pl + 0.035 + lh / 2, fz = D - 0.02;
+  const doorM = new THREE.MeshStandardMaterial({ color: 0xffffff, map: latticeDoorTex(), roughness: 0.6, bumpMap: latticeDoorTex(), bumpScale: 0.004 });
+  for (const s of [0, 1]) {
+    const x = 0.035 + lw / 2 + s * (lw + 0.0) ;
+    add(new THREE.BoxGeometry(lw - 0.004, lh, 0.022), [wood, wood, wood, wood, doorM, wood], x, ly, fz + 0.011);
+  }
+  add(new THREE.BoxGeometry(0.02, lh, 0.006), dark, W / 2, ly, fz + 0.025, false);                                         // centre astragal
+  const iron = stdc({ color: 0x2a2421, roughness: 0.5, metalness: 0.6 });
+  for (const s of [-1, 1]) { const ring = add(new THREE.TorusGeometry(0.022, 0.004, 8, 20), iron, W / 2 + s * 0.045, pl + bodyH * 0.47, fz + 0.03, false);
+    add(new THREE.CylinderGeometry(0.006, 0.006, 0.012, 10).rotateX(Math.PI / 2), iron, W / 2 + s * 0.045, pl + bodyH * 0.47 + 0.022, fz + 0.026, false); ring.castShadow = true; }
+  for (const s of [0, 1]) for (const yy of [0.25, 0.5, 0.85]) add(new THREE.BoxGeometry(0.012, 0.06, 0.006), stdc({ color: 0xb08a4a, metalness: 0.7, roughness: 0.4 }), s ? W - 0.03 : 0.03, pl + bodyH * yy, fz + 0.012, false);
+  // what's on top in the photo: a few big books
+  const bc = [0xece9e2, 0xd9d6cf, 0xe6e2da]; let by = H;
+  for (let i = 0; i < 3; i++) { const t = 0.03 + i * 0.006; add(new THREE.BoxGeometry(0.34, t, 0.25), stdc({ color: bc[i], roughness: 0.7 }), 0.27, by + t / 2, D / 2, false); by += t; }
+  { const mg = mergeByMaterial(g, new Set(parts)); parts.length = 0; parts.push(...mg.solids); }
+  scene.add(g); g.updateMatrixWorld(true);
+  for (const q of parts) { q.userData.furniture = true; collidables.push(q); }
+  return { g, parts, doors: [], O: O.clone(), width: W };
+}
+// ---- desk chairs: low backs, no gamer chairs ("one Svetlana won't hate"). Danish prices, Nov 2026.
+const DCHAIRS = [
+  { name: 'HAY About A Chair AAC 53 Soft', style: 'tub', W: 0.69, D: 0.69, SH: 0.46, back: 0.30, kr: 6199, base: 0xc9cbcd, metal: true,
+    url: 'https://www.kontorsyd.dk/da/moedestole/hay-aac-53-soft-stol', note: 'fully upholstered tub shell, polished aluminium 5-star base, soft castors, seat 42–56 cm',
+    cols: [{ name: 'Grå', c: 0x8d8b88 }, { name: 'Hallingdal 130 (havre)', c: 0xc9c0b0 }, { name: 'Cognac læder', c: 0x8b4f2b, leather: true }] },
+  { name: 'Muuto Fiber Armchair, swivel + gas lift', style: 'fiber', W: 0.70, D: 0.70, SH: 0.47, back: 0.30, kr: 6849, base: 0x222222,
+    url: 'https://rosborgshop.dk/produkter/370-muuto/7372-fiber-armchair-swivel-gaslift-muuto/', note: 'moulded shell with upholstered seat (Kvadrat Remix), seat 46–53 cm',
+    cols: [{ name: 'Sort / sort', c: 0x2b2b2c, base: 0x1c1c1c }, { name: 'Grå / grå', c: 0x8e8f8f, base: 0x8a8c8d }] },
+  { name: 'IKEA LÅNGFJÄLL, no armrests', style: 'task', W: 0.68, D: 0.68, SH: 0.47, back: 0.40, kr: 999, base: 0x1d1d1d,
+    url: 'https://www.ikea.com/dk/da/p/langfjaell-kontorstol-gunnared-beige-sort-s89177566/', note: 'budget pick: Gunnared fabric, seat 43–53 cm',
+    cols: [{ name: 'Gunnared beige', c: 0xbfb39d }, { name: 'Gunnared mørkegrå', c: 0x56575a }] },
+];
+const dchair = { m: 0, col: 0 };
+function deskChair(parent, x, z, rotY) {                  // builds the chair into the desk group; front of the chair = +z (towards the desk)
+  const C = DCHAIRS[dchair.m], V = C.cols[Math.min(dchair.col, C.cols.length - 1)], cg = new THREE.Group(); cg.position.set(x, 0, z); cg.rotation.y = rotY; parent.add(cg);
+  const add = (geo, m, px, py, pz) => { const o = new THREE.Mesh(geo, m); o.position.set(px, py, pz); o.castShadow = o.receiveShadow = true; cg.add(o); return o; };
+  const fab = V.leather ? new THREE.MeshStandardMaterial({ color: V.c, roughness: 0.55, map: weaveTex('leather') })
+    : new THREE.MeshPhysicalMaterial({ color: V.c, roughness: 0.95, sheen: 0.5, sheenRoughness: 0.6, sheenColor: 0xffffff, map: weaveTex(C.style === 'task' ? 'flat' : 'boucle') });
+  const baseM = stdc({ color: V.base ?? C.base, roughness: C.metal ? 0.25 : 0.5, metalness: C.metal ? 0.85 : 0.2 }), black = stdc({ color: 0x151515, roughness: 0.6 });
+  // 5-star base with castors and a gas column
+  for (let k = 0; k < 5; k++) { const ang = k * Math.PI * 2 / 5, arm = add(new THREE.BoxGeometry(0.03, 0.03, 0.31), baseM, Math.sin(ang) * 0.155, 0.075, Math.cos(ang) * 0.155); arm.rotation.y = ang;
+    add(new THREE.SphereGeometry(0.026, 12, 8), black, Math.sin(ang) * 0.3, 0.028, Math.cos(ang) * 0.3); }
+  add(new THREE.CylinderGeometry(0.035, 0.04, 0.05, 16), baseM, 0, 0.09, 0);
+  add(new THREE.CylinderGeometry(0.022, 0.022, C.SH - 0.18, 14), baseM, 0, 0.11 + (C.SH - 0.18) / 2, 0);
+  add(new THREE.BoxGeometry(0.2, 0.025, 0.2), black, 0, C.SH - 0.075, 0);                        // mechanism plate
+  const sw = C.style === 'task' ? 0.5 : 0.52, sd = C.style === 'task' ? 0.46 : 0.45, st = C.style === 'fiber' ? 0.055 : 0.075;
+  const seat = softBox(sw, st, sd, 0.025, { top: 0.008 }); if (C.style !== 'task') superRound(seat, 'xz', sw / 2, sd / 2, 2.4, 2.4); seat.computeVertexNormals();
+  add(seat, fab, 0, C.SH - st / 2, 0.02);
+  if (C.style === 'task') {                                // LÅNGFJÄLL: a padded back on a stem, armless
+    add(new THREE.BoxGeometry(0.05, 0.3, 0.025), black, 0, C.SH + 0.08, -sd / 2 - 0.02).rotation.x = -0.1;
+    const b = softBox(0.47, C.back, 0.06, 0.025, { front: 0.006 }); bendAroundY(b, 0.7); b.computeVertexNormals();
+    add(b, fab, 0, C.SH + 0.1 + C.back / 2, -sd / 2 - 0.02).rotation.x = -0.1;
+  } else {                                                 // tub shell: low back that wraps forward into the arms
+    const bw = C.style === 'fiber' ? 0.98 : 1.02, bt = C.style === 'fiber' ? 0.02 : 0.055, R = 0.27;
+    const b = softBox(bw, C.back, bt, Math.min(0.02, bt / 2 - 0.002), { front: 0.006 }); superRound(b, 'xy', bw / 2, C.back / 2, 3.2, 3.2); bendAroundY(b, R); b.computeVertexNormals();
+    const shellM = C.style === 'fiber' ? stdc({ color: V.c, roughness: 0.6 }) : fab;
+    const bm = add(b, shellM, 0, C.SH + C.back / 2 - 0.03, -sd / 2 + 0.02); bm.rotation.x = -0.08;
+  }
+  return cg;
+}
+// ------------------------------------------------------------ UX pass (2026-11-16, Gianluca): start from above, pick where to stand, loading states
+// · The model opens straight into the view from above (no "start" click). A View switch (From above · Walk) sits on top.
+// · Walk → "pick where to stand": tap/click the floor, drag to choose which way you face; or jump to a room chip. The camera flies down.
+// · Slow moments (lights switching = shader recompiles, time of day = new sky lighting) show a small "Updating…" chip first.
+
+// ---- busy chip
+const busyUI = { frames: 0, gate: 0, shownAt: 0 };
+function busyShow(txt) { $('busyTxt').textContent = txt; $('busy').hidden = false; busyUI.shownAt = performance.now(); }
+function busyHide() { const wait = Math.max(0, 420 - (performance.now() - busyUI.shownAt)); setTimeout(() => { if (!busyUI.frames && !busyUI.gate) $('busy').hidden = true; }, wait); }
+function busyRun(txt, fn) {                               // paint the chip first, then do the slow thing, hide once a frame got through
+  busyShow(txt);
+  requestAnimationFrame(() => requestAnimationFrame(() => { try { fn(); } finally { busyUI.frames = 3; shadowDirty = true; } }));
+}
+function busyAfterRender() { if (busyUI.frames > 0 && --busyUI.frames === 0) busyHide(); }
+function lightSig() {                                     // what three.js compiles shaders for: how many lights of each kind are visible, and how many cast shadows
+  if (!autoLights) return '';
+  let p = 0, s = 0, r = 0, d = 0, sh = 0;
+  for (const L of autoLights) if (L.visible) { if (L.isPointLight) p++; else if (L.isSpotLight) s++; else if (L.isRectAreaLight) r++; else d++; if (L.castShadow) sh++; }
+  return `${p}.${s}.${r}.${d}.${sh}`;
+}
+// called by the render loop after perfTick: true = skip rendering this frame (the chip gets painted before the recompile freezes the page)
+function busyGateLights() {
+  if (!started) return false;
+  const sig = lightSig();
+  if (frame.lsig === undefined) { frame.lsig = sig; return false; }
+  if (sig === frame.lsig) { busyUI.gate = 0; return false; }
+  if (!busyUI.gate) { busyUI.gate = 2; busyShow(LIGHTS && Object.values(LIGHTS).some((L) => L.on) ? 'Switching the lights…' : 'Updating the light…'); }
+  if (--busyUI.gate > 0) return true;
+  frame.lsig = sig; busyUI.frames = 3; return false;
+}
+
+// ---- view switch (top centre on desktop, under the room card on phones)
+function syncModeUI() {
+  const over = mode === 'over';
+  $('segOver').setAttribute('aria-pressed', String(over && !place.on));
+  $('segWalk').setAttribute('aria-pressed', String(!over || place.on));
+  $('modeSeg').hidden = !started;
+  if ((!over || place.on) && !$('coach').hidden) { $('coach').hidden = true; document.body.classList.remove('coaching'); try { localStorage.setItem('aptCoach2', '1'); } catch (_) { /* ignore */ } }
+  $('qView').innerHTML = over ? '<i>V</i>Walk' : '<i>V</i>From above';
+  $('qView').title = over ? 'Walk: pick where to stand (V)' : 'View from above (V)';
+}
+function toggleView() { if (place.on) { stopPlacing(); return; } if (mode === 'walk') setMode('over'); else startPlacing(); }
+
+// ---- pick where to stand
+const place = { on: false, down: null, dir: null };
+const placeMark = (() => {
+  const g = new THREE.Group(); g.visible = false; g.renderOrder = 31;
+  const mat = new THREE.MeshBasicMaterial({ color: 0xcf9152, transparent: true, opacity: 0.95, depthTest: false, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
+  const ghost = new THREE.MeshBasicMaterial({ color: 0xf2ede4, transparent: true, opacity: 0.55, depthTest: false, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.27, 48), mat); ring.rotation.x = -Math.PI / 2; ring.renderOrder = 31; g.add(ring);
+  const dot = new THREE.Mesh(new THREE.CircleGeometry(0.07, 24), mat); dot.rotation.x = -Math.PI / 2; dot.renderOrder = 31; g.add(dot);
+  const sh = new THREE.Shape(); sh.moveTo(-0.16, 0.32); sh.lineTo(0.16, 0.32); sh.lineTo(0, 0.62); sh.closePath();     // a wedge in front of the ring = which way you'll face
+  const arrow = new THREE.Mesh(new THREE.ShapeGeometry(sh), mat); arrow.rotation.x = -Math.PI / 2; arrow.renderOrder = 31;
+  const yawG = new THREE.Group(); yawG.add(arrow); g.add(yawG);
+  scene.add(g);
+  return { g, yawG, ring, dot, arrow, mat, ghost };
+})();
+function placeMarkAt(p, dir, isGhost) {
+  const M = placeMark; M.g.visible = true; M.g.position.set(p.x, p.y + 0.02, p.z);
+  for (const o of [M.ring, M.dot, M.arrow]) o.material = isGhost ? M.ghost : M.mat;
+  // the wedge points along -y of its shape plane before rotation.x = -π/2, i.e. towards -z; turn it to dir
+  M.yawG.rotation.y = Math.atan2(-dir.x, -dir.z);
+}
+function camFlat() { const f = new THREE.Vector3(); camera.getWorldDirection(f); f.y = 0; if (f.lengthSq() < 1e-6) f.set(0, 0, -1); return f.normalize(); }
+function floorHitAt(e) {
+  const ndc = new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.far = Infinity; ray.setFromCamera(ndc, camera);
+  return ray.intersectObjects(pickables, false)[0] || null;
+}
+function planeHitAt(e, y) {
+  const ndc = new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera); const p = new THREE.Vector3();
+  return ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), p) ? p : null;
+}
+function startPlacing() {
+  if (typeof focus !== 'undefined' && focus) exitFocus();
+  if (selected) selectFurniture(null);
+  if (mode !== 'over') setMode('over');
+  place.on = true; place.down = null; place.dir = null;
+  orbit.enableRotate = false; orbit.enablePan = false;           // mouse: clicks place, the wheel still zooms
+  document.body.classList.add('placing'); $('placeBar').hidden = false; canvas.style.cursor = 'crosshair';
+  syncModeUI(); showHint();
+}
+function stopPlacing() {
+  place.on = false; place.down = null; placeMark.g.visible = false;
+  orbit.enableRotate = true; orbit.enablePan = true;
+  document.body.classList.remove('placing'); $('placeBar').hidden = true; canvas.style.cursor = '';
+  syncModeUI(); showHint();
+}
+function placeFinish(p, dir) {
+  stopPlacing();
+  player.fy = p.y; player.pos.set(p.x, p.y + EYE, p.z);
+  player.yaw = Math.atan2(-dir.x, -dir.z); player.pitch = -0.05; frame.camY = undefined;
+  placeMarkAt(p, dir, false);
+  const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(player.pitch, player.yaw, 0, camera.rotation.order));
+  orbit.enabled = false;
+  camTo(player.pos.clone(), q, 1100, { done: () => { placeMark.g.visible = false; setMode('walk'); } });
+}
+canvas.addEventListener('pointerdown', (e) => {
+  if (!place.on || camTween) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  const h = floorHitAt(e);
+  if (!h) { showToast('Pick a spot on a floor'); return; }
+  place.down = { id: e.pointerId, p: h.point.clone(), x: e.clientX, y: e.clientY }; place.dir = null;
+  placeMarkAt(h.point, camFlat(), false);
+  try { canvas.setPointerCapture(e.pointerId); } catch (_) { /* optional */ }
+});
+canvas.addEventListener('pointermove', (e) => {
+  if (!place.on) return;
+  if (!place.down) { if (e.pointerType === 'mouse') { const h = floorHitAt(e); if (h) placeMarkAt(h.point, camFlat(), true); else placeMark.g.visible = false; } return; }
+  if (e.pointerId !== place.down.id) return;
+  const q = planeHitAt(e, place.down.p.y); if (!q) return;
+  const d = q.sub(place.down.p).setY(0);
+  if (d.length() > 0.12 || Math.hypot(e.clientX - place.down.x, e.clientY - place.down.y) > 14) { place.dir = d.normalize(); placeMarkAt(place.down.p, place.dir, false); }
+});
+canvas.addEventListener('pointerup', (e) => {
+  if (!place.on || !place.down || e.pointerId !== place.down.id) return;
+  const D = place.down; place.down = null;
+  placeFinish(D.p, place.dir || camFlat());
+});
+addEventListener('keydown', (e) => { if (place.on && e.code === 'Escape') { e.preventDefault(); stopPlacing(); } });
+$('placeCancel').addEventListener('click', () => stopPlacing());
+for (const [id, label] of chipDefs) {                     // or jump straight to a room
+  const b = document.createElement('button'); b.type = 'button'; b.textContent = label;
+  b.addEventListener('click', () => { stopPlacing(); spawn(id); setMode('walk'); });
+  $('placeChips').appendChild(b);
+}
+$('segOver').addEventListener('click', () => { if (place.on) stopPlacing(); if (mode !== 'over') setMode('over'); });
+$('segWalk').addEventListener('click', () => { if (mode === 'over' && !place.on) startPlacing(); });
+
+// ---- open straight into the view from above
+function enterApp() {
+  if (started) return;
+  $('intro').hidden = true; started = true;
+  setMode('over');
+  setTimeout(() => { try { prewarmShaders(); } catch (_) { /* best effort */ } }, 0);
+  syncModeUI();
+  let seen = false; try { seen = localStorage.getItem('aptCoach2') === '1'; } catch (_) { /* private mode */ }
+  if (!seen) { $('coach').hidden = false; document.body.classList.add('coaching'); }
+}
+window.__onModelReady = enterApp;
+$('coachOk').addEventListener('click', () => { $('coach').hidden = true; document.body.classList.remove('coaching'); try { localStorage.setItem('aptCoach2', '1'); } catch (_) { /* ignore */ } });
+$('coachWalk').addEventListener('click', () => { $('coachOk').click(); startPlacing(); });
 // ------------------------------------------------------------ clouds
 (function clouds() {
   const W = 2048, Hh = 512;
@@ -7013,14 +7831,15 @@ function frame() {
   frame.n = (frame.n || 0) + 1;
   if (frame.n % 10 === 0) window.__cam = camera.position.toArray().map((v) => +v.toFixed(2)).join(',') + ' ' + [player.yaw, player.pitch].map((v) => +v.toFixed(2)).join(',');
   perfTick(dt);
+  if (busyGateLights()) { requestAnimationFrame(frame); return; }   // show the busy chip before a shader recompile freezes the page
   // standing still with nothing animating: render at ~10 fps instead of 60 (saves battery; clouds and fades still move)
   const now = performance.now(), q = camera.quaternion, cp = camera.position;
   const sig = cp.x * 1.3 + cp.y * 7.1 + cp.z * 13.7 + q.x * 17 + q.y * 19 + q.z * 23 + q.w * 29;
-  const busy = shadowDirty || camTween || selected || measuring || mode !== 'walk' || tvState.on || lift.moving || lift.after || lift.open.some((o) => o > 0 && o < 1) || hintArrow.on || Math.abs(sig - (frame.sig ?? 0)) > 1e-6;
+  const busy = shadowDirty || camTween || busyUI.frames > 0 || selected || measuring || mode !== 'walk' || tvState.on || lift.moving || lift.after || lift.open.some((o) => o > 0 && o < 1) || hintArrow.on || Math.abs(sig - (frame.sig ?? 0)) > 1e-6;
   frame.sig = sig; if (busy) frame.busyAt = now;
   const idle = now - (frame.busyAt ?? 0) > 900;
   if (shadowDirty || frame.n % 600 === 0) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
-  if (!idle || frame.n % 6 === 0) { if (composer) composer.render(); else renderer.render(scene, camera); }
+  if (!idle || frame.n % 6 === 0) { if (composer) composer.render(); else renderer.render(scene, camera); busyAfterRender(); }
   requestAnimationFrame(frame);
 }
 (function doorPlate() {
@@ -7048,8 +7867,8 @@ requestAnimationFrame(frame);
 // · doors, cabinets, windows, switches, the TV: a small pulsing point at the handle, shown only within reach; click/tap it (or E) to use it
 // · furniture: an (i) button above each piece → flies to a close aerial view with the options panel docked beside it (never on top)
 // · moving/turning: arrows around the piece in the scene (always for the piece in close-up; for every piece with the Move layer, G)
-const FURN_LABELS = new Set(['Bed', 'Closet', 'TV', 'TV wall', 'Sofa', 'Dining', 'Lamp', 'Sofa bed', 'Lounge chair', 'Book tower', 'Plant', 'Painting', 'Console', 'Alcove', 'Desk', 'Side table', 'Entrance', 'Bathroom', 'Balcony']);
-const MOVERS = { bedMover, closetMover, tvMover, mediaMover, sofaMover, lampMover, diningMover, petraMover, guestMover, vpaxMover, nookMover, booksMover, plantMover, artMover, consoleMover, alcoveMover, deskMover, holmMover, entranceMover, bathMover, balconyMover };
+const FURN_LABELS = new Set(['Bed', 'Closet', 'TV', 'TV wall', 'Sofa', 'Dining', 'Lamp', 'Sofa bed', 'Lounge chair', 'Book tower', 'Plant', 'Painting', 'Console', 'Alcove', 'Desk', 'Side table', 'Entrance', 'Bathroom', 'Balcony', 'Skænk', 'TV unit · upper', 'TV shelf · lower', 'Coffee table', 'Rug']);
+const MOVERS = { bedMover, closetMover, tvMover, mediaMover, sofaMover, lampMover, diningMover, petraMover, guestMover, vpaxMover, nookMover, booksMover, plantMover, artMover, consoleMover, alcoveMover, deskMover, holmMover, entranceMover, bathMover, balconyMover, skaenkMover, mpMoverUp, mpMoverLo, ctabMover, rugMover };
 function doorMover(d) { if (d._mover === undefined) { const m = String(d.swap).match(/selected === (\w+)/); d._mover = (m && MOVERS[m[1]]) || null; } return d._mover; }
 const isFurn = (d) => d.kind === 'swap' && FURN_LABELS.has(d.label);
 const hud = { el: $('hud3d'), pools: { ipt: [], finfo: [], marr: [] }, used: { ipt: 0, finfo: 0, marr: 0 }, focusDoor: null, n: 0, occ: new WeakMap(), vsig: '' };
@@ -7292,7 +8111,7 @@ $('qLights').addEventListener('click', () => toggleAllLights());
 addEventListener('resize', () => { hud.vsig = ''; });
 window.__hudDbg = () => doors.filter((d) => !isFurn(d)).map((d) => { const P = ringPoint(d, new THREE.Vector3()); const dist = P.distanceTo(camera.position); if (dist > REACH) return null; const sc = {}; const on = toScreen(P, sc); hud.occ.delete(d); const vis = hudVisible(d, camera.position, P, d.parts); return [d.label, dist.toFixed(2), on, vis, Math.round(sc.x), Math.round(sc.y), started, measuring, mode, !!focus]; }).filter(Boolean);
 window.__bvc = () => buildVaerCloset(); window.__bs = () => { buildSofa(); livingDims(); }; window.__bd = () => { buildDining(); };
-window.__apt = { shopLines, shopText, layoutSnapshot, layoutApply, layoutEncode, layoutDecode, placementCheck, computeDaylight, setPlan, roomsState, night, buildRoomFurniture, ROOMF, NIGHT, getDaylight: () => DAYLIGHT, curtainProbe, fxAssign, FX, LPOOL, setAutoLights, autoLightTick, autoLightsCfg, roomLightMovers, placeBedPendants, holm, buildHolm, holmMover, desk, buildDesk, deskMover, swapDeskCloset, alc, buildAlcove, alcoveMover, cons, buildConsole, consoleMover, art, buildArt, artMover, curtains, books, booksMover, buildBooks, plant, plantMover, buildPlant, setAllLights, toggleAllLights, hueLights, getHold: () => lightHold, THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, petra, petraMover, buildPetra, hud, focusFurniture, exitFocus, setMoveLayer, getFocus: () => focus, getTween: () => camTween, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
+window.__apt = { dchair, DCHAIRS, deskMaxW, deskModel, deskFree, buildDesk, buildVaerCloset, skaenk, buildSkaenk, skaenkMover, mpair, mpMoverUp, mpMoverLo, mpTry, ctab, buildCoffeeTable, ctabMover, rug, buildRug, rugMover, RUGS, shopLines, shopText, layoutSnapshot, layoutApply, layoutEncode, layoutDecode, placementCheck, computeDaylight, setPlan, roomsState, night, buildRoomFurniture, ROOMF, NIGHT, getDaylight: () => DAYLIGHT, curtainProbe, fxAssign, FX, LPOOL, setAutoLights, autoLightTick, autoLightsCfg, roomLightMovers, placeBedPendants, holm, buildHolm, holmMover, desk, buildDesk, deskMover, swapDeskCloset, alc, buildAlcove, alcoveMover, cons, buildConsole, consoleMover, art, buildArt, artMover, curtains, books, booksMover, buildBooks, plant, plantMover, buildPlant, setAllLights, toggleAllLights, hueLights, getHold: () => lightHold, THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, petra, petraMover, buildPetra, hud, focusFurniture, exitFocus, setMoveLayer, getFocus: () => focus, getTween: () => camTween, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
 </script>
 
 </body></html>

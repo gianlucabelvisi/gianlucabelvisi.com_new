@@ -354,6 +354,7 @@ new GLTFLoader().parse(glbBytes.buffer, '', (gltf) => {
   setTimeout(() => { if (window.__afterModel) window.__afterModel(); }, 0);
   $('go').disabled = false;
   $('go').textContent = 'Start walking';
+  setTimeout(() => { if (window.__onModelReady) window.__onModelReady(); }, 0);
   updateSun(+$('sunrange').value, true);
 }, (err) => {
   $('go').textContent = 'Could not load the 3D model. Reload the page to try again.';
@@ -541,7 +542,7 @@ function updateSun(h, rebuildEnv) {
   }
 }
 $('sunrange').addEventListener('input', (e) => updateSun(+e.target.value, false));
-$('sunrange').addEventListener('change', (e) => updateSun(+e.target.value, true));
+$('sunrange').addEventListener('change', (e) => { const v = +e.target.value; if (typeof busyRun === 'function' && started) busyRun('Changing the time of day…', () => updateSun(v, true)); else updateSun(v, true); });
 
 // ------------------------------------------------------------ post-processing (desktop)
 let composer = null, gtao = null;

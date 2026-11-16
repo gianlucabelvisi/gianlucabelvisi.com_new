@@ -74,6 +74,7 @@ const ROOMF = {
     { name: 'SUNDSÖ bord 65 × 65 + 2 klapstole, gul', brand: 'IKEA', kind: 'bistro', kr: 799, c: 0xe2b23a, url: IK('sundsoe-bord-og-2-klapstole-udendors-gul-gul-s29573022'), desc: 'powder-coated steel, folding' },
     { name: 'VISINGSÖ bord 70 × 70 + 2 stole, mørkegrøn', brand: 'IKEA', kind: 'bistro', kr: 1735, c: 0x2f4a3a, cush: 0xd8ccb4, url: IK('visingsoe-visingsoe-bord-og-2-stole-udendors-morkegron-morkegron-froesoen-duvholmen-beige-s89615533'), desc: 'steel, with beige seat pads' }],
 };
+const ENTRANCE_EMPTY = true;   // the drop zone by the living-room opening is undecided: nothing built, nothing on the list
 const roomsState = { shoe: 1, above: 1, rail: 0, cab: 1, balc: 1 };   // rail off: the bathroom already has a towel ladder
 const roomF = { groups: [], parts: [], doorObjs: [] };
 function clearRoomFurniture() {
@@ -95,8 +96,9 @@ function buildRoomFurniture() {
   clearRoomFurniture();
   const mk = (g, parts) => (geo, mat, x, y, z, solid = true) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); if (solid) parts.push(m); return m; };
   // entrance: a drop zone on the teknik cupboard's end wall (faces the hall, next to the opening into the living room)
+  // 2026-11-16 Gianluca: "remove all options here, we are not set with what to put there yet" → the spot stays empty (ENTRANCE_EMPTY)
   { const S = ROOMF.shoe[roomsState.shoe], A = ROOMF.above[roomsState.above];
-    if (S.W || A.W) {
+    if (!ENTRANCE_EMPTY && (S.W || A.W)) {
       const g = wallGroup(4.92, 2.982, 0, 1), parts = [], add = mk(g, parts);
       if (S.W) { const m = stdc({ color: S.c, roughness: 0.5 }), sh = stdc({ color: new THREE.Color(S.c).multiplyScalar(0.86).getHex(), roughness: 0.5 }), yb = S.legs ? 0.1 : 0;
         add(new THREE.BoxGeometry(S.D, S.H - yb, S.W), m, S.D / 2, yb + (S.H - yb) / 2, 0);
@@ -172,7 +174,7 @@ const balconyMover = { name: 'Balcony', title: () => 'Balcony', selects: [roomSe
   info: () => { const B = ROOMF.balc[roomsState.balc]; return B.kind ? `${B.desc} · west of the balcony door, clear of both leaves; about 1.7 m deep there` : 'Empty balcony'; } };
 function roomShopLines(add) {
   const R = roomsState, put = (room, key, o, detail) => { if (o && o.kr) add(room, key, `${o.brand} ${o.name}`, { kr: o.kr, href: o.url, detail: detail || '' }); };
-  put('Entrance', 'shoe', ROOMF.shoe[R.shoe]); put('Entrance', 'above', ROOMF.above[R.above]);
+  if (!ENTRANCE_EMPTY) { put('Entrance', 'shoe', ROOMF.shoe[R.shoe]); put('Entrance', 'above', ROOMF.above[R.above]); }
   put('Bathroom', 'rail', ROOMF.rail[R.rail]); put('Bathroom', 'cab', ROOMF.cab[R.cab]);
   put('Balcony', 'balc', ROOMF.balc[R.balc], ROOMF.balc[R.balc].desc);
 }

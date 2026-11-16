@@ -40,8 +40,8 @@ MATS.fxCove = new THREE.MeshStandardMaterial({ color: 0xf6f1e8, emissive: 0xffb0
 MATS.fxCoveHalo = new THREE.MeshBasicMaterial({ map: booksHaloTex, color: 0x000000, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
 const fxWhite = stdc({ color: 0xf2f2ef, roughness: 0.4 });
 Object.assign(LIGHTS, {
-  hall: { name: 'Entrance spots', room: 'hall', model: '3 × Philips Hue surface-mounted ceiling spots (White & Color Ambiance)', on: false, bri: 0.75, ct: 2900, mode: 'ct', color: '#ffd9a0',
-    apply: (L, rgb, lv) => { fxGlow(MATS.fxHall, L, rgb, lv, 3.5); fxAssign(true); } },
+  hall: { name: 'Entrance spots', room: 'hall', model: '6 × Philips Hue recessed spots, flush with the ceiling (White & Color Ambiance)', on: false, bri: 0.6, ct: 2900, mode: 'ct', color: '#ffd9a0',
+    apply: (L, rgb, lv) => { fxGlow(MATS.fxHall, L, rgb, lv, 2.4); fxAssign(true); } },
   bedA: { name: 'Bedside · door', room: 'bed', model: 'Philips Hue E27 globe in an opal-glass pendant over the nightstand', on: false, bri: 0.55, ct: 2400, mode: 'ct', color: '#ffb36b',
     apply: (L, rgb, lv) => { fxGlow(MATS.fxBedA, L, rgb, lv, 1.6); fxAssign(true); } },
   bedB: { name: 'Bedside · window', room: 'bed', model: 'Philips Hue E27 globe in an opal-glass pendant over the nightstand', on: false, bri: 0.55, ct: 2400, mode: 'ct', color: '#ffb36b',
@@ -53,11 +53,11 @@ Object.assign(LIGHTS, {
 });
 function buildRoomFixtures() {
   const g = new THREE.Group(); scene.add(g); const CEIL = 2.6;
-  // entrance: three small white cylinders on the ceiling along the hall, glowing lens underneath
-  for (const [x, y] of [[6.1, 1.15], [6.1, 2.75], [5.75, 4.25]]) {
-    const c = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.1, 24), fxWhite); c.position.copy(b2t(x, y, CEIL - 0.05)); g.add(c);
-    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.03, 20), MATS.fxHall); lens.rotation.x = Math.PI / 2; lens.position.copy(b2t(x, y, CEIL - 0.101)); g.add(lens);
-    FX.push({ id: 'hall', room: 'hall', pos: b2t(x, y, CEIL - 0.3), power: 1.3, dist: 4 });
+  // entrance (2026-11-16, Gianluca): six recessed spots flush with the ceiling along the hall, soft and fairly dim overall
+  for (const [x, y] of [[6.1, 0.8], [6.1, 1.55], [6.1, 2.3], [6.05, 3.0], [5.9, 3.65], [5.75, 4.3]]) {
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.004, 24), fxWhite); rim.position.copy(b2t(x, y, CEIL - 0.002)); g.add(rim);
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.028, 20), MATS.fxHall); lens.rotation.x = Math.PI / 2; lens.position.copy(b2t(x, y, CEIL - 0.005)); g.add(lens);
+    FX.push({ id: 'hall', room: 'hall', pos: b2t(x, y, CEIL - 0.25), power: 0.55, dist: 3 });
   }
   // bathroom: two flush recessed spots
   for (const [x, y] of [[7.95, 2.2], [9.1, 2.05]]) {
@@ -91,7 +91,7 @@ function placeBedPendants(spots) {
 }
 // wall switches: one by each room's door, opening that room's Hue panel (like the kitchen/living one)
 const roomLightMovers = {
-  hall: { name: 'Lights · entrance', title: () => 'Lights · entrance', lights: ['hall'], info: () => 'Philips Hue ceiling spots along the hall. Comes on by itself at dusk.' },
+  hall: { name: 'Lights · entrance', title: () => 'Lights · entrance', lights: ['hall'], info: () => '6 Philips Hue recessed spots along the hall, flush with the ceiling, soft light. Comes on by itself at dusk.' },
   bed: { name: 'Lights · bedroom', title: () => 'Lights · bedroom', lights: ['bedA', 'bedB'], info: () => 'No ceiling light here: two opal pendants over the nightstands, 2400 K for reading.' },
   vaer: { name: 'Lights · værelse', title: () => 'Lights · værelse', lights: ['vaer'], info: () => 'A hidden Lightstrip high on the wall washes the ceiling: soft, no fixture in sight.' },
   bath: { name: 'Lights · bathroom', title: () => 'Lights · bathroom', lights: ['bath'], info: () => 'Two flush recessed spots.' },

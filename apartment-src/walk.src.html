@@ -41,6 +41,22 @@
 <div id="joyBase" hidden aria-hidden="true"><i></i><b>Move</b></div>
 <div id="joy" hidden><i></i></div>
 <div id="toast" class="panel" hidden></div>
+<div id="modeSeg" class="panel" role="group" aria-label="View" hidden>
+  <button id="segOver" type="button" aria-pressed="true"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7.5 10 4l7 3.5-7 3.5z M3 11.5l7 3.5 7-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>From above</button>
+  <button id="segWalk" type="button" aria-pressed="false"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="11" cy="3.6" r="1.7" fill="currentColor"/><path d="M8 18l2-5 2.5 2V18 M10 13l.8-4.5L8 10l-1.5 2.5 M10.8 8.5l2.2 2.3 2.2.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Walk</button>
+</div>
+<div id="placeBar" class="panel" hidden>
+  <p><b>Where do you want to stand?</b> <span class="mouse-only-i">Click a floor · drag before letting go to choose which way you face.</span><span class="touch-only-i">Tap a floor · drag before lifting to choose which way you face.</span></p>
+  <div class="pb-row"><span class="eyebrow">Or jump to</span><div id="placeChips"></div></div>
+  <button id="placeCancel" type="button">Cancel</button>
+</div>
+<div id="busy" class="panel" hidden role="status" aria-live="polite"><span class="spin" aria-hidden="true"></span><span id="busyTxt">Updating…</span></div>
+<div id="coach" class="panel" hidden>
+  <b>This is the flat from above</b>
+  <p class="mouse-only-i">Drag to turn, scroll to zoom, right-drag to slide. Click an <span class="ci">i</span> to look at a piece of furniture.</p>
+  <p class="touch-only-i">Drag to turn, pinch to zoom and twist, two fingers to slide. Tap an <span class="ci">i</span> to look at a piece of furniture.</p>
+  <div class="row"><button id="coachWalk" type="button" class="primary">Walk inside</button><button id="coachOk" type="button">Look around first</button></div>
+</div>
 <div id="mover" class="panel" hidden role="group" aria-label="Move furniture">
   <div class="mvtop"><span id="mvGrip" class="mouse-grip" title="Drag to move this panel · double-click to let it follow the furniture again" aria-hidden="true">⠿</span><b id="mvName">Bed</b><button id="mvDone" aria-label="Done">Done</button></div>
   <div class="mvrow" id="mvRow1"><button id="mvLeft" aria-label="Move 5 cm left" title="5 cm left" class="mvarrow">◀</button><button id="mvVar">Try 180 cm</button><button id="mvRight" aria-label="Move 5 cm right" title="5 cm right" class="mvarrow">▶</button></div>
@@ -126,19 +142,10 @@
 
 <div id="intro">
   <div class="card panel">
-    <h1>Welcome to Belvisi Jensen</h1>
-    <p>You start on the landing outside the front door: open it to step inside. Built from the floor plan in Blender, with oak floors and the kitchen as delivered. Camera pins open the Blender render taken from that spot. The bar on the right switches to the view from above, shows sizes, sockets, the tape measure and the map, and sets the time of day. Tap the map to jump somewhere.</p>
-    <dl class="help mouse-only">
-      <dt>W A S D</dt><dd>Walk, with the mouse to look around</dd>
-      <dt>E / Space</dt><dd>Open doors, the fridge and the balcony door</dd>
-      <dt>R · V · H</dt><dd>Run, view from above, time of day</dd>
-    </dl>
-    <dl class="help touch-only">
-      <dt>Joystick</dt><dd>Bottom left: push to walk</dd>
-      <dt>Drag</dt><dd>Anywhere else to look around</dd>
-      <dt>Tap floor</dt><dd>Walk to that spot</dd>
-      <dt>Right bar</dt><dd>View from above, sizes, map, run, time of day</dd>
-    </dl>
+    <span class="eyebrow">Copenhagen · Sluseholmen</span>
+    <h1>Belvisi Jensen</h1>
+    <p>Loading the apartment in 3D…</p>
+    <div class="bar" aria-hidden="true"><i></i></div>
     <button id="go" disabled>Loading model…</button>
   </div>
 </div>
@@ -166,5 +173,8 @@
 /*@include src/js/12-room-lights.js*/
 /*@include src/js/13-rooms.js*/
 /*@include src/js/14-plan.js*/
+/*@include src/js/16-coffee-rug.js*/
+/*@include src/js/17-study.js*/
+/*@include src/js/18-ux.js*/
 /*@include src/js/15-loop-hud.js*/
 </script>

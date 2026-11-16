@@ -336,3 +336,52 @@
   #mover.docked .mvtop { cursor: default; }
   #mover.docked #mvGrip { display: none !important; }
   @media (max-width: 640px) { body.focus #quick, body.focus #joy { display: none !important; } }
+  /* ---- UX pass 2026-11-16: view switch, pick-where-to-stand, busy chip, coach card, loader ---- */
+  #modeSeg { position: fixed; left: 50%; top: calc(var(--gut) + var(--safe-t)); transform: translateX(-50%); display: flex; gap: 2px; padding: 4px; border-radius: 999px; z-index: 7; }
+  #modeSeg button { display: flex; align-items: center; gap: 7px; font: 600 13.5px/1 var(--ui); color: var(--muted); background: transparent; border: 0; border-radius: 999px; padding: 10px 15px; cursor: pointer; transition: background .18s, color .18s; min-height: 40px; }
+  #modeSeg button svg { width: 17px; height: 17px; }
+  #modeSeg button:hover { color: var(--ink); }
+  #modeSeg button[aria-pressed="true"] { background: var(--oak); color: #1a1208; }
+  #placeBar { position: fixed; left: 50%; bottom: calc(var(--gut) + var(--safe-b)); transform: translateX(-50%); width: min(560px, calc(100% - 2 * var(--gut)));
+    padding: 14px 16px; display: grid; grid-template-columns: 1fr auto; gap: 10px 14px; align-items: start; z-index: 8; border-radius: 16px; }
+  #placeBar p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--muted); }
+  #placeBar p b { color: var(--ink); display: block; font-size: 15.5px; margin-bottom: 2px; }
+  #placeBar .pb-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; min-width: 0; }
+  #placeChips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
+  #placeChips::-webkit-scrollbar { display: none; }
+  #placeChips button, #placeCancel, #coach button { font: 600 13px/1 var(--ui); color: var(--ink); background: rgba(242,237,228,.07); border: 1px solid var(--line); border-radius: 999px; padding: 9px 12px; cursor: pointer; white-space: nowrap; }
+  #placeChips button:hover, #placeCancel:hover, #coach button:hover { background: rgba(242,237,228,.14); }
+  #placeCancel { grid-row: 1; grid-column: 2; }
+  body.placing #hint, body.placing #doorTip, body.placing #joyBase, body.placing #hud3d { display: none !important; }
+  #busy { position: fixed; left: 50%; top: calc(var(--gut) + var(--safe-t) + 60px); transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 10px 14px 10px 12px;
+    font: 600 13px/1 var(--ui); color: var(--ink); border-radius: 999px; z-index: 9; pointer-events: none; animation: busyIn .18s ease-out; }
+  #busy .spin, #intro .bar i { will-change: transform; }
+  #busy .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(242,237,228,.22); border-top-color: var(--oak); animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes busyIn { from { opacity: 0; transform: translate(-50%, -4px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  #coach { position: fixed; left: 50%; bottom: calc(var(--gut) + var(--safe-b)); transform: translateX(-50%); width: min(420px, calc(100% - 2 * var(--gut))); padding: 16px 18px; display: grid; gap: 8px; z-index: 8; border-radius: 16px; }
+  #coach b { font-size: 16px; }
+  #coach p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+  #coach .ci { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(242,237,228,.85); color: #1a1814; font: italic 700 12px/1 Georgia, serif; vertical-align: -3px; }
+  #coach .row { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+  #coach button.primary, #placeBar .primary { background: var(--oak); color: #1a1208; border-color: var(--oak); }
+  body.placing #coach { display: none; }
+  .touch-only-i { display: none; }
+  @media (pointer: coarse) { .touch-only-i { display: inline; } p.touch-only-i { display: block; } .mouse-only-i { display: none; } }
+  #intro { background: radial-gradient(ellipse at 50% 40%, #1d1a15, #0b0a09 70%); }
+  #intro .card { max-width: 360px; text-align: left; }
+  #intro .bar { height: 3px; border-radius: 3px; background: rgba(242,237,228,.12); overflow: hidden; position: relative; }
+  #intro .bar i { position: absolute; inset: 0 auto 0 0; width: 40%; background: var(--oak); border-radius: 3px; animation: introBar 1.2s ease-in-out infinite; }
+  @keyframes introBar { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+  #intro #go { font: 500 12.5px/1.3 var(--mono); color: var(--muted); background: none; border: 0; padding: 0; text-align: left; }
+  #intro #go:not(:disabled) { display: none; }
+  @media (prefers-reduced-motion: reduce) { #busy .spin, #intro .bar i { animation-duration: 3s; } #busy { animation: none; } }
+  body.focus #modeSeg, body.flying #modeSeg { display: none !important; }
+  @media (max-width: 720px), (pointer: coarse) {
+    #modeSeg { left: var(--gut); transform: none; top: calc(var(--gut) + var(--safe-t) + 58px); }
+    #modeSeg button { padding: 9px 12px; font-size: 13px; }
+    #busy { top: calc(var(--gut) + var(--safe-t) + 110px); left: var(--gut); transform: none; animation: none; }
+    #placeBar { bottom: calc(var(--gut) + var(--safe-b)); }
+    body.plan #modeSeg { display: none !important; }
+  }
+  body.coaching #hint { display: none !important; }

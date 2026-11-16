@@ -93,7 +93,8 @@ const GUDRUN = { name: 'House Nordic Gudrun', c: 0x9a8063, url: 'https://www.boo
 const petraDims = new THREE.Group(); dimsGroup.add(petraDims);
 const LIV_BOX = { x0: 0.5, x1: 4.46, y0: 0.5, y1: 8.45 };            // living room inner faces (Blender)
 function buildPetra(tryPos, tryAngle) {
-  if (!petra.pos) { petra.pos = [3.86, 7.82]; petra.angle = Math.atan2(-2.46, 1.42); }   // left of the TV (seen from the sofa), by the balcony door, turned towards the sofa
+  if (!petra.pos) { petra.pos = [3.71, 7.82];   // 2026-11-16: 15 cm towards the outside wall with the sofa group
+    petra.angle = Math.atan2(-2.46, 1.42); }   // left of the TV (seen from the sofa), by the balcony door, turned towards the sofa
   let pos = tryPos || petra.pos, ang = tryAngle ?? petra.angle, ok = true;
   const R = 0.41, cx = THREE.MathUtils.clamp(pos[0], LIV_BOX.x0 + R, LIV_BOX.x1 - R), cy = THREE.MathUtils.clamp(pos[1], LIV_BOX.y0 + R, LIV_BOX.y1 - R);
   if (Math.abs(cx - pos[0]) > 1e-6 || Math.abs(cy - pos[1]) > 1e-6) ok = false;
@@ -215,7 +216,7 @@ const BOOKT = {
   ],
   PIECE: 0.31, SH_W: 0.16, SH_D: 0.13, PITCH: 0.155, STRIP: 2.0,
 };
-const books = { pack: 2, s: null, z0: null, group: null, parts: [], seed: 7, gap: 1 };
+const books = { pack: 2, s: null, z0: null, group: null, parts: [], seed: 7, gap: 1, hidden: false };
 const BOOK_GAPS = [{ label: 'Pieces stacked tight (31 cm each)', g: 0 }, { label: 'Spaced like ours: 30 % taller (40 cm per piece)', g: 0.093 }];
 const booksDims = new THREE.Group(); dimsGroup.add(booksDims);
 MATS.booksMetal = std({ color: 0xf1f1ee, roughness: 0.42, metalness: 0.25 });
@@ -243,7 +244,7 @@ const BOOK_COLS = ['#1f2a44', '#7a2e2a', '#2f4a3a', '#c9b48a', '#e8e2d4', '#3a3a
 function booksRange() {
   const M = liv.media; if (!M) return null;
   const hw = 0.125;                                                       // books overhang the 16 cm plates: half the widest book
-  return { lo: M.offset + UNIT.W / 2 + 0.06 + hw, hi: M.half - 0.05 - hw, hw };
+  return { lo: -M.half + 0.05 + hw, hi: M.half - 0.05 - hw, hw };     // 2026-11-16: free along the whole TV wall (Gianluca); the units no longer limit it
 }
 function bookStackGeo(r, W, h0, h1, list) {
   // books lying flat from h0 up to h1, spines facing the room (+z), fore-edge against the wall
@@ -277,8 +278,9 @@ function bookStackGeo(r, W, h0, h1, list) {
 }
 function buildBooks() {
   const M = liv.media, R = booksRange(); if (!M || !R) return false;
+  if (books.hidden) { if (books.group) { scene.remove(books.group); dropParts(books.parts); books.group = null; books.parts = []; } const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Book tower'); if (di >= 0) doors.splice(di, 1); return true; }
   const P = BOOKT.packs[books.pack], PP = BOOKT.PIECE + BOOK_GAPS[books.gap].g, H = P.n * PP;
-  if (books.s === null) books.s = (R.lo + R.hi) / 2;
+  if (books.s === null) books.s = (M.offset + UNIT.W / 2 + 0.06 + R.hw + R.hi) / 2;   // default as before: centred between the TV unit and the hall opening
   if (books.z0 === null) books.z0 = 0.36;
   let ok = true;
   const s = THREE.MathUtils.clamp(books.s, R.lo, Math.max(R.lo, R.hi)); if (Math.abs(s - books.s) > 1e-6) ok = false; books.s = s;
@@ -340,6 +342,10 @@ function booksDimsUpdate() {
   const t = labelSprite(`Book tower · ${BOOKT.packs[books.pack].n * 2} tiers · ${Math.round((books.top - books.z0) * 100)} cm`, { h: 0.03 });
   t.position.copy(books.group.position).addScaledVector(M.n, 0.25).setY(books.top + 0.18); booksDims.add(t);
 }
+function setBooksHidden(h) {
+  books.hidden = h; if (h && LIGHTS.books) { LIGHTS.books.on = false; applyLights(); }
+  if (h) selectFurniture(null); buildBooks(); showToast(h ? 'Book tower hidden · bring it back from either TV unit’s panel' : 'Book tower back');
+}
 const booksMover = {
   name: 'Book tower', title: () => `ART-GIFTREE floating book tower · ${BOOKT.packs[books.pack].n} pcs, ${BOOKT.packs[books.pack].n * 2} tiers · white`,
   anchor: () => (books.group ? books.group.position.clone().addScaledVector(liv.media.n, 0.2).setY(books.top + 0.1) : null),
@@ -348,6 +354,7 @@ const booksMover = {
   axis2: () => new THREE.Vector3(0, 1, 0),
   shift2: (dir) => { books.z0 += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'That’s as high as it goes under the ceiling' : 'That’s as low as it goes'); },
   variant: { label: () => 'New books', run: () => { books.seed++; buildBooks(); showToast('Shuffled the books'); } },
+  variant2: { label: () => 'Hide the book tower', run: () => { setBooksHidden(true); } },
   lights: ['books'],
   selects: [
     { id: 'bpack', label: 'Pack', options: () => BOOKT.packs.map((p) => ({ label: `${p.n} pieces · ${p.n * 2} tiers` })), get: () => books.pack,

@@ -133,7 +133,8 @@ const CONSOLE = {
   ],
   tops: [{ name: 'Oak board (cut to size)', c: 0xc69a64, grain: true }, { name: 'Walnut board', c: 0x6a4a33, grain: true }, { name: 'White board', c: 0xf3f2ee }, { name: 'No board (frames only)', c: null }],
 };
-const cons = { frame: 0, front: 4, layout: 1, legs: 0, top: 0, h: 0, decor: true, on: true, group: null, parts: [], n: 0 };
+const cons = { frame: 0, front: 4, layout: 1, legs: 0, top: 0, h: 0, decor: true, on: false,   // 2026-11-15: replaced by the Mistral skænk
+  group: null, parts: [], n: 0 };
 const consLow = () => CONSOLE.heights[cons.h].H < 0.5;
 const consFrontOK = (F) => F.open || !consLow() || !!F.art38;
 const ikeaUrl = (art) => `https://www.ikea.com/dk/da/p/${art}/`;
@@ -244,7 +245,7 @@ const consoleMover = {
 // on a ceiling track (same curtain mechanics: E/click, scroll, or drag the point).
 const ALC = {
   models: ['Custom built-in closet', 'Open shelves + curtain'],
-  fronts: [{ name: 'Painted like the walls (handleless)', c: 0xeeeeea }, { name: 'Oak veneer', c: 0xc69a64, grain: true }, { name: 'Sage green', c: 0x8f9a84 }, { name: 'Warm grey', c: 0x8a847b }],
+  fronts: [{ name: 'Oak veneer like IKEA TONSTAD (as the bedroom)', c: 0xc89d6a, tonstad: true }, { name: 'Painted like the walls (handleless)', c: 0xeeeeea }, { name: 'Oak veneer', c: 0xc69a64, grain: true }, { name: 'Sage green', c: 0x8f9a84 }, { name: 'Warm grey', c: 0x8a847b }],
   shelves: [{ name: 'Oak', c: 0xc69a64, grain: true }, { name: 'White', c: 0xf2f1ec }, { name: 'Walnut', c: 0x6a4a33, grain: true }],
   linens: [{ name: 'Natural linen', c: 0xd8cdb8 }, { name: 'White linen', c: 0xf1eee6 }, { name: 'Terracotta', c: 0xb8694a }, { name: 'Sage', c: 0x9aa58c }],
 };
@@ -281,12 +282,12 @@ function buildAlcove() {
     for (let i = 0; i < 4; i++) { const x = B.x0 + 0.16 + i * (B.W - 0.32) / 3, L = 0.9 + rr() * 0.25; add(new THREE.BoxGeometry(0.06 + rr() * 0.04, L, 0.42), stdc({ color: coatC[i], roughness: 0.9 }), x, (yIn0 + yIn1) / 2, 1.98 - L / 2); }
     for (let i = 0; i < 4; i++) { stuff(B.x0 + 0.15 + i * 0.24, yIn1 - 0.2, 0.031, 0.1, 0.26, 0.09, [0x222222, 0x7a5236, 0xe8e2d4, 0x3f4a3a][i]); stuff(B.x0 + 0.15 + i * 0.24, yIn1 - 0.2, 0.231, 0.1, 0.26, 0.11, [0x6b4a33, 0x1f2a44, 0x9a9a9a, 0x5a2f2a][i]); }
     stuff(cx - 0.2, (yIn0 + yIn1) / 2, 2.13, 0.3, 0.35, 0.18, 0xbf9d6a); stuff(cx + 0.22, (yIn0 + yIn1) / 2, 2.13, 0.32, 0.36, 0.2, 0xe8e2d4);
-    const F = ALC.fronts[alc.front], fm = F.grain ? stdc({ color: F.c, roughness: 0.55, map: weaveTex('flat') }) : stdc({ color: F.c, roughness: 0.7 });
+    const F = ALC.fronts[alc.front], fm = F.tonstad ? MATS.tonstad : F.grain ? stdc({ color: F.c, roughness: 0.55, map: weaveTex('flat') }) : stdc({ color: F.c, roughness: 0.7 });
     const dw = (B.W - 0.006) / 2, hd = Hc - 0.04;
     for (const k of [0, 1]) {
       const left = k === 0, hx = left ? B.x0 + 0.002 : B.x1 - 0.002;
       const d = addHinged({ id: `alcove_door_${k}`, label: 'Closet', name: 'the hall closet', shape: 'closet', hinge: [hx, B.yF - 0.011], closed: left ? [1, 0] : [-1, 0], open: [0, -1],
-        len: dw - 0.002, h: hd, z0: 0.012, thick: 0.022, doorMat: fm, handle: false, grooves: false, swingDeg: 100 });
+        len: dw - 0.002, h: hd, z0: 0.012, thick: 0.022, doorMat: fm, handle: false, grooves: false, tonstad: !!F.tonstad, swingDeg: 100 });
       for (const p of d.parts) p.userData.furniture = true;
       alc.doors.push(d);
     }
@@ -338,9 +339,10 @@ const DESKS = [
   { name: 'Torsby 140 × 60', W: 1.4, D: 0.6, H: 0.75, kr: 3999, top: 0xaeafab, hpl: true, legs: 'round', leg: 0xcfae80, apron: 'drawers2', url: 'torsby/bordplade-i-lysgraa-hpl-laminat/p-1086853-5643327580', desc: 'light-grey HPL top, lacquered solid oak legs, 2 drawers + open niche' },
   { name: 'Wilton 120 × 60', W: 1.2, D: 0.6, H: 0.75, kr: 2999, top: 0xb98b56, grain: true, legs: 'square', leg: 0xb58852, apron: 'drawer1', url: 'wilton/top-i-olieret-egefiner/p-1078250-5642877578', desc: 'oiled oak veneer, solid oak legs, drawer + open niche' },
   { name: 'Richmont 120 × 60', W: 1.2, D: 0.6, H: 0.76, kr: 2999, was: 4299, top: 0xb4875a, grain: true, legs: 'splay', leg: 0xb3885a, apron: 'drawers2', url: 'richmont/bordplade-i-olieret-egefiner/p-1085316-5643267757', desc: 'oiled oak veneer top, splayed solid oak legs, 2 drawers + open niche' },
+  { name: 'Brown desk, as wide as fits', fit: true, W: 1.4, D: 0.6, H: 0.74, kr: null, top: 0x5e3d26, grain: true, legs: 'square', leg: 0x4a3020, apron: 'plain', desc: 'placeholder: dark walnut-brown top and legs, sized to the free wall' },
   { name: 'Landholm 120 × 60', W: 1.2, D: 0.6, H: 0.75, kr: 3199, top: 0xbb9465, grain: true, legs: 'panel', leg: 0xbb9465, apron: 'plain', url: 'landholm/bordplade-i-matlakeret-egefiner/p-1080578-5642948860', desc: 'matt-lacquered oak veneer, fluted panel legs' },
 ];
-const desk = { m: 1, arm: 0, mac: 0, group: null, parts: [] };          // default Wilton (oak) — Gianluca doesn't like white desks
+const desk = { m: 3, arm: 0, mac: 0, fw: 0, fd: 0, group: null, parts: [] };   // 2026-11-15: brown desk by the window, as wide as fits next to their closet          // default Wilton (oak) — Gianluca doesn't like white desks
 const DESK_ARMS = ['ProArt stand', 'Monitor arm (clamped, frees the desk)'];
 const MACS = [{ name: 'MacBook Pro 14″', W: 0.3126, D: 0.2212, T: 0.0155 }, { name: 'MacBook Pro 16″', W: 0.3557, D: 0.2481, T: 0.0168 }];
 function screenTex(kind) {
@@ -355,23 +357,30 @@ function screenTex(kind) {
     g.fillStyle = 'rgba(255,255,255,0.25)'; g.fillRect(0, H - H * 0.06, W, H * 0.06);
   }, [1, 1]);
 }
+function deskFree() {                                    // the stretch of wall the closet leaves for the desk
+  const w = vpax.wall; if (!w) return null; const cEnd = w.sDoor - vpax.off, cStart = cEnd - vpaxW();
+  return vpax.atWin ? { s0: cEnd + 0.02, s1: w.sDoor } : { s0: w.sWin + 0.02, s1: cStart - 0.02 };
+}
+function deskMaxW() { const f = deskFree(); return f ? Math.floor((f.s1 - f.s0) * 100 + 1e-6) / 100 : 1.2; }
+function deskFitWidths() { const mx = deskMaxW(), out = [{ w: mx, label: `As wide as fits: ${Math.round(mx * 100)} cm` }]; for (let c = 180; c >= 80; c -= 20) if (c / 100 < mx - 0.005) out.push({ w: c / 100, label: `${c} cm` }); return out; }
+function deskModel() { const d = DESKS[desk.m]; if (!d.fit) return d; const L = deskFitWidths(); return { ...d, W: (L[desk.fw] || L[0]).w, D: desk.fd ? 0.7 : 0.6 }; }
 function deskSpan() {
-  const w = vpax.wall; if (!w) return null; const Dm = DESKS[desk.m];
+  const w = vpax.wall; if (!w) return null; const Dm = deskModel(), F = deskFree();
   const room = w.sDoor - w.sWin, need = Dm.W + vpaxW() + 0.04;
   const s0 = vpax.atWin ? w.sDoor - Dm.W : w.sWin + 0.02;
-  return { s0, s1: s0 + Dm.W, fits: need <= room + 1e-6, room, need };
+  return { s0, s1: s0 + Dm.W, fits: Dm.W <= F.s1 - F.s0 + 1e-6, room, need, free: F.s1 - F.s0 };
 }
 function buildDesk() {
   if (desk.group) { scene.remove(desk.group); dropParts(desk.parts); desk.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); desk.group = null; }
   const w = vpax.wall, sp = deskSpan(); if (!w || !sp) return;
-  const Dm = DESKS[desk.m], { n, a, p } = w, sc = (sp.s0 + sp.s1) / 2;
+  const Dm = deskModel(), { n, a, p } = w, sc = (sp.s0 + sp.s1) / 2;
   const g = new THREE.Group(); g.position.copy(p).addScaledVector(a, sc).addScaledVector(n, 0.01 + Dm.D / 2);
   g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a.clone().negate(), UP, n.clone().negate()));   // local +z = towards the wall, x = along it
   // local frame: x along the wall (+x = towards the window), z = 0 desk centre, +z towards the wall (back edge at +D/2), user sits at -z
   const parts = [], add = (geo, m, x, y, z, solid = false) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; g.add(o); if (solid) parts.push(o); return o; };
   const W = Dm.W, D = Dm.D, H = Dm.H, tt = 0.025;
-  const topM = Dm.grain ? stdc({ color: Dm.top, roughness: 0.5, map: weaveTex('flat') }) : stdc({ color: Dm.top, roughness: 0.45 });
-  const legM = stdc({ color: Dm.leg, roughness: 0.55, map: weaveTex('flat') });
+  const topM = Dm.fit ? stdc({ color: Dm.top, roughness: 0.62, map: grainTex() }) : Dm.grain ? stdc({ color: Dm.top, roughness: 0.5, map: weaveTex('flat') }) : stdc({ color: Dm.top, roughness: 0.45 });
+  const legM = stdc({ color: Dm.leg, roughness: 0.55, map: Dm.fit ? grainTex() : weaveTex('flat') });
   add(new THREE.BoxGeometry(W, tt, D), topM, 0, H - tt / 2, 0, true);
   if (Dm.hpl) add(new THREE.BoxGeometry(W + 0.002, 0.006, D + 0.002), stdc({ color: 0xcfae80, roughness: 0.5 }), 0, H - tt + 0.003, 0);   // oak edge band under the HPL
   // apron with drawers / niche
@@ -414,7 +423,8 @@ function buildDesk() {
   }
   // MacBook Pro (space grey), open ~110°, to the left of the monitor, turned slightly towards you
   const M = MACS[desk.mac], mac = new THREE.Group(); g.add(mac); const alu = stdc({ color: 0x5c5e62, roughness: 0.32, metalness: 0.75 });
-  mac.position.set(W / 2 - M.W / 2 - 0.08, H, -D / 2 + M.D / 2 + 0.08); mac.rotation.y = -0.32;
+  { const xl = Math.min(W / 2 - M.W / 2 - 0.05, mx + PW / 2 + 0.07 + M.W / 2), roomL = xl - (mx + PW / 2) - M.W / 2;
+    mac.position.set(xl, H, roomL > 0.02 ? -D / 2 + M.D / 2 + 0.13 : -D / 2 + M.D / 2 + 0.05); mac.rotation.y = roomL > 0.02 ? -0.22 : -0.08; }   // beside the screen, 13 cm in from the edge, angled towards you
   const base = new THREE.Mesh(new THREE.BoxGeometry(M.W, M.T * 0.6, M.D), alu); base.position.y = M.T * 0.3; base.castShadow = true; mac.add(base);
   const kb = new THREE.Mesh(new THREE.PlaneGeometry(M.W * 0.86, M.D * 0.42), stdc({ color: 0x141416, roughness: 0.6 })); kb.rotation.x = -Math.PI / 2; kb.position.set(0, M.T * 0.6 + 0.0005, M.D * 0.14); mac.add(kb);
   const tp = new THREE.Mesh(new THREE.PlaneGeometry(M.W * 0.42, M.D * 0.3), stdc({ color: 0x6a6c70, roughness: 0.3, metalness: 0.6 })); tp.rotation.x = -Math.PI / 2; tp.position.set(0, M.T * 0.6 + 0.0006, -M.D * 0.27); mac.add(tp);
@@ -441,6 +451,7 @@ function buildDesk() {
   const mesh = new THREE.Mesh(new THREE.CircleGeometry(0.073, 32), new THREE.MeshStandardMaterial({ color: 0x111111, transparent: true, opacity: 0.55, side: THREE.DoubleSide, roughness: 0.9 })); pf.add(mesh);
   const goose = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.14, 8), armM2); goose.position.set(0.05, 0.08, 0.06); goose.rotation.set(0.6, 0, -0.5); pf.add(goose);
   { const mg = mergeByMaterial(g, new Set(parts)); parts.length = 0; parts.push(...mg.solids); }   // perf: direct children merged per material (monitor, laptop, pop filter groups stay)
+  deskChair(g, mx, -D / 2 - 0.16, 0);   // the chair, pulled in front of the screen
   scene.add(g); g.updateMatrixWorld(true);
   const hitC = new THREE.Vector3(0, H, 0).applyMatrix4(g.matrixWorld);
   const door = { kind: 'swap', label: 'Desk', parts, center: hitC.clone().setY(H + 0.2),
@@ -457,22 +468,29 @@ function swapDeskCloset() {
   const sp = deskSpan(); showToast(`Desk by the ${vpax.atWin ? 'door' : 'window'}, closet by the ${vpax.atWin ? 'window' : 'door'}${sp && !sp.fits ? ' — they overlap: pick a narrower closet or desk' : ''}`);
 }
 const deskMover = {
-  name: 'Desk', title: () => `ILVA ${DESKS[desk.m].name} · desk by the ${vpax.atWin ? 'door' : 'window'}`,
+  name: 'Desk', title: () => `${DESKS[desk.m].fit ? `Brown desk ${Math.round(deskModel().W * 100)} cm` : `ILVA ${DESKS[desk.m].name}`} · by the ${vpax.atWin ? 'door' : 'window'}`,
   anchor: () => (desk.group ? desk.group.position.clone().setY(1.5) : null),
   variant: { label: () => `Swap: desk by the ${vpax.atWin ? 'window' : 'door'}, closet by the ${vpax.atWin ? 'door' : 'window'}`, run: () => { swapDeskCloset(); if (selected === deskMover) updateMoverInfo(); } },
-  selects: [
-    { id: 'dmod', label: 'Desk (ILVA)', options: () => DESKS.map((d) => ({ label: `${d.name} · ${d.kr.toLocaleString('da-DK')} kr` })), get: () => desk.m, set: (i) => { desk.m = i; buildDesk(); const sp = deskSpan(); if (sp && !sp.fits) showToast('Desk + closet are wider than the wall here'); } },
+  get selects() { const L = [
+    { id: 'dmod', label: 'Desk', options: () => DESKS.map((d) => ({ label: d.fit ? d.name : `ILVA ${d.name} · ${d.kr.toLocaleString('da-DK')} kr` })), get: () => desk.m, set: (i) => { desk.m = i; buildDesk(); buildMoverSelects(deskMover); const sp = deskSpan(); if (sp && !sp.fits) showToast('Desk + closet are wider than the wall here'); } }];
+    if (DESKS[desk.m].fit) L.push({ id: 'dfw', label: 'Width', options: () => deskFitWidths().map((x) => ({ label: x.label })), get: () => Math.min(desk.fw, deskFitWidths().length - 1), set: (i) => { desk.fw = i; buildDesk(); } },
+      { id: 'dfd', label: 'Depth', options: () => [{ label: '60 cm' }, { label: '70 cm' }], get: () => desk.fd, set: (i) => { desk.fd = i; buildDesk(); } });
+    return L.concat([
     { id: 'darm', label: 'Monitor', options: () => DESK_ARMS.map((v) => ({ label: `ASUS ProArt 32″ · ${v}` })), get: () => desk.arm, set: (i) => { desk.arm = i; buildDesk(); } },
     { id: 'dmac', label: 'Laptop', options: () => MACS.map((v) => ({ label: `${v.name} · space grey` })), get: () => desk.mac, set: (i) => { desk.mac = i; buildDesk(); } },
-  ],
-  link: () => ({ href: `https://ilva.dk/kontoret/skriveborde/${DESKS[desk.m].url}/`, text: `ILVA · ${DESKS[desk.m].name.split(' ')[0]} skrivebord ↗` }),
-  info: () => { const Dm = DESKS[desk.m], sp = deskSpan();
+    { id: 'dch', label: 'Chair', options: () => DCHAIRS.map((c) => ({ label: `${c.name} · ${c.kr.toLocaleString('da-DK')} kr` })), get: () => dchair.m, set: (i) => { dchair.m = i; dchair.col = 0; buildDesk(); buildMoverSelects(deskMover); } },
+    { id: 'dchc', label: 'Chair colour', options: () => DCHAIRS[dchair.m].cols.map((c) => ({ label: c.name })), get: () => dchair.col, set: (i) => { dchair.col = i; buildDesk(); } },
+  ]); },
+  link: () => { const C = DCHAIRS[dchair.m], Dm = DESKS[desk.m]; return Dm.fit ? { href: C.url, text: `${C.name} ↗` } : { href: `https://ilva.dk/kontoret/skriveborde/${Dm.url}/`, text: `ILVA · ${Dm.name.split(' ')[0]} skrivebord ↗`, href2: C.url, text2: `${C.name} ↗` }; },
+  info: () => { const Dm = deskModel(), sp = deskSpan();
+    if (Dm.fit) return `${Math.round(Dm.W * 100)} × ${Math.round(Dm.D * 100)} × ${Math.round(Dm.H * 100)} cm · the most that fits between the window wall and the closet is ${Math.round(deskMaxW() * 100)} cm · chair: ${DCHAIRS[dchair.m].name}, ${DCHAIRS[dchair.m].note}`;
     return `${Math.round(Dm.W * 100)} × ${Math.round(Dm.D * 100)} × ${Math.round(Dm.H * 100)} cm · ${Dm.desc} · ${Dm.kr.toLocaleString('da-DK')} kr${Dm.was ? ` (før ${Dm.was.toLocaleString('da-DK')})` : ''} · the 32″ screen sits ≈${desk.arm ? 50 : 45} cm from the front edge (≈70–75 cm from your eyes)${sp && !sp.fits ? ' · ⚠ desk + closet don’t fit on this wall together' : ''}`; },
 };
 // ------------------------------------------------------------ living: IKEA HOLMERUD side table (80 × 31 × 52) at the sofa's free end
 const HOLM = { cols: [{ name: 'Egetræsmønstret', c: 0xc8a06e, url: 'https://www.ikea.com/dk/da/p/holmerud-sidebord-egetraesmonstret-40541421/' }, { name: 'Mørkebrun', c: 0x47352a, url: 'https://www.ikea.com/dk/da/p/holmerud-sidebord-morkebrun-20538721/' }], kr: 499 };
-const holm = { pos: null, angle: 0, col: 0, group: null, parts: [] };
+const holm = { pos: null, angle: 0, col: 0, group: null, parts: [], removed: true };   // 2026-11-15 Gianluca: "we do not need it"
 function buildHolm(tryPos, tryAngle) {
+  if (holm.removed) { if (holm.group) { scene.remove(holm.group); dropParts(holm.parts); holm.group = null; holm.parts = []; } const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Side table'); if (di >= 0) doors.splice(di, 1); return false; }
   const S = liv.sofa; if (!S || !S.group) return false;
   if (!holm.pos) { const { f, x } = sofaFrame(), L = SOFAS[S.cfg].L; const P = S.O.clone().addScaledVector(x, L / 2 + 0.03 + 0.155).addScaledVector(f, SD / 2); holm.pos = toBl(P); holm.angle = Math.atan2(-f.z, f.x); }
   let pos = tryPos || holm.pos, ok = true;
@@ -514,4 +532,72 @@ const holmMover = {
   selects: [{ id: 'hcol', label: 'Colour', options: () => HOLM.cols.map((c) => ({ label: `${c.name} · ${HOLM.kr} kr` })), get: () => holm.col, set: (i) => { holm.col = i; buildHolm(); } }],
   link: () => ({ href: HOLM.cols[holm.col].url, text: `IKEA · HOLMERUD ${HOLM.cols[holm.col].name.toLowerCase()} · ${HOLM.kr} kr ↗` }),
   info: () => '80 × 31 × 52 cm · open shelf + half-height shelf, base 7 cm off the floor · max 15 kg on top, 5 kg per shelf · ⟲ ⟳ turn 15°',
+};
+
+// ------------------------------------------------------------ living: Hammel Mistral skænk along the sofa's kitchen-side end (2026-11-15, replaces the BESTÅ console)
+// erling-christensen.dk/shop/mistral-skaenk-315138p.html: 177 × 42 × 61 cm, two doors (one shelf behind each) and an open 2 × 2 middle,
+// 5.493 kr (vejl. 7.630); on Mistral's conical wooden legs, 14 cm, 3.5 × 3.5 cm, 6 per pack, 666 kr (vejl. 925) → 75 cm high, under the 82 cm sofa back.
+// Colour: Gianluca says not white but a marble / blue-grey shade → 76 Mint by default (closest swatch); every Mistral colour in the panel.
+const SKAENK = { W: 1.77, D: 0.42, H: 0.61, leg: 0.14, kr: 5493, was: 7630, legKr: 666, url: 'https://erling-christensen.dk/shop/mistral-skaenk-315138p.html', legUrl: 'https://erling-christensen.dk/shop/mistral-konisk-traeben-250441p.html',
+  legCols: [{ name: 'Lys eg (sæbe)', c: 0xc9a376 }, { name: 'Eg lak olie', c: 0xb98b58 }, { name: 'Sort', c: 0x1f1d1b }] };
+const skaenk = { col: 7, legCol: 0, s: null, group: null, parts: [] };
+function buildSkaenk() {
+  if (skaenk.group) { scene.remove(skaenk.group); dropParts(skaenk.parts); skaenk.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); skaenk.group = null; }
+  const S = liv.sofa; if (!S || !S.group) return;
+  const cfg = SOFAS[S.cfg], L = cfg.L, end = sofaEnds(cfg, -1)[0], R = end.t !== 'arm' ? end.R : SD;
+  const { W, D, H, leg: LEG } = SKAENK, half = W / 2;
+  if (skaenk.s === null) skaenk.s = R / 2;                                // centred on the sofa's return
+  skaenk.s = THREE.MathUtils.clamp(skaenk.s, half - 0.1, R + 0.1 - half); skaenk.R = R;
+  const F = MISTRAL_COLS[skaenk.col] || MISTRAL_COLS[0], LC = SKAENK.legCols[skaenk.legCol];
+  const { f, x } = sofaFrame(), g = new THREE.Group(); g.position.copy(S.O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, UP, f));
+  const parts = [], add = (geo, m, px, py, pz, solid = false) => { const o = new THREE.Mesh(geo, m); o.position.set(px, py, pz); o.castShadow = o.receiveShadow = true; g.add(o); if (solid) parts.push(o); return o; };
+  const body = stdc({ color: F.c, roughness: 0.55, ...(F.grain ? { map: grainTex() } : {}) }), inner = stdc({ color: new THREE.Color(F.c).multiplyScalar(0.86).getHex(), roughness: 0.6 });
+  const knobM = stdc({ color: 0xb9bbbd, roughness: 0.3, metalness: 0.85 }), legM = stdc({ color: LC.c, roughness: 0.6 });
+  const gap = 0.03, xo = -L / 2 - gap, xc = xo - D / 2, zc = skaenk.s, T = 0.022, S2 = 0.018, y0 = LEG;
+  // carcass: full-width top and bottom with soft front edges, sides, back (against the sofa)
+  add(softBox(D, T, W, 0.008), body, xc, y0 + H - T / 2, zc); add(softBox(D, T, W, 0.008), body, xc, y0 + T / 2, zc);
+  for (const sz of [-1, 1]) add(new THREE.BoxGeometry(D - 0.01, H - 2 * T, S2), body, xc + 0.005, y0 + H / 2, zc + sz * (half - 0.012 - S2 / 2));
+  add(new THREE.BoxGeometry(0.008, H - 2 * T, W - 0.03), inner, xo - 0.004, y0 + H / 2, zc);
+  // four 44 cm bays: doors at the ends, the middle two open with a shelf each
+  const bay = (W - 0.03) / 4, zL = zc - (W - 0.03) / 2, fx = xo - D;
+  for (let k = 1; k < 4; k++) add(new THREE.BoxGeometry(D - 0.02, H - 2 * T, S2), k === 2 ? body : inner, xc + 0.01, y0 + H / 2, zL + k * bay);
+  for (const k of [1, 2]) add(new THREE.BoxGeometry(D - 0.03, S2, bay - S2), body, xc + 0.015, y0 + H / 2, zL + (k + 0.5) * bay);
+  for (const k of [0, 3]) { const zz = zL + (k + 0.5) * bay; add(new THREE.BoxGeometry(0.018, H - 2 * T - 0.006, bay - 0.006), body, fx + 0.009, y0 + H / 2, zz);
+    add(new THREE.SphereGeometry(0.011, 14, 10), knobM, fx - 0.004, y0 + H / 2 + 0.12, zz + (k === 0 ? 1 : -1) * (bay / 2 - 0.05)); }
+  // in the open bays: books, a vase, a basket
+  { const r = rng(57), bc = [0x2f4a3a, 0xc9b48a, 0x7a2e2a, 0x1f2a44, 0xe8e2d4]; let yy = y0 + T;
+    for (let i = 0; i < 4; i++) { const t = 0.025 + r() * 0.02; add(new THREE.BoxGeometry(0.24, t, 0.17), stdc({ color: bc[i % 5], roughness: 0.8 }), xc - 0.02, yy + t / 2, zL + 1.5 * bay); yy += t; }
+    add(new THREE.CylinderGeometry(0.05, 0.04, 0.16, 20), stdc({ color: 0xd9cfc0, roughness: 0.5 }), xc - 0.04, y0 + H / 2 + S2 / 2 + 0.08, zL + 1.5 * bay);
+    add(new THREE.BoxGeometry(0.26, 0.2, 0.3), new THREE.MeshStandardMaterial({ color: 0xbf9d6a, map: weaveTex('canvas'), roughness: 0.95 }), xc - 0.02, y0 + T + 0.1, zL + 2.5 * bay);
+    for (let i = 0; i < 6; i++) { const w = 0.02 + r() * 0.015, h = 0.17 + r() * 0.05; add(new THREE.BoxGeometry(0.18, h, w), stdc({ color: bc[(i + 2) % 5], roughness: 0.8 }), xc - 0.03, y0 + H / 2 + S2 / 2 + h / 2, zL + 2.15 * bay + i * 0.026); } }
+  // six conical wooden legs, 14 cm
+  for (const lz of [zL + 0.05, zc, zL + W - 0.08]) for (const lx of [xo - 0.05, xo - D + 0.05]) add(new THREE.CylinderGeometry(0.0175, 0.011, LEG, 4), legM, lx, LEG / 2, lz).rotation.y = Math.PI / 4;
+  // on top: a table lamp shape, a stack of books, a small plant
+  const topY = y0 + H;
+  add(new THREE.CylinderGeometry(0.06, 0.07, 0.03, 24), stdc({ color: 0x2b2a28, roughness: 0.4 }), xc - 0.02, topY + 0.015, zc - 0.62);
+  add(new THREE.CylinderGeometry(0.008, 0.008, 0.3, 10), stdc({ color: 0x2b2a28, roughness: 0.4 }), xc - 0.02, topY + 0.18, zc - 0.62);
+  add(new THREE.CylinderGeometry(0.1, 0.14, 0.17, 28, 1, true), new THREE.MeshStandardMaterial({ color: 0xefe7d8, roughness: 0.9, side: THREE.DoubleSide }), xc - 0.02, topY + 0.38, zc - 0.62);
+  add(new THREE.BoxGeometry(0.15, 0.035, 0.22), stdc({ color: 0x2c5d63, roughness: 0.8 }), xc - 0.02, topY + 0.0175, zc + 0.1);
+  add(new THREE.BoxGeometry(0.14, 0.025, 0.2), stdc({ color: 0xe8e2d4, roughness: 0.8 }), xc - 0.02, topY + 0.0475, zc + 0.1);
+  add(new THREE.CylinderGeometry(0.06, 0.05, 0.11, 22), stdc({ color: 0xb06a43, roughness: 0.9 }), xc - 0.02, topY + 0.055, zc + 0.6);
+  add(new THREE.SphereGeometry(0.1, 14, 12), stdc({ color: 0x4f7a3a, roughness: 1 }), xc - 0.02, topY + 0.17, zc + 0.6);
+  mergeByMaterial(g);
+  const hit = add(new THREE.BoxGeometry(D + 0.02, topY + 0.02, W + 0.02), new THREE.MeshBasicMaterial({ visible: false }), xc, (topY + 0.02) / 2, zc, true); hit.castShadow = false;
+  scene.add(g); g.updateMatrixWorld(true);
+  const door = { kind: 'swap', label: 'Skænk', name: 'Mistral skænk', parts: [hit], center: hit.getWorldPosition(new THREE.Vector3()),
+    swap: () => selectFurniture(selected === skaenkMover ? null : skaenkMover), prompt: () => (selected === skaenkMover ? 'Done with the skænk' : 'Change the skænk') };
+  hit.userData.door = door; hit.userData.furniture = true; collidables.push(hit);
+  const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Skænk'); if (di >= 0) doors.splice(di, 1);
+  doors.push(door); skaenk.group = g; skaenk.parts = [hit]; shadowDirty = true;
+}
+const skaenkMover = {
+  name: 'Mistral skænk', title: () => `Hammel Mistral skænk 177 cm · ${MISTRAL_COLS[skaenk.col].name}`,
+  anchor: () => (skaenk.group ? skaenk.parts[0].getWorldPosition(new THREE.Vector3()).setY(1.15) : null),
+  axis: () => sofaFrame().f, shift: (dir) => { const b = skaenk.s; skaenk.s += dir * 0.05; buildSkaenk(); if (Math.abs(skaenk.s - b) < 1e-6) showToast('That’s the end of the sofa'); },
+  selects: [
+    { id: 'skcol', label: 'Colour', options: () => MISTRAL_COLS.map((c) => ({ label: c.name })), get: () => skaenk.col, set: (i) => { skaenk.col = i; buildSkaenk(); } },
+    { id: 'sklg', label: 'Legs (konisk træben 14 cm)', options: () => SKAENK.legCols.map((c) => ({ label: c.name })), get: () => skaenk.legCol, set: (i) => { skaenk.legCol = i; buildSkaenk(); } },
+  ],
+  link: () => ({ href: SKAENK.url, text: `Erling Christensen · Mistral skænk · 5.493 kr ↗`, href2: SKAENK.legUrl, text2: 'Mistral konisk træben 14 cm · 666 kr / 6 ↗' }),
+  info: () => `177 × 42 × 61 cm + 14 cm legs = 75 cm high (sofa back 82) · along the sofa's ${Math.round((skaenk.R || 1.92) * 100)} cm end, fronts to the kitchen · ◀▶ slide it along · Gianluca: "a shade of marble or blue-grey", Mint is the closest Mistral colour`,
 };
