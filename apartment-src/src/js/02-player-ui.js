@@ -28,7 +28,7 @@ function blocked(from, step) {
   tmp.copy(step).normalize();
   ray.far = len + RADIUS; ray.firstHitOnly = true;
   const fy = from.y - EYE, list = fy < -0.6 ? outdoorBlockers(from) : collidables;
-  for (const h of [0.45, 0.95, 1.55]) {
+  for (const h of (crawl.on ? [0.15, 0.35] : [0.45, 0.95, 1.55])) {   // crawling: only knee height counts, so you get under tables and beds
     ray.set(new THREE.Vector3(from.x, fy + h, from.z), tmp);
     if (ray.intersectObjects(list, false).length) return true;
   }
@@ -154,6 +154,7 @@ function otApply() {
     const span = Math.max(20, Math.hypot(P[1].x - P[0].x, P[1].y - P[0].y)), ang = Math.atan2(P[1].y - P[0].y, P[1].x - P[0].x);
     let da = ang - B.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
     sph.radius = THREE.MathUtils.clamp(B.sph.radius * B.span / span, orbit.minDistance, orbit.maxDistance);
+    { const want = B.sph.radius * B.span / span; if (want < orbit.minDistance - 1e-3) zoomPush('pinch', span); else if (want > orbit.minDistance + 0.4) zoomReset(); }   // zoom past the closest view → step inside (18-ux)
     sph.theta += da;                                                    // the plan turns with your fingers
     const mid = { x: (P[0].x + P[1].x) / 2, y: (P[0].y + P[1].y) / 2 }, m = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * B.sph.radius / H;
     const right = new THREE.Vector3(Math.cos(B.sph.theta), 0, -Math.sin(B.sph.theta)), fwd = new THREE.Vector3(-Math.sin(B.sph.theta), 0, -Math.cos(B.sph.theta));

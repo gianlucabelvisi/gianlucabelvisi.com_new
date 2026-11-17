@@ -28,7 +28,9 @@ function sofaFrontInfo() {                               // where the open area 
 function buildCoffeeTable(tryPos) {
   if (ctab.group) { scene.remove(ctab.group); dropParts(ctab.parts); ctab.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); ctab.group = null; }
   const I = sofaFrontInfo(); if (!I) return false;
-  if (!ctab.pos) { ctab.pos = I.P(I.cxl, I.zFront + 0.46 + CTAB.sizes[ctab.size].D / 2); ctab.pos[1] = toBl(liv.media.base.clone().addScaledVector(liv.media.a, liv.media.offset))[1]; }   // 46 cm in front of the sofa, centred on the TV (clears the Nilo footstool)
+  if (!ctab.pos) { ctab.pos = I.P(I.cxl, I.zFront + 0.46 + CTAB.sizes[ctab.size].D / 2); const tvW = liv.media.base.clone().addScaledVector(liv.media.a, liv.media.offset), lxTV = tvW.sub(I.S.O).dot(I.x), r = CTAB.sizes[ctab.size].D / 2;
+    const lx = Math.max(lxTV, -I.L / 2 + I.RW + 0.15 + r);           // keep 15 cm off the return (chaise) of the sofa
+    ctab.pos = I.P(lx, I.zFront + 0.46 + r); }   // 46 cm in front of the sofa, centred on the TV (clears the Nilo footstool)
   const p = tryPos || ctab.pos, cx = THREE.MathUtils.clamp(p[0], LIV_BOX.x0 + 0.5, LIV_BOX.x1 - 0.5), cy = THREE.MathUtils.clamp(p[1], LIV_BOX.y0 + 0.5, LIV_BOX.y1 - 0.5);
   const ok = Math.abs(cx - p[0]) < 1e-6 && Math.abs(cy - p[1]) < 1e-6; ctab.pos = [cx, cy];
   const Z = CTAB.sizes[ctab.size], R = Z.D / 2, H = Z.H, TT = 0.03;
@@ -65,7 +67,7 @@ const ctabMover = {
   axis: () => b2t(1, 0).normalize(), axis2: () => b2t(0, 1).normalize(),
   shift: (dir) => { if (!buildCoffeeTable([ctab.pos[0] + dir * 0.05, ctab.pos[1]])) showToast('Can’t go further'); },
   shift2: (dir) => { if (!buildCoffeeTable([ctab.pos[0], ctab.pos[1] + dir * 0.05])) showToast('Can’t go further'); },
-  selects: [{ id: 'ctsz', label: 'Size', options: () => CTAB.sizes.map((z) => ({ label: z.name })), get: () => ctab.size, set: (i) => { ctab.size = i; buildCoffeeTable(); } }],
+  selects: [],   // bought: Ø95 (Gianluca 2026-11-16)
   link: () => ({ href: CTAB.url, text: 'Max Jessen · MAX | Zen sofabord ↗' }),
   info: () => { const I = sofaFrontInfo(), Z = CTAB.sizes[ctab.size]; let gaps = '';
     if (I && ctab.group) { const c = ctab.group.position.clone().sub(I.S.O), z = c.dot(I.f); gaps = ` · ${(z - Z.D / 2 - I.zFront).toFixed(2)} m to the sofa · ${(I.zTV - z - Z.D / 2).toFixed(2)} m to the TV units`; }

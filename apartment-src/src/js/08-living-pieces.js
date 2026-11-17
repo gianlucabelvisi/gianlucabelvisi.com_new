@@ -98,7 +98,7 @@ const LIV_BOX = { x0: 0.5, x1: 4.46, y0: 0.5, y1: 8.45 };            // living r
 function buildPetra(tryPos, tryAngle) {
   if (!petra.pos) { petra.pos = [3.75, 7.95];   // 2026-11-16: a bit deeper into the corner so the Nilo footstool clears the coffee table
       // 2026-11-16: 15 cm towards the outside wall with the sofa group
-    petra.angle = Math.atan2(-2.46, 1.42); }   // left of the TV (seen from the sofa), by the balcony door, turned towards the sofa
+    petra.angle = petra.model === 2 ? -1.32 : Math.atan2(-2.46, 1.42); }   // Nilo faces the sofa side so its footstool clears the coffee table   // left of the TV (seen from the sofa), by the balcony door, turned towards the sofa
   let pos = tryPos || petra.pos, ang = tryAngle ?? petra.angle, ok = true;
   const R = 0.41, cx = THREE.MathUtils.clamp(pos[0], LIV_BOX.x0 + R, LIV_BOX.x1 - R), cy = THREE.MathUtils.clamp(pos[1], LIV_BOX.y0 + R, LIV_BOX.y1 - R);
   if (Math.abs(cx - pos[0]) > 1e-6 || Math.abs(cy - pos[1]) > 1e-6) ok = false;
@@ -313,7 +313,7 @@ function buildBooks() {
   const zmax = Math.min(2.6 - 0.05 - H - 0.16, 1.4), z0 = THREE.MathUtils.clamp(books.z0, 0.12, zmax); if (Math.abs(z0 - books.z0) > 1e-6) ok = false; books.z0 = +z0.toFixed(3);
   if (books.group) { scene.remove(books.group); dropParts(books.parts); }
   let { n, a } = M, O = M.base.clone().addScaledVector(a, books.s);
-  if (books.where === 2) { const F = booksOutFrame(); if (F) { n = F.n; a = F.a; books.so = THREE.MathUtils.clamp(books.so, F.lo, F.hi); O = F.p.clone().addScaledVector(a, books.so); } }
+  if (books.where >= 2) { const F = booksOutFrame(); if (F) { n = F.n; a = F.a; books.so = THREE.MathUtils.clamp(books.so, F.lo, F.hi); O = F.p.clone().addScaledVector(a, books.so); } }
   const g = new THREE.Group(); g.position.copy(O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a, UP, n));
   const metal = [], paper = [], r = rng(books.seed * 7919 + 104729); for (let i = 0; i < 12; i++) r();
   const shelfYs = [];
@@ -357,24 +357,32 @@ function buildBooks() {
   return ok;
 }
 // the facade wall between the balcony door and the TV-wall corner (≈45 cm of wall)
-function booksOutFrame() {
-  if (booksOutFrame.F !== undefined) return booksOutFrame.F;
-  const W = wallLine([4.3, 8.0], [4.16, 8.0], [0, 1]); if (!W) return (booksOutFrame.F = null);
+// outside-wall spots: 2 = the balcony facade between the balcony door and the TV-wall corner (≈40 cm of wall),
+// 3 = the canal wall in the balcony corner (the plant's corner, across the room)
+const BOOK_OUT = { 2: { a: [4.3, 8.0], b: [4.16, 8.0], dir: [0, 1], from: [4.04, 8.0], to: [4.44, 8.0] },
+  3: { a: [1.0, 8.1], b: [1.0, 7.7], dir: [-1, 0], from: [0.5, 7.25], to: [0.5, 8.42] } };
+function booksOutFrame(k = books.where) {
+  booksOutFrame.c = booksOutFrame.c || {}; if (booksOutFrame.c[k] !== undefined) return booksOutFrame.c[k];
+  const B = BOOK_OUT[k]; if (!B) return null;
+  const W = wallLine(B.a, B.b, B.dir); if (!W) return (booksOutFrame.c[k] = null);
   const a = new THREE.Vector3().crossVectors(UP, W.n).normalize(), p = W.p.clone().setY(0);
-  const hw = 0.125, sx = (bx) => b2t(bx, toBl(p)[1], 0).sub(p).dot(a);           // along-wall coordinate of a plan x
-  const s1 = sx(4.04) , s2 = sx(4.44), lo = Math.min(s1, s2) + hw, hi = Math.max(s1, s2) - hw;
-  return (booksOutFrame.F = { p, n: W.n, a, lo, hi: Math.max(lo, hi) });
+  const hw = 0.125, sOf = (q) => b2t(q[0], q[1], 0).sub(p).dot(a);
+  const s1 = sOf(B.from), s2 = sOf(B.to), lo = Math.min(s1, s2) + hw, hi = Math.max(s1, s2) - hw;
+  // start in the corner itself (the end nearest the balcony facade / the TV wall)
+  const corner = k === 2 ? sOf([4.44, 8.0]) : sOf([0.5, 8.42]);
+  return (booksOutFrame.c[k] = { p, n: W.n, a, lo, hi: Math.max(lo, hi), start: THREE.MathUtils.clamp(corner, lo, Math.max(lo, hi)) });
 }
-const BOOK_WHERE = ['TV wall, hall side of the TV', 'TV wall, balcony corner (other side of the TV)', 'Outside wall, in the corner by the balcony door', 'Hidden (not on the wall)'];
+const BOOK_WHERE = ['TV wall, hall side of the TV', 'TV wall, balcony corner (other side of the TV)', 'Balcony wall, same corner (by the balcony door)', 'Canal wall, the other corner (where the plant is)', 'Hidden (not on the wall)'];
 function setBooksWhere(i) {
-  if (i === 3) { setBooksHidden(true); return; }
+  if (i === 4) { setBooksHidden(true); return; }
   books.hidden = false; books.where = i;
+  if (plant.removed !== (i === 3)) { plant.removed = i === 3; buildPlant(); }   // the canal corner is the plant's: the plant goes while the tower is there
   const R = booksRange();
-  if (i === 0) books.s = null; else if (i === 1) books.s = R.lo; else { const F = booksOutFrame(); books.so = F ? (F.lo + F.hi) / 2 : 0; if (!F) { showToast('Couldn’t find that wall'); books.where = 0; } }
+  if (i === 0) books.s = null; else if (i === 1) books.s = R.lo; else { const F = booksOutFrame(i); books.so = F ? F.start : 0; if (!F) { showToast('Couldn’t find that wall'); books.where = 0; } else if (i === 3) showToast('Book tower in the canal corner · the plant is removed'); }
   buildBooks(); if (selected === booksMover) updateMoverInfo();
 }
 function booksGaps() {
-  const M = liv.media, R = booksRange(); if (!M || !books.group || books.where === 2) return null;
+  const M = liv.media, R = booksRange(); if (!M || !books.group || books.where >= 2) return null;
   const toUnit = books.s - (M.offset + UNIT.W / 2) - R.hw, toEnd = M.half - books.s - R.hw;
   return { toUnit, toEnd };
 }
@@ -388,13 +396,14 @@ function booksDimsUpdate() {
 }
 function setBooksHidden(h) {
   books.hidden = h; if (h && LIGHTS.books) { LIGHTS.books.on = false; applyLights(); }
+  if (plant.removed && h) { plant.removed = false; buildPlant(); } else if (!h && books.where === 3 && !plant.removed) { plant.removed = true; buildPlant(); }
   if (h) selectFurniture(null); buildBooks(); showToast(h ? 'Book tower hidden · bring it back from a TV unit’s panel' : 'Book tower back');
 }
 const booksMover = {
   name: 'Book tower', title: () => `ART-GIFTREE floating book tower · ${BOOKT.packs[books.pack].n} pcs, ${BOOKT.packs[books.pack].n * 2} tiers · white`,
   anchor: () => (books.group ? books.group.position.clone().addScaledVector(liv.media.n, 0.2).setY(books.top + 0.1) : null),
-  axis: () => (books.where === 2 && booksOutFrame() ? booksOutFrame().a.clone() : liv.media.a.clone()),
-  shift: (dir) => { if (books.where === 2) { const b = books.so; books.so += dir * 0.05; buildBooks(); if (Math.abs(books.so - b) < 1e-6) showToast('That wall is only about 45 cm wide'); return; } books.s += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'Can’t go further: the opening to the hall' : 'Can’t go further: the corner'); },
+  axis: () => (books.where >= 2 && booksOutFrame() ? booksOutFrame().a.clone() : liv.media.a.clone()),
+  shift: (dir) => { if (books.where >= 2) { const b = books.so; books.so += dir * 0.05; buildBooks(); if (Math.abs(books.so - b) < 1e-6) showToast(books.where === 2 ? 'That wall is only about 40 cm wide' : 'That’s the end of this stretch of wall'); return; } books.s += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'Can’t go further: the opening to the hall' : 'Can’t go further: the corner'); },
   axis2: () => new THREE.Vector3(0, 1, 0),
   shift2: (dir) => { books.z0 += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'That’s as high as it goes under the ceiling' : 'That’s as low as it goes'); },
   variant: { label: () => 'New books', run: () => { books.seed++; buildBooks(); showToast('Shuffled the books'); } },
@@ -402,7 +411,7 @@ const booksMover = {
   selects: [
     { id: 'bpack', label: 'Pack', options: () => BOOKT.packs.map((p) => ({ label: `${p.n} pieces · ${p.n * 2} tiers` })), get: () => books.pack,
       set: (i) => { books.pack = i; buildBooks(); } },
-    { id: 'bwhere', label: 'Where', options: () => BOOK_WHERE.map((l) => ({ label: l })), get: () => (books.hidden ? 3 : books.where), set: (i) => setBooksWhere(i) },
+    { id: 'bwhere', label: 'Where', options: () => BOOK_WHERE.map((l) => ({ label: l })), get: () => (books.hidden ? 4 : books.where), set: (i) => setBooksWhere(i) },
     { id: 'bgap', label: 'Spacing', options: () => BOOK_GAPS.map((g) => ({ label: g.label })), get: () => books.gap, set: (i) => { books.gap = i; buildBooks(); } },
   ],
   link: () => { const p = BOOKT.packs[books.pack]; return { href: BOOKT.url(p.asin), text: `Amazon · ${p.n}-pack white · SEK ${p.sek.toFixed(2).replace('.', ',')} ↗` }; },
@@ -431,7 +440,7 @@ const POTS = [
   { name: 'Concrete grey', c: 0x9c9a94, r: 0.95, grain: true },
   { name: 'Woven seagrass basket', c: 0xb89a6a, r: 0.95, weave: true },
 ];
-const plant = { pos: null, angle: 0, kind: 0, pot: 0, group: null, parts: [] };
+const plant = { pos: null, angle: 0, kind: 0, pot: 0, group: null, parts: [], removed: false };
 const plantDims = new THREE.Group(); dimsGroup.add(plantDims);
 function leafShape(kind, L, W) {
   const s = new THREE.Shape(); s.moveTo(0, 0);
@@ -481,7 +490,11 @@ function buildPlant(tryPos, tryAngle) {
   const R = 0.2, cx = THREE.MathUtils.clamp(pos[0], LIV_BOX.x0 + R, LIV_BOX.x1 - R), cy = THREE.MathUtils.clamp(pos[1], LIV_BOX.y0 + R, LIV_BOX.y1 - R);
   if (Math.abs(cx - pos[0]) > 1e-6 || Math.abs(cy - pos[1]) > 1e-6) ok = false;
   plant.pos = [cx, cy]; plant.angle = tryAngle ?? plant.angle;
-  if (plant.group) { scene.remove(plant.group); dropParts(plant.parts); plant.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
+  if (plant.group) { scene.remove(plant.group); dropParts(plant.parts); plant.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); plant.group = null; }
+  if (plant.removed) {                                    // the book tower took its corner (Gianluca: then the plant goes)
+    plantDims.clear(); plantLed.visible = plantHalo.visible = plantLight.visible = plantWash.visible = false;
+    if (LIGHTS.plant && LIGHTS.plant.on) { LIGHTS.plant.on = false; applyLights(); }
+    const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Plant'); if (di >= 0) doors.splice(di, 1); return ok; }
   const S = PLANTS[plant.kind], PT = POTS[plant.pot], r = rng(17 + plant.kind * 101);
   const g = new THREE.Group(); g.position.copy(b2t(cx, cy, 0)); g.rotation.y = plant.angle;
   // pot Ø34 × 34 (basket a little wider), saucer, soil

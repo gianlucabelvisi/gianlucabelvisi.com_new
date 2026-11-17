@@ -235,8 +235,8 @@ function addCurtain(def) {
 }
 function buildCurtains() {
   if (curtains.length) return;
-  // balcony: one sheer across the whole glazing, gathering towards the TV end (keeps the door side clear)
-  addCurtain({ id: 'cur_bal', name: 'the sheer curtain', room: 'living', a: [0.62, 8.05], b: [4.38, 8.05], dir: [0, 1], top: 2.52, Wmin: 0.42, mat: MATS.sheer, folds: 26, anchorB: true, open: 1 });
+  // balcony: one sheer across the whole glazing, gathering at the canal end
+  addCurtain({ id: 'cur_bal', name: 'the sheer curtain', room: 'living', a: [0.62, 8.05], b: [4.38, 8.05], dir: [0, 1], top: 2.52, Wmin: 0.42, mat: MATS.sheer, folds: 26, anchorB: false, open: 1 });   // 2026-11-16: gathers at the canal end (left), leaving the door/armchair/book-tower corner clear
   // bedroom: two blackout panels meeting in the middle of the window, each stacking at its side
   addCurtain({ id: 'cur_bed', name: 'the blackout curtains', room: 'bed', a: [7.58, 7.4], b: [9.33, 7.32], dir: [0, 1], top: 2.48, Wmin: 0.26, mat: MATS.blackout, folds: 14, split: true, open: 1 });
 }

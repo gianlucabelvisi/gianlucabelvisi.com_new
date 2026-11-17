@@ -141,7 +141,13 @@ const ikeaUrl = (art) => `https://www.ikea.com/dk/da/p/${art}/`;
 MATS.candleWax = std({ color: 0xf1e9d8, roughness: 0.6 });
 MATS.candleFlame = new THREE.MeshBasicMaterial({ color: 0xffc56b, toneMapped: false, transparent: true, opacity: 0 });
 const candleLight = new THREE.PointLight(0xffa64a, 0, 2.2, 2); candleLight.visible = false; scene.add(candleLight);
-window.__candles = { set: (night) => { MATS.candleFlame.opacity = Math.min(1, night * 1.4); candleLight.intensity = 0.35 * night; candleLight.visible = night > 0.02 && !!cons.group && cons.decor; } };
+MATS.vp9Glow = new THREE.MeshBasicMaterial({ color: 0x000000, toneMapped: false });
+const vp9Light = new THREE.PointLight(0xffb066, 0, 2.6, 2); vp9Light.visible = false; scene.add(vp9Light);
+window.__candles = { set: (night) => {
+  const on = night > 0.02 && ((!!cons.group && cons.decor) || (typeof skaenk !== 'undefined' && !!skaenk.group));
+  MATS.candleFlame.opacity = Math.min(1, night * 1.4); candleLight.intensity = 0.35 * night; candleLight.visible = on;
+  const lampOn = night > 0.02 && typeof skaenk !== 'undefined' && !!skaenk.group;            // the VP9 is on in the evening too
+  MATS.vp9Glow.color.setRGB(1.0 * night, 0.78 * night, 0.5 * night); vp9Light.intensity = 0.5 * night; vp9Light.visible = lampOn; } };
 function buildConsole() {
   if (cons.group) { scene.remove(cons.group); dropParts(cons.parts); cons.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); cons.group = null; }
   const S = liv.sofa; if (!S || !S.group || !cons.on) return;
@@ -574,13 +580,25 @@ function buildSkaenk() {
   for (const lz of [zL + 0.05, zc, zL + W - 0.08]) for (const lx of [xo - 0.05, xo - D + 0.05]) add(new THREE.CylinderGeometry(0.0175, 0.011, LEG, 4), legM, lx, LEG / 2, lz).rotation.y = Math.PI / 4;
   // on top: a table lamp shape, a stack of books, a small plant
   const topY = y0 + H;
-  add(new THREE.CylinderGeometry(0.06, 0.07, 0.03, 24), stdc({ color: 0x2b2a28, roughness: 0.4 }), xc - 0.02, topY + 0.015, zc - 0.62);
-  add(new THREE.CylinderGeometry(0.008, 0.008, 0.3, 10), stdc({ color: 0x2b2a28, roughness: 0.4 }), xc - 0.02, topY + 0.18, zc - 0.62);
-  add(new THREE.CylinderGeometry(0.1, 0.14, 0.17, 28, 1, true), new THREE.MeshStandardMaterial({ color: 0xefe7d8, roughness: 0.9, side: THREE.DoubleSide }), xc - 0.02, topY + 0.38, zc - 0.62);
+  // Louis Poulsen Panthella 160 Portable v3, brass metallised (Gianluca's pick; svenssons.se 634007-01): H 23.8 cm, shade Ø16 cm,
+  // trumpet stem flaring into a round foot, mushroom shade. Wireless and rechargeable; glows warm in the evening.
+  { const brass = stdc({ color: 0xcaa35e, roughness: 0.22, metalness: 0.92 }), lx = xc - 0.02, lz = zc - 0.62;
+    const prof = [[0.0, 0], [0.056, 0], [0.057, 0.004], [0.05, 0.009], [0.032, 0.022], [0.018, 0.05], [0.011, 0.1], [0.0085, 0.15], [0.008, 0.162], [0.0, 0.162]].map(([r, y]) => new THREE.Vector2(r, y));
+    add(new THREE.LatheGeometry(prof, 40), brass, lx, topY, lz);                                                                    // trumpet stem + foot
+    const shade = new THREE.SphereGeometry(0.08, 40, 14, 0, Math.PI * 2, 0, Math.PI / 2); shade.scale(1, 0.95, 1);
+    add(shade, brass, lx, topY + 0.162, lz).material.side = THREE.DoubleSide;                                                         // mushroom shade (opens down)
+    const glow = new THREE.Mesh(new THREE.CircleGeometry(0.074, 40), MATS.vp9Glow); glow.rotation.x = Math.PI / 2; glow.position.set(lx, topY + 0.165, lz); g.add(glow);
+    g.updateMatrixWorld(true); vp9Light.position.copy(glow.getWorldPosition(new THREE.Vector3())).add(new THREE.Vector3(0, -0.04, 0)); }
   add(new THREE.BoxGeometry(0.15, 0.035, 0.22), stdc({ color: 0x2c5d63, roughness: 0.8 }), xc - 0.02, topY + 0.0175, zc + 0.1);
   add(new THREE.BoxGeometry(0.14, 0.025, 0.2), stdc({ color: 0xe8e2d4, roughness: 0.8 }), xc - 0.02, topY + 0.0475, zc + 0.1);
-  add(new THREE.CylinderGeometry(0.06, 0.05, 0.11, 22), stdc({ color: 0xb06a43, roughness: 0.9 }), xc - 0.02, topY + 0.055, zc + 0.6);
-  add(new THREE.SphereGeometry(0.1, 14, 12), stdc({ color: 0x4f7a3a, roughness: 1 }), xc - 0.02, topY + 0.17, zc + 0.6);
+  // the other end: three pillar candles on a round tray, lit in the evening (shares the candle flame / light with the old console)
+  { const tz = zc + 0.6; add(new THREE.CylinderGeometry(0.12, 0.12, 0.012, 32), stdc({ color: 0x8a6a48, roughness: 0.5, metalness: 0.3 }), xc - 0.02, topY + 0.006, tz);
+    let k = 0;
+    for (const [dx, dz, h] of [[-0.04, -0.045, 0.15], [0.045, -0.01, 0.1], [-0.02, 0.06, 0.075]]) {
+      add(new THREE.CylinderGeometry(0.035, 0.035, h, 20), MATS.candleWax, xc - 0.02 + dx, topY + 0.012 + h / 2, tz + dz);
+      const fl = new THREE.Mesh(new THREE.ConeGeometry(0.007, 0.022, 8), MATS.candleFlame); fl.position.set(xc - 0.02 + dx, topY + 0.012 + h + 0.014, tz + dz); g.add(fl);
+      if (k++ === 0) { g.updateMatrixWorld(true); candleLight.position.copy(fl.getWorldPosition(new THREE.Vector3())).add(new THREE.Vector3(0, 0.08, 0)); }
+    } }
   mergeByMaterial(g);
   const hit = add(new THREE.BoxGeometry(D + 0.02, topY + 0.02, W + 0.02), new THREE.MeshBasicMaterial({ visible: false }), xc, (topY + 0.02) / 2, zc, true); hit.castShadow = false;
   scene.add(g); g.updateMatrixWorld(true);
@@ -589,6 +607,7 @@ function buildSkaenk() {
   hit.userData.door = door; hit.userData.furniture = true; collidables.push(hit);
   const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Skænk'); if (di >= 0) doors.splice(di, 1);
   doors.push(door); skaenk.group = g; skaenk.parts = [hit]; shadowDirty = true;
+  if (window.__candles) window.__candles.set(typeof dayLevel === 'number' ? THREE.MathUtils.clamp((0.6 - dayLevel) / 0.45, 0, 1) : 0);
 }
 const skaenkMover = {
   name: 'Mistral skænk', title: () => `Hammel Mistral skænk 177 cm · ${MISTRAL_COLS[skaenk.col].name}`,

@@ -45,10 +45,11 @@ function shopLines() {
   safe(() => { const C = MISTRAL_COLS[skaenk.col], Lg = SKAENK.legCols[skaenk.legCol];
     add('Living', 'skaenk', 'Hammel Mistral skænk', { detail: `177 × 42 × 61 cm · ${C.name} · by the sofa`, kr: SKAENK.kr, href: SKAENK.url });
     add('Living', 'skaenklegs', 'Konisk træben 14 cm (6-pack)', { detail: Lg.name, kr: SKAENK.legKr, href: SKAENK.legUrl }); });
+  add('Living', 'vp9', 'Louis Poulsen Panthella 160 Portable v3, brass', { detail: 'wireless table lamp on the skænk · H 23.8 × Ø16 cm · SEK 2,280 (før 3,145)', kr: 2280 * SEK_DKK, approx: true, href: 'https://www.svenssons.se/varumarken/louis-poulsen/panthella-160-portable-v3-bordslampa/?variantId=634007-01', note: 'converted from SEK' });
   safe(() => { const Z = CTAB.sizes[ctab.size]; add('Living', 'ctab', 'MAX | Zen coffee table', { detail: `${Z.name.split(' · ')[0]} · travertine, oak`, kr: Z.kr, href: CTAB.url }); });
   safe(() => { if (!rug.on) return; const R = RUGS[rug.m], Z = R.sizes[rug.size]; add('Living', 'rug', `ILVA ${R.name}`, { detail: `${Z.name.split(' · ')[0]} · ${R.cols[rug.col].name}`, kr: Z.kr, href: R.url, note: 'Placeholder' }); });
   safe(() => { if (books.hidden) return; const p = BOOKT.packs[books.pack]; add('Living', 'books', `Book tower, ${p.n}-pack (white)`, { detail: `Amazon · SEK ${Math.round(p.sek)}`, kr: p.sek * SEK_DKK, approx: true, href: BOOKT.url(p.asin), note: 'converted from SEK' }); });
-  add('Living', 'plant', `${PLANTS[plant.kind] ? PLANTS[plant.kind].name || 'Plant' : 'Plant'} + pot`, { note: 'No product picked yet' });
+  if (!plant.removed) add('Living', 'plant', `${PLANTS[plant.kind] ? PLANTS[plant.kind].name || 'Plant' : 'Plant'} + pot`, { note: 'No product picked yet' });
   add('Living', 'balcurt', 'Balcony-door curtains (light)', { note: 'No product picked yet' });
   // værelse
   safe(() => { const p = parseKr(GS.price); add('Værelse', 'guest', 'Møbelkompagniet Arezzo sofa bed', { detail: '237 cm, 3 seats', kr: p && p.kr, href: GS.url }); });

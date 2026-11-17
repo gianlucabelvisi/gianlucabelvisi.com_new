@@ -401,6 +401,14 @@
     #modeSeg .lbl { display: none; }
     #busy { top: calc(var(--gut) + var(--safe-t) + 56px); }
   }
+  /* zoom-to-walk chip (2026-11-16): fills as you keep zooming in past the closest overview */
+  #zoomWalk { --k: 0; position: fixed; left: 50%; bottom: calc(var(--gut) + var(--safe-b) + 64px); transform: translateX(-50%); display: flex; align-items: center; gap: 10px;
+    padding: 8px 16px 8px 8px; border-radius: 999px; font: 600 13.5px/1 var(--ui); color: var(--ink); z-index: 9; pointer-events: none; animation: busyIn .18s ease-out; }
+  #zoomWalk svg { width: 36px; height: 36px; color: var(--oak); }
+  #zoomWalk circle { fill: none; stroke-width: 3; }
+  #zoomWalk .tr { stroke: rgba(242,237,228,.18); }
+  #zoomWalk .fg { stroke: var(--oak); stroke-linecap: round; stroke-dasharray: 94.25; stroke-dashoffset: calc(94.25 * (1 - var(--k))); transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset .12s linear; }
+  body.placing #zoomWalk, body.focus #zoomWalk { display: none !important; }
 </style>
 
 <div id="hud3d" aria-label="Interaction points"></div>
@@ -427,6 +435,7 @@
   <button id="qPlan" title="Plan: shopping list, layouts, checks, sun (O)" aria-pressed="false"><i>O</i>Plan</button>
   <button id="qLights" title="All lights on or off (L)" aria-pressed="false"><i>L</i>Lights</button>
   <button id="qRun" title="Run instead of walk (R; Shift also runs while held)" aria-pressed="false"><i>R</i>Run</button>
+  <button id="qCrawl" title="Crawl, eyes at 50 cm (C)" aria-pressed="false"><i>C</i>Crawl</button>
   <button id="qTime" title="Time of day (H)" aria-pressed="false" aria-controls="timePop"><i>H</i><span id="qTimeOut">09:00</span></button>
 </div>
 <div id="timePop" class="panel" hidden role="group" aria-label="Time of day"></div>
@@ -447,6 +456,7 @@
   <div class="pb-row"><span class="eyebrow">Or jump to</span><div id="placeChips"></div></div>
   <button id="placeCancel" type="button">Cancel</button>
 </div>
+<div id="zoomWalk" class="panel" hidden role="status" aria-live="polite"><svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" class="tr"/><circle cx="18" cy="18" r="15" class="fg"/><path d="M16.5 10.5a1.6 1.6 0 1 1 3.2 0a1.6 1.6 0 1 1-3.2 0M15.5 25l1.8-4.6 2.2 1.8V25M17.3 20.4l.7-4-2.4 1.3-1.2 2.2M18 16.4l2 2 1.9.6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="zoomWalkTxt">Keep zooming to step inside</span></div>
 <div id="busy" class="panel" hidden role="status" aria-live="polite"><span class="spin" aria-hidden="true"></span><span id="busyTxt">Updating…</span></div>
 <div id="coach" class="panel" hidden>
   <b>This is the flat from above</b>
@@ -1155,7 +1165,7 @@ function blocked(from, step) {
   tmp.copy(step).normalize();
   ray.far = len + RADIUS; ray.firstHitOnly = true;
   const fy = from.y - EYE, list = fy < -0.6 ? outdoorBlockers(from) : collidables;
-  for (const h of [0.45, 0.95, 1.55]) {
+  for (const h of (crawl.on ? [0.15, 0.35] : [0.45, 0.95, 1.55])) {   // crawling: only knee height counts, so you get under tables and beds
     ray.set(new THREE.Vector3(from.x, fy + h, from.z), tmp);
     if (ray.intersectObjects(list, false).length) return true;
   }
@@ -1281,6 +1291,7 @@ function otApply() {
     const span = Math.max(20, Math.hypot(P[1].x - P[0].x, P[1].y - P[0].y)), ang = Math.atan2(P[1].y - P[0].y, P[1].x - P[0].x);
     let da = ang - B.ang; da = Math.atan2(Math.sin(da), Math.cos(da));
     sph.radius = THREE.MathUtils.clamp(B.sph.radius * B.span / span, orbit.minDistance, orbit.maxDistance);
+    { const want = B.sph.radius * B.span / span; if (want < orbit.minDistance - 1e-3) zoomPush('pinch', span); else if (want > orbit.minDistance + 0.4) zoomReset(); }   // zoom past the closest view → step inside (18-ux)
     sph.theta += da;                                                    // the plan turns with your fingers
     const mid = { x: (P[0].x + P[1].x) / 2, y: (P[0].y + P[1].y) / 2 }, m = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * B.sph.radius / H;
     const right = new THREE.Vector3(Math.cos(B.sph.theta), 0, -Math.sin(B.sph.theta)), fwd = new THREE.Vector3(-Math.sin(B.sph.theta), 0, -Math.cos(B.sph.theta));
@@ -4785,7 +4796,7 @@ const LIV_BOX = { x0: 0.5, x1: 4.46, y0: 0.5, y1: 8.45 };            // living r
 function buildPetra(tryPos, tryAngle) {
   if (!petra.pos) { petra.pos = [3.75, 7.95];   // 2026-11-16: a bit deeper into the corner so the Nilo footstool clears the coffee table
       // 2026-11-16: 15 cm towards the outside wall with the sofa group
-    petra.angle = Math.atan2(-2.46, 1.42); }   // left of the TV (seen from the sofa), by the balcony door, turned towards the sofa
+    petra.angle = petra.model === 2 ? -1.32 : Math.atan2(-2.46, 1.42); }   // Nilo faces the sofa side so its footstool clears the coffee table   // left of the TV (seen from the sofa), by the balcony door, turned towards the sofa
   let pos = tryPos || petra.pos, ang = tryAngle ?? petra.angle, ok = true;
   const R = 0.41, cx = THREE.MathUtils.clamp(pos[0], LIV_BOX.x0 + R, LIV_BOX.x1 - R), cy = THREE.MathUtils.clamp(pos[1], LIV_BOX.y0 + R, LIV_BOX.y1 - R);
   if (Math.abs(cx - pos[0]) > 1e-6 || Math.abs(cy - pos[1]) > 1e-6) ok = false;
@@ -5000,7 +5011,7 @@ function buildBooks() {
   const zmax = Math.min(2.6 - 0.05 - H - 0.16, 1.4), z0 = THREE.MathUtils.clamp(books.z0, 0.12, zmax); if (Math.abs(z0 - books.z0) > 1e-6) ok = false; books.z0 = +z0.toFixed(3);
   if (books.group) { scene.remove(books.group); dropParts(books.parts); }
   let { n, a } = M, O = M.base.clone().addScaledVector(a, books.s);
-  if (books.where === 2) { const F = booksOutFrame(); if (F) { n = F.n; a = F.a; books.so = THREE.MathUtils.clamp(books.so, F.lo, F.hi); O = F.p.clone().addScaledVector(a, books.so); } }
+  if (books.where >= 2) { const F = booksOutFrame(); if (F) { n = F.n; a = F.a; books.so = THREE.MathUtils.clamp(books.so, F.lo, F.hi); O = F.p.clone().addScaledVector(a, books.so); } }
   const g = new THREE.Group(); g.position.copy(O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a, UP, n));
   const metal = [], paper = [], r = rng(books.seed * 7919 + 104729); for (let i = 0; i < 12; i++) r();
   const shelfYs = [];
@@ -5044,24 +5055,32 @@ function buildBooks() {
   return ok;
 }
 // the facade wall between the balcony door and the TV-wall corner (≈45 cm of wall)
-function booksOutFrame() {
-  if (booksOutFrame.F !== undefined) return booksOutFrame.F;
-  const W = wallLine([4.3, 8.0], [4.16, 8.0], [0, 1]); if (!W) return (booksOutFrame.F = null);
+// outside-wall spots: 2 = the balcony facade between the balcony door and the TV-wall corner (≈40 cm of wall),
+// 3 = the canal wall in the balcony corner (the plant's corner, across the room)
+const BOOK_OUT = { 2: { a: [4.3, 8.0], b: [4.16, 8.0], dir: [0, 1], from: [4.04, 8.0], to: [4.44, 8.0] },
+  3: { a: [1.0, 8.1], b: [1.0, 7.7], dir: [-1, 0], from: [0.5, 7.25], to: [0.5, 8.42] } };
+function booksOutFrame(k = books.where) {
+  booksOutFrame.c = booksOutFrame.c || {}; if (booksOutFrame.c[k] !== undefined) return booksOutFrame.c[k];
+  const B = BOOK_OUT[k]; if (!B) return null;
+  const W = wallLine(B.a, B.b, B.dir); if (!W) return (booksOutFrame.c[k] = null);
   const a = new THREE.Vector3().crossVectors(UP, W.n).normalize(), p = W.p.clone().setY(0);
-  const hw = 0.125, sx = (bx) => b2t(bx, toBl(p)[1], 0).sub(p).dot(a);           // along-wall coordinate of a plan x
-  const s1 = sx(4.04) , s2 = sx(4.44), lo = Math.min(s1, s2) + hw, hi = Math.max(s1, s2) - hw;
-  return (booksOutFrame.F = { p, n: W.n, a, lo, hi: Math.max(lo, hi) });
+  const hw = 0.125, sOf = (q) => b2t(q[0], q[1], 0).sub(p).dot(a);
+  const s1 = sOf(B.from), s2 = sOf(B.to), lo = Math.min(s1, s2) + hw, hi = Math.max(s1, s2) - hw;
+  // start in the corner itself (the end nearest the balcony facade / the TV wall)
+  const corner = k === 2 ? sOf([4.44, 8.0]) : sOf([0.5, 8.42]);
+  return (booksOutFrame.c[k] = { p, n: W.n, a, lo, hi: Math.max(lo, hi), start: THREE.MathUtils.clamp(corner, lo, Math.max(lo, hi)) });
 }
-const BOOK_WHERE = ['TV wall, hall side of the TV', 'TV wall, balcony corner (other side of the TV)', 'Outside wall, in the corner by the balcony door', 'Hidden (not on the wall)'];
+const BOOK_WHERE = ['TV wall, hall side of the TV', 'TV wall, balcony corner (other side of the TV)', 'Balcony wall, same corner (by the balcony door)', 'Canal wall, the other corner (where the plant is)', 'Hidden (not on the wall)'];
 function setBooksWhere(i) {
-  if (i === 3) { setBooksHidden(true); return; }
+  if (i === 4) { setBooksHidden(true); return; }
   books.hidden = false; books.where = i;
+  if (plant.removed !== (i === 3)) { plant.removed = i === 3; buildPlant(); }   // the canal corner is the plant's: the plant goes while the tower is there
   const R = booksRange();
-  if (i === 0) books.s = null; else if (i === 1) books.s = R.lo; else { const F = booksOutFrame(); books.so = F ? (F.lo + F.hi) / 2 : 0; if (!F) { showToast('Couldn’t find that wall'); books.where = 0; } }
+  if (i === 0) books.s = null; else if (i === 1) books.s = R.lo; else { const F = booksOutFrame(i); books.so = F ? F.start : 0; if (!F) { showToast('Couldn’t find that wall'); books.where = 0; } else if (i === 3) showToast('Book tower in the canal corner · the plant is removed'); }
   buildBooks(); if (selected === booksMover) updateMoverInfo();
 }
 function booksGaps() {
-  const M = liv.media, R = booksRange(); if (!M || !books.group || books.where === 2) return null;
+  const M = liv.media, R = booksRange(); if (!M || !books.group || books.where >= 2) return null;
   const toUnit = books.s - (M.offset + UNIT.W / 2) - R.hw, toEnd = M.half - books.s - R.hw;
   return { toUnit, toEnd };
 }
@@ -5075,13 +5094,14 @@ function booksDimsUpdate() {
 }
 function setBooksHidden(h) {
   books.hidden = h; if (h && LIGHTS.books) { LIGHTS.books.on = false; applyLights(); }
+  if (plant.removed && h) { plant.removed = false; buildPlant(); } else if (!h && books.where === 3 && !plant.removed) { plant.removed = true; buildPlant(); }
   if (h) selectFurniture(null); buildBooks(); showToast(h ? 'Book tower hidden · bring it back from a TV unit’s panel' : 'Book tower back');
 }
 const booksMover = {
   name: 'Book tower', title: () => `ART-GIFTREE floating book tower · ${BOOKT.packs[books.pack].n} pcs, ${BOOKT.packs[books.pack].n * 2} tiers · white`,
   anchor: () => (books.group ? books.group.position.clone().addScaledVector(liv.media.n, 0.2).setY(books.top + 0.1) : null),
-  axis: () => (books.where === 2 && booksOutFrame() ? booksOutFrame().a.clone() : liv.media.a.clone()),
-  shift: (dir) => { if (books.where === 2) { const b = books.so; books.so += dir * 0.05; buildBooks(); if (Math.abs(books.so - b) < 1e-6) showToast('That wall is only about 45 cm wide'); return; } books.s += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'Can’t go further: the opening to the hall' : 'Can’t go further: the corner'); },
+  axis: () => (books.where >= 2 && booksOutFrame() ? booksOutFrame().a.clone() : liv.media.a.clone()),
+  shift: (dir) => { if (books.where >= 2) { const b = books.so; books.so += dir * 0.05; buildBooks(); if (Math.abs(books.so - b) < 1e-6) showToast(books.where === 2 ? 'That wall is only about 40 cm wide' : 'That’s the end of this stretch of wall'); return; } books.s += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'Can’t go further: the opening to the hall' : 'Can’t go further: the corner'); },
   axis2: () => new THREE.Vector3(0, 1, 0),
   shift2: (dir) => { books.z0 += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'That’s as high as it goes under the ceiling' : 'That’s as low as it goes'); },
   variant: { label: () => 'New books', run: () => { books.seed++; buildBooks(); showToast('Shuffled the books'); } },
@@ -5089,7 +5109,7 @@ const booksMover = {
   selects: [
     { id: 'bpack', label: 'Pack', options: () => BOOKT.packs.map((p) => ({ label: `${p.n} pieces · ${p.n * 2} tiers` })), get: () => books.pack,
       set: (i) => { books.pack = i; buildBooks(); } },
-    { id: 'bwhere', label: 'Where', options: () => BOOK_WHERE.map((l) => ({ label: l })), get: () => (books.hidden ? 3 : books.where), set: (i) => setBooksWhere(i) },
+    { id: 'bwhere', label: 'Where', options: () => BOOK_WHERE.map((l) => ({ label: l })), get: () => (books.hidden ? 4 : books.where), set: (i) => setBooksWhere(i) },
     { id: 'bgap', label: 'Spacing', options: () => BOOK_GAPS.map((g) => ({ label: g.label })), get: () => books.gap, set: (i) => { books.gap = i; buildBooks(); } },
   ],
   link: () => { const p = BOOKT.packs[books.pack]; return { href: BOOKT.url(p.asin), text: `Amazon · ${p.n}-pack white · SEK ${p.sek.toFixed(2).replace('.', ',')} ↗` }; },
@@ -5118,7 +5138,7 @@ const POTS = [
   { name: 'Concrete grey', c: 0x9c9a94, r: 0.95, grain: true },
   { name: 'Woven seagrass basket', c: 0xb89a6a, r: 0.95, weave: true },
 ];
-const plant = { pos: null, angle: 0, kind: 0, pot: 0, group: null, parts: [] };
+const plant = { pos: null, angle: 0, kind: 0, pot: 0, group: null, parts: [], removed: false };
 const plantDims = new THREE.Group(); dimsGroup.add(plantDims);
 function leafShape(kind, L, W) {
   const s = new THREE.Shape(); s.moveTo(0, 0);
@@ -5168,7 +5188,11 @@ function buildPlant(tryPos, tryAngle) {
   const R = 0.2, cx = THREE.MathUtils.clamp(pos[0], LIV_BOX.x0 + R, LIV_BOX.x1 - R), cy = THREE.MathUtils.clamp(pos[1], LIV_BOX.y0 + R, LIV_BOX.y1 - R);
   if (Math.abs(cx - pos[0]) > 1e-6 || Math.abs(cy - pos[1]) > 1e-6) ok = false;
   plant.pos = [cx, cy]; plant.angle = tryAngle ?? plant.angle;
-  if (plant.group) { scene.remove(plant.group); dropParts(plant.parts); plant.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
+  if (plant.group) { scene.remove(plant.group); dropParts(plant.parts); plant.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); plant.group = null; }
+  if (plant.removed) {                                    // the book tower took its corner (Gianluca: then the plant goes)
+    plantDims.clear(); plantLed.visible = plantHalo.visible = plantLight.visible = plantWash.visible = false;
+    if (LIGHTS.plant && LIGHTS.plant.on) { LIGHTS.plant.on = false; applyLights(); }
+    const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Plant'); if (di >= 0) doors.splice(di, 1); return ok; }
   const S = PLANTS[plant.kind], PT = POTS[plant.pot], r = rng(17 + plant.kind * 101);
   const g = new THREE.Group(); g.position.copy(b2t(cx, cy, 0)); g.rotation.y = plant.angle;
   // pot Ø34 × 34 (basket a little wider), saucer, soil
@@ -6081,8 +6105,8 @@ function addCurtain(def) {
 }
 function buildCurtains() {
   if (curtains.length) return;
-  // balcony: one sheer across the whole glazing, gathering towards the TV end (keeps the door side clear)
-  addCurtain({ id: 'cur_bal', name: 'the sheer curtain', room: 'living', a: [0.62, 8.05], b: [4.38, 8.05], dir: [0, 1], top: 2.52, Wmin: 0.42, mat: MATS.sheer, folds: 26, anchorB: true, open: 1 });
+  // balcony: one sheer across the whole glazing, gathering at the canal end
+  addCurtain({ id: 'cur_bal', name: 'the sheer curtain', room: 'living', a: [0.62, 8.05], b: [4.38, 8.05], dir: [0, 1], top: 2.52, Wmin: 0.42, mat: MATS.sheer, folds: 26, anchorB: false, open: 1 });   // 2026-11-16: gathers at the canal end (left), leaving the door/armchair/book-tower corner clear
   // bedroom: two blackout panels meeting in the middle of the window, each stacking at its side
   addCurtain({ id: 'cur_bed', name: 'the blackout curtains', room: 'bed', a: [7.58, 7.4], b: [9.33, 7.32], dir: [0, 1], top: 2.48, Wmin: 0.26, mat: MATS.blackout, folds: 14, split: true, open: 1 });
 }
@@ -6250,7 +6274,13 @@ const ikeaUrl = (art) => `https://www.ikea.com/dk/da/p/${art}/`;
 MATS.candleWax = std({ color: 0xf1e9d8, roughness: 0.6 });
 MATS.candleFlame = new THREE.MeshBasicMaterial({ color: 0xffc56b, toneMapped: false, transparent: true, opacity: 0 });
 const candleLight = new THREE.PointLight(0xffa64a, 0, 2.2, 2); candleLight.visible = false; scene.add(candleLight);
-window.__candles = { set: (night) => { MATS.candleFlame.opacity = Math.min(1, night * 1.4); candleLight.intensity = 0.35 * night; candleLight.visible = night > 0.02 && !!cons.group && cons.decor; } };
+MATS.vp9Glow = new THREE.MeshBasicMaterial({ color: 0x000000, toneMapped: false });
+const vp9Light = new THREE.PointLight(0xffb066, 0, 2.6, 2); vp9Light.visible = false; scene.add(vp9Light);
+window.__candles = { set: (night) => {
+  const on = night > 0.02 && ((!!cons.group && cons.decor) || (typeof skaenk !== 'undefined' && !!skaenk.group));
+  MATS.candleFlame.opacity = Math.min(1, night * 1.4); candleLight.intensity = 0.35 * night; candleLight.visible = on;
+  const lampOn = night > 0.02 && typeof skaenk !== 'undefined' && !!skaenk.group;            // the VP9 is on in the evening too
+  MATS.vp9Glow.color.setRGB(1.0 * night, 0.78 * night, 0.5 * night); vp9Light.intensity = 0.5 * night; vp9Light.visible = lampOn; } };
 function buildConsole() {
   if (cons.group) { scene.remove(cons.group); dropParts(cons.parts); cons.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); cons.group = null; }
   const S = liv.sofa; if (!S || !S.group || !cons.on) return;
@@ -6683,13 +6713,25 @@ function buildSkaenk() {
   for (const lz of [zL + 0.05, zc, zL + W - 0.08]) for (const lx of [xo - 0.05, xo - D + 0.05]) add(new THREE.CylinderGeometry(0.0175, 0.011, LEG, 4), legM, lx, LEG / 2, lz).rotation.y = Math.PI / 4;
   // on top: a table lamp shape, a stack of books, a small plant
   const topY = y0 + H;
-  add(new THREE.CylinderGeometry(0.06, 0.07, 0.03, 24), stdc({ color: 0x2b2a28, roughness: 0.4 }), xc - 0.02, topY + 0.015, zc - 0.62);
-  add(new THREE.CylinderGeometry(0.008, 0.008, 0.3, 10), stdc({ color: 0x2b2a28, roughness: 0.4 }), xc - 0.02, topY + 0.18, zc - 0.62);
-  add(new THREE.CylinderGeometry(0.1, 0.14, 0.17, 28, 1, true), new THREE.MeshStandardMaterial({ color: 0xefe7d8, roughness: 0.9, side: THREE.DoubleSide }), xc - 0.02, topY + 0.38, zc - 0.62);
+  // Louis Poulsen Panthella 160 Portable v3, brass metallised (Gianluca's pick; svenssons.se 634007-01): H 23.8 cm, shade Ø16 cm,
+  // trumpet stem flaring into a round foot, mushroom shade. Wireless and rechargeable; glows warm in the evening.
+  { const brass = stdc({ color: 0xcaa35e, roughness: 0.22, metalness: 0.92 }), lx = xc - 0.02, lz = zc - 0.62;
+    const prof = [[0.0, 0], [0.056, 0], [0.057, 0.004], [0.05, 0.009], [0.032, 0.022], [0.018, 0.05], [0.011, 0.1], [0.0085, 0.15], [0.008, 0.162], [0.0, 0.162]].map(([r, y]) => new THREE.Vector2(r, y));
+    add(new THREE.LatheGeometry(prof, 40), brass, lx, topY, lz);                                                                    // trumpet stem + foot
+    const shade = new THREE.SphereGeometry(0.08, 40, 14, 0, Math.PI * 2, 0, Math.PI / 2); shade.scale(1, 0.95, 1);
+    add(shade, brass, lx, topY + 0.162, lz).material.side = THREE.DoubleSide;                                                         // mushroom shade (opens down)
+    const glow = new THREE.Mesh(new THREE.CircleGeometry(0.074, 40), MATS.vp9Glow); glow.rotation.x = Math.PI / 2; glow.position.set(lx, topY + 0.165, lz); g.add(glow);
+    g.updateMatrixWorld(true); vp9Light.position.copy(glow.getWorldPosition(new THREE.Vector3())).add(new THREE.Vector3(0, -0.04, 0)); }
   add(new THREE.BoxGeometry(0.15, 0.035, 0.22), stdc({ color: 0x2c5d63, roughness: 0.8 }), xc - 0.02, topY + 0.0175, zc + 0.1);
   add(new THREE.BoxGeometry(0.14, 0.025, 0.2), stdc({ color: 0xe8e2d4, roughness: 0.8 }), xc - 0.02, topY + 0.0475, zc + 0.1);
-  add(new THREE.CylinderGeometry(0.06, 0.05, 0.11, 22), stdc({ color: 0xb06a43, roughness: 0.9 }), xc - 0.02, topY + 0.055, zc + 0.6);
-  add(new THREE.SphereGeometry(0.1, 14, 12), stdc({ color: 0x4f7a3a, roughness: 1 }), xc - 0.02, topY + 0.17, zc + 0.6);
+  // the other end: three pillar candles on a round tray, lit in the evening (shares the candle flame / light with the old console)
+  { const tz = zc + 0.6; add(new THREE.CylinderGeometry(0.12, 0.12, 0.012, 32), stdc({ color: 0x8a6a48, roughness: 0.5, metalness: 0.3 }), xc - 0.02, topY + 0.006, tz);
+    let k = 0;
+    for (const [dx, dz, h] of [[-0.04, -0.045, 0.15], [0.045, -0.01, 0.1], [-0.02, 0.06, 0.075]]) {
+      add(new THREE.CylinderGeometry(0.035, 0.035, h, 20), MATS.candleWax, xc - 0.02 + dx, topY + 0.012 + h / 2, tz + dz);
+      const fl = new THREE.Mesh(new THREE.ConeGeometry(0.007, 0.022, 8), MATS.candleFlame); fl.position.set(xc - 0.02 + dx, topY + 0.012 + h + 0.014, tz + dz); g.add(fl);
+      if (k++ === 0) { g.updateMatrixWorld(true); candleLight.position.copy(fl.getWorldPosition(new THREE.Vector3())).add(new THREE.Vector3(0, 0.08, 0)); }
+    } }
   mergeByMaterial(g);
   const hit = add(new THREE.BoxGeometry(D + 0.02, topY + 0.02, W + 0.02), new THREE.MeshBasicMaterial({ visible: false }), xc, (topY + 0.02) / 2, zc, true); hit.castShadow = false;
   scene.add(g); g.updateMatrixWorld(true);
@@ -6698,6 +6740,7 @@ function buildSkaenk() {
   hit.userData.door = door; hit.userData.furniture = true; collidables.push(hit);
   const di = doors.findIndex((d) => d.kind === 'swap' && d.label === 'Skænk'); if (di >= 0) doors.splice(di, 1);
   doors.push(door); skaenk.group = g; skaenk.parts = [hit]; shadowDirty = true;
+  if (window.__candles) window.__candles.set(typeof dayLevel === 'number' ? THREE.MathUtils.clamp((0.6 - dayLevel) / 0.45, 0, 1) : 0);
 }
 const skaenkMover = {
   name: 'Mistral skænk', title: () => `Hammel Mistral skænk 177 cm · ${MISTRAL_COLS[skaenk.col].name}`,
@@ -7065,10 +7108,11 @@ function shopLines() {
   safe(() => { const C = MISTRAL_COLS[skaenk.col], Lg = SKAENK.legCols[skaenk.legCol];
     add('Living', 'skaenk', 'Hammel Mistral skænk', { detail: `177 × 42 × 61 cm · ${C.name} · by the sofa`, kr: SKAENK.kr, href: SKAENK.url });
     add('Living', 'skaenklegs', 'Konisk træben 14 cm (6-pack)', { detail: Lg.name, kr: SKAENK.legKr, href: SKAENK.legUrl }); });
+  add('Living', 'vp9', 'Louis Poulsen Panthella 160 Portable v3, brass', { detail: 'wireless table lamp on the skænk · H 23.8 × Ø16 cm · SEK 2,280 (før 3,145)', kr: 2280 * SEK_DKK, approx: true, href: 'https://www.svenssons.se/varumarken/louis-poulsen/panthella-160-portable-v3-bordslampa/?variantId=634007-01', note: 'converted from SEK' });
   safe(() => { const Z = CTAB.sizes[ctab.size]; add('Living', 'ctab', 'MAX | Zen coffee table', { detail: `${Z.name.split(' · ')[0]} · travertine, oak`, kr: Z.kr, href: CTAB.url }); });
   safe(() => { if (!rug.on) return; const R = RUGS[rug.m], Z = R.sizes[rug.size]; add('Living', 'rug', `ILVA ${R.name}`, { detail: `${Z.name.split(' · ')[0]} · ${R.cols[rug.col].name}`, kr: Z.kr, href: R.url, note: 'Placeholder' }); });
   safe(() => { if (books.hidden) return; const p = BOOKT.packs[books.pack]; add('Living', 'books', `Book tower, ${p.n}-pack (white)`, { detail: `Amazon · SEK ${Math.round(p.sek)}`, kr: p.sek * SEK_DKK, approx: true, href: BOOKT.url(p.asin), note: 'converted from SEK' }); });
-  add('Living', 'plant', `${PLANTS[plant.kind] ? PLANTS[plant.kind].name || 'Plant' : 'Plant'} + pot`, { note: 'No product picked yet' });
+  if (!plant.removed) add('Living', 'plant', `${PLANTS[plant.kind] ? PLANTS[plant.kind].name || 'Plant' : 'Plant'} + pot`, { note: 'No product picked yet' });
   add('Living', 'balcurt', 'Balcony-door curtains (light)', { note: 'No product picked yet' });
   // værelse
   safe(() => { const p = parseKr(GS.price); add('Værelse', 'guest', 'Møbelkompagniet Arezzo sofa bed', { detail: '237 cm, 3 seats', kr: p && p.kr, href: GS.url }); });
@@ -7443,7 +7487,9 @@ function sofaFrontInfo() {                               // where the open area 
 function buildCoffeeTable(tryPos) {
   if (ctab.group) { scene.remove(ctab.group); dropParts(ctab.parts); ctab.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); ctab.group = null; }
   const I = sofaFrontInfo(); if (!I) return false;
-  if (!ctab.pos) { ctab.pos = I.P(I.cxl, I.zFront + 0.46 + CTAB.sizes[ctab.size].D / 2); ctab.pos[1] = toBl(liv.media.base.clone().addScaledVector(liv.media.a, liv.media.offset))[1]; }   // 46 cm in front of the sofa, centred on the TV (clears the Nilo footstool)
+  if (!ctab.pos) { ctab.pos = I.P(I.cxl, I.zFront + 0.46 + CTAB.sizes[ctab.size].D / 2); const tvW = liv.media.base.clone().addScaledVector(liv.media.a, liv.media.offset), lxTV = tvW.sub(I.S.O).dot(I.x), r = CTAB.sizes[ctab.size].D / 2;
+    const lx = Math.max(lxTV, -I.L / 2 + I.RW + 0.15 + r);           // keep 15 cm off the return (chaise) of the sofa
+    ctab.pos = I.P(lx, I.zFront + 0.46 + r); }   // 46 cm in front of the sofa, centred on the TV (clears the Nilo footstool)
   const p = tryPos || ctab.pos, cx = THREE.MathUtils.clamp(p[0], LIV_BOX.x0 + 0.5, LIV_BOX.x1 - 0.5), cy = THREE.MathUtils.clamp(p[1], LIV_BOX.y0 + 0.5, LIV_BOX.y1 - 0.5);
   const ok = Math.abs(cx - p[0]) < 1e-6 && Math.abs(cy - p[1]) < 1e-6; ctab.pos = [cx, cy];
   const Z = CTAB.sizes[ctab.size], R = Z.D / 2, H = Z.H, TT = 0.03;
@@ -7480,7 +7526,7 @@ const ctabMover = {
   axis: () => b2t(1, 0).normalize(), axis2: () => b2t(0, 1).normalize(),
   shift: (dir) => { if (!buildCoffeeTable([ctab.pos[0] + dir * 0.05, ctab.pos[1]])) showToast('Can’t go further'); },
   shift2: (dir) => { if (!buildCoffeeTable([ctab.pos[0], ctab.pos[1] + dir * 0.05])) showToast('Can’t go further'); },
-  selects: [{ id: 'ctsz', label: 'Size', options: () => CTAB.sizes.map((z) => ({ label: z.name })), get: () => ctab.size, set: (i) => { ctab.size = i; buildCoffeeTable(); } }],
+  selects: [],   // bought: Ø95 (Gianluca 2026-11-16)
   link: () => ({ href: CTAB.url, text: 'Max Jessen · MAX | Zen sofabord ↗' }),
   info: () => { const I = sofaFrontInfo(), Z = CTAB.sizes[ctab.size]; let gaps = '';
     if (I && ctab.group) { const c = ctab.group.position.clone().sub(I.S.O), z = c.dot(I.f); gaps = ` · ${(z - Z.D / 2 - I.zFront).toFixed(2)} m to the sofa · ${(I.zTV - z - Z.D / 2).toFixed(2)} m to the TV units`; }
@@ -7670,6 +7716,8 @@ function busyGateLights() {
 // ---- view switch (top centre on desktop, under the room card on phones)
 function syncModeUI() {
   const over = mode === 'over';
+  if (over && crawl.on) { crawl.on = false; $('qCrawl').setAttribute('aria-pressed', 'false'); }
+  $('qCrawl').hidden = over;
   $('segOver').setAttribute('aria-pressed', String(over && !place.on));
   $('segWalk').setAttribute('aria-pressed', String(!over || place.on));
   $('modeSeg').hidden = !started;
@@ -7779,6 +7827,64 @@ function enterApp() {
 window.__onModelReady = enterApp;
 $('coachOk').addEventListener('click', () => { $('coach').hidden = true; document.body.classList.remove('coaching'); try { localStorage.setItem('aptCoach2', '1'); } catch (_) { /* ignore */ } });
 $('coachWalk').addEventListener('click', () => { $('coachOk').click(); startPlacing(); });
+
+// ---- zoom in far enough from above and you step inside (2026-11-16, Gianluca)
+// At the closest overview distance the zoom stops (a deliberate pause, so a fast zoom doesn't drop you in). Keep zooming after the pause
+// and a chip fills up; once it's full the camera glides down to the floor under the middle of the screen and you're walking there.
+// Only from above → walk; going back up stays a button press.
+const zw = { armed: false, t0: 0, last: 0, acc: 0, span0: 0, need: 260, pause: 450, busy: false };
+function zoomCentreHit() {
+  ray.far = Infinity; ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+  return ray.intersectObjects(pickables, false)[0] || null;
+}
+function zoomCanArm() { return mode === 'over' && started && !focus && !camTween && !place.on && !zw.busy && camera.position.distanceTo(orbit.target) <= orbit.minDistance + 0.05; }
+function zoomShow(k) {
+  const el = $('zoomWalk'); el.hidden = false; el.style.setProperty('--k', String(Math.max(0, Math.min(1, k))));
+  $('zoomWalkTxt').textContent = k <= 0 ? 'Closest view · keep zooming to step inside' : 'Keep zooming to step inside…';
+}
+function zoomReset() {
+  if (!zw.armed) return; zw.armed = false; zw.acc = 0; $('zoomWalk').hidden = true;
+  if (!place.on && placeMark.g.visible && !camTween) placeMark.g.visible = false;
+}
+function zoomPush(kind, amount) {                         // kind 'wheel': amount = zoom-in delta (px); 'pinch': amount = current finger span
+  if (!zoomCanArm()) return;
+  const now = performance.now();
+  if (!zw.armed) { zw.armed = true; zw.t0 = now; zw.acc = 0; zw.span0 = kind === 'pinch' ? amount : 0; }
+  zw.last = now;
+  const h = zoomCentreHit();
+  if (h) placeMarkAt(h.point, camFlat(), true); else placeMark.g.visible = false;
+  if (now - zw.t0 < zw.pause) { if (kind === 'pinch') zw.span0 = amount; zoomShow(0); return; }   // the stop: input during the pause is swallowed
+  if (kind === 'wheel') zw.acc += amount; else zw.acc = Math.max(zw.acc, (amount / Math.max(1, zw.span0) - 1) * 700);   // ~37 % more spread = full
+  const k = zw.acc / zw.need; zoomShow(k);
+  if (k >= 1) {
+    if (!h) { showToast('Zoom in over a floor of the flat to step inside'); zoomReset(); return; }
+    zoomReset(); zw.busy = true;
+    try { localStorage.setItem('aptCoach2', '1'); } catch (_) { /* ignore */ }
+    placeFinish(h.point.clone(), camFlat());              // the same glide down as "pick where to stand"
+    setTimeout(() => { zw.busy = false; }, 1400);
+  }
+}
+canvas.addEventListener('wheel', (e) => {
+  if (mode !== 'over') return;
+  const dy = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);
+  if (dy < 0) zoomPush('wheel', -dy); else if (dy > 0) zoomReset();
+}, { passive: true });
+setInterval(() => { if (zw.armed && performance.now() - zw.last > 2500) zoomReset(); }, 400);   // stopped zooming: forget it
+
+// ---- crawl, like in a game (2026-11-16, Gianluca): C toggles; eyes at 50 cm, slow, only knee-height obstacles block you
+const CRAWL_EYE = 0.5;
+const crawl = { on: false, k: 0 };
+function setCrawl(on) {
+  if (on && mode !== 'walk') return;
+  if (!on && crawl.on) {                                   // standing up needs head room
+    const r = new THREE.Raycaster(new THREE.Vector3(player.pos.x, player.fy + 0.45, player.pos.z), new THREE.Vector3(0, 1, 0), 0, EYE - 0.3);
+    if (r.intersectObjects(collidables, false).length) { showToast('No room to stand up here · crawl out first'); return; }
+  }
+  crawl.on = on; $('qCrawl').setAttribute('aria-pressed', String(on));
+  showToast(on ? 'Crawling · C to stand up' : 'Standing up');
+}
+$('qCrawl').addEventListener('click', () => setCrawl(!crawl.on));
+addEventListener('keydown', (e) => { if (e.code === 'KeyC' && !e.repeat && !e.metaKey && !e.ctrlKey && mode === 'walk' && !(e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName))) setCrawl(!crawl.on); });
 // ------------------------------------------------------------ clouds
 (function clouds() {
   const W = 2048, Hh = 512;
@@ -7856,7 +7962,7 @@ function frame() {
     if (keys.has('KeyD') || keys.has('ArrowRight')) s += 1;
     f -= joy.y; s += joy.x;
     if (f || s) {
-      const speed = (running !== (keys.has('ShiftLeft') || keys.has('ShiftRight')) ? 3.2 : 1.5) * dt;
+      const speed = (crawl.on ? 0.55 : running !== (keys.has('ShiftLeft') || keys.has('ShiftRight')) ? 3.2 : 1.5) * dt;
       fwd.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
       right.set(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
       step.set(0, 0, 0).addScaledVector(fwd, f).addScaledVector(right, s);
@@ -7866,7 +7972,8 @@ function frame() {
     } else { if (autoTarget && hintArrow.on) stopArrow(); stepAuto(dt); }
     if (frame.camY === undefined || Math.abs(frame.camY - player.pos.y) > 0.8) frame.camY = player.pos.y;
     frame.camY += (player.pos.y - frame.camY) * Math.min(1, dt * 12);          // soften the steps on the stairs
-    camera.position.set(player.pos.x, frame.camY, player.pos.z);
+    crawl.k += ((crawl.on ? 1 : 0) - crawl.k) * Math.min(1, dt * 7);                      // drop down to crawling height and back up, eased
+    camera.position.set(player.pos.x, frame.camY - crawl.k * (EYE - CRAWL_EYE) + (crawl.on && (f || s) ? Math.sin(performance.now() / 140) * 0.012 : 0), player.pos.z);
     camera.rotation.set(player.pitch, player.yaw, 0);
   } else {
     if (!stepCamTween()) orbit.update();
@@ -8164,7 +8271,7 @@ $('qLights').addEventListener('click', () => toggleAllLights());
 addEventListener('resize', () => { hud.vsig = ''; });
 window.__hudDbg = () => doors.filter((d) => !isFurn(d)).map((d) => { const P = ringPoint(d, new THREE.Vector3()); const dist = P.distanceTo(camera.position); if (dist > REACH) return null; const sc = {}; const on = toScreen(P, sc); hud.occ.delete(d); const vis = hudVisible(d, camera.position, P, d.parts); return [d.label, dist.toFixed(2), on, vis, Math.round(sc.x), Math.round(sc.y), started, measuring, mode, !!focus]; }).filter(Boolean);
 window.__bvc = () => buildVaerCloset(); window.__bs = () => { buildSofa(); livingDims(); }; window.__bd = () => { buildDining(); };
-window.__apt = { dchair, DCHAIRS, deskMaxW, deskModel, deskFree, buildDesk, buildVaerCloset, skaenk, buildSkaenk, skaenkMover, mpair, mpMoverUp, mpMoverLo, mpTry, ctab, buildCoffeeTable, ctabMover, rug, buildRug, rugMover, RUGS, shopLines, shopText, layoutSnapshot, layoutApply, layoutEncode, layoutDecode, placementCheck, computeDaylight, setPlan, roomsState, night, buildRoomFurniture, ROOMF, NIGHT, getDaylight: () => DAYLIGHT, curtainProbe, fxAssign, FX, LPOOL, setAutoLights, autoLightTick, autoLightsCfg, roomLightMovers, placeBedPendants, holm, buildHolm, holmMover, desk, buildDesk, deskMover, swapDeskCloset, alc, buildAlcove, alcoveMover, cons, buildConsole, consoleMover, art, buildArt, artMover, curtains, books, booksMover, buildBooks, plant, plantMover, buildPlant, setAllLights, toggleAllLights, hueLights, getHold: () => lightHold, THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, petra, petraMover, buildPetra, hud, focusFurniture, exitFocus, setMoveLayer, getFocus: () => focus, getTween: () => camTween, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
+window.__apt = { setCrawl, crawl, plant, dchair, DCHAIRS, deskMaxW, deskModel, deskFree, buildDesk, buildVaerCloset, skaenk, buildSkaenk, skaenkMover, mpair, mpMoverUp, mpMoverLo, mpTry, ctab, buildCoffeeTable, ctabMover, rug, buildRug, rugMover, RUGS, shopLines, shopText, layoutSnapshot, layoutApply, layoutEncode, layoutDecode, placementCheck, computeDaylight, setPlan, roomsState, night, buildRoomFurniture, ROOMF, NIGHT, getDaylight: () => DAYLIGHT, curtainProbe, fxAssign, FX, LPOOL, setAutoLights, autoLightTick, autoLightsCfg, roomLightMovers, placeBedPendants, holm, buildHolm, holmMover, desk, buildDesk, deskMover, swapDeskCloset, alc, buildAlcove, alcoveMover, cons, buildConsole, consoleMover, art, buildArt, artMover, curtains, books, booksMover, buildBooks, plant, plantMover, buildPlant, setAllLights, toggleAllLights, hueLights, getHold: () => lightHold, THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, petra, petraMover, buildPetra, hud, focusFurniture, exitFocus, setMoveLayer, getFocus: () => focus, getTween: () => camTween, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
 </script>
 
 </body></html>

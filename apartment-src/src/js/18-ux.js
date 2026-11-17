@@ -32,6 +32,8 @@ function busyGateLights() {
 // ---- view switch (top centre on desktop, under the room card on phones)
 function syncModeUI() {
   const over = mode === 'over';
+  if (over && crawl.on) { crawl.on = false; $('qCrawl').setAttribute('aria-pressed', 'false'); }
+  $('qCrawl').hidden = over;
   $('segOver').setAttribute('aria-pressed', String(over && !place.on));
   $('segWalk').setAttribute('aria-pressed', String(!over || place.on));
   $('modeSeg').hidden = !started;
@@ -141,3 +143,61 @@ function enterApp() {
 window.__onModelReady = enterApp;
 $('coachOk').addEventListener('click', () => { $('coach').hidden = true; document.body.classList.remove('coaching'); try { localStorage.setItem('aptCoach2', '1'); } catch (_) { /* ignore */ } });
 $('coachWalk').addEventListener('click', () => { $('coachOk').click(); startPlacing(); });
+
+// ---- zoom in far enough from above and you step inside (2026-11-16, Gianluca)
+// At the closest overview distance the zoom stops (a deliberate pause, so a fast zoom doesn't drop you in). Keep zooming after the pause
+// and a chip fills up; once it's full the camera glides down to the floor under the middle of the screen and you're walking there.
+// Only from above → walk; going back up stays a button press.
+const zw = { armed: false, t0: 0, last: 0, acc: 0, span0: 0, need: 260, pause: 450, busy: false };
+function zoomCentreHit() {
+  ray.far = Infinity; ray.setFromCamera(new THREE.Vector2(0, 0), camera);
+  return ray.intersectObjects(pickables, false)[0] || null;
+}
+function zoomCanArm() { return mode === 'over' && started && !focus && !camTween && !place.on && !zw.busy && camera.position.distanceTo(orbit.target) <= orbit.minDistance + 0.05; }
+function zoomShow(k) {
+  const el = $('zoomWalk'); el.hidden = false; el.style.setProperty('--k', String(Math.max(0, Math.min(1, k))));
+  $('zoomWalkTxt').textContent = k <= 0 ? 'Closest view · keep zooming to step inside' : 'Keep zooming to step inside…';
+}
+function zoomReset() {
+  if (!zw.armed) return; zw.armed = false; zw.acc = 0; $('zoomWalk').hidden = true;
+  if (!place.on && placeMark.g.visible && !camTween) placeMark.g.visible = false;
+}
+function zoomPush(kind, amount) {                         // kind 'wheel': amount = zoom-in delta (px); 'pinch': amount = current finger span
+  if (!zoomCanArm()) return;
+  const now = performance.now();
+  if (!zw.armed) { zw.armed = true; zw.t0 = now; zw.acc = 0; zw.span0 = kind === 'pinch' ? amount : 0; }
+  zw.last = now;
+  const h = zoomCentreHit();
+  if (h) placeMarkAt(h.point, camFlat(), true); else placeMark.g.visible = false;
+  if (now - zw.t0 < zw.pause) { if (kind === 'pinch') zw.span0 = amount; zoomShow(0); return; }   // the stop: input during the pause is swallowed
+  if (kind === 'wheel') zw.acc += amount; else zw.acc = Math.max(zw.acc, (amount / Math.max(1, zw.span0) - 1) * 700);   // ~37 % more spread = full
+  const k = zw.acc / zw.need; zoomShow(k);
+  if (k >= 1) {
+    if (!h) { showToast('Zoom in over a floor of the flat to step inside'); zoomReset(); return; }
+    zoomReset(); zw.busy = true;
+    try { localStorage.setItem('aptCoach2', '1'); } catch (_) { /* ignore */ }
+    placeFinish(h.point.clone(), camFlat());              // the same glide down as "pick where to stand"
+    setTimeout(() => { zw.busy = false; }, 1400);
+  }
+}
+canvas.addEventListener('wheel', (e) => {
+  if (mode !== 'over') return;
+  const dy = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);
+  if (dy < 0) zoomPush('wheel', -dy); else if (dy > 0) zoomReset();
+}, { passive: true });
+setInterval(() => { if (zw.armed && performance.now() - zw.last > 2500) zoomReset(); }, 400);   // stopped zooming: forget it
+
+// ---- crawl, like in a game (2026-11-16, Gianluca): C toggles; eyes at 50 cm, slow, only knee-height obstacles block you
+const CRAWL_EYE = 0.5;
+const crawl = { on: false, k: 0 };
+function setCrawl(on) {
+  if (on && mode !== 'walk') return;
+  if (!on && crawl.on) {                                   // standing up needs head room
+    const r = new THREE.Raycaster(new THREE.Vector3(player.pos.x, player.fy + 0.45, player.pos.z), new THREE.Vector3(0, 1, 0), 0, EYE - 0.3);
+    if (r.intersectObjects(collidables, false).length) { showToast('No room to stand up here · crawl out first'); return; }
+  }
+  crawl.on = on; $('qCrawl').setAttribute('aria-pressed', String(on));
+  showToast(on ? 'Crawling · C to stand up' : 'Standing up');
+}
+$('qCrawl').addEventListener('click', () => setCrawl(!crawl.on));
+addEventListener('keydown', (e) => { if (e.code === 'KeyC' && !e.repeat && !e.metaKey && !e.ctrlKey && mode === 'walk' && !(e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName))) setCrawl(!crawl.on); });
