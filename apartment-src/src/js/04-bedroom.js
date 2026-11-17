@@ -493,7 +493,7 @@ const SV_LAYOUTS = [
   { id: 'I-bath', name: 'I · 150 cm on the bathroom wall (100 + 50, 3 doors)' },
   { id: 'I-bath2', name: 'I · 200 cm on the bathroom wall (100 + 100, 4 doors)' },
 ];
-furn.svLayout = 2; furn.height = 0;   // default: I on the bathroom wall
+furn.svLayout = 1; furn.height = 0;   // default: I on the bathroom wall, 3 doors (150 cm) so the bedroom door opens fully (2026-11-17); 4 doors (200 cm) still an option
 const PAX_H = [{ name: '236.4 cm (doors 229.4)', H: 2.364, door: 2.294 }, { name: '201.2 cm (doors 194.6)', H: 2.012, door: 1.946 }];
 // door swings: sweep each closet door from closed to 90° open, stop where it would hit something (bed, the other run, a wall)
 const swingGroup = new THREE.Group(); dimsGroup.add(swingGroup);

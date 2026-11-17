@@ -391,6 +391,6 @@ function prewarmShaders() {
   if (typeof hueLights === 'function') { for (const o of hueLights()) o.visible = true; comp(); for (const o of hueLights()) o.visible = lightHold || o.intensity > 0.001; }
   done();
 }
-const furnishAll = () => { furnish(); setTimeout(prewarmShaders, 0); };
+const furnishAll = () => { furnish(); if (!coarse) setTimeout(prewarmShaders, 0); };   // phones: no up-front shader compile (iOS memory)
 if (modelRoot) furnishAll(); else window.__afterModel = furnishAll;
 

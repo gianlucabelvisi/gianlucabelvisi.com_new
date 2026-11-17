@@ -104,7 +104,7 @@ function grain(g, x, y, w, h, r, base, n, strength) {
   }
 }
 // oak floorboards: 2.4 m square tile, 20 cm planks running along v
-const floorTex = canvasTex(2048, 2048, (g, W) => {
+const floorTex = canvasTex(lite ? 1024 : 2048, lite ? 1024 : 2048, (g, W) => {   // phones: half the size (memory)
   const r = rng(7), pxm = W / 2.4, pw = 0.2 * pxm;
   g.fillStyle = '#6b4a2c'; g.fillRect(0, 0, W, W);
   for (let i = 0; i < 12; i++) {

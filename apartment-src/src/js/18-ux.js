@@ -135,7 +135,7 @@ function enterApp() {
   if (started) return;
   $('intro').hidden = true; started = true;
   setMode('over');
-  setTimeout(() => { try { prewarmShaders(); } catch (_) { /* best effort */ } }, 0);
+  if (!coarse) setTimeout(() => { try { prewarmShaders(); } catch (_) { /* best effort */ } }, 0);   // phones compile shaders as they're needed: compiling them all at start ran iOS out of memory
   syncModeUI();
   let seen = false; try { seen = localStorage.getItem('aptCoach2') === '1'; } catch (_) { /* private mode */ }
   if (!seen) { $('coach').hidden = false; document.body.classList.add('coaching'); }

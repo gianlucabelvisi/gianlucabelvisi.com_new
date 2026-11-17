@@ -1,9 +1,8 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body style="margin:0">
+<html lang="en" style="background:#0f0e0c"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Copenhagen Apartment 3D</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
   :root {
     color-scheme: dark;
@@ -410,7 +409,11 @@
   #zoomWalk .fg { stroke: var(--oak); stroke-linecap: round; stroke-dasharray: 94.25; stroke-dashoffset: calc(94.25 * (1 - var(--k))); transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset .12s linear; }
   body.placing #zoomWalk, body.focus #zoomWalk { display: none !important; }
 </style>
+<!-- fonts load without blocking: the page is styled from the first paint, the type swaps in when it arrives (2026-11-17: on iOS the
+     pending font sheet held back the inline styles, so the page showed unstyled while loading) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
 
+</head><body style="margin:0;background:#0f0e0c">
 <div id="hud3d" aria-label="Interaction points"></div>
 
 <div id="stage" data-media="/walkthrough/media/"></div>
@@ -672,7 +675,7 @@ function grain(g, x, y, w, h, r, base, n, strength) {
   }
 }
 // oak floorboards: 2.4 m square tile, 20 cm planks running along v
-const floorTex = canvasTex(2048, 2048, (g, W) => {
+const floorTex = canvasTex(lite ? 1024 : 2048, lite ? 1024 : 2048, (g, W) => {   // phones: half the size (memory)
   const r = rng(7), pxm = W / 2.4, pw = 0.2 * pxm;
   g.fillStyle = '#6b4a2c'; g.fillRect(0, 0, W, W);
   for (let i = 0; i < 12; i++) {
@@ -2590,7 +2593,7 @@ const SV_LAYOUTS = [
   { id: 'I-bath', name: 'I · 150 cm on the bathroom wall (100 + 50, 3 doors)' },
   { id: 'I-bath2', name: 'I · 200 cm on the bathroom wall (100 + 100, 4 doors)' },
 ];
-furn.svLayout = 2; furn.height = 0;   // default: I on the bathroom wall
+furn.svLayout = 1; furn.height = 0;   // default: I on the bathroom wall, 3 doors (150 cm) so the bedroom door opens fully (2026-11-17); 4 doors (200 cm) still an option
 const PAX_H = [{ name: '236.4 cm (doors 229.4)', H: 2.364, door: 2.294 }, { name: '201.2 cm (doors 194.6)', H: 2.012, door: 1.946 }];
 // door swings: sweep each closet door from closed to 90° open, stop where it would hit something (bed, the other run, a wall)
 const swingGroup = new THREE.Group(); dimsGroup.add(swingGroup);
@@ -7462,7 +7465,7 @@ function prewarmShaders() {
   if (typeof hueLights === 'function') { for (const o of hueLights()) o.visible = true; comp(); for (const o of hueLights()) o.visible = lightHold || o.intensity > 0.001; }
   done();
 }
-const furnishAll = () => { furnish(); setTimeout(prewarmShaders, 0); };
+const furnishAll = () => { furnish(); if (!coarse) setTimeout(prewarmShaders, 0); };   // phones: no up-front shader compile (iOS memory)
 if (modelRoot) furnishAll(); else window.__afterModel = furnishAll;
 
 // ------------------------------------------------------------ living: MAX | Zen coffee table and a rug under the sofa group (2026-11-15)
@@ -7827,7 +7830,7 @@ function enterApp() {
   if (started) return;
   $('intro').hidden = true; started = true;
   setMode('over');
-  setTimeout(() => { try { prewarmShaders(); } catch (_) { /* best effort */ } }, 0);
+  if (!coarse) setTimeout(() => { try { prewarmShaders(); } catch (_) { /* best effort */ } }, 0);   // phones compile shaders as they're needed: compiling them all at start ran iOS out of memory
   syncModeUI();
   let seen = false; try { seen = localStorage.getItem('aptCoach2') === '1'; } catch (_) { /* private mode */ }
   if (!seen) { $('coach').hidden = false; document.body.classList.add('coaching'); }

@@ -18,6 +18,8 @@ t = t.replace('https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.8.3/build/index.mod
 open(os.path.join(W, 'test.html'), 'w').write(t)
 if len(sys.argv) > 2:
     b = full.replace('data-media="media/"', 'data-media="/walkthrough/media/"')
-    b = '<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body style="margin:0">\n' + b + '\n</body></html>\n'
+    i = b.index('<div id="hud3d"')                      # title, stylesheet and font link go in <head>, so the page is styled from the first paint
+    b = ('<!doctype html>\n<html lang="en" style="background:#0f0e0c"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
+         + b[:i] + '</head><body style="margin:0;background:#0f0e0c">\n' + b[i:] + '\n</body></html>\n')
     os.makedirs(os.path.dirname(sys.argv[2]), exist_ok=True)
     open(sys.argv[2], 'w').write(b)

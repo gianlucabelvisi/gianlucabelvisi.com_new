@@ -1,10 +1,12 @@
 <title>Copenhagen Apartment 3D</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
 /*@include src/style.css*/
 </style>
+<!-- fonts load without blocking: the page is styled from the first paint, the type swaps in when it arrives (2026-11-17: on iOS the
+     pending font sheet held back the inline styles, so the page showed unstyled while loading) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
 
 <div id="hud3d" aria-label="Interaction points"></div>
 
