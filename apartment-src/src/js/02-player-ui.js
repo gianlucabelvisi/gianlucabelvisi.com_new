@@ -197,6 +197,7 @@ function setMode(m, internal) {
   } else {
     camera.rotation.set(player.pitch, player.yaw, 0);
   }
+  camera.fov = viewFov(); camera.updateProjectionMatrix();
   $('cross').hidden = true;
   showHint();
   syncModeUI();

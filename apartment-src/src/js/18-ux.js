@@ -201,3 +201,62 @@ function setCrawl(on) {
 }
 $('qCrawl').addEventListener('click', () => setCrawl(!crawl.on));
 addEventListener('keydown', (e) => { if (e.code === 'KeyC' && !e.repeat && !e.metaKey && !e.ctrlKey && mode === 'walk' && !(e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName))) setCrawl(!crawl.on); });
+
+// ---- see-through walls from above (2026-11-17, Gianluca): in the view from above, building walls between the camera and what you're
+// looking at (the orbit target) fade to a fine screen-door pattern, so they're almost transparent. Only the architecture from the
+// model is patched (walls, facades, frames; not floors, glass or furniture). One shader for both modes: a uniform switches it.
+const xray = { on: { value: 0 }, cam: { value: new THREE.Vector3() }, tgt: { value: new THREE.Vector3() }, R: { value: 2 } };
+function xrayPatch(mat) {
+  if (!mat || mat.userData.xray || mat.transparent || !(mat.isMeshStandardMaterial || mat.isMeshLambertMaterial || mat.isMeshPhongMaterial || mat.isMeshBasicMaterial)) return;
+  mat.userData.xray = true;
+  const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey ? mat.customProgramCacheKey.bind(mat) : () => '';
+  mat.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    sh.uniforms.xOn = xray.on; sh.uniforms.xCam = xray.cam; sh.uniforms.xTgt = xray.tgt; sh.uniforms.xR = xray.R;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vXW;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvXW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vXW;\nuniform float xOn; uniform vec3 xCam; uniform vec3 xTgt; uniform float xR;')
+      .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+      if (xOn > 0.5) {
+        vec3 dd = xTgt - xCam; float L = length(dd); vec3 u = dd / max(L, 1e-4); vec3 p = vXW - xCam; float t = dot(p, u);
+        if (t > 0.2 && t < L - 0.5) {
+          float perp = length(p - u * t), rr = xR * (0.35 + 0.65 * t / L);           // a cone that opens towards the target
+          if (perp < rr) {                                                              // ordered (Bayer 4×4) dither: ~15 % kept in the middle, soft edge
+            vec2 q = mod(floor(gl_FragCoord.xy), 4.0); float bx = q.x, by = q.y;
+            float bay = mod(bx * 8.0 + by * 4.0 + mod(bx + by, 2.0) * 2.0 + mod(by, 2.0), 16.0);   // a cheap 4×4 ordered threshold, 0..15
+            bay = (mod(bay * 7.0, 16.0) + 0.5) / 16.0;
+            float keep = 0.15 + 0.85 * smoothstep(rr * 0.7, rr, perp);
+            if (bay > keep) discard;
+          }
+        }
+      }`);
+  };
+  mat.customProgramCacheKey = () => prevKey() + '|xray';
+  mat.needsUpdate = true;
+}
+function xrayPatchModel() {
+  if (!modelRoot) return;
+  const floors = new Set(pickables.map((o) => o.material));
+  modelRoot.traverse((o) => { if (!o.isMesh) return; const ms = Array.isArray(o.material) ? o.material : [o.material];
+    for (const m of ms) if (!floors.has(m) && m !== MATS.glass) xrayPatch(m); });
+}
+function xrayTick() {
+  const on = mode === 'over' && started;
+  xray.on.value = on ? 1 : 0; if (!on) return;
+  xray.cam.value.copy(camera.position); xray.tgt.value.copy(orbit.target); if (focus) xray.tgt.value.y += 0.4;
+  const L = camera.position.distanceTo(orbit.target), elev = Math.asin(THREE.MathUtils.clamp((camera.position.y - orbit.target.y) / Math.max(L, 1e-3), -1, 1));
+  // looking steeply down nothing is in the way (the roof and upper floors are already hidden): fade the effect out between ~34° and ~54°
+  const k = 1 - THREE.MathUtils.smoothstep(elev, 0.6, 0.95);
+  xray.R.value = THREE.MathUtils.clamp(1.4 + 0.18 * L, 1.8, 4.5) * k; if (k <= 0) xray.on.value = 0;
+}
+
+// ---- field of view (2026-11-17, Gianluca: walking, the flat felt smaller than it is). The walk camera was a fixed 60° vertical
+// (66° on phones): fine on a wide screen, but a portrait phone then saw only ~37° across — like looking through a tube, which makes rooms
+// feel cramped. Walking now aims for a natural horizontal view (≈96° on landscape screens, ≈84° asked on portrait, capped so verticals
+// don't stretch): desktop 16:9 ≈ 64° vertical, portrait phone ≈ 52° across instead of 37°. The view from above keeps its old lens.
+function viewFov() {
+  if (typeof mode === 'undefined' || mode !== 'walk') return coarse ? 66 : 60;
+  const a = innerWidth / Math.max(1, innerHeight), h = (a >= 1 ? 96 : 84) * Math.PI / 180;
+  const v = 2 * Math.atan(Math.tan(h / 2) / a) * 180 / Math.PI;
+  return THREE.MathUtils.clamp(v, 58, a >= 1 ? 72 : 88);
+}

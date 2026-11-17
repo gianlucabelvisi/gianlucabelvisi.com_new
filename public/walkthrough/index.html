@@ -1340,6 +1340,7 @@ function setMode(m, internal) {
   } else {
     camera.rotation.set(player.pitch, player.yaw, 0);
   }
+  camera.fov = viewFov(); camera.updateProjectionMatrix();
   $('cross').hidden = true;
   showHint();
   syncModeUI();
@@ -3865,7 +3866,8 @@ const CHAIR_MODELS = [
 MATS.tTop = std({ color: 0xd8c29f, roughness: 0.55 }); MATS.tEdge = std({ color: 0xcfb58c, roughness: 0.6 }); MATS.tLegs = std({ color: 0xe2d3b8, roughness: 0.6 });
 MATS.cSeat = std({ color: 0x958777, roughness: 1, side: THREE.DoubleSide }); MATS.cLegs = std({ color: 0xc9a473, roughness: 0.5 });
 MATS.seam = std({ color: 0x8a7658, roughness: 0.8 });
-const dining = { t: 0, tc: 0, tf: 0, c: 0, cv: 0, n: 4, out: false, angle: 0, O: null, group: null, parts: [] };
+const dining = { t: 0, tc: 0, tf: 0, c: 0, cv: 0, n: 4, out: false, angle: Math.PI / 4, O: null,   // 2026-11-17: turned 45°, nearer the window
+  group: null, parts: [] };
 const diningDims = new THREE.Group(); dimsGroup.add(diningDims);
 function dFrame() { const a = dining.angle; return { x: new THREE.Vector3(Math.cos(a), 0, -Math.sin(a)), z: new THREE.Vector3(Math.sin(a), 0, Math.cos(a)) }; }
 function chairSpots() {
@@ -4023,7 +4025,7 @@ function stadiumShape(L, D) {
   return sh;
 }
 function buildDining(tryPlace) {
-  if (!dining.O) dining.O = b2t(2.0, 2.95, 0);          // in front of the kitchen, by the dining-room window
+  if (!dining.O) dining.O = b2t(1.65, 2.95, 0);         // in front of the kitchen, close to the dining-room window
   if (dining.group) { scene.remove(dining.group); dropParts(dining.parts); }
   let moved = true;
   if (tryPlace) {
@@ -6963,12 +6965,11 @@ const ROOMF = {
     { name: 'HAVBÄCK vægskab 40 × 15 × 95, hvid', brand: 'IKEA', W: 0.40, D: 0.15, H: 0.95, kr: 545, c: 0xf3f2ee, url: IK('havbaeck-vaegskab-med-lage-hvid-40534996') },
     { name: 'HAGAÅN åbent vægskab 40 × 15 × 95, eg', brand: 'IKEA', W: 0.40, D: 0.15, H: 0.95, kr: 700, c: 0xc39a6a, open: true, url: IK('hagaan-abent-vaegskab-egetraesmonstret-70535522') }],
   balc: [{ name: 'None' },
-    { name: 'ASKHOLMEN bord til væg + 2 klapstole', brand: 'IKEA', kind: 'wall', kr: 689, c: 0x5a4030, cush: 0xcfc6b5, url: IK('askholmen-bord-til-vaeg-2-klapstol-udendors-morkebrun-kuddarna-lys-grabeige-s69578249'), desc: 'acacia, folds flat against the wall · table 70 × 44 cm' },
     { name: 'SUNDSÖ bord 65 × 65 + 2 klapstole, gul', brand: 'IKEA', kind: 'bistro', kr: 799, c: 0xe2b23a, url: IK('sundsoe-bord-og-2-klapstole-udendors-gul-gul-s29573022'), desc: 'powder-coated steel, folding' },
     { name: 'VISINGSÖ bord 70 × 70 + 2 stole, mørkegrøn', brand: 'IKEA', kind: 'bistro', kr: 1735, c: 0x2f4a3a, cush: 0xd8ccb4, url: IK('visingsoe-visingsoe-bord-og-2-stole-udendors-morkegron-morkegron-froesoen-duvholmen-beige-s89615533'), desc: 'steel, with beige seat pads' }],
 };
 const ENTRANCE_EMPTY = true;   // the drop zone by the living-room opening is undecided: nothing built, nothing on the list
-const roomsState = { shoe: 1, above: 1, rail: 0, cab: 1, balc: 1 };   // rail off: the bathroom already has a towel ladder
+const roomsState = { shoe: 1, above: 1, rail: 0, cab: 1, balc: 2 };   // balc 2 = VISINGSÖ (2026-11-17)   // rail off: the bathroom already has a towel ladder
 const roomF = { groups: [], parts: [], doorObjs: [] };
 function clearRoomFurniture() {
   for (const g of roomF.groups) { scene.remove(g); g.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
@@ -7028,31 +7029,76 @@ function buildRoomFurniture() {
           add(new THREE.BoxGeometry(0.004, Cb.H - 0.01, 0.004), stdc({ color: 0x9a948a, roughness: 0.6 }), Cb.D + 0.002, y0 + Cb.H / 2, Cb.W / 2 - 0.004, false); }
         finishArea(g, p2, 'Bathroom', bathMover, b2t(8.4, 2.6, y0 + 0.5)); }
     } }
-  // balcony: west of the double door (it opens outwards, x 2.49–4.01), towards the rounded end
+  // balcony (2026-11-17 rebuild): a free-standing bistro set west of the double door, on the balcony itself (the facade there is fixed glass),
+  // clear of both door leaves; real proportions: table 72 cm high, chairs with 45 cm seats, slatted seats and backs, 84 cm tall.
   { const B = ROOMF.balc[roomsState.balc];
     if (B.kind) {
-      const g = wallGroup(1.15, 8.744, 0, 1), parts = [], add = mk(g, parts), m = stdc({ color: B.c, roughness: B.kind === 'wall' ? 0.8 : 0.45, metalness: B.kind === 'wall' ? 0 : 0.5 }), Y = -0.02;
-      const chair = (x, z, ry) => { const c = new THREE.Group(); c.position.set(x, Y, z); c.rotation.y = ry; g.add(c);
-        const p = (geo, mm, xx, yy, zz) => { const o = new THREE.Mesh(geo, mm); o.position.set(xx, yy, zz); o.castShadow = o.receiveShadow = true; c.add(o); parts.push(o); return o; };
-        p(new THREE.BoxGeometry(0.4, 0.025, 0.4), m, 0, 0.45, 0);
-        p(new THREE.BoxGeometry(0.03, 0.36, 0.38), m, -0.19, 0.68, 0).rotation.z = -0.12;
-        for (const sx of [-1, 1]) { p(new THREE.CylinderGeometry(0.012, 0.012, 0.86, 8), m, -0.17, 0.43, sx * 0.18).rotation.z = 0.18; p(new THREE.CylinderGeometry(0.012, 0.012, 0.5, 8), m, 0.15, 0.24, sx * 0.18).rotation.z = -0.35; }
-        if (B.cush) p(new THREE.BoxGeometry(0.38, 0.03, 0.38), stdc({ color: B.cush, roughness: 1 }), 0.005, 0.477, 0); };
-      if (B.kind === 'wall') {         // ASKHOLMEN: flap table on the facade, a folding chair at each end
-        add(new THREE.BoxGeometry(0.44, 0.025, 0.7), m, 0.22, 0.74, 0); add(new THREE.BoxGeometry(0.03, 0.4, 0.66), m, 0.015, 0.6, 0);
-        add(new THREE.BoxGeometry(0.35, 0.03, 0.03), m, 0.17, 0.62, 0).rotation.z = 0.8;
-        chair(0.3, 0.62, -Math.PI / 2); chair(0.3, -0.62, Math.PI / 2);
-      } else {                         // bistro table in the middle of the balcony, two chairs facing each other along it
-        const T = B.name.includes('70') ? 0.7 : 0.65, x0 = 0.75;
-        add(new THREE.BoxGeometry(T, 0.02, T), m, x0, 0.72, 0);
-        for (const dx of [-1, 1]) for (const dz of [-1, 1]) add(new THREE.CylinderGeometry(0.012, 0.012, 0.71, 8), m, x0 + dx * (T / 2 - 0.05), 0.355, dz * (T / 2 - 0.05));
-        chair(x0, T / 2 + 0.28, -Math.PI / 2); chair(x0, -T / 2 - 0.28, Math.PI / 2);
-      }
-      add(new THREE.CylinderGeometry(0.05, 0.04, 0.09, 16), stdc({ color: 0xb06a43, roughness: 0.9 }), B.kind === 'wall' ? 0.25 : 0.75, 0.8, 0.1, false);       // a little pot with herbs
-      add(new THREE.SphereGeometry(0.07, 12, 10), stdc({ color: 0x5f8a45, roughness: 1 }), B.kind === 'wall' ? 0.25 : 0.75, 0.88, 0.1, false);
-      finishArea(g, parts, 'Balcony', balconyMover, b2t(1.15, 9.5, 0.8));
-    } }
+      const g = wallGroup(1.0, 8.744, 0, 1), parts = [], add = mk(g, parts), Y = -0.02;    // local x = out onto the balcony, z = along the facade (plan x − 1.0)
+      const m = stdc({ color: B.c, roughness: 0.5, metalness: 0.45 });
+      const rod = (P0, P1, r, mat, grp) => { const v = P1.clone().sub(P0), o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, v.length(), 10), mat); o.position.copy(P0).add(P1).multiplyScalar(0.5);
+        o.quaternion.setFromUnitVectors(UP, v.normalize()); o.castShadow = o.receiveShadow = true; grp.add(o); return o; };
+      const V = (x, y, z) => new THREE.Vector3(x, y, z);
+      const chair = (x, z, ry) => { const c = new THREE.Group(); c.position.set(x, Y, z); c.rotation.y = ry; g.add(c);   // front = +x
+        const SH = 0.45, W = 0.42, D = 0.42, r = 0.011;
+        for (let k = 0; k < 5; k++) { const sl = new THREE.Mesh(new THREE.BoxGeometry(0.068, 0.016, W - 0.02), m); sl.position.set(-D / 2 + 0.04 + k * (D - 0.08) / 4, SH, 0); sl.castShadow = sl.receiveShadow = true; c.add(sl); }
+        for (const sz of [-1, 1]) {
+          const z0 = sz * (W / 2 - 0.01);
+          rod(V(-D / 2 + 0.02, 0, z0), V(-D / 2 - 0.05, 0.84, z0), r, m, c);                 // rear leg running up into the back
+          rod(V(D / 2 - 0.02, 0, z0), V(D / 2 - 0.05, SH - 0.01, z0), r, m, c);              // front leg
+          rod(V(-D / 2, SH - 0.015, z0), V(D / 2 - 0.04, SH - 0.015, z0), r * 0.9, m, c);    // seat rail
+          rod(V(-D / 2 + 0.01, 0.16, z0), V(D / 2 - 0.03, 0.16, z0), r * 0.7, m, c);         // low stretcher
+        }
+        for (const y of [0.6, 0.69, 0.78]) { const t = y / 0.84, bx = -D / 2 + 0.02 - 0.07 * t; const sl = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.055, W - 0.01), m); sl.position.set(bx - 0.008, y, 0); sl.rotation.z = 0.08; sl.castShadow = true; c.add(sl); }
+        if (B.cush) { const pad = new THREE.Mesh(softBox(0.38, 0.03, 0.39, 0.012, { top: 0.006 }), stdc({ color: B.cush, roughness: 1 })); pad.position.set(0.005, SH + 0.024, 0); pad.castShadow = true; c.add(pad); }
+        const hit = new THREE.Mesh(new THREE.BoxGeometry(D + 0.06, 0.84, W + 0.04), new THREE.MeshBasicMaterial({ visible: false })); hit.position.set(-0.02, 0.42, 0); c.add(hit); parts.push(hit);
+      };
+      // table: square slatted top on a steel frame, 72 cm
+      const T = B.name.includes('70') ? 0.7 : 0.65, x0 = 0.86, zc = 0;
+      for (let k = 0; k < 7; k++) add(new THREE.BoxGeometry(T / 7 - 0.008, 0.018, T), m, x0 - T / 2 + (k + 0.5) * T / 7, 0.72 - 0.009 + Y, zc, false);
+      for (const s2 of [-1, 1]) { add(new THREE.BoxGeometry(T, 0.035, 0.02), m, x0, 0.69 + Y, zc + s2 * (T / 2 - 0.01), false); add(new THREE.BoxGeometry(0.02, 0.035, T), m, x0 + s2 * (T / 2 - 0.01), 0.69 + Y, zc, false); }
+      for (const dx of [-1, 1]) for (const dz of [-1, 1]) rod(V(x0 + dx * (T / 2 - 0.025), Y, zc + dz * (T / 2 - 0.025)), V(x0 + dx * (T / 2 - 0.025), 0.7 + Y, zc + dz * (T / 2 - 0.025)), 0.014, m, g);
+      { const hit = add(new THREE.BoxGeometry(T, 0.72, T), new THREE.MeshBasicMaterial({ visible: false }), x0, 0.36 + Y, zc); hit.castShadow = false; }
+      chair(x0, zc + T / 2 + 0.24, -Math.PI / 2); chair(x0, zc - T / 2 - 0.24, Math.PI / 2);
+      // a pot of basil on the table
+      add(new THREE.CylinderGeometry(0.055, 0.045, 0.1, 18), stdc({ color: 0xb06a43, roughness: 0.9 }), x0 + 0.1, 0.77 + Y, zc + 0.12, false);
+      { const hb = new THREE.Group(); hb.position.set(x0 + 0.1, 0.82 + Y, zc + 0.12); hb.add(herbClump('basil', 0.06, 0.16, rng(11))); g.add(hb); }   // nested so the merge keeps its colours
+      finishArea(g, parts, 'Balcony', balconyMover, b2t(1.0, 9.6, 0.8));
+    }
+    buildBalconyHerbs();
+  }
   shadowDirty = true;
+}
+// herbs (2026-11-17, Gianluca): the facade by the balcony is glass, so they hang in planter boxes on the inner side of the railing
+const HERB_LOOK = { rosemary: { c: 0x3a5440, h: [0.22, 0.34] }, basil: { c: 0x4f9a3a, h: [0.12, 0.18] }, thyme: { c: 0x6c8456, h: [0.08, 0.12] }, mint: { c: 0x3f8f45, h: [0.12, 0.2] }, parsley: { c: 0x3b8a36, h: [0.14, 0.2] }, chives: { c: 0x4d8f3d, h: [0.2, 0.28] } };
+function herbClump(kind, R, H, r) {                       // a small merged bush of the herb's typical shape, base at y = 0
+  const L = HERB_LOOK[kind], geos = [], col = new THREE.Color(), cols = [];
+  const push = (geo, c) => { const n = geo.attributes.position.count; for (let i = 0; i < n; i++) cols.push(c.r, c.g, c.b); geos.push(geo.toNonIndexed ? geo : geo); };
+  const shade = () => col.setHex(L.c).offsetHSL((r() - 0.5) * 0.03, 0, (r() - 0.5) * 0.12).clone();
+  if (kind === 'rosemary' || kind === 'chives') {          // upright needles / stalks
+    for (let i = 0; i < 26; i++) { const a = r() * 6.28, d = r() * R, h = L.h[0] + r() * (L.h[1] - L.h[0]);
+      const g = new THREE.CylinderGeometry(kind === 'chives' ? 0.003 : 0.0045, 0.006, h, 5).translate(0, h / 2, 0); g.rotateZ((r() - 0.5) * 0.35); g.rotateX((r() - 0.5) * 0.35); g.translate(Math.cos(a) * d, 0, Math.sin(a) * d); push(g.toNonIndexed(), shade()); }
+  } else {                                               // leafy: flattened leaves on short stems in a mound
+    const n = kind === 'thyme' ? 40 : kind === 'parsley' ? 34 : 22, ls = kind === 'thyme' ? 0.012 : kind === 'parsley' ? 0.02 : 0.03;
+    for (let i = 0; i < n; i++) { const a = r() * 6.28, d = Math.sqrt(r()) * R, h = L.h[0] * 0.3 + r() * (L.h[1] - L.h[0] * 0.3) * (1 - 0.5 * d / R);
+      const g = new THREE.SphereGeometry(ls, 6, 4).scale(1, 0.35, 0.7); g.rotateY(r() * 6.28); g.rotateZ((r() - 0.5) * 0.8); g.translate(Math.cos(a) * d, h, Math.sin(a) * d); push(g.toNonIndexed(), shade()); }
+  }
+  const merged = mergeGeometries(geos.map((g) => { g.deleteAttribute('uv'); return g; }), false); merged.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); merged.computeVertexNormals();
+  const mesh = new THREE.Mesh(merged, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 })); mesh.castShadow = true; return mesh;
+}
+function buildBalconyHerbs() {
+  const g = new THREE.Group(); scene.add(g); roomF.groups.push(g);
+  const A = [0.045, 10.532], Bp = [4.445, 10.215], at = (x) => [x, A[1] + (Bp[1] - A[1]) * (x - A[0]) / (Bp[0] - A[0])];
+  const dir = b2t(Bp[0] - A[0], Bp[1] - A[1]).normalize(), inward = b2t(0, -1).normalize();
+  const boxM = stdc({ color: 0x2b2d2c, roughness: 0.6, metalness: 0.3 }), soil = stdc({ color: 0x3a2a1e, roughness: 1 }), r = rng(5);
+  const sets = [{ x: 0.55, herbs: ['rosemary', 'thyme', 'chives'] }, { x: 1.35, herbs: ['basil', 'parsley', 'mint'] }];
+  for (const S of sets) {
+    const [bx, by] = at(S.x + 0.3), c = b2t(bx, by - 0.04, 0).addScaledVector(inward, 0.11), top = 1.08;
+    const box = new THREE.Group(); box.position.copy(c); box.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), dir); g.add(box);
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.16, 0.17), boxM); b.position.y = top - 0.08; b.castShadow = b.receiveShadow = true; box.add(b);
+    const s2 = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.01, 0.15), soil); s2.position.y = top - 0.012; box.add(s2);
+    for (const sx of [-0.2, 0.2]) { const hk = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.06, 0.14), boxM); hk.position.set(sx, top + 0.02, -0.105); box.add(hk); }   // brackets over the handrail
+    S.herbs.forEach((k, i) => { const h = herbClump(k, 0.075, 0.2, r); h.position.set(-0.2 + i * 0.2, top - 0.01, 0); box.add(h); });
+  }
 }
 const roomSel = (key, label, after) => ({ id: 'rf_' + key, label, options: () => ROOMF[key].map((o) => ({ label: o.kr ? `${o.name} · ${o.kr} kr` : o.name })), get: () => roomsState[key],
   set: (i) => { roomsState[key] = i; buildRoomFurniture(); if (after) after(); } });
@@ -7064,7 +7110,7 @@ const bathMover = { name: 'Bathroom', title: () => 'Bathroom', selects: [roomSel
   info: () => { const C = ROOMF.cab[roomsState.cab]; return C.W ? `${Math.round(C.W * 100)} × ${Math.round(C.D * 100)} × ${Math.round(C.H * 100)} cm, 130 cm up over the toilet · the heated towel ladder by the washer stays` : 'Nothing over the toilet'; } };
 const balconyMover = { name: 'Balcony', title: () => 'Balcony', selects: [roomSel('balc', 'Table and chairs')],
   link: () => { const B = ROOMF.balc[roomsState.balc]; return B.url ? { href: B.url, text: `IKEA · ${B.name.split(' ')[0]} ↗` } : {}; },
-  info: () => { const B = ROOMF.balc[roomsState.balc]; return B.kind ? `${B.desc} · west of the balcony door, clear of both leaves; about 1.7 m deep there` : 'Empty balcony'; } };
+  info: () => { const B = ROOMF.balc[roomsState.balc]; return (B.kind ? `${B.desc} · table 72 cm high, chairs with 45 cm seats · west of the balcony door, clear of both leaves` : 'No table') + ' · herbs in two planter boxes on the railing: rosemary, thyme, chives · basil, parsley, mint'; } };
 function roomShopLines(add) {
   const R = roomsState, put = (room, key, o, detail) => { if (o && o.kr) add(room, key, `${o.brand} ${o.name}`, { kr: o.kr, href: o.url, detail: detail || '' }); };
   if (!ENTRANCE_EMPTY) { put('Entrance', 'shoe', ROOMF.shoe[R.shoe]); put('Entrance', 'above', ROOMF.above[R.above]); }
@@ -7465,7 +7511,7 @@ function prewarmShaders() {
   if (typeof hueLights === 'function') { for (const o of hueLights()) o.visible = true; comp(); for (const o of hueLights()) o.visible = lightHold || o.intensity > 0.001; }
   done();
 }
-const furnishAll = () => { furnish(); if (!coarse) setTimeout(prewarmShaders, 0); };   // phones: no up-front shader compile (iOS memory)
+const furnishAll = () => { try { xrayPatchModel(); } catch (e) { console.warn('xray', e); } furnish(); if (!coarse) setTimeout(prewarmShaders, 0); };   // phones: no up-front shader compile (iOS memory)
 if (modelRoot) furnishAll(); else window.__afterModel = furnishAll;
 
 // ------------------------------------------------------------ living: MAX | Zen coffee table and a rug under the sofa group (2026-11-15)
@@ -7896,6 +7942,65 @@ function setCrawl(on) {
 }
 $('qCrawl').addEventListener('click', () => setCrawl(!crawl.on));
 addEventListener('keydown', (e) => { if (e.code === 'KeyC' && !e.repeat && !e.metaKey && !e.ctrlKey && mode === 'walk' && !(e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName))) setCrawl(!crawl.on); });
+
+// ---- see-through walls from above (2026-11-17, Gianluca): in the view from above, building walls between the camera and what you're
+// looking at (the orbit target) fade to a fine screen-door pattern, so they're almost transparent. Only the architecture from the
+// model is patched (walls, facades, frames; not floors, glass or furniture). One shader for both modes: a uniform switches it.
+const xray = { on: { value: 0 }, cam: { value: new THREE.Vector3() }, tgt: { value: new THREE.Vector3() }, R: { value: 2 } };
+function xrayPatch(mat) {
+  if (!mat || mat.userData.xray || mat.transparent || !(mat.isMeshStandardMaterial || mat.isMeshLambertMaterial || mat.isMeshPhongMaterial || mat.isMeshBasicMaterial)) return;
+  mat.userData.xray = true;
+  const prev = mat.onBeforeCompile, prevKey = mat.customProgramCacheKey ? mat.customProgramCacheKey.bind(mat) : () => '';
+  mat.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    sh.uniforms.xOn = xray.on; sh.uniforms.xCam = xray.cam; sh.uniforms.xTgt = xray.tgt; sh.uniforms.xR = xray.R;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vXW;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvXW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vXW;\nuniform float xOn; uniform vec3 xCam; uniform vec3 xTgt; uniform float xR;')
+      .replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
+      if (xOn > 0.5) {
+        vec3 dd = xTgt - xCam; float L = length(dd); vec3 u = dd / max(L, 1e-4); vec3 p = vXW - xCam; float t = dot(p, u);
+        if (t > 0.2 && t < L - 0.5) {
+          float perp = length(p - u * t), rr = xR * (0.35 + 0.65 * t / L);           // a cone that opens towards the target
+          if (perp < rr) {                                                              // ordered (Bayer 4×4) dither: ~15 % kept in the middle, soft edge
+            vec2 q = mod(floor(gl_FragCoord.xy), 4.0); float bx = q.x, by = q.y;
+            float bay = mod(bx * 8.0 + by * 4.0 + mod(bx + by, 2.0) * 2.0 + mod(by, 2.0), 16.0);   // a cheap 4×4 ordered threshold, 0..15
+            bay = (mod(bay * 7.0, 16.0) + 0.5) / 16.0;
+            float keep = 0.15 + 0.85 * smoothstep(rr * 0.7, rr, perp);
+            if (bay > keep) discard;
+          }
+        }
+      }`);
+  };
+  mat.customProgramCacheKey = () => prevKey() + '|xray';
+  mat.needsUpdate = true;
+}
+function xrayPatchModel() {
+  if (!modelRoot) return;
+  const floors = new Set(pickables.map((o) => o.material));
+  modelRoot.traverse((o) => { if (!o.isMesh) return; const ms = Array.isArray(o.material) ? o.material : [o.material];
+    for (const m of ms) if (!floors.has(m) && m !== MATS.glass) xrayPatch(m); });
+}
+function xrayTick() {
+  const on = mode === 'over' && started;
+  xray.on.value = on ? 1 : 0; if (!on) return;
+  xray.cam.value.copy(camera.position); xray.tgt.value.copy(orbit.target); if (focus) xray.tgt.value.y += 0.4;
+  const L = camera.position.distanceTo(orbit.target), elev = Math.asin(THREE.MathUtils.clamp((camera.position.y - orbit.target.y) / Math.max(L, 1e-3), -1, 1));
+  // looking steeply down nothing is in the way (the roof and upper floors are already hidden): fade the effect out between ~34° and ~54°
+  const k = 1 - THREE.MathUtils.smoothstep(elev, 0.6, 0.95);
+  xray.R.value = THREE.MathUtils.clamp(1.4 + 0.18 * L, 1.8, 4.5) * k; if (k <= 0) xray.on.value = 0;
+}
+
+// ---- field of view (2026-11-17, Gianluca: walking, the flat felt smaller than it is). The walk camera was a fixed 60° vertical
+// (66° on phones): fine on a wide screen, but a portrait phone then saw only ~37° across — like looking through a tube, which makes rooms
+// feel cramped. Walking now aims for a natural horizontal view (≈96° on landscape screens, ≈84° asked on portrait, capped so verticals
+// don't stretch): desktop 16:9 ≈ 64° vertical, portrait phone ≈ 52° across instead of 37°. The view from above keeps its old lens.
+function viewFov() {
+  if (typeof mode === 'undefined' || mode !== 'walk') return coarse ? 66 : 60;
+  const a = innerWidth / Math.max(1, innerHeight), h = (a >= 1 ? 96 : 84) * Math.PI / 180;
+  const v = 2 * Math.atan(Math.tan(h / 2) / a) * 180 / Math.PI;
+  return THREE.MathUtils.clamp(v, 58, a >= 1 ? 72 : 88);
+}
 // ------------------------------------------------------------ clouds
 (function clouds() {
   const W = 2048, Hh = 512;
@@ -7955,7 +8060,7 @@ window.__perf = () => ({ prNow, ftAvg: +ftAvg.toFixed(1), lights: autoLights && 
 function resize() {
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w, h, false);
-  camera.aspect = w / h; camera.updateProjectionMatrix();
+  camera.aspect = w / h; camera.fov = viewFov(); camera.updateProjectionMatrix();
   if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); }
 }
 addEventListener('resize', resize);
@@ -8010,6 +8115,7 @@ function frame() {
   frame.sig = sig; if (busy) frame.busyAt = now;
   const idle = now - (frame.busyAt ?? 0) > 900;
   if (shadowDirty || frame.n % 600 === 0) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
+  xrayTick();
   if (!idle || frame.n % 6 === 0) { if (composer) composer.render(); else renderer.render(scene, camera); busyAfterRender(); }
   requestAnimationFrame(frame);
 }
@@ -8091,6 +8197,17 @@ function hudVisible(key, from, to, own, every = 4) {     // cached line-of-sight
   const v = !hudRay.intersectObjects(occluders(), false).some((h) => !(own && own.includes(h.object)));
   hud.occ.set(key, { n: hud.n, v }); return v;
 }
+// a piece's own parts for the line-of-sight test: its body plus the hinged leaves (closet doors, flaps) that sit in its box,
+// so a closed closet's own doors don't hide its info button (2026-11-17: some only showed with the doors open)
+function furnOwn(d, bb) {
+  if (d._own && d._ownN === doors.length) return d._own;
+  const box = bb.clone().expandByScalar(0.08), own = [...d.parts], c = new THREE.Vector3();
+  for (const h of doors) if (h.kind === 'hinge' && h.parts && h.parts.length) {
+    const hb = new THREE.Box3(); for (const p of h.parts) { p.updateMatrixWorld(true); hb.expandByObject(p); }
+    if (box.containsPoint(hb.getCenter(c))) own.push(...h.parts);
+  }
+  d._own = own; d._ownN = doors.length; return own;
+}
 function partsBox(d, fresh) {
   if (!d._bb || fresh) { d._bb = new THREE.Box3(); for (const p of d.parts) { p.updateMatrixWorld(true); d._bb.expandByObject(p); } }
   return d._bb;
@@ -8134,9 +8251,10 @@ function hudUpdate() {
       if (mode === 'over' && coarse && !focus && camera.position.distanceTo(orbit.target) > 9) continue;   // phones: the plan from above stays clean until you zoom in
       const bb = partsBox(d, focus && focus.door === d);
       bb.getCenter(_hp); _hp.y = bb.max.y + 0.14;
+      if (mode === 'walk') _hp.y = Math.min(_hp.y, 2.45);              // full-height built-ins: keep the button under the ceiling
       if (mode === 'walk') { const dist = _hp.distanceTo(camera.position); if (dist > 5.5 || dist < 0.5) continue; }
       if (!toScreen(_hp, _sc)) continue;
-      if (mode === 'walk' && !hudVisible(d, camera.position, _hp, d.parts, 6)) continue;
+      if (mode === 'walk' && !hudVisible(d, camera.position, _hp, furnOwn(d, bb), 6)) continue;
       const b = hudEl('finfo'); b.hidden = false; b.style.left = _sc.x + 'px'; b.style.top = _sc.y + 'px';
       const on = !!focus && focus.door === d; b.classList.toggle('on', on);
       b.title = on ? 'Back to where you were' : `${d.label}: options`; b.setAttribute('aria-label', b.title);

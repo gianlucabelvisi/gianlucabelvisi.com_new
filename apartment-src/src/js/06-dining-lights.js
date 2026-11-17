@@ -82,7 +82,8 @@ const CHAIR_MODELS = [
 MATS.tTop = std({ color: 0xd8c29f, roughness: 0.55 }); MATS.tEdge = std({ color: 0xcfb58c, roughness: 0.6 }); MATS.tLegs = std({ color: 0xe2d3b8, roughness: 0.6 });
 MATS.cSeat = std({ color: 0x958777, roughness: 1, side: THREE.DoubleSide }); MATS.cLegs = std({ color: 0xc9a473, roughness: 0.5 });
 MATS.seam = std({ color: 0x8a7658, roughness: 0.8 });
-const dining = { t: 0, tc: 0, tf: 0, c: 0, cv: 0, n: 4, out: false, angle: 0, O: null, group: null, parts: [] };
+const dining = { t: 0, tc: 0, tf: 0, c: 0, cv: 0, n: 4, out: false, angle: Math.PI / 4, O: null,   // 2026-11-17: turned 45°, nearer the window
+  group: null, parts: [] };
 const diningDims = new THREE.Group(); dimsGroup.add(diningDims);
 function dFrame() { const a = dining.angle; return { x: new THREE.Vector3(Math.cos(a), 0, -Math.sin(a)), z: new THREE.Vector3(Math.sin(a), 0, Math.cos(a)) }; }
 function chairSpots() {
@@ -240,7 +241,7 @@ function stadiumShape(L, D) {
   return sh;
 }
 function buildDining(tryPlace) {
-  if (!dining.O) dining.O = b2t(2.0, 2.95, 0);          // in front of the kitchen, by the dining-room window
+  if (!dining.O) dining.O = b2t(1.65, 2.95, 0);         // in front of the kitchen, close to the dining-room window
   if (dining.group) { scene.remove(dining.group); dropParts(dining.parts); }
   let moved = true;
   if (tryPlace) {

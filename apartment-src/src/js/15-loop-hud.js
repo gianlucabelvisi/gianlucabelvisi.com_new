@@ -57,7 +57,7 @@ window.__perf = () => ({ prNow, ftAvg: +ftAvg.toFixed(1), lights: autoLights && 
 function resize() {
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w, h, false);
-  camera.aspect = w / h; camera.updateProjectionMatrix();
+  camera.aspect = w / h; camera.fov = viewFov(); camera.updateProjectionMatrix();
   if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); }
 }
 addEventListener('resize', resize);
@@ -112,6 +112,7 @@ function frame() {
   frame.sig = sig; if (busy) frame.busyAt = now;
   const idle = now - (frame.busyAt ?? 0) > 900;
   if (shadowDirty || frame.n % 600 === 0) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
+  xrayTick();
   if (!idle || frame.n % 6 === 0) { if (composer) composer.render(); else renderer.render(scene, camera); busyAfterRender(); }
   requestAnimationFrame(frame);
 }
@@ -193,6 +194,17 @@ function hudVisible(key, from, to, own, every = 4) {     // cached line-of-sight
   const v = !hudRay.intersectObjects(occluders(), false).some((h) => !(own && own.includes(h.object)));
   hud.occ.set(key, { n: hud.n, v }); return v;
 }
+// a piece's own parts for the line-of-sight test: its body plus the hinged leaves (closet doors, flaps) that sit in its box,
+// so a closed closet's own doors don't hide its info button (2026-11-17: some only showed with the doors open)
+function furnOwn(d, bb) {
+  if (d._own && d._ownN === doors.length) return d._own;
+  const box = bb.clone().expandByScalar(0.08), own = [...d.parts], c = new THREE.Vector3();
+  for (const h of doors) if (h.kind === 'hinge' && h.parts && h.parts.length) {
+    const hb = new THREE.Box3(); for (const p of h.parts) { p.updateMatrixWorld(true); hb.expandByObject(p); }
+    if (box.containsPoint(hb.getCenter(c))) own.push(...h.parts);
+  }
+  d._own = own; d._ownN = doors.length; return own;
+}
 function partsBox(d, fresh) {
   if (!d._bb || fresh) { d._bb = new THREE.Box3(); for (const p of d.parts) { p.updateMatrixWorld(true); d._bb.expandByObject(p); } }
   return d._bb;
@@ -236,9 +248,10 @@ function hudUpdate() {
       if (mode === 'over' && coarse && !focus && camera.position.distanceTo(orbit.target) > 9) continue;   // phones: the plan from above stays clean until you zoom in
       const bb = partsBox(d, focus && focus.door === d);
       bb.getCenter(_hp); _hp.y = bb.max.y + 0.14;
+      if (mode === 'walk') _hp.y = Math.min(_hp.y, 2.45);              // full-height built-ins: keep the button under the ceiling
       if (mode === 'walk') { const dist = _hp.distanceTo(camera.position); if (dist > 5.5 || dist < 0.5) continue; }
       if (!toScreen(_hp, _sc)) continue;
-      if (mode === 'walk' && !hudVisible(d, camera.position, _hp, d.parts, 6)) continue;
+      if (mode === 'walk' && !hudVisible(d, camera.position, _hp, furnOwn(d, bb), 6)) continue;
       const b = hudEl('finfo'); b.hidden = false; b.style.left = _sc.x + 'px'; b.style.top = _sc.y + 'px';
       const on = !!focus && focus.door === d; b.classList.toggle('on', on);
       b.title = on ? 'Back to where you were' : `${d.label}: options`; b.setAttribute('aria-label', b.title);
