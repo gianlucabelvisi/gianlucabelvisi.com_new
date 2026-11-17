@@ -269,7 +269,7 @@ function buildOutside() {
     }
     mergeByMaterial(tg); }
 }
-// wall switch on the kitchen end wall (from the photos) → the room's light panel
+// wall switch on the TV wall by the hall end → the room's light panel
 const livingLights = {
   name: 'Lights · kitchen & living', title: () => 'Lights · kitchen & living',
   anchor: () => b2t(4.3, 2.815, 1.35),
@@ -277,13 +277,8 @@ const livingLights = {
   info: () => 'Philips Hue: dim and pick a white temperature or any colour for each light. Try it after sunset with the time slider.',
 };
 function buildSwitches() {
-  const P = b2t(4.486 - 0.014, 2.815, 1.05);
-  const hit = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.16, 0.16), new THREE.MeshBasicMaterial({ visible: false })); hit.position.copy(P); scene.add(hit);
-  const rocker = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.05, 0.035), std({ color: 0xf4f4f2, roughness: 0.3 })); rocker.position.copy(P).add(new THREE.Vector3(-0.004, 0, 0)); scene.add(rocker);
-  const door = { kind: 'swap', label: 'Light switch', parts: [hit], center: P.clone(),
-    swap: () => selectFurniture(selected === livingLights ? null : livingLights),
-    prompt: () => (selected === livingLights ? 'Close the light panel' : 'Lights') };
-  hit.userData.door = door; collidables.push(hit); doors.push(door);
+  // 2026-11-17 (Gianluca): the real switch is on the TV wall at its hall end, across from the way in (where the book tower used to hang)
+  addWallSwitch(4.2, 4.85, [1, 0], livingLights, 'kitchen & living');
 }
 // ------------------------------------------------------------ night: lit windows, street lamps, the moon
 // Lit windows: an emissive layer over each facade texture, 24 m square (4 × 4 facade tiles) so the pattern doesn't repeat every 6 m.

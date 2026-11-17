@@ -407,7 +407,7 @@ const booksMover = {
   axis2: () => new THREE.Vector3(0, 1, 0),
   shift2: (dir) => { books.z0 += dir * 0.05; if (!buildBooks()) showToast(dir > 0 ? 'That’s as high as it goes under the ceiling' : 'That’s as low as it goes'); },
   variant: { label: () => 'New books', run: () => { books.seed++; buildBooks(); showToast('Shuffled the books'); } },
-  lights: ['books'],
+  // its Hue strip is switched from the living-room wall switch only (Gianluca 2026-11-17: all lights via the switches)
   selects: [
     { id: 'bpack', label: 'Pack', options: () => BOOKT.packs.map((p) => ({ label: `${p.n} pieces · ${p.n * 2} tiers` })), get: () => books.pack,
       set: (i) => { books.pack = i; buildBooks(); } },
@@ -639,7 +639,7 @@ const plantMover = {
   shift2: (dir) => { const p0 = plant.pos; if (!buildPlant([p0[0], p0[1] + dir * 0.05])) showToast('Can’t go further: wall'); },
   rotate: (dir) => { buildPlant(null, plant.angle + dir * Math.PI / 12); },
   angle: () => plant.angle,
-  lights: ['plant'],
+  // its Hue strip: living-room wall switch only
   selects: [
     { id: 'pkind', label: 'Plant', options: () => PLANTS.map((p) => ({ label: `${p.name} · ${p.latin} · ~${Math.round(p.h * 100)} cm` })), get: () => plant.kind, set: (i) => { plant.kind = i; buildPlant(); } },
     { id: 'ppot', label: 'Pot', options: () => POTS.map((p) => ({ label: p.name })), get: () => plant.pot, set: (i) => { plant.pot = i; buildPlant(); } },

@@ -108,8 +108,18 @@ function addWallSwitch(bx, by, dir, mover, label) {
   hit.userData.door = door; collidables.push(hit); doors.push(door);
   SWITCH_SPOTS.push({ label: `Light switch, ${label}`, p: toBl(Q), z: 1.05, n: [-dir[0], -dir[1]], kind: 'switch' });
 }
+// door-entry phone (the building's video intercom) beside the hall switch: slim white panel, dark screen, call button
+function addDoorPhone(bx, by, dir) {
+  const P = curtainProbe(bx, by, 1.5, dir); if (!P) return;
+  const nIn = b2t(-dir[0], -dir[1]).normalize(), Q = P.clone().addScaledVector(nIn, 0.012), look = (o) => o.lookAt(o.position.clone().add(nIn));
+  const body = new THREE.Mesh(softBox(0.105, 0.21, 0.024, 0.008), stdc({ color: 0xf1f1ef, roughness: 0.35 })); body.position.copy(Q); look(body); body.castShadow = true; scene.add(body);
+  const scr = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 0.06), stdc({ color: 0x121416, roughness: 0.12, metalness: 0.3 })); scr.position.copy(Q).addScaledVector(nIn, 0.0125).setY(1.55); look(scr); scene.add(scr);
+  for (const [dy, w] of [[-0.035, 0.05], [-0.07, 0.022]]) { const b = new THREE.Mesh(new THREE.BoxGeometry(w, 0.018, 0.004), stdc({ color: 0xd8d8d5, roughness: 0.4 })); b.position.copy(Q).addScaledVector(nIn, 0.013).setY(1.5 + dy); look(b); scene.add(b); }
+  SWITCH_SPOTS.push({ label: 'Door-entry phone, entrance', p: toBl(Q), z: 1.5, n: [-dir[0], -dir[1]], kind: 'switch' });
+}
 function buildRoomSwitches() {
-  addWallSwitch(6.75, 0.9, [0, -1], roomLightMovers.hall, 'entrance');       // on the entrance wall, beside the front door
+  addWallSwitch(6.64, 0.9, [0, -1], roomLightMovers.hall, 'entrance');       // the small wall right of the front door (as you come in)
+  addDoorPhone(6.87, 0.9, [0, -1]);                                             // the door-entry phone shares that small wall
   addWallSwitch(7.75, 4.5, [-1, 0], roomLightMovers.bed, 'bedroom');         // inside the bedroom, by the door's latch side
   addWallSwitch(6.0, 4.95, [0, -1], roomLightMovers.vaer, 'værelse');         // inside værelse, beside its door
   addWallSwitch(7.55, 2.4, [-1, 0], roomLightMovers.bath, 'bathroom');        // inside the bathroom, beside its door

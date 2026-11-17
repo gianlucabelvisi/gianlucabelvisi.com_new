@@ -16,6 +16,9 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 const PLAN = __PLAN__;
+// 2026-11-17 (Gianluca, on site): the living-room switch is on the TV wall by the hall end, not on the kitchen end wall as drawn;
+// the light switches themselves are added by addWallSwitch, so only the plan's own outlet list (sockets layer, checks) is corrected here
+PLAN.outlets = PLAN.outlets.filter((o) => o.label !== 'Switch, kitchen end wall');
 const $ = (id) => document.getElementById(id);
 const coarse = matchMedia('(pointer: coarse)').matches;
 const lite = coarse || location.search.includes('lite');
