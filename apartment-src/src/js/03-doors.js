@@ -73,19 +73,8 @@ function addHinged(d) {
 }
 for (const d of PLAN.doors) addHinged(d);
 if (BAL) {
-  // fixed pane (left) + mullion, then the two outward-opening leaves
+  // the fixed pane and its mullion come with the model (build.py); here: the two outward-opening leaves
   const { sd, ad, nIn, fw, S1, SM, L } = BAL, z0 = sd.z0, z1 = sd.z1;
-  const fixed = new THREE.Group();
-  const seg = (s0, s1, za, zb, dep, mat) => {
-    const a = BAL.at(s0), b = BAL.at(s1), A = b2t(a[0], a[1], 0), B = b2t(b[0], b[1], 0);
-    const m = new THREE.Mesh(new THREE.BoxGeometry(A.distanceTo(B), zb - za, dep), mat);
-    m.position.copy(A).add(B).multiplyScalar(0.5); m.position.y = (za + zb) / 2;
-    m.rotation.y = dirAngle(ad); m.castShadow = mat !== MATS.glass; if (mat === MATS.glass) m.renderOrder = 2;
-    fixed.add(m); collidables.push(m); return m;
-  };
-  seg(fw, S1 - 0.03, z0 + fw, z1 - fw, 0.012, MATS.glass);
-  seg(S1 - 0.035, S1 + 0.035, z0, z1, 0.07, MATS.frame);
-  scene.add(fixed);
   const out = [-nIn[0], -nIn[1]], leafH = z1 - z0 - 2 * fw;
   const common = { label: 'Balcony door', h: leafH, z0: z0 + fw, thick: 0.05, mat: 'frame', shape: 'sash', open: out };
   addHinged({ ...common, id: 'balcony_leaf_narrow', hinge: BAL.at(S1 + 0.035), closed: ad, len: +(SM - S1 - 0.035).toFixed(3), swingDeg: 172 });

@@ -33,7 +33,7 @@ function busyGateLights() {
 function syncModeUI() {
   const over = mode === 'over';
   if (over && crawl.on) { crawl.on = false; $('qCrawl').setAttribute('aria-pressed', 'false'); }
-  $('qCrawl').hidden = over;
+  $('qCrawl').hidden = over; $('qRun').hidden = over;
   $('segOver').setAttribute('aria-pressed', String(over && !place.on));
   $('segWalk').setAttribute('aria-pressed', String(!over || place.on));
   $('modeSeg').hidden = !started;
@@ -96,7 +96,7 @@ function placeFinish(p, dir) {
   placeMarkAt(p, dir, false);
   const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(player.pitch, player.yaw, 0, camera.rotation.order));
   orbit.enabled = false;
-  camTo(player.pos.clone(), q, 1100, { done: () => { placeMark.g.visible = false; setMode('walk'); } });
+  camTo(player.pos.clone(), q, 1100, { fov: walkFov(), done: () => { placeMark.g.visible = false; setMode('walk'); } });   // the lens widens during the glide, no jump at the end
 }
 canvas.addEventListener('pointerdown', (e) => {
   if (!place.on || camTween) return;
@@ -254,9 +254,51 @@ function xrayTick() {
 // (66° on phones): fine on a wide screen, but a portrait phone then saw only ~37° across — like looking through a tube, which makes rooms
 // feel cramped. Walking now aims for a natural horizontal view (≈96° on landscape screens, ≈84° asked on portrait, capped so verticals
 // don't stretch): desktop 16:9 ≈ 64° vertical, portrait phone ≈ 52° across instead of 37°. The view from above keeps its old lens.
-function viewFov() {
-  if (typeof mode === 'undefined' || mode !== 'walk') return coarse ? 66 : 60;
+function viewFov() { return (typeof mode === 'undefined' || mode !== 'walk') ? (coarse ? 66 : 60) : walkFov(); }
+function walkFov() {
   const a = innerWidth / Math.max(1, innerHeight), h = (a >= 1 ? 96 : 84) * Math.PI / 180;
   const v = 2 * Math.atan(Math.tan(h / 2) / a) * 180 / Math.PI;
   return THREE.MathUtils.clamp(v, 58, a >= 1 ? 72 : 88);
+}
+
+// ---- undo (2026-11-18): every furniture change (arrows, turns, panel buttons and dropdowns) keeps the state before it; Ctrl/Cmd+Z or
+// the Undo chip steps back. Uses the same snapshot as the layout links (time of day left out).
+const undoStack = [], UNDO_MAX = 30;
+let undoLast = 0;
+function undoPush() {
+  const now = performance.now(); if (now - undoLast < 700) { undoLast = now; return; }      // holding an arrow = one step
+  undoLast = now;
+  try { const S = layoutSnapshot(); delete S.h; undoStack.push(JSON.stringify(S)); if (undoStack.length > UNDO_MAX) undoStack.shift(); } catch (_) { return; }
+  const c = $('undoChip'); c.hidden = false; clearTimeout(undoPush.tm); undoPush.tm = setTimeout(() => { c.hidden = true; }, 7000);
+}
+function undo() {
+  const S = undoStack.pop(); if (!S) { showToast('Nothing to undo'); return; }
+  const keep = selected, f = focus;
+  layoutApply(JSON.parse(S)); undoLast = 0;
+  if (keep && !f) selectFurniture(keep);
+  showToast(undoStack.length ? `Undone · ${undoStack.length} more step${undoStack.length > 1 ? 's' : ''}` : 'Undone');
+  if (!undoStack.length) $('undoChip').hidden = true;
+}
+for (const m of Object.values(MOVERS_ALL())) for (const k of ['shift', 'shift2', 'rotate']) {
+  if (typeof m[k] !== 'function' || m[k]._undo) continue;
+  const fn = m[k]; m[k] = function (...a) { undoPush(); return fn.apply(this, a); }; m[k]._undo = true;
+}
+function MOVERS_ALL() { return { bedMover, closetMover, tvMover, mediaMover, sofaMover, lampMover, diningMover, petraMover, guestMover, vpaxMover, nookMover, booksMover, plantMover, artMover, alcoveMover, deskMover, entranceMover, bathMover, balconyMover, skaenkMover, mpMoverUp, mpMoverLo, ctabMover, rugMover }; }
+for (const id of ['mvVar', 'mvVar2']) $(id).addEventListener('click', () => { if (selected && !selected.lights) undoPush(); }, true);
+$('mvSelects').addEventListener('change', (e) => { if (e.target.tagName === 'SELECT' && selected && !selected.lights) { undoLast = 0; undoPush(); } }, true);
+$('undoChip').addEventListener('click', undo);
+addEventListener('keydown', (e) => { if (e.code === 'KeyZ' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !measuring && !(e.target && /INPUT|TEXTAREA/.test(e.target.tagName))) { e.preventDefault(); undo(); } });
+
+// ---- quick bar: Pins, Sizes, Sockets and Tape fold into one "Measure" menu (2026-11-18); their keys still work
+{
+  const ids = ['qPins', 'qDims', 'qPlugs', 'qTape'].filter((id) => document.getElementById(id));
+  if (ids.length) {
+    const pop = $('measurePop');
+    for (const id of ids) pop.appendChild($(id));
+    const btn = $('qMeasure'), sync = () => btn.setAttribute('aria-pressed', String(ids.some((id) => $(id).getAttribute('aria-pressed') === 'true')));
+    btn.addEventListener('click', (e) => { e.stopPropagation(); const open = pop.hidden; pop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); if (open) pop.style.top = `${Math.max(8, btn.getBoundingClientRect().top - 4)}px`; });
+    for (const id of ids) $(id).addEventListener('click', () => setTimeout(sync, 0));
+    addEventListener('pointerdown', (e) => { if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
+    setInterval(sync, 1000);
+  }
 }

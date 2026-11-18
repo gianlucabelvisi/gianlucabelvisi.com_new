@@ -42,7 +42,8 @@ const PR_MAX = Math.min(devicePixelRatio, coarse ? 1.5 : 2), PR_MIN = coarse ? 0
 let prNow = PR_MAX, ftAvg = 16, prCheck = 0;
 function perfTick(dt) {
   if (!autoLights && modelRoot) { autoLights = []; scene.traverse((o) => { if (o.isLight && o !== sun && o !== hemi) autoLights.push(o); }); }
-  if (autoLights && frame.n % 3 === 0) for (const L of autoLights) { const v = L.userData.pool || L.intensity > 0.001 || (lightHold && hueLights().includes(L)); if (L.visible !== v) L.visible = v; }
+  // desktop: Hue lights stay in the shaders at 0, so switching them never recompiles (2026-11-18)
+  if (autoLights && frame.n % 3 === 0) for (const L of autoLights) { const v = L.userData.pool || L.intensity > 0.001 || ((lightHold || !coarse) && hueLights().includes(L)); if (L.visible !== v) L.visible = v; }
   if (!started || document.hidden) return;
   ftAvg += (Math.min(dt, 0.1) * 1000 - ftAvg) * 0.05;
   if ((prCheck += dt) < 2.5) return; prCheck = 0;
@@ -242,6 +243,8 @@ function hudUpdate() {
   }
   // 2. furniture info buttons (quick bar I; the one of the piece in close-up always stays)
   if (live && !measuring && (infoLayer || focus)) {
+    const placed = [];                                            // screen spots already taken: no piles of overlapping (i)s (2026-11-18)
+    const overR = mode === 'over' && !focus ? (camera.position.distanceTo(orbit.target) < 9 ? 4.5 : 3.0) : 0;
     for (const d of doors) {
       if (!isFurn(d) || !d.parts.length) continue;
       if (focus && focus.door !== d) continue;
@@ -250,8 +253,11 @@ function hudUpdate() {
       bb.getCenter(_hp); _hp.y = bb.max.y + 0.14;
       if (mode === 'walk') _hp.y = Math.min(_hp.y, 2.45);              // full-height built-ins: keep the button under the ceiling
       if (mode === 'walk') { const dist = _hp.distanceTo(camera.position); if (dist > 5.5 || dist < 0.5) continue; }
+      if (overR && Math.hypot(_hp.x - orbit.target.x, _hp.z - orbit.target.z) > overR) continue;   // from above: only the pieces around what you're looking at
       if (!toScreen(_hp, _sc)) continue;
+      if (!(focus && focus.door === d) && placed.some((q) => Math.abs(q[0] - _sc.x) < 30 && Math.abs(q[1] - _sc.y) < 30)) continue;
       if (mode === 'walk' && !hudVisible(d, camera.position, _hp, furnOwn(d, bb), 6)) continue;
+      placed.push([_sc.x, _sc.y]);
       const b = hudEl('finfo'); b.hidden = false; b.style.left = _sc.x + 'px'; b.style.top = _sc.y + 'px';
       const on = !!focus && focus.door === d; b.classList.toggle('on', on);
       b.title = on ? 'Back to where you were' : `${d.label}: options`; b.setAttribute('aria-label', b.title);
@@ -325,7 +331,7 @@ const lookQuat = (pos, tgt) => new THREE.Quaternion().setFromRotationMatrix(_m4.
 function camTo(pos, q1, dur, opts = {}) {
   const p0 = camera.position.clone(), q0 = camera.quaternion.clone(), p1 = pos.clone();
   const lift = opts.lift ?? 0;                                   // extra height at mid-flight (an arc instead of a straight line)
-  camTween = { p0, q0, p1, q1: q1.clone(), start: performance.now(), dur, lift, off: opts.off || null, tgt: opts.tgt || null, done: opts.done || null };
+  camTween = { p0, q0, p1, q1: q1.clone(), start: performance.now(), dur, lift, off: opts.off || null, tgt: opts.tgt || null, done: opts.done || null, fov0: camera.fov, fov1: opts.fov ?? null };
 }
 const easeIO = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
 const easeSine = (k) => -(Math.cos(Math.PI * k) - 1) / 2;
@@ -335,6 +341,7 @@ function stepCamTween() {
   const T = camTween, k = Math.min(1, (performance.now() - T.start) / T.dur), e = easeIO(k), r = easeSine(Math.min(1, k * 1.15));
   camera.position.lerpVectors(T.p0, T.p1, e); camera.position.y += T.lift * Math.sin(Math.PI * e);
   camera.quaternion.slerpQuaternions(T.q0, T.q1, r);
+  if (T.fov1 !== null) { camera.fov = T.fov0 + (T.fov1 - T.fov0) * e; camera.updateProjectionMatrix(); }
   if (T.off) applyViewOffset(T.off[0] + (T.off[1] - T.off[0]) * e);
   setUpperVisible(camera.position.y - player.fy < 2.45);         // under the ceiling: keep the room closed
   if (k >= 1) {

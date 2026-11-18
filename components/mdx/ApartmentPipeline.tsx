@@ -15,9 +15,9 @@ interface Step {
 const STEPS: Step[] = [
   { icon: '📐', title: 'Floor plan', sub: 'plan + photos', detail: 'The realtor’s floor plan, a dozen phone photos and a tape measure. Claude reads the walls off the image and writes them to plan.json.' },
   { icon: '🤖', title: 'Claude', sub: 'prompt → Python', detail: 'I describe what I want in plain English (sometimes Italian). Claude writes and rewrites the Blender script. I never open Blender’s UI.' },
-  { icon: '🧊', title: 'Blender', sub: 'build.py · bpy', detail: 'Blender runs headless as a Python module. build.py extrudes the walls, cuts doors and windows and places furniture with sizes scraped from Danish shop pages.' },
-  { icon: '📦', title: 'GLB', sub: 'export_web.py', detail: 'The scene is merged, cleaned up and exported as a single binary glTF file, a couple of MB.' },
-  { icon: '🕹️', title: 'three.js', sub: 'walk.src.html', detail: 'A browser viewer with WASD, Hue lights, a day-night cycle and a lift. assemble.py inlines the GLB and the plan into one HTML file.' },
+  { icon: '🧊', title: 'Blender', sub: 'build.py · bpy', detail: 'Blender runs headless as a Python module. build.py builds the house: walls, doors, windows, kitchen, bathroom, stairwell and the neighbourhood outside. About four seconds.' },
+  { icon: '📦', title: 'GLB', sub: 'export_web.py', detail: 'export_web.py merges everything per material (thousands of objects → ~60 meshes) and exports one binary glTF: 1.3 MB, 0.23 MB gzipped.' },
+  { icon: '🕹️', title: 'three.js', sub: 'walk.src.html', detail: 'The viewer builds all the furniture in JavaScript with real sizes, plus WASD, Hue lights, a day-night cycle and a lift. assemble.py stitches 18 JS files into one HTML page that downloads the zipped model.' },
   { icon: '⬆️', title: 'git push', sub: 'main', detail: 'Commit and push. The only step of the pipeline where a human is fully in control.' },
   { icon: '🐙', title: 'GitHub', sub: 'the blog repo', detail: 'The walkthrough lives in the same repo as this blog, next to posts about pizza and diabetes.' },
   { icon: '🏗️', title: 'Netlify', sub: 'next build', detail: 'Netlify picks up the push and rebuilds the Next.js blog. About two minutes, enough to make an espresso.' },

@@ -10,7 +10,7 @@
 
 <div id="hud3d" aria-label="Interaction points"></div>
 
-<div id="stage" data-media="media/"></div>
+<div id="stage" data-media="media/" data-model="apartment.glb"></div>
 <div id="cross" hidden></div>
 
 <div id="room" class="panel" aria-live="polite">
@@ -22,10 +22,11 @@
 <div id="quick" class="panel" role="group" aria-label="View and show">
   <button id="qHide" title="Hide the bar (B)" aria-expanded="true" aria-label="Hide the bar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Hide</span></button>
   <button id="qView" title="View from above (V)" aria-pressed="false"><i>V</i>From above</button>
-  <button data-for="tPhotos" title="Render pins (P)"><i>P</i>Pins</button>
-  <button data-for="tDims" title="Sizes (Z)"><i>Z</i>Sizes</button>
-  <button data-for="tPlugs" title="Sockets and switches (K)"><i>K</i>Sockets</button>
-  <button data-for="tMeasure" title="Tape measure (T)"><i>T</i>Tape</button>
+  <button id="qMeasure" title="Measure: pins, sizes, sockets, tape" aria-expanded="false" aria-pressed="false" aria-haspopup="true"><i>⋯</i>Measure</button>
+  <button id="qPins" data-for="tPhotos" title="Render pins (P)"><i>P</i>Pins</button>
+  <button id="qDims" data-for="tDims" title="Sizes (Z)"><i>Z</i>Sizes</button>
+  <button id="qPlugs" data-for="tPlugs" title="Sockets and switches (K)"><i>K</i>Sockets</button>
+  <button id="qTape" data-for="tMeasure" title="Tape measure (T)"><i>T</i>Tape</button>
   <button data-for="tMap" title="Mini map (M)"><i>M</i>Map</button>
   <button id="qInfo" title="Info buttons above the furniture (I)" aria-pressed="true"><i>I</i>Info</button>
   <button id="qMove" title="Move furniture: arrows on every piece (G)" aria-pressed="false"><i>G</i>Move</button>
@@ -44,6 +45,8 @@
 <div id="joyBase" hidden aria-hidden="true"><i></i><b>Move</b></div>
 <div id="joy" hidden><i></i></div>
 <div id="toast" class="panel" hidden></div>
+<div id="measurePop" class="panel" hidden role="group" aria-label="Measure"></div>
+<button id="undoChip" class="panel" type="button" hidden title="Undo the last change (Ctrl/Cmd+Z)"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.5 3.5 2.5 6.5l3 3M3 6.5h6.5a3.5 3.5 0 0 1 0 7H7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Undo</button>
 <div id="modeSeg" class="panel" role="group" aria-label="View" hidden>
   <button id="segOver" type="button" aria-pressed="true" aria-label="From above" title="From above"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7.5 10 4l7 3.5-7 3.5z M3 11.5l7 3.5 7-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span class="lbl">From above</span></button>
   <button id="segWalk" type="button" aria-pressed="false" aria-label="Walk" title="Walk"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="11" cy="3.6" r="1.7" fill="currentColor"/><path d="M8 18l2-5 2.5 2V18 M10 13l.8-4.5L8 10l-1.5 2.5 M10.8 8.5l2.2 2.3 2.2.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="lbl">Walk</span></button>
@@ -154,7 +157,6 @@
   </div>
 </div>
 
-<script type="application/octet-stream" id="model">__GLB__</script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",

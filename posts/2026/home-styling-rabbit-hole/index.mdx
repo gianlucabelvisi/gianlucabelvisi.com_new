@@ -128,23 +128,31 @@ Here is how the sausage is made. It sounds complicated, and it is, but none of t
 
 <ApartmentPipeline/>
 
-1 - **Floor plan.** The realtor's floor plan plus my photos. Claude reads the walls off the image and turns them into numbers.
+1 - **Floor plan.** The realtor's floor plan plus my photos. Claude reads the walls off the image and turns them into numbers: a small JSON file with every wall, door and window in metres.
 
-2 - **Blender, via Python.** A script called `build.py` uses `bpy`, Blender's Python API, to extrude the walls, cut the doors and windows and place the furniture. Blender runs headless. Nobody ever looks at it. Poor Blender.
+2 - **Blender, via Python.** Blender can run as a plain Python module, `bpy`, with no window at all. A script called `build.py`, now 1,200 lines, reads those numbers and builds the *house*: walls, floors, windows, the kitchen, the bathroom, the stairwell and the whole neighbourhood outside. It takes about four seconds, in a cloud container, where nobody ever looks at it. Poor Blender.
 
-3 - **GLB export.** The scene is merged and exported as a single GLB file, the JPEG of 3D models.
+3 - **GLB export.** A second script squashes the scene into a single GLB file, the JPEG of 3D models. Every object with the same material gets merged into one mesh, so a few thousand objects become about sixty, and the browser doesn't cry. The trick is in the names: a mesh called `collide__Wall white` stops you when you walk into it, `nocollide__Oak floor` doesn't, and anything called `above__` disappears when you look at the flat from the sky. The file is 1.3 MB, and 0.23 MB once zipped. Smaller than a photo of my dog.
 
-4 - **three.js viewer.** A web page with three.js loads the GLB and adds everything that moves: walking, lights, doors, time of day. Then everything gets squashed into one single HTML file.
+4 - **three.js viewer.** The furniture is *not* in Blender. Every sofa, table, closet and lamp is built in JavaScript by the viewer, with its real measurements, so I can drag it around, swap it for a different model or change its colour live, without rebuilding anything. Same for everything that moves: walking, doors, the lift, the lights, the time of day. That's 18 JavaScript files and about 8,000 lines that I have never read, stitched by a 30-line script into one single HTML page. The page then downloads the zipped model and unpacks it in the browser.
 
-5 - **Commit and push to GitHub.** Why put it on the web at all? Because I need direct feedback from my girlfriend, and she's not going to install Blender. She has a life.
+{/* Optional anecdote, true story: for a few weeks Claude couldn't run Blender at all, so it fixed the model from JavaScript instead (the fridge's side panel, the balcony door, a light switch that turned out to be on the wrong wall), cutting and re-gluing pieces at load time. When Blender came back, it moved the fixes back into build.py and deleted the duct tape. Like a plumber who apologizes. */}
 
-6 - **Netlify builds this very blog**, a Next.js site you know way too much about if you read the [migration post](/migration). The apartment lives at [/apartment](/apartment).
+5 - **Smoke test.** Before anything ships, a headless browser opens the page, waits for the model, clicks every single piece of furniture, opens every panel, walks in and out, and screams if anything breaks. A robot testing a robot's work. I just watch.
 
-7 - **Girlfriend review.** She opens the link on her phone, she walks around, she looks at the sofa for a long time, and then she says:
+6 - **Commit and push to GitHub.** Why put it on the web at all? Because I need direct feedback from my girlfriend, and she's not going to install Blender. She has a life.
+
+7 - **Netlify builds this very blog**, a Next.js site you know way too much about if you read the [migration post](/migration). The apartment lives at [/apartment](/apartment).
+
+8 - **Girlfriend review.** She opens the link on her phone, she walks around, she looks at the sofa for a long time, and then she says:
 
 <Dialogue>I hate this.</Dialogue>
 
 Back to square one.
+
+<TextBox title={"What about the pretty pictures?"} closeable={true}>
+The photorealistic renders in this post are a side quest. On my Mac, a shell script runs the same `build.py` through the real Blender with Cycles, its ray tracer, from a dozen camera angles. It takes about 25 minutes, the laptop fans sound like a Harley-Davidson in the EuroTunnel, and the images land straight in the blog. The walkable version doesn't need any of that. It just needs a browser and a girlfriend with opinions.
+</TextBox>
 
 <LinkButton to={"/apartment"} onHover={"🚪🚶‍♂️"}>Walk around the apartment yourself</LinkButton>
 

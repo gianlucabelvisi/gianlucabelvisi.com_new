@@ -402,3 +402,16 @@
   #zoomWalk .tr { stroke: rgba(242,237,228,.18); }
   #zoomWalk .fg { stroke: var(--oak); stroke-linecap: round; stroke-dasharray: 94.25; stroke-dashoffset: calc(94.25 * (1 - var(--k))); transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset .12s linear; }
   body.placing #zoomWalk, body.focus #zoomWalk { display: none !important; }
+  /* measure menu + undo chip (2026-11-18) */
+  #measurePop { position: fixed; right: calc(var(--gut) + 140px); top: 120px; display: grid; gap: 2px; padding: 4px; z-index: 8; min-width: 150px; }
+  #measurePop button { display: flex; align-items: center; gap: 8px; font: 500 13px/1 var(--ui); color: var(--ink); background: transparent; border: 0; border-radius: 8px; padding: 10px 10px; cursor: pointer; text-align: left; }
+  #measurePop button:hover { background: rgba(242,237,228,.08); }
+  #measurePop button i { font: 500 10px/1 var(--mono); font-style: normal; border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px; color: var(--muted); }
+  #measurePop button[aria-pressed="true"] { background: var(--oak-dim); }
+  #measurePop button[aria-pressed="true"] i { border-color: var(--oak); color: var(--oak); }
+  #undoChip { position: fixed; left: 50%; bottom: calc(var(--gut) + var(--safe-b) + 58px); transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 10px 16px 10px 12px;
+    font: 600 13.5px/1 var(--ui); color: var(--ink); border-radius: 999px; cursor: pointer; z-index: 9; animation: busyIn .18s ease-out; }
+  #undoChip svg { width: 16px; height: 16px; color: var(--oak); }
+  #undoChip:hover { background: rgba(40,36,30,.92); }
+  body.placing #undoChip { display: none; }
+  @media (max-width: 720px), (pointer: coarse) { #measurePop { right: calc(var(--gut) + 96px); } #undoChip { bottom: calc(var(--gut) + var(--safe-b) + 150px); } }

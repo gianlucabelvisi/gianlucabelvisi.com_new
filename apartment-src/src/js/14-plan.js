@@ -174,7 +174,7 @@ function layoutSummary() { const lines = shopLines(); return { total: shopTotals
 function renderLayouts(box) {
   const ab = abState.a !== null && abState.b !== null ? [savedLayouts[abState.a], savedLayouts[abState.b]] : null;
   let h = `<p class="pl-note">A link holds every choice and position, the lights and the time of day. Send it to Svetlana: she can change things and send hers back.</p>
-    <div class="pl-row"><button type="button" class="pl-btn pri" data-act="share">${navigator.share && coarse ? 'Share this layout' : 'Copy link to this layout'}</button></div>
+    <div class="pl-row"><button type="button" class="pl-btn pri" data-act="share">${navigator.share && coarse ? 'Share this layout' : 'Copy link to this layout'}</button><button type="button" class="pl-btn" data-act="reset" title="Forget the setup kept in this browser and start from the defaults">Reset to defaults</button></div>
     <div class="pl-row"><input type="text" class="pl-in" maxlength="40" placeholder="Name this layout, e.g. “Gudrun + Yasumi”"><button type="button" class="pl-btn" data-act="save">Save</button></div>`;
   if (savedLayouts.length) {
     h += `<ul class="pl-list pl-saved">`;
@@ -194,6 +194,7 @@ function renderLayouts(box) {
   inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') box.querySelector('[data-act="save"]').click(); });
   inp.addEventListener('keyup', (e) => e.stopPropagation());
   box.querySelector('[data-act="share"]').addEventListener('click', shareLayout);
+  box.querySelector('[data-act="reset"]').addEventListener('click', () => { lastClear(); try { localStorage.setItem(LAST_KEY, 'null'); } catch (_) { /* ignore */ } location.hash = ''; location.reload(); });
   box.querySelector('[data-act="save"]').addEventListener('click', () => {
     const name = inp.value.trim() || `Layout ${savedLayouts.length + 1}`;
     savedLayouts.push({ name, t: Date.now(), s: layoutSnapshot(), sum: layoutSummary() }); saveLayouts(); showToast(`Saved “${name}”`); renderLayouts(box); });
@@ -205,8 +206,15 @@ function renderLayouts(box) {
   const fl = box.querySelector('[data-act="flip"]');
   if (fl) fl.addEventListener('click', () => { const nx = abState.cur === 'a' ? 'b' : 'a'; layoutApply(savedLayouts[abState[nx]].s); abState.cur = nx; showToast(`${nx.toUpperCase()}: ${savedLayouts[abState[nx]].name}`); renderLayouts(box); });
 }
-async function layoutBoot() {       // furnish() done: open the layout in the link, if any
-  const m = location.hash.match(/[#&]s=([A-Za-z0-9_-]+)/); if (!m) return;
+// your last setup is kept in this browser and comes back on the next visit (2026-11-18). LAST_VER: bump it when the defaults change
+// on purpose (a saved setup from before would otherwise hide them).
+const LAST_KEY = 'aptLast', LAST_VER = '2026-11-18';
+function lastSave() { try { const s = JSON.stringify(layoutSnapshot()); if (s !== lastSave.prev) { lastSave.prev = s; localStorage.setItem(LAST_KEY, JSON.stringify({ v: LAST_VER, s })); } } catch (_) { /* private mode */ } }
+function lastClear() { try { localStorage.removeItem(LAST_KEY); } catch (_) { /* ignore */ } }
+async function layoutBoot() {       // furnish() done: open the layout in the link, if any; otherwise your last setup in this browser
+  setInterval(() => { if (started && !camTween) lastSave(); }, 4000);
+  const m = location.hash.match(/[#&]s=([A-Za-z0-9_-]+)/);
+  if (!m) { try { const L = JSON.parse(localStorage.getItem(LAST_KEY) || 'null'); if (L && L.v === LAST_VER && layoutApply(JSON.parse(L.s))) { lastSave.prev = L.s; showToast('Your last setup is back · Plan → Layouts to reset'); } } catch (e) { console.warn(e); } return; }
   try { const S = await layoutDecode(m[1]); if (layoutApply(S)) showToast('Opened the shared layout'); }
   catch (e) { console.warn(e); showToast('That layout link looks broken'); }
 }
@@ -378,7 +386,7 @@ $('qPlan').addEventListener('click', () => setPlan(!PLAN_UI.open));
 addEventListener('keydown', (e) => { if (e.code === 'KeyO' && !e.repeat && e.target.tagName !== 'INPUT' && !e.metaKey && !e.ctrlKey && !e.altKey) setPlan(!PLAN_UI.open); else if (e.code === 'Escape' && PLAN_UI.open) setPlan(false); });
 bedMover.selects = [{ id: 'nstand', label: 'Nightstands', options: () => NIGHT.map((n) => ({ label: `${n.brand} ${n.name} · ${Math.round(n.W * 100)} × ${Math.round(n.D * 100)} × ${Math.round(n.H * 100)} cm · ${n.kr} kr` })), get: () => night.m, set: (i) => { night.m = i; night.col = 0; buildBed(); } }];
 bedMover.link = () => { const N = NIGHT[night.m]; return { href: N.url, text: `IKEA · ${N.name} nightstand · ${N.kr} kr ↗` }; };
-function furnish() { fridgeSideSkin(); buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); buildHolm(); buildSkaenk(); buildCoffeeTable(); buildRug(); buildRoomFixtures(); buildRoomSwitches(); buildRoomFurniture(); autoLightTick(clockHour, dayLevel, true); try { updateNight(); } catch (_) { /* ok */ } layoutBoot(); }
+function furnish() { buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); buildHolm(); buildSkaenk(); buildCoffeeTable(); buildRug(); buildRoomFixtures(); buildRoomSwitches(); buildRoomFurniture(); autoLightTick(clockHour, dayLevel, true); try { updateNight(); } catch (_) { /* ok */ } layoutBoot(); }
 function prewarmShaders() {
   // compile every material variant now (incl. hidden things: ceiling, upper floors, closed panels), not the first time it comes into view
   // lights first exactly as perfTick leaves them (light counts are part of every shader), then the meshes

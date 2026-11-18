@@ -178,13 +178,6 @@ const nookMover = {
   link: () => ({ href: 'https://www.ikea.com/dk/da/p/flisberget-lage-med-haengsler-lys-beige-s99181068/', text: 'IKEA · FLISBERGET door 50×229 (+ PAX frame 50×58×236) ↗' }),
   info: () => '49.8 × 60.4 × 236.4 cm · 1,300 kr in the IKEA planner · fills the 57 cm nook between the jog and the door jamb · colours follow the big closet',
 };
-// the tall fridge column's exposed side (towards the worktop) was the white fridge liner seen from outside: skin it in kitchen oak
-// (build.py: column x 0.476–1.096, y 0.476–1.076; fridge compartment z 0.978–2.150)
-function fridgeSideSkin() {
-  const z0 = 0.978, z1 = 2.150, y0 = 0.476, y1 = 1.076 + 0.018, x = 1.0962 + 0.0025;
-  const m = new THREE.Mesh(boxUV(0.005, z1 - z0, y1 - y0), MATS.oak);
-  m.position.copy(b2t(x, (y0 + y1) / 2, z0)); m.castShadow = m.receiveShadow = true; scene.add(m);
-}
 // ------------------------------------------------------------ curtains: a whitish sheer across the balcony glazing, blackout curtains in the bedroom
 // Each curtain is a pleated sheet on a ceiling track; open = gathered into a stack at its end. They open and close smoothly through
 // their interaction point (E / click toggles), and the mouse wheel / trackpad scroll moves them gradually while their point is focused

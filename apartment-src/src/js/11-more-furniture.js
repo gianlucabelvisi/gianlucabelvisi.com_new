@@ -147,7 +147,7 @@ window.__candles = { set: (night) => {
   const on = night > 0.02 && ((!!cons.group && cons.decor) || (typeof skaenk !== 'undefined' && !!skaenk.group));
   MATS.candleFlame.opacity = Math.min(1, night * 1.4); candleLight.intensity = 0.35 * night; candleLight.visible = on;
   const lampOn = night > 0.02 && typeof skaenk !== 'undefined' && !!skaenk.group;            // the VP9 is on in the evening too
-  MATS.vp9Glow.color.setRGB(1.0 * night, 0.78 * night, 0.5 * night); vp9Light.intensity = 0.5 * night; vp9Light.visible = lampOn; } };
+  MATS.vp9Glow.color.setRGB(1.0 * night, 0.78 * night, 0.5 * night); vp9Light.intensity = 0.3 * night; vp9Light.visible = lampOn; } };
 function buildConsole() {
   if (cons.group) { scene.remove(cons.group); dropParts(cons.parts); cons.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); cons.group = null; }
   const S = liv.sofa; if (!S || !S.group || !cons.on) return;

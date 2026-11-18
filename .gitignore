@@ -55,3 +55,10 @@ next-env.d.ts
 /lund-src/ref_other/
 /lund-src/osm.xml
 /lund-src/_*.tgz
+
+# Apartment 3D (apartment-src): Blender outputs are rebuilt by run_web.py / render_and_publish.sh
+/apartment-src/web/
+/apartment-src/renders/
+/apartment-src/*.blend
+/apartment-src/*.blend1
+/apartment-src/render_log.txt

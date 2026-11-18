@@ -6,6 +6,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
@@ -16,9 +17,6 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 const PLAN = __PLAN__;
-// 2026-11-17 (Gianluca, on site): the living-room switch is on the TV wall by the hall end, not on the kitchen end wall as drawn;
-// the light switches themselves are added by addWallSwitch, so only the plan's own outlet list (sockets layer, checks) is corrected here
-PLAN.outlets = PLAN.outlets.filter((o) => o.label !== 'Switch, kitchen end wall');
 const $ = (id) => document.getElementById(id);
 const coarse = matchMedia('(pointer: coarse)').matches;
 const lite = coarse || location.search.includes('lite');
@@ -89,7 +87,7 @@ function canvasTex(w, h, draw, repeatMetres, srgb = true) {
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(1 / repeatMetres[0], 1 / repeatMetres[1]);
-  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  t.anisotropy = Math.min(lite ? 4 : 16, renderer.capabilities.getMaxAnisotropy());
   if (srgb) t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
@@ -160,7 +158,10 @@ const stdc = (o) => { const k = Object.keys(o).sort().map((key) => { const v = o
 const MATS = {
   floor: std({ map: floorTex, roughness: 0.55, envMapIntensity: 0.6 }),
   oak: std({ map: veneerTex, roughness: 0.6, envMapIntensity: 0.6 }),
-  wall: std({ color: 0xebe8e2, roughness: 0.92 }),
+  // painted plaster (2026-11-18): a faint mottle and trowel texture instead of a perfectly flat white
+  wall: std({ color: 0xebe8e2, roughness: 0.92, map: canvasTex(512, 512, (g, W) => { const r = rng(41); g.fillStyle = '#f6f6f6'; g.fillRect(0, 0, W, W);
+    for (let i = 0; i < 260; i++) { const x = r() * W, y = r() * W, rr = 20 + r() * 70, v = 236 + (r() * 19 | 0), a = 0.05 + r() * 0.07; const gr = g.createRadialGradient(x, y, 0, x, y, rr); gr.addColorStop(0, `rgba(${v},${v},${v - 2},${a})`); gr.addColorStop(1, `rgba(${v},${v},${v},0)`); g.fillStyle = gr; g.fillRect(x - rr, y - rr, rr * 2, rr * 2); }
+    for (let i = 0; i < 2600; i++) { const v = 228 + (r() * 27 | 0); g.fillStyle = `rgba(${v},${v},${v},0.35)`; g.fillRect(r() * W, r() * W, 1 + r() * 2, 1); } }, [1.4, 1.4]) }),
   ceiling: std({ color: 0xf0eeea, roughness: 0.95 }),
   frame: std({ color: 0xf1f0ec, roughness: 0.45 }),
   door: std({ color: 0xdfddd7, roughness: 0.4 }),   // a touch darker than the walls so the leaves read
@@ -182,7 +183,7 @@ const MATS = {
 
 // facades of the neighbouring blocks, coloured after the site photos: 6 m tile = 2 bays x 2 storeys
 function facadeTex(o) {
-  return canvasTex(1024, 1024, (g, W) => {
+  return canvasTex(lite ? 512 : 1024, lite ? 512 : 1024, (g, W) => {   // phones: outside walls at half resolution (memory)
     const r = rng(o.seed), pxm = W / 6;
     g.fillStyle = o.brick; g.fillRect(0, 0, W, W);
     if (o.style === 'tile') {        // glazed square tiles (the dark bays of our building)
@@ -302,43 +303,43 @@ const aboveMeshes = [];
 let modelRoot = null;
 // balcony door, as drawn on the plan: fixed glass on the left (~1.63 m), then two leaves opening outwards onto the balcony:
 // a narrow one (~0.56 m) hinged on its left that swings right round against the fixed glass, and a wide one (~0.97 m) hinged at the right jamb.
-// The GLB still has the old 3-pane split, so the glass and mullions of panes 2-3 are cut out of it here and rebuilt in JS.
+// The GLB (build.py) has the fixed glass and its mullion; the two leaves are built and animated in 03-doors.
 const BAL = (() => {
   const sd = (PLAN.sliders || [])[0]; if (!sd) return null;
   const ad = sd.dir, pr = [ad[1], -ad[0]], nIn = (pr[0] * sd.n[0] + pr[1] * sd.n[1]) > 0 ? pr : [-pr[0], -pr[1]], fw = 0.06, pw = sd.w + fw * 0.5, L = pw * 3;
   const P0 = [sd.a[0] - ad[0] * fw * 0.5, sd.a[1] - ad[1] * fw * 0.5];
   return { sd, ad, nIn, fw, pw, L, P0, S1: 1.63, SM: 2.22, at: (s, d = 0) => [P0[0] + ad[0] * s + nIn[0] * d, P0[1] + ad[1] * s + nIn[1] * d] };
 })();
-function trimBalcony(o) {
-  if (!BAL) return;
-  const isGlass = o.material === MATS.glass, isFrame = o.material === MATS.frame;
-  if (!isGlass && !isFrame) return;
-  const g = o.geometry, pos = g.attributes.position, n = g.index ? g.index.count : pos.count;
-  const idx = g.index ? g.index.array : null, keep = [];
-  const v = new THREE.Vector3(), c = new THREE.Vector3();
-  let cut = 0;
-  for (let t = 0; t < n; t += 3) {
-    c.set(0, 0, 0);
-    for (let k = 0; k < 3; k++) { v.fromBufferAttribute(pos, idx ? idx[t + k] : t + k).applyMatrix4(o.matrixWorld); c.add(v); }
-    c.multiplyScalar(1 / 3);
-    const bx = c.x - BAL.P0[0], by = -c.z - BAL.P0[1], z = c.y;
-    const s = bx * BAL.ad[0] + by * BAL.ad[1], d = bx * BAL.nIn[0] + by * BAL.nIn[1];
-    let drop = false;
-    if (isGlass) drop = Math.abs(d) < 0.03 && s > BAL.pw - 0.05 && s < BAL.L - 0.03 && z > 0 && z < 2.5;
-    else drop = Math.abs(d) < 0.05 && z > 0.15 && z < 2.3 && (Math.abs(s - BAL.pw) < 0.045 || Math.abs(s - 2 * BAL.pw) < 0.045);
-    if (drop) { cut++; continue; }
-    for (let k = 0; k < 3; k++) keep.push(idx ? idx[t + k] : t + k);
+// 2026-11-18: the model is its own file next to the page, gzip-compressed (1.3 MB → 0.23 MB) and cached by the browser, instead of
+// 1.8 MB of base64 inside the HTML. Unpacked here with DecompressionStream (or fetched raw where that's missing / already unpacked).
+async function loadModelBytes() {
+  const base = document.getElementById('stage').dataset.model || 'apartment.glb';
+  const progress = (k) => { const g = $('go'); if (g && g.disabled) g.textContent = `Loading model… ${Math.round(k * 100)} %`; };
+  const read = async (url) => {
+    const r = await fetch(url); if (!r.ok) throw new Error(`${url}: ${r.status}`);
+    const total = +r.headers.get('content-length') || 0, rd = r.body && r.body.getReader ? r.body.getReader() : null;
+    if (!rd || !total) return new Uint8Array(await r.arrayBuffer());
+    const chunks = []; let n = 0;
+    for (;;) { const { done, value } = await rd.read(); if (done) break; chunks.push(value); n += value.length; progress(Math.min(1, n / total)); }
+    const out = new Uint8Array(n); let o = 0; for (const c of chunks) { out.set(c, o); o += c.length; } return out;
+  };
+  if (typeof DecompressionStream === 'function') {
+    try {
+      let b = await read(base + '.gz');
+      if (b[0] === 0x1f && b[1] === 0x8b) b = new Uint8Array(await new Response(new Blob([b]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+      return b.buffer;
+    } catch (e) { console.warn('compressed model failed, loading the plain one', e); }
   }
-  if (cut) g.setIndex(keep);
+  return (await read(base)).buffer;
 }
-const glbBytes = Uint8Array.from(atob(document.getElementById('model').textContent.trim()), (c) => c.charCodeAt(0));
-new GLTFLoader().parse(glbBytes.buffer, '', (gltf) => {
+loadModelBytes().then((buf) => new GLTFLoader().parse(buf, '', onModel, onModelError)).catch(onModelError);
+function onModelError(err) { $('go').textContent = 'Could not load the 3D model. Reload the page to try again.'; console.error(err); }
+function onModel(gltf) {
   gltf.scene.updateMatrixWorld(true);
   gltf.scene.traverse((o) => {
     if (!o.isMesh) return;
     const k = o.name.toLowerCase().replace(/[^a-z]/g, '');
     o.material = pickMat(k);
-    trimBalcony(o);
     // glTF stores v flipped (v = 1 - z): turn it back into metres up the wall, shifted so the facade textures' 3 m window
     // grid lines up with the real storeys (slabs at z = 2.85 + 3k above us, -2.95 / -5.9 below), not between them
     { const uv = o.geometry.attributes.uv; if (uv) { for (let i = 0; i < uv.count; i++) uv.setY(i, 1.15 - uv.getY(i)); uv.needsUpdate = true; } }
@@ -359,10 +360,7 @@ new GLTFLoader().parse(glbBytes.buffer, '', (gltf) => {
   $('go').textContent = 'Start walking';
   setTimeout(() => { if (window.__onModelReady) window.__onModelReady(); }, 0);
   updateSun(+$('sunrange').value, true);
-}, (err) => {
-  $('go').textContent = 'Could not load the 3D model. Reload the page to try again.';
-  console.error(err);
-});
+}
 
 // ------------------------------------------------------------ sun (balcony faces east; plan top = east)
 const D2R = Math.PI / 180;
@@ -519,10 +517,11 @@ function updateSun(h, rebuildEnv) {
     sun.color.set(0x9db6ff);
   }
   hemi.intensity = 0.06 + 0.42 * dusk * (0.55 + 0.45 * lift); hemi.userData.base = hemi.intensity; hemi.userData.dirty = true;
-  hemi.color.set(dusk < 0.5 ? 0x5a6a90 : 0xa9c9f2); hemi.groundColor.set(dusk < 0.5 ? 0x3a3028 : 0xc29a6c);   // blue sky above, warm bounce below
+  hemi.color.set(dusk < 0.5 ? 0x5a6a90 : 0xc6d2e4); hemi.groundColor.set(dusk < 0.5 ? 0x3a3028 : 0xd6ac7c);   // softer sky blue above, warmer oak bounce below (2026-11-18: interiors read too cold)
   sky.visible = el > -10;
   scene.background = sky.visible ? null : new THREE.Color(0x05070f);
-  renderer.toneMappingExposure = 0.8 + 0.9 * (1 - dusk);
+  renderer.toneMappingExposure = 0.84 + 0.86 * (1 - dusk);
+  if (bloom) { bloom.enabled = dusk < 0.55; bloom.strength = 0.28 * (1 - dusk / 0.55); }   // evening glow around lamps, screens and candles
   updateSky(h);
   stars.material.uniforms.uOp.value = THREE.MathUtils.clamp(1 - dusk * 1.6, 0, 1);
   stars.visible = stars.material.uniforms.uOp.value > 0.01;
@@ -541,21 +540,21 @@ function updateSun(h, rebuildEnv) {
     if (envRT) envRT.dispose();
     envRT = pmrem.fromScene(skyScene);
     scene.environment = envRT.texture;
-    scene.environmentIntensity = 0.05 + 0.45 * dayLevel; scene.userData.envBase = scene.environmentIntensity; hemi.userData.dirty = true;
   }
+  scene.environmentIntensity = 0.05 + 0.45 * dayLevel; scene.userData.envBase = scene.environmentIntensity; hemi.userData.dirty = true;   // also while dragging the time: exposure and sky light stay in step (no white-out)
 }
 $('sunrange').addEventListener('input', (e) => updateSun(+e.target.value, false));
 $('sunrange').addEventListener('change', (e) => { const v = +e.target.value; if (typeof busyRun === 'function' && started) busyRun('Changing the time of day…', () => updateSun(v, true)); else updateSun(v, true); });
 
 // ------------------------------------------------------------ post-processing (desktop)
-let composer = null, gtao = null;
+let composer = null, gtao = null, bloom = null;
 if (!lite) {
   composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
   gtao = new GTAOPass(scene, camera, 2, 2);
-  gtao.updateGtaoMaterial({ radius: 0.5, distanceExponent: 1.2, thickness: 1.2, scale: 1.1, samples: 16 });
+  gtao.updateGtaoMaterial({ radius: 0.42, distanceExponent: 1.3, thickness: 1.2, scale: 1.35, samples: 16 });   // a touch stronger and tighter: furniture sits on the floor
   gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 16 });
-  gtao.blendIntensity = 0.9;
+  gtao.blendIntensity = 1.0;
   composer.addPass(gtao);
   // overlays (render pins, labels, tape) must not go into the ambient-occlusion depth/normal pass,
   // otherwise each sprite shows up as a dark square around the icon
@@ -567,6 +566,7 @@ if (!lite) {
     gtaoRender(...args);
     groups.forEach((g, i) => { g.visible = was[i]; });
   };
+  bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.3, 0.45, 0.97); bloom.enabled = false; composer.addPass(bloom);
   composer.addPass(new OutputPass());
 }
 

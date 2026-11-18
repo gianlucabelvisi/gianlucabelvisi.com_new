@@ -1,0 +1,155 @@
+{
+ "entrance": {
+  "title": "Entrance, looking in",
+  "room": "Entré",
+  "p": [
+   1045,
+   1300
+  ],
+  "t": [
+   1030,
+   760
+  ],
+  "z": 1.55,
+  "lens": 15,
+  "expo": 1.0
+ },
+ "living_to_entrance": {
+  "title": "Living room towards the entrance",
+  "room": "Køkken-alrum",
+  "p": [
+   520,
+   470
+  ],
+  "t": [
+   960,
+   1180
+  ],
+  "z": 1.5,
+  "lens": 15,
+  "expo": 0.9
+ },
+ "kitchen": {
+  "title": "Kitchen area",
+  "room": "Køkken-alrum",
+  "p": [
+   590,
+   760
+  ],
+  "t": [
+   615,
+   1300
+  ],
+  "z": 1.4,
+  "lens": 19,
+  "expo": 0.8
+ },
+ "living": {
+  "title": "Living room, sofa and TV side",
+  "room": "Køkken-alrum",
+  "p": [
+   830,
+   1030
+  ],
+  "t": [
+   400,
+   390
+  ],
+  "z": 1.45,
+  "lens": 14,
+  "expo": 0.8
+ },
+ "bath": {
+  "title": "Bathroom",
+  "room": "Bad",
+  "p": [
+   1188,
+   1200
+  ],
+  "t": [
+   1440,
+   1060
+  ],
+  "z": 1.55,
+  "lens": 14,
+  "expo": 0.5,
+  "hide": [
+   "door_bath_leaf"
+  ]
+ },
+ "bed_door": {
+  "title": "Bedroom from the door",
+  "room": "Soveværelse",
+  "p": [
+   1255,
+   925
+  ],
+  "t": [
+   1345,
+   450
+  ],
+  "z": 1.55,
+  "lens": 15,
+  "expo": 1.0
+ },
+ "bed_window": {
+  "title": "Bedroom from the window",
+  "room": "Soveværelse",
+  "p": [
+   1365,
+   505
+  ],
+  "t": [
+   1255,
+   990
+  ],
+  "z": 1.55,
+  "lens": 15,
+  "expo": 1.2
+ },
+ "vaer_door": {
+  "title": "Værelse from the door",
+  "room": "Værelse",
+  "p": [
+   1105,
+   815
+  ],
+  "t": [
+   1010,
+   430
+  ],
+  "z": 1.55,
+  "lens": 15,
+  "expo": 1.0
+ },
+ "vaer_window": {
+  "title": "Værelse from the window",
+  "room": "Værelse",
+  "p": [
+   1030,
+   470
+  ],
+  "t": [
+   1070,
+   830
+  ],
+  "z": 1.55,
+  "lens": 15,
+  "expo": 1.2
+ },
+ "balcony": {
+  "title": "Balcony, looking north",
+  "room": "Altan",
+  "p": [
+   760,
+   255
+  ],
+  "t": [
+   300,
+   200
+  ],
+  "z": 1.55,
+  "lens": 16,
+  "expo": 0.6
+ }
+}
