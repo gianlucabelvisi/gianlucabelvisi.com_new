@@ -415,3 +415,7 @@
   #undoChip:hover { background: rgba(40,36,30,.92); }
   body.placing #undoChip { display: none; }
   @media (max-width: 720px), (pointer: coarse) { #measurePop { right: calc(var(--gut) + 96px); } #undoChip { bottom: calc(var(--gut) + var(--safe-b) + 150px); } }
+
+/* inside the blog on a phone (2026-11-18): the page gives the viewer the whole screen; "Blog" opens the site menu */
+#qSite { display: none !important; }
+body.covered #qSite { display: flex !important; }

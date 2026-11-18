@@ -302,3 +302,9 @@ addEventListener('keydown', (e) => { if (e.code === 'KeyZ' && (e.metaKey || e.ct
     setInterval(sync, 1000);
   }
 }
+
+// inside the blog on a phone (2026-11-18): when the page gives the viewer the whole screen (body.covered), the quick bar's
+// "Blog" button asks the page for the site menu (pages/apartment.tsx, pages/lund-apartment.tsx: components/BlogMenu.tsx)
+{ const upd = () => { let cov = false; try { cov = window.parent !== window && Math.abs(window.parent.innerHeight - innerHeight) < 8; } catch (e) {} document.body.classList.toggle('covered', cov); };
+  upd(); addEventListener('resize', upd);
+  const b = document.getElementById('qSite'); if (b) b.onclick = () => { try { window.parent.postMessage({ type: 'project:menu' }, location.origin); } catch (e) {} }; }

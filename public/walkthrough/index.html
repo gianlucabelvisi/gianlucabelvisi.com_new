@@ -421,6 +421,10 @@
   #undoChip:hover { background: rgba(40,36,30,.92); }
   body.placing #undoChip { display: none; }
   @media (max-width: 720px), (pointer: coarse) { #measurePop { right: calc(var(--gut) + 96px); } #undoChip { bottom: calc(var(--gut) + var(--safe-b) + 150px); } }
+
+/* inside the blog on a phone (2026-11-18): the page gives the viewer the whole screen; "Blog" opens the site menu */
+#qSite { display: none !important; }
+body.covered #qSite { display: flex !important; }
 </style>
 <!-- fonts load without blocking: the page is styled from the first paint, the type swaps in when it arrives (2026-11-17: on iOS the
      pending font sheet held back the inline styles, so the page showed unstyled while loading) -->
@@ -440,6 +444,7 @@
 
 <div id="quick" class="panel" role="group" aria-label="View and show">
   <button id="qHide" title="Hide the bar (B)" aria-expanded="true" aria-label="Hide the bar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Hide</span></button>
+  <button id="qSite" title="Blog menu" aria-label="Blog menu"><i>‹</i>Blog</button>
   <button id="qView" title="View from above (V)" aria-pressed="false"><i>V</i>From above</button>
   <button id="qMeasure" title="Measure: pins, sizes, sockets, tape" aria-expanded="false" aria-pressed="false" aria-haspopup="true"><i>⋯</i>Measure</button>
   <button id="qPins" data-for="tPhotos" title="Render pins (P)"><i>P</i>Pins</button>
@@ -8048,6 +8053,12 @@ addEventListener('keydown', (e) => { if (e.code === 'KeyZ' && (e.metaKey || e.ct
     setInterval(sync, 1000);
   }
 }
+
+// inside the blog on a phone (2026-11-18): when the page gives the viewer the whole screen (body.covered), the quick bar's
+// "Blog" button asks the page for the site menu (pages/apartment.tsx, pages/lund-apartment.tsx: components/BlogMenu.tsx)
+{ const upd = () => { let cov = false; try { cov = window.parent !== window && Math.abs(window.parent.innerHeight - innerHeight) < 8; } catch (e) {} document.body.classList.toggle('covered', cov); };
+  upd(); addEventListener('resize', upd);
+  const b = document.getElementById('qSite'); if (b) b.onclick = () => { try { window.parent.postMessage({ type: 'project:menu' }, location.origin); } catch (e) {} }; }
 // ------------------------------------------------------------ clouds
 (function clouds() {
   const W = 2048, Hh = 512;

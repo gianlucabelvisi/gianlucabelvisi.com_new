@@ -30,8 +30,8 @@
   .page { animation: none; }
 }
 
-/* Pantelleria map on phones (upright or sideways): the map takes the whole screen, over the site header and
-   footer; its ☰ button opens the blog menu (pages/pantelleria.tsx). Only pages that add this class are affected. */
+/* Project viewers on phones (upright or sideways): the viewer takes the whole screen, over the site header and
+   footer; its own button opens the blog menu (components/BlogMenu.tsx). Only pages that add this class are affected. */
 @media (max-width: 900px), (orientation: landscape) and (max-height: 520px) {
   .immersive {
     position: fixed;

@@ -342,10 +342,10 @@ html[data-theme="dark"] {
   }
 }
 
-/* Phones on /pantelleria: the map is full screen, nothing scrolls behind it (pages/pantelleria.tsx sets the class) */
+/* Phones on the project viewers (Pantelleria, the apartments): full screen, nothing scrolls behind (components/BlogMenu.tsx sets the class) */
 @media (max-width: 900px), (orientation: landscape) and (max-height: 520px) {
-  html.map-immersive,
-  html.map-immersive body {
+  html.viewer-immersive,
+  html.viewer-immersive body {
     overflow: hidden;
     overscroll-behavior: none;
   }

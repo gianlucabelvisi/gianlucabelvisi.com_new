@@ -1,18 +1,20 @@
 import { useEffect, useRef } from 'react'
 import SEO from '../components/SEO'
+import BlogMenu from '../components/BlogMenu'
 import styles from '../styles/Apartment.module.css'
 
 /**
  * 3D walkthrough of the Copenhagen apartment.
  * The viewer is a self-contained three.js page in public/walkthrough/ (built from the
  * Blender model); this route frames it under the site header.
+ * Phones: the walkthrough takes the whole screen; its quick bar's Blog button opens the blog menu (components/BlogMenu.tsx).
  */
 export default function Apartment() {
   // a shared layout link (/apartment#s=...) is handed on to the viewer, which opens that layout
   const frame = useRef<HTMLIFrameElement>(null)
   useEffect(() => { if (frame.current) frame.current.src = `/walkthrough/index.html${window.location.hash}` }, [])
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${styles.immersive}`}>
       <SEO
         title="Apartment"
         description="Walk through my Copenhagen apartment in 3D: built in Blender from the floor plan, with photos, renders and real measurements."
@@ -26,6 +28,7 @@ export default function Apartment() {
         allow="fullscreen"
         allowFullScreen
       />
+      <BlogMenu frame={frame} back="Back to the flat" />
     </div>
   )
 }

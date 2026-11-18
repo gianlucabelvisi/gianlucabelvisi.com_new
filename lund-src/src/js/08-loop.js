@@ -47,3 +47,9 @@ window.__lund = { THREE, scene, camera, player, setFeet, P, toPlan, INTER, DOORS
 $('go').disabled = false; $('go').textContent = 'Start walking';
 $('go').addEventListener('click', () => { $('intro').hidden = true; started = true; if (!coarse) { try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* optional */ } } canvas.focus(); });
 frame();
+
+// inside the blog on a phone (2026-11-18): when the page gives the viewer the whole screen (body.covered), the quick bar's
+// "Blog" button asks the page for the site menu (pages/apartment.tsx, pages/lund-apartment.tsx: components/BlogMenu.tsx)
+{ const upd = () => { let cov = false; try { cov = window.parent !== window && Math.abs(window.parent.innerHeight - innerHeight) < 8; } catch (e) {} document.body.classList.toggle('covered', cov); };
+  upd(); addEventListener('resize', upd);
+  const b = document.getElementById('qSite'); if (b) b.onclick = () => { try { window.parent.postMessage({ type: 'project:menu' }, location.origin); } catch (e) {} }; }

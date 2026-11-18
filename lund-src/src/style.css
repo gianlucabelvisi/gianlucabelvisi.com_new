@@ -336,3 +336,7 @@
   #mover.docked .mvtop { cursor: default; }
   #mover.docked #mvGrip { display: none !important; }
   @media (max-width: 640px) { body.focus #quick, body.focus #joy { display: none !important; } }
+
+/* inside the blog on a phone (2026-11-18): the page gives the viewer the whole screen; "Blog" opens the site menu */
+#qSite { display: none !important; }
+body.covered #qSite { display: flex !important; }
