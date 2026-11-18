@@ -341,3 +341,12 @@ html[data-theme="dark"] {
     padding-bottom: calc(4.1rem + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* Phones on /pantelleria: the map is full screen, nothing scrolls behind it (pages/pantelleria.tsx sets the class) */
+@media (max-width: 900px), (orientation: landscape) and (max-height: 520px) {
+  html.map-immersive,
+  html.map-immersive body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+}

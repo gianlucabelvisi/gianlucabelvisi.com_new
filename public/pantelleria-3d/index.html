@@ -211,7 +211,7 @@
   body.phone #attrib.open { left: 0; max-width: none; white-space: normal; background: rgba(255, 255, 255, .85); font-size: 10px; z-index: 9; }
   body.phone #menu, body.phone #places { top: calc(var(--gut) + var(--safe-t) + 44px); max-height: calc(100vh - 70px); }
   /* phone held sideways (2026-11-12): everything in the top row — back, readout, modes, icons — nothing in the middle */
-  #backBtn { display: none; position: fixed; left: var(--gut); top: calc(var(--gut) + var(--safe-t)); z-index: 7; width: 34px; height: 34px; padding: 0; font: 600 20px/1 var(--ui); color: var(--ink); cursor: pointer; }
+  #backBtn { display: none; position: fixed; left: var(--gut); top: calc(var(--gut) + var(--safe-t)); z-index: 7; width: 34px; height: 34px; padding: 0; font: 600 17px/1 var(--ui); color: var(--ink); cursor: pointer; }
   body.phone.covered #backBtn { display: block; }
   #hudTilt, #mTilt { display: none; } body.touch #hudTilt { display: inline-block; } body.touch #mTilt { display: flex; }
   #hudTilt[aria-pressed="true"] { background: var(--oak-dim); border-color: var(--oak); }
@@ -266,7 +266,7 @@
   <button data-m="heli" aria-pressed="false" title="Fly a helicopter (4)">Heli<i>4</i></button>
   <button data-m="walk" aria-pressed="false" title="Walk around (5)">Walk<i>5</i></button>
 </div>
-<button id="backBtn" class="panel" aria-label="Back to the site">‹</button>
+<button id="backBtn" class="panel" aria-label="Site menu" title="Site menu">☰</button>
 <div id="hud" class="panel" hidden>
   <div id="hudMain"></div><button id="hudMore" aria-label="More" aria-expanded="false">⋯</button>
   <div id="hudKeys"></div>
@@ -5943,10 +5943,10 @@ async function setTilt(on) {
   touchUI();
 }
 $('hudTilt').onclick = $('mTilt').onclick = () => setTilt(!TILT.on);
-// inside the blog page: when the page gives the map the whole screen (phone held sideways), offer a way back
+// inside the blog page: when the page gives the map the whole screen (phones), a ☰ button asks the page for its menu
 { const upd = () => { let cov = false; try { cov = window.parent !== window && Math.abs(window.parent.innerHeight - innerHeight) < 8; } catch (e) {} document.body.classList.toggle('covered', cov); };
   upd(); addEventListener('resize', upd);
-  $('backBtn').onclick = () => { try { if (window.parent.history.length > 1) window.parent.history.back(); else window.parent.location.href = '/'; } catch (e) {} }; }
+  $('backBtn').onclick = () => { try { window.parent.postMessage({ type: 'pantelleria:menu' }, location.origin); } catch (e) {} }; }
 function touchUI() {
   const on = document.body.classList.contains('touch') && VEH.mode !== 'map';
   $('touch').hidden = !on; $('tCar').hidden = VEH.mode !== 'car'; $('tPlane').hidden = VEH.mode !== 'plane'; $('tHeli').hidden = VEH.mode !== 'heli'; if (VEH.mode === 'walk') { $('tCar').hidden = $('tPlane').hidden = true; } $('tWalk').hidden = VEH.mode !== 'walk'; $('tStick').classList.toggle('caronly', VEH.mode === 'car');

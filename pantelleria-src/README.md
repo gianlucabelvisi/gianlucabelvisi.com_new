@@ -513,3 +513,7 @@ Gianluca: the steep road up to Tracino's square now feels right, but it had cent
 - DEM fusion v4: houses are kept in the measurement less a 4 m roof allowance (v3 had dropped them, which emptied Scauri centre and left it 10-15 m low and lumpy); woods still left out; smoothing 25 m instead of 40 m. Scauri church square now ~95 m (radar ~96). Road guard better: kink 73, steep 242, junction 97; one new 0.3 m poke at the Via del Porto T-junction (the branch arrives 1 m above the road it joins) accepted as a known spot.
 - Scauri: church of San Gaetano front (salmon gable, iron cross, pilasters, brown door, square window, side doors), seated at the level of Piazza San Gaetano; benches. 5 more houses surveyed (64 village buildings).
 - Sesiventi: the patio no longer blocks the first step (a field wall ran under it); you can walk up the seven white steps and across the roof.
+
+### b36 (2026-11-18) full screen on phones + blog menu
+- Phones (upright or sideways): /pantelleria is full screen over the site header and footer, nothing scrolls behind it (Apartment.module.css .immersive, globals.css html.map-immersive).
+- The map's top-left button is now ☰: it posts {type: "pantelleria:menu"} to the page, which opens a bottom sheet with the blog sections (Home, Archive, Tags, Projects, Search) and Back to the map (pages/pantelleria.tsx, styles/PantelleriaMenu.module.css). Desktop unchanged.
