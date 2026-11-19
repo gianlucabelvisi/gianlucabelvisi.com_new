@@ -146,6 +146,7 @@ const FURN_LABELS = new Set(['Bed', 'Closet', 'TV', 'TV wall', 'Sofa', 'Dining',
 const MOVERS = { bedMover, closetMover, tvMover, mediaMover, sofaMover, lampMover, diningMover, petraMover, guestMover, vpaxMover, nookMover, booksMover, plantMover, artMover, consoleMover, alcoveMover, deskMover, holmMover, entranceMover, bathMover, balconyMover, skaenkMover, mpMoverUp, mpMoverLo, ctabMover, rugMover };
 function doorMover(d) { if (d._mover === undefined) { const m = String(d.swap).match(/selected === (\w+)/); d._mover = (m && MOVERS[m[1]]) || null; } return d._mover; }
 const isFurn = (d) => d.kind === 'swap' && FURN_LABELS.has(d.label);
+const INFO_NEAR = 1.6;   // walking: (i) only for furniture within 1.6 m of you
 const hud = { el: $('hud3d'), pools: { ipt: [], finfo: [], marr: [] }, used: { ipt: 0, finfo: 0, marr: 0 }, focusDoor: null, n: 0, occ: new WeakMap(), vsig: '' };
 const REACH = 2.0;
 const ARROW_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -214,8 +215,8 @@ const _sc = { x: 0, y: 0, z: 0 };
 function hudUpdate() {
   hud.n++;
   { const q = camera.quaternion, c = camera.position, sig = c.x * 1.3 + c.y * 7.1 + c.z * 13.7 + q.x * 17 + q.y * 19 + q.z * 23 + q.w * 29 + innerWidth + innerHeight * 3;
-    const still = sig === hud.lastSig && !camTween && hud.n % 8 !== 0 && !doors.some((d) => d.t !== undefined && d.t !== d.target) && hud.stateSig === `${mode}${!!focus}${moveLayer}${infoLayer}${measuring}`;
-    hud.lastSig = sig; hud.stateSig = `${mode}${!!focus}${moveLayer}${infoLayer}${measuring}`;
+    const still = sig === hud.lastSig && !camTween && hud.n % 8 !== 0 && !doors.some((d) => d.t !== undefined && d.t !== d.target) && hud.stateSig === `${mode}${!!focus}${moveLayer}${measuring}`;
+    hud.lastSig = sig; hud.stateSig = `${mode}${!!focus}${moveLayer}${measuring}`;
     if (still) return; }                                             // perf: standing still → refresh the HUD only every 8th frame
   if (document.body.classList.contains('flying') !== !!camTween) document.body.classList.toggle('flying', !!camTween);
   for (const k in hud.used) hud.used[k] = 0;
@@ -241,8 +242,9 @@ function hudUpdate() {
     }
     if (best) { best.classList.add('focus'); hud.focusDoor = best._door; }
   }
-  // 2. furniture info buttons (quick bar I; the one of the piece in close-up always stays)
-  if (live && !measuring && (infoLayer || focus)) {
+  // 2. furniture info buttons (the one of the piece in close-up always stays). Walking: only for pieces within arm's reach-ish
+  // (2026-11-19, Gianluca: too many (i)s; this replaces the quick-bar Info toggle)
+  if (live && !measuring) {
     const placed = [];                                            // screen spots already taken: no piles of overlapping (i)s (2026-11-18)
     const overR = mode === 'over' && !focus ? (camera.position.distanceTo(orbit.target) < 9 ? 4.5 : 3.0) : 0;
     for (const d of doors) {
@@ -252,7 +254,10 @@ function hudUpdate() {
       const bb = partsBox(d, focus && focus.door === d);
       bb.getCenter(_hp); _hp.y = bb.max.y + 0.14;
       if (mode === 'walk') _hp.y = Math.min(_hp.y, 2.45);              // full-height built-ins: keep the button under the ceiling
-      if (mode === 'walk') { const dist = _hp.distanceTo(camera.position); if (dist > 5.5 || dist < 0.5) continue; }
+      if (mode === 'walk' && !(focus && focus.door === d)) {         // horizontal distance from you to the piece's footprint
+        const cp = camera.position, gx = Math.max(bb.min.x - cp.x, 0, cp.x - bb.max.x), gz = Math.max(bb.min.z - cp.z, 0, cp.z - bb.max.z);
+        if (Math.hypot(gx, gz) > INFO_NEAR) continue;
+      }
       if (overR && Math.hypot(_hp.x - orbit.target.x, _hp.z - orbit.target.z) > overR) continue;   // from above: only the pieces around what you're looking at
       if (!toScreen(_hp, _sc)) continue;
       if (!(focus && focus.door === d) && placed.some((q) => Math.abs(q[0] - _sc.x) < 30 && Math.abs(q[1] - _sc.y) < 30)) continue;
@@ -391,13 +396,9 @@ function exitFocus() {
 // ---- Move layer (quick bar G)
 function setMoveLayer(on) { moveLayer = on; $('qMove').setAttribute('aria-pressed', String(on)); showToast(on ? 'Move: use the arrows around each piece (hold to keep moving)' : 'Move arrows off'); }
 $('qMove').addEventListener('click', () => setMoveLayer(!moveLayer));
-function setInfoLayer(on) { infoLayer = on; $('qInfo').setAttribute('aria-pressed', String(on)); try { localStorage.setItem('aptInfo', on ? '1' : '0'); } catch (_) { /* private mode */ } }
-try { if (localStorage.getItem('aptInfo') === '0') setInfoLayer(false); } catch (_) { /* ignore */ }
-$('qInfo').addEventListener('click', () => { setInfoLayer(!infoLayer); showToast(infoLayer ? 'Info buttons on' : 'Info buttons off'); });
 addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey || e.repeat || !$('lightbox').hidden) return;
   if (e.code === 'KeyG') setMoveLayer(!moveLayer);
-  else if (e.code === 'KeyI') $('qInfo').click();
   else if (e.code === 'KeyL') toggleAllLights();
 });
 $('qLights').addEventListener('click', () => toggleAllLights());

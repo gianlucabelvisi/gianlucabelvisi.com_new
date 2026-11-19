@@ -163,7 +163,7 @@ function buildRoomFurniture() {
       for (const s2 of [-1, 1]) { add(new THREE.BoxGeometry(T, 0.035, 0.02), m, x0, 0.69 + Y, zc + s2 * (T / 2 - 0.01), false); add(new THREE.BoxGeometry(0.02, 0.035, T), m, x0 + s2 * (T / 2 - 0.01), 0.69 + Y, zc, false); }
       for (const dx of [-1, 1]) for (const dz of [-1, 1]) rod(V(x0 + dx * (T / 2 - 0.025), Y, zc + dz * (T / 2 - 0.025)), V(x0 + dx * (T / 2 - 0.025), 0.7 + Y, zc + dz * (T / 2 - 0.025)), 0.014, m, g);
       { const hit = add(new THREE.BoxGeometry(T, 0.72, T), new THREE.MeshBasicMaterial({ visible: false }), x0, 0.36 + Y, zc); hit.castShadow = false; }
-      chair(x0, zc + T / 2 + 0.24, -Math.PI / 2); chair(x0, zc - T / 2 - 0.24, Math.PI / 2);
+      chair(x0, zc + T / 2 + 0.24, Math.PI / 2); chair(x0, zc - T / 2 - 0.24, -Math.PI / 2);   // seats face the table (front = local +x)
       // a pot of basil on the table
       add(new THREE.CylinderGeometry(0.055, 0.045, 0.1, 18), stdc({ color: 0xb06a43, roughness: 0.9 }), x0 + 0.1, 0.77 + Y, zc + 0.12, false);
       { const hb = new THREE.Group(); hb.position.set(x0 + 0.1, 0.82 + Y, zc + 0.12); hb.add(herbClump('basil', 0.06, 0.16, rng(11))); g.add(hb); }   // nested so the merge keeps its colours

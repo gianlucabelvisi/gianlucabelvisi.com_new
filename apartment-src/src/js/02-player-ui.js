@@ -126,7 +126,7 @@ addEventListener('pointercancel', endPointer);
 
 // ------------------------------------------------------------ modes
 let mode = 'walk', started = false;
-let focus = null, camTween = null, moveLayer = false, infoLayer = true;   // furniture close-up (info button), camera fly, move-arrows layer
+let focus = null, camTween = null, moveLayer = false;   // furniture close-up (info button), camera fly, move-arrows layer
 const orbit = new OrbitControls(camera, canvas);
 orbit.enabled = false;
 orbit.enableDamping = true;
