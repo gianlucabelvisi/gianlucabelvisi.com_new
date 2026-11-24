@@ -3795,6 +3795,16 @@ const sofaMover = {
 const ILVA = (p) => `https://ilva.dk/${p}/`;
 const IL = (h, v) => `https://ilva.dk/products/${h}${v ? `?variant=${v}` : ''}`;   // ilva.dk moved to Shopify (Nov 2026)
 const TABLE_MODELS = [
+  // 2026-11-23 Gianluca: ORDERED. Møbelkompagniet "Roots spisebord, inkl. tillægsplade | Ø130/170" (FCL-CORE ONE), Natur egetræ (the link's default
+  // colour; Røget egetræ also exists). Solid oiled oak, Ø130 × 76 cm, one 40 cm leaf → 170 × 130; legs 71.4 cm, clearance under the top 72 cm
+  // (65 cm under the slide rails), 60 kg; 8.999 kr (før 11.999). From the photos: split round top with a soft rounded edge, four round, slightly
+  // tapered legs set in from the edge, each forking into a Y at the top (with a slot), two slide rails under the top along the pull-out direction.
+  { brand: 'Møbelkompagniet', name: 'Roots Ø130/170', style: 'roots', decided: true, url: 'https://moebelkompagniet.dk/products/roots-spisebord-o130',
+    configs: [
+      { name: 'Closed · Ø130 cm · 8.999 kr incl. leaf (før 11.999)', D: 1.30, L: 1.30, H: 0.76, leaves: 0, seats: 5 },
+      { name: 'Open · 170 × 130 cm (40 cm leaf in)', D: 1.30, L: 1.70, H: 0.76, leaves: 1, seats: 8 },
+    ],
+    finishes: [{ name: 'Natur egetræ (massiv eg, olie)', top: 0xb7834f, edge: 0xab774a, legs: 0xb07c4b, grain: true }] },
   // Gianluca (2026-11-15): not decided, but thinking of ILVA's Ø120 round tables (extendable or not), in a wood colour. All four from ilva.dk,
   // Nov 2026, 75 cm high. Torsby is the only Ø120 that extends (2 × 50 cm leaves, 1.699 kr each).
   { brand: 'ILVA', name: 'Torsby Ø120', style: 'straight', url: IL('torsby-spisebord-d-120-cm'),
@@ -4051,15 +4061,32 @@ function buildDining(tryPlace) {
   const g = new THREE.Group(); g.position.copy(dining.O); g.rotation.y = dining.angle;
   const add = (geo, mat, x, y, z, parent = g) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; };
   // table: 25 mm top with an oak edge band, slim apron, four tapered splayed oak legs
-  const TT = 0.025, sh = stadiumShape(T.L, T.D);
+  const TT = TABLE_MODELS[dining.t].style === 'roots' ? 0.032 : 0.025, sh = stadiumShape(T.L, T.D);
+  if (TABLE_MODELS[dining.t].style === 'roots') {      // solid oak top with a soft rounded edge (bevelled extrude)
+    const bv = 0.011, tg = new THREE.ExtrudeGeometry(stadiumShape(T.L - 2 * bv, T.D - 2 * bv), { depth: TT - 2 * bv, bevelEnabled: true, bevelThickness: bv, bevelSize: bv, bevelSegments: 4, curveSegments: 56 });
+    const top = add(tg, MATS.tTop, 0, T.H - bv, 0); top.rotation.x = Math.PI / 2;
+  } else {
   const top = add(new THREE.ExtrudeGeometry(sh, { depth: TT - 0.004, bevelEnabled: false, curveSegments: 48 }), MATS.tTop, 0, T.H - 0.002, 0); top.rotation.x = Math.PI / 2;
   const band = add(new THREE.ExtrudeGeometry(sh, { depth: 0.004, bevelEnabled: false, curveSegments: 48 }), MATS.tEdge, 0, T.H - TT + 0.002, 0); band.rotation.x = Math.PI / 2; band.scale.set(1.004, 1.004, 1);
+  }
   const s = (T.L - T.D) / 2;
   for (let i = 0; i < T.leaves + (T.leaves ? 1 : 0); i++) {        // seams where the leaves meet
     const x = T.leaves ? -s + (2 * s) * i / T.leaves : 0; add(new THREE.BoxGeometry(0.003, 0.002, T.D * 0.98), MATS.seam, x, T.H + 0.0005, 0);
   }
   const apR = T.D / 2 - 0.12, legH = T.H - TT, TM = TABLE_MODELS[dining.t], tstyle = TM.style || 'splay';
-  if (tstyle === 'straight') {                          // Torsby: a deep skirt under the top, four straight round legs; each half takes two when it pulls apart
+  if (tstyle === 'roots') {                             // Roots: four round tapered legs that fork into a Y under the top, slide rails along the pull-out
+    const lr = 0.52, lp = lr * Math.SQRT1_2, under = T.H - TT, fork = 0.11, LH = under - fork;
+    for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const lx = sx * (s + lp), lz = sz * lp;
+      add(new THREE.CylinderGeometry(0.023, 0.018, LH, 20), MATS.tLegs, lx, LH / 2, lz);
+      // the Y: two flat arms rising from the leg top to the rail, the slot between them shows the gap
+      for (const k of [-1, 1]) { const arm = add(new THREE.BoxGeometry(0.03, fork + 0.02, 0.022), MATS.tLegs, lx - sx * 0.006 + k * 0.024 * sz * 0, LH + fork / 2 - 0.005, lz);
+        arm.rotation.set(0, 0, 0); arm.position.x += k * 0.018; arm.rotation.z = -k * 0.32; }
+      add(new THREE.BoxGeometry(0.03, 0.02, 0.045), MATS.tLegs, lx, LH + 0.005, lz);           // the solid knot where the arms meet
+    }
+    for (const sz of [1, -1]) add(new THREE.BoxGeometry(T.L - 2 * (T.D / 2 - lp) + 0.06, 0.065, 0.028), MATS.tLegs, 0, under - 0.0325, sz * lp);   // slide rails
+    for (const sx of [1, -1]) add(new THREE.BoxGeometry(0.05, 0.05, 2 * lp - 0.03), MATS.tLegs, sx * (s + lp), under - 0.025, 0);              // cross bearers over each leg pair
+  } else if (tstyle === 'straight') {                          // Torsby: a deep skirt under the top, four straight round legs; each half takes two when it pulls apart
     const ro = T.D / 2 - 0.035, ri = ro - 0.022, skirt = stadiumShape(T.L - (T.D - 2 * ro), 2 * ro); skirt.holes.push(new THREE.Path(stadiumShape(T.L - (T.D - 2 * ri), 2 * ri).getPoints(64).reverse()));
     const sk = add(new THREE.ExtrudeGeometry(skirt, { depth: 0.075, bevelEnabled: false, curveSegments: 48 }), MATS.tLegs, 0, T.H - TT, 0); sk.rotation.x = Math.PI / 2;
     const lr = ro - 0.045;
@@ -4469,12 +4496,12 @@ const diningMover = {
   link: () => { const Tm = TABLE_MODELS[dining.t]; return { href: (Tm.configs[dining.tc].urls || [])[dining.tf] || Tm.configs[dining.tc].url || Tm.url, text: `${Tm.brand} ${Tm.name} ↗`, href2: CHAIR_MODELS[dining.c].variants[dining.cv].url || CHAIR_MODELS[dining.c].url, text2: `${CHAIR_MODELS[dining.c].brand} ${CHAIR_MODELS[dining.c].name} ↗` }; },
   info: () => { const G = diningGaps(); const tight = Math.min(...G.map((g) => g.d ?? 9)); return `${Math.round(((dining.angle * 180 / Math.PI) % 360 + 360) % 360)}° · tightest gap ${tight.toFixed(2)} m · seats ${TABLE_MODELS[dining.t].configs[dining.tc].seats}`; },
   selects: [
-    { id: 'tmodel', label: 'Table', options: () => TABLE_MODELS.map((m) => ({ label: `${m.brand} ${m.name}` })), get: () => dining.t,
-      set: (i) => { dining.t = i; dining.tc = 0; dining.tf = 0; buildDining(); buildMoverSelects(diningMover); } },
-    { id: 'tsize', label: 'Table size', options: () => TABLE_MODELS[dining.t].configs.map((c) => ({ label: c.name })), get: () => dining.tc,
-      set: (i) => { dining.tc = i; buildDining(); } },
-    { id: 'tfin', label: 'Table finish', options: () => TABLE_MODELS[dining.t].finishes.map((f) => ({ label: f.name })), get: () => dining.tf,
-      set: (i) => { dining.tf = i; applyDiningMats(); } },
+    ...(TABLE_MODELS[0].decided ? [] : [{ id: 'tmodel', label: 'Table', options: () => TABLE_MODELS.map((m) => ({ label: `${m.brand} ${m.name}` })), get: () => dining.t,
+      set: (i) => { dining.t = i; dining.tc = 0; dining.tf = 0; buildDining(); buildMoverSelects(diningMover); } }]),
+    { id: 'tsize', label: TABLE_MODELS[0].decided ? 'Table (ordered)' : 'Table size', options: () => TABLE_MODELS[dining.t].configs.map((c) => ({ label: c.name })), get: () => dining.tc,
+      set: (i) => { dining.tc = i; buildDining(); if (TABLE_MODELS[dining.t].decided) showToast(i ? 'Leaf in: 170 × 130 cm' : 'Leaf out: Ø130 cm'); } },
+    ...(TABLE_MODELS[0].decided ? [] : [{ id: 'tfin', label: 'Table finish', options: () => TABLE_MODELS[dining.t].finishes.map((f) => ({ label: f.name })), get: () => dining.tf,
+      set: (i) => { dining.tf = i; applyDiningMats(); } }]),
     { id: 'cmod', label: 'Chairs', options: () => CHAIR_MODELS.map((m) => ({ label: `${m.brand} ${m.name}` })), get: () => dining.c,
       set: (i) => { dining.c = i; dining.cv = 0; buildDining(); buildMoverSelects(diningMover); } },
     { id: 'cvar', label: 'Chair colour', options: () => CHAIR_MODELS[dining.c].variants.map((v) => ({ label: v.name })), get: () => dining.cv,
@@ -7154,7 +7181,7 @@ function shopLines() {
   safe(() => { const UM = UNIT_MODELS[unitSel.m], p = parseKr(UM.price); if (UM.front === 'mistralPair') return; add('Living', 'tvunit', `${UM.brand} ${UM.name}`, { detail: `TV bench · ${UM.finishes[unitSel.f].name}`, kr: p && p.kr, approx: p && p.approx, href: UM.finishes[unitSel.f].url || UM.url }); });
   add('Living', 'sonos', 'Sonos Beam Ultra (black)', { detail: '75 × 6.5 × 10.5 cm soundbar under the TV', kr: 5699, href: 'https://www.sonos.com/da-dk/shop/beam-ultra' });
   safe(() => { const Tm = TABLE_MODELS[dining.t], C = Tm.configs[dining.tc], p = parseKr(C.name), lk = linkOf(diningMover);
-    add('Living', 'table', `${Tm.brand} ${Tm.name} dining table`, { detail: `${C.name.split('·')[0].trim()} · ${Tm.finishes[dining.tf].name}`, kr: p && p.kr, href: lk.href, note: 'Placeholder: table not decided' });
+    add('Living', 'table', `${Tm.brand} ${Tm.name} dining table`, { detail: Tm.decided ? `Ø130, opens to 170 × 130 with the leaf · ${Tm.finishes[dining.tf].name} · ordered` : `${C.name.split('·')[0].trim()} · ${Tm.finishes[dining.tf].name}`, kr: Tm.decided ? 8999 : p && p.kr, href: lk.href, note: Tm.decided ? '' : 'Placeholder: table not decided' });
     const Ch = CHAIR_MODELS[dining.c], V = Ch.variants[dining.cv], q = parseKr(V.name);
     add('Living', 'chairs', `${Ch.brand} ${Ch.name} chair`, { qty: dining.n, unit: q && q.kr, kr: q && q.kr * dining.n, detail: plainDetail(V.name), href: lk.href2 }); });
   safe(() => { const p = parseKr(PH5.price); add('Living', 'ph5', 'Louis Poulsen PH 5, grey', { detail: 'Ø50 cm pendant over the table', kr: p && p.kr, href: PH5.url }); });
@@ -7167,7 +7194,7 @@ function shopLines() {
     add('Living', 'skaenk', 'Hammel Mistral skænk', { detail: `177 × 42 × 61 cm · ${C.name} · by the sofa`, kr: SKAENK.kr, href: SKAENK.url });
     add('Living', 'skaenklegs', 'Konisk træben 14 cm (6-pack)', { detail: Lg.name, kr: SKAENK.legKr, href: SKAENK.legUrl }); });
   add('Living', 'vp9', 'Louis Poulsen Panthella 160 Portable v3, brass', { detail: 'wireless table lamp on the skænk · H 23.8 × Ø16 cm · SEK 2,280 (før 3,145)', kr: 2280 * SEK_DKK, approx: true, href: 'https://www.svenssons.se/varumarken/louis-poulsen/panthella-160-portable-v3-bordslampa/?variantId=634007-01', note: 'converted from SEK' });
-  safe(() => { const Z = CTAB.sizes[ctab.size]; add('Living', 'ctab', 'MAX | Zen coffee table', { detail: `${Z.name.split(' · ')[0]} · travertine, oak`, kr: Z.kr, href: CTAB.url }); });
+  safe(() => { const Z = CTAB.sizes[ctab.size]; add('Living', 'ctab', 'ILVA Willow sofabord', { detail: `${Z.name.split(' · ')[0]} · Natur, oiled oak veneer`, kr: Z.kr, href: CTAB.url }); });
   safe(() => { if (!rug.on) return; const R = RUGS[rug.m], Z = R.sizes[rug.size]; add('Living', 'rug', `ILVA ${R.name}`, { detail: `${Z.name.split(' · ')[0]} · ${R.cols[rug.col].name}`, kr: Z.kr, href: R.url, note: 'Placeholder' }); });
   safe(() => { if (books.hidden) return; const p = BOOKT.packs[books.pack]; add('Living', 'books', `Book tower, ${p.n}-pack (white)`, { detail: `Amazon · SEK ${Math.round(p.sek)}`, kr: p.sek * SEK_DKK, approx: true, href: BOOKT.url(p.asin), note: 'converted from SEK' }); });
   if (!plant.removed) add('Living', 'plant', `${PLANTS[plant.kind] ? PLANTS[plant.kind].name || 'Plant' : 'Plant'} + pot`, { note: 'No product picked yet' });
@@ -7188,8 +7215,8 @@ function shopLines() {
   return L;
 }
 // ticks for "we've decided on this one"; kept per browser and travel with shared layouts
-let shopDecided = { sofa: true, lounge: true, nilofs: true, chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true };
-try { const v = JSON.parse(localStorage.getItem('aptDecided') || 'null'); if (v) { if (!v._nov26) Object.assign(v, { chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, _nov26: true }); if (!v._nov26b) Object.assign(v, { lounge: true, nilofs: true, _nov26b: true }); shopDecided = v; } } catch (_) { /* ignore */ }
+let shopDecided = { sofa: true, lounge: true, nilofs: true, chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, table: true };
+try { const v = JSON.parse(localStorage.getItem('aptDecided') || 'null'); if (v) { if (!v._nov26) Object.assign(v, { chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, _nov26: true }); if (!v._nov26b) Object.assign(v, { lounge: true, nilofs: true, _nov26b: true }); if (!v._nov23t) Object.assign(v, { table: true, ctab: true, _nov23t: true }); shopDecided = v; } } catch (_) { /* ignore */ }
 function saveDecided() { try { localStorage.setItem('aptDecided', JSON.stringify(shopDecided)); } catch (_) { /* ignore */ } }
 function shopTotals(lines) {
   let pick = 0, dec = 0, approx = false, missing = 0;
@@ -7329,7 +7356,7 @@ function renderLayouts(box) {
 }
 // your last setup is kept in this browser and comes back on the next visit (2026-11-18). LAST_VER: bump it when the defaults change
 // on purpose (a saved setup from before would otherwise hide them).
-const LAST_KEY = 'aptLast', LAST_VER = '2026-11-18';
+const LAST_KEY = 'aptLast', LAST_VER = '2026-11-23';
 function lastSave() { try { const s = JSON.stringify(layoutSnapshot()); if (s !== lastSave.prev) { lastSave.prev = s; localStorage.setItem(LAST_KEY, JSON.stringify({ v: LAST_VER, s })); } } catch (_) { /* private mode */ } }
 function lastClear() { try { localStorage.removeItem(LAST_KEY); } catch (_) { /* ignore */ } }
 async function layoutBoot() {       // furnish() done: open the layout in the link, if any; otherwise your last setup in this browser
@@ -7526,9 +7553,27 @@ if (modelRoot) furnishAll(); else window.__afterModel = furnishAll;
 // ------------------------------------------------------------ living: MAX | Zen coffee table and a rug under the sofa group (2026-11-15)
 // Zen (max-jessen.dk/max-i-zen-sofabord, Nov 2026): grey travertine top on an oiled oak-veneer base of three radiating panels.
 // Ø95 × 40 cm 3.299 kr (før 4.499) = Gianluca's pick ("the larger version"); Ø65 2.599 kr (før 3.499).
-const CTAB = { sizes: [{ name: 'Ø95 × 40 cm · 3.299 kr (før 4.499)', D: 0.95, H: 0.40, kr: 3299 }, { name: 'Ø65 cm · 2.599 kr (før 3.499)', D: 0.65, H: 0.40, kr: 2599 }],
-  url: 'https://www.max-jessen.dk/max-i-zen-sofabord' };
-const ctab = { size: 0, pos: null, angle: 0, group: null, parts: [] };
+// 2026-11-23 Gianluca: replaced by ILVA Willow sofabord (ilva.dk/products/willow-sofabord-2): Natur, oiled oak veneer on plywood (the layered edge
+// shows), 95 cm long × 45 cm high, 3.598 kr (normal 4.798; Black Week until 30/11/2026). A soft rounded-triangle ("pebble") top, three slim tapered
+// splayed legs, a smaller shelf of the same shape hung ~8 cm under the top on short black rods. ILVA lists only length and height: the width
+// (~72 cm) is read off the photos (it ships in a 79 × 119 box).
+const CTAB = { sizes: [{ name: '95 × ~72 × 45 cm · 3.598 kr (normal 4.798)', D: 0.95, W: 0.72, H: 0.45, kr: 3598 }],
+  url: 'https://ilva.dk/products/willow-sofabord-2', name: 'ILVA Willow sofabord' };
+function pebbleShape(L, W, k = 1) {                        // rounded triangle: convex hull of three corner circles and a centre circle (bulged sides), scaled to L × W
+  const V = [[0.34, 0], [-0.2, 0.3], [-0.2, -0.3]], rc = 0.17, pts = [];
+  for (const [x, y] of V) for (let j = 0; j < 48; j++) { const t = j / 48 * Math.PI * 2; pts.push([x + rc * Math.cos(t), y + rc * Math.sin(t)]); }
+  for (let j = 0; j < 96; j++) { const t = j / 96 * Math.PI * 2; pts.push([0.0 + 0.43 * Math.cos(t), 0.43 * Math.sin(t)]); }
+  pts.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], hi = [];
+  for (const p of pts) { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (const p of [...pts].reverse()) { while (hi.length > 1 && cr(hi[hi.length - 2], hi[hi.length - 1], p) <= 0) hi.pop(); hi.push(p); }
+  const hull = lo.slice(0, -1).concat(hi.slice(0, -1));
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; for (const [x, y] of hull) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, sx = L * k / (x1 - x0), sy = W * k / (y1 - y0);
+  const sh = new THREE.Shape(hull.map(([x, y]) => new THREE.Vector2((x - cx) * sx, (y - cy) * sy)));
+  return { shape: sh, corners: V.map(([x, y]) => [(x - cx) * sx, (y - cy) * sy]) };
+}
+const ctab = { size: 0, pos: null, angle: Math.PI / 2, group: null, parts: [] };   // pointed end away from the TV, broad side to the sofa
 // Rugs: Gianluca asked to assume one and show colours. Three ILVA rugs (ilva.dk, Nov 2026) in their sizes and colours; colours by eye from the names.
 const RUGS = [
   { name: 'Sofus tuftet tæppe', kind: 'boucle', pile: 0.014, url: 'https://ilva.dk/products/sofus-tuftet-taeppe-250-x-350-cm',
@@ -7558,27 +7603,28 @@ function buildCoffeeTable(tryPos) {
     ctab.pos = I.P(lx, I.zFront + 0.46 + r); }   // 46 cm in front of the sofa, centred on the TV (clears the Nilo footstool)
   const p = tryPos || ctab.pos, cx = THREE.MathUtils.clamp(p[0], LIV_BOX.x0 + 0.5, LIV_BOX.x1 - 0.5), cy = THREE.MathUtils.clamp(p[1], LIV_BOX.y0 + 0.5, LIV_BOX.y1 - 0.5);
   const ok = Math.abs(cx - p[0]) < 1e-6 && Math.abs(cy - p[1]) < 1e-6; ctab.pos = [cx, cy];
-  const Z = CTAB.sizes[ctab.size], R = Z.D / 2, H = Z.H, TT = 0.03;
+  const Z = CTAB.sizes[ctab.size], R = Z.D / 2, H = Z.H, TT = 0.018;
   const g = new THREE.Group(); g.position.copy(b2t(cx, cy, 0)); g.rotation.y = ctab.angle;
   const parts = [], add = (geo, m, px, py, pz, solid = true) => { const o = new THREE.Mesh(geo, m); o.position.set(px, py, pz); o.castShadow = o.receiveShadow = true; g.add(o); if (solid) parts.push(o); return o; };
-  const trav = stdc({ color: 0xb3aba0, roughness: 0.5, map: stoneTex() }), oak = stdc({ color: 0xd2ad7c, roughness: 0.6, map: grainTex() });
-  add(new THREE.CylinderGeometry(R, R, TT, 64), trav, 0, H - TT / 2, 0);
-  add(new THREE.CylinderGeometry(R - 0.004, R - 0.012, 0.004, 64), stdc({ color: 0xb9b0a3, roughness: 0.6 }), 0, H - TT - 0.002, 0, false);
-  const reach = R * 0.62, ph = H - TT;
-  for (let k = 0; k < 3; k++) {                            // three oak panels radiating from the centre, each with an arch cut out on its inner side
-    const a = k * Math.PI * 2 / 3 + Math.PI / 6, sh = new THREE.Shape(), c0 = 0.03, ar = ph * 0.55;
-    sh.moveTo(c0 + ar, 0); sh.lineTo(reach, 0); sh.lineTo(reach, ph); sh.lineTo(c0, ph); sh.lineTo(c0, ar); sh.absarc(c0, 0, ar, Math.PI / 2, 0, true);
-    const pan = add(new THREE.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: false }), oak, 0, 0, 0);
-    pan.geometry.translate(0, 0, -0.02); pan.rotation.y = -a;
+  const oak = stdc({ color: 0xa8784a, roughness: 0.55, map: grainTex() }), ply = stdc({ color: 0xd2b48c, roughness: 0.7 }), blk = stdc({ color: 0x1d1d1d, roughness: 0.4, metalness: 0.5 });
+  const flat = (shape, depth, mat, y, solid = true) => { const o = add(new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 12 }), mat, 0, y, 0, solid); o.rotation.x = Math.PI / 2; return o; };
+  const T = pebbleShape(Z.D, Z.W), S = pebbleShape(Z.D, Z.W, 0.8);
+  flat(T.shape, 0.0015, oak, H, true); flat(T.shape, TT - 0.003, ply, H - 0.0015, false); flat(T.shape, 0.0015, oak, H - TT + 0.0015, false);   // veneer · plywood edge · veneer
+  const SY = H - TT - 0.075; flat(S.shape, 0.0015, oak, SY, false); flat(S.shape, 0.012, ply, SY - 0.0015, false);
+  for (const [x, y] of S.corners) add(new THREE.CylinderGeometry(0.006, 0.006, 0.075, 10), blk, x * 0.72, H - TT - 0.0375, y * 0.72, false);   // rods holding the shelf
+  for (const [x, y] of T.corners) {                        // three slim tapered legs, splayed outwards towards the corners
+    const lx = x * 0.9, lz = y * 0.9, ln = Math.hypot(lx, lz), dx = lx / ln, dz = lz / ln, LH = H - TT, tilt = 0.14;
+    const leg = add(new THREE.CylinderGeometry(0.021, 0.013, LH / Math.cos(tilt), 16), oak, lx + dx * Math.tan(tilt) * LH / 2, LH / 2, lz + dz * Math.tan(tilt) * LH / 2);
+    leg.rotation.set(dz * tilt, 0, -dx * tilt);
   }
-  add(new THREE.CylinderGeometry(0.05, 0.05, ph, 20), oak, 0, ph / 2, 0);   // the panels meet in a core
   // a few things on top: two books, a bowl
-  add(new THREE.BoxGeometry(0.24, 0.035, 0.17), stdc({ color: 0x7a2e2a, roughness: 0.8 }), -0.12, H + 0.0175, 0.05, false);
-  add(new THREE.BoxGeometry(0.21, 0.025, 0.15), stdc({ color: 0xe8e2d4, roughness: 0.8 }), -0.12, H + 0.0475, 0.05, false);
-  add(new THREE.CylinderGeometry(0.085, 0.05, 0.055, 28), stdc({ color: 0x3b3a36, roughness: 0.5 }), 0.16, H + 0.03, -0.08, false);
+  add(new THREE.BoxGeometry(0.24, 0.035, 0.17), stdc({ color: 0x7a2e2a, roughness: 0.8 }), -0.08, H + 0.0175, 0.05, false);
+  add(new THREE.BoxGeometry(0.21, 0.025, 0.15), stdc({ color: 0xe8e2d4, roughness: 0.8 }), -0.08, H + 0.0475, 0.05, false);
+  add(new THREE.CylinderGeometry(0.085, 0.05, 0.055, 28), stdc({ color: 0x3b3a36, roughness: 0.5 }), 0.14, H + 0.03, -0.1, false);
+  add(new THREE.BoxGeometry(0.3, 0.03, 0.22), stdc({ color: 0x2f4a5a, roughness: 0.8 }), -0.06, H - TT - 0.075 + 0.016, 0, false);   // magazines on the shelf
   { const mg = mergeByMaterial(g, new Set(parts)); parts.length = 0; parts.push(...mg.solids); }
   scene.add(g); g.updateMatrixWorld(true);
-  const door = { kind: 'swap', label: 'Coffee table', name: 'MAX Zen coffee table', parts, center: g.position.clone().setY(0.3),
+  const door = { kind: 'swap', label: 'Coffee table', name: 'ILVA Willow coffee table', parts, center: g.position.clone().setY(0.3),
     swap: () => selectFurniture(selected === ctabMover ? null : ctabMover), prompt: () => (selected === ctabMover ? 'Done with the coffee table' : 'Move the coffee table') };
   door._mover = ctabMover;
   for (const q of parts) { q.userData.door = door; q.userData.furniture = true; collidables.push(q); }
@@ -7587,16 +7633,17 @@ function buildCoffeeTable(tryPos) {
   return ok;
 }
 const ctabMover = {
-  name: 'Coffee table', title: () => `MAX | Zen sofabord · ${CTAB.sizes[ctab.size].name.split(' · ')[0]}`,
+  name: 'Coffee table', title: () => `ILVA Willow sofabord · ${CTAB.sizes[ctab.size].name.split(' · ')[0]}`,
   anchor: () => (ctab.group ? ctab.group.position.clone().setY(0.9) : null),
   axis: () => b2t(1, 0).normalize(), axis2: () => b2t(0, 1).normalize(),
   shift: (dir) => { if (!buildCoffeeTable([ctab.pos[0] + dir * 0.05, ctab.pos[1]])) showToast('Can’t go further'); },
   shift2: (dir) => { if (!buildCoffeeTable([ctab.pos[0], ctab.pos[1] + dir * 0.05])) showToast('Can’t go further'); },
-  selects: [],   // bought: Ø95 (Gianluca 2026-11-16)
-  link: () => ({ href: CTAB.url, text: 'Max Jessen · MAX | Zen sofabord ↗' }),
+  rotate: (dir) => { ctab.angle += dir * Math.PI / 12; if (!buildCoffeeTable()) showToast('No room to turn it'); }, angle: () => ctab.angle,
+  selects: [],   // decided (Gianluca 2026-11-23): Willow, Natur
+  link: () => ({ href: CTAB.url, text: 'ILVA · Willow sofabord ↗' }),
   info: () => { const I = sofaFrontInfo(), Z = CTAB.sizes[ctab.size]; let gaps = '';
-    if (I && ctab.group) { const c = ctab.group.position.clone().sub(I.S.O), z = c.dot(I.f); gaps = ` · ${(z - Z.D / 2 - I.zFront).toFixed(2)} m to the sofa · ${(I.zTV - z - Z.D / 2).toFixed(2)} m to the TV units`; }
-    return `Grey travertine top, oiled oak-veneer base · Ø${Math.round(Z.D * 100)} × ${Math.round(Z.H * 100)} cm${gaps}`; },
+    if (I && ctab.group) { const c = ctab.group.position.clone().sub(I.S.O), z = c.dot(I.f); gaps = ` · ${(z - Z.W / 2 - I.zFront).toFixed(2)} m to the sofa · ${(I.zTV - z - Z.W / 2).toFixed(2)} m to the TV units`; }
+    return `Oiled oak veneer, Natur · ${Math.round(Z.D * 100)} × ~${Math.round(Z.W * 100)} cm, ${Math.round(Z.H * 100)} cm high · shelf underneath${gaps}`; },
 };
 function rugTex(R, C) {                                   // a striped kelim gets its stripes; the others the shared fabric texture
   if (!C.stripe) return weaveTex(R.kind);

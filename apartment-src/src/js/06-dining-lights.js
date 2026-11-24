@@ -3,6 +3,16 @@
 const ILVA = (p) => `https://ilva.dk/${p}/`;
 const IL = (h, v) => `https://ilva.dk/products/${h}${v ? `?variant=${v}` : ''}`;   // ilva.dk moved to Shopify (Nov 2026)
 const TABLE_MODELS = [
+  // 2026-11-23 Gianluca: ORDERED. Møbelkompagniet "Roots spisebord, inkl. tillægsplade | Ø130/170" (FCL-CORE ONE), Natur egetræ (the link's default
+  // colour; Røget egetræ also exists). Solid oiled oak, Ø130 × 76 cm, one 40 cm leaf → 170 × 130; legs 71.4 cm, clearance under the top 72 cm
+  // (65 cm under the slide rails), 60 kg; 8.999 kr (før 11.999). From the photos: split round top with a soft rounded edge, four round, slightly
+  // tapered legs set in from the edge, each forking into a Y at the top (with a slot), two slide rails under the top along the pull-out direction.
+  { brand: 'Møbelkompagniet', name: 'Roots Ø130/170', style: 'roots', decided: true, url: 'https://moebelkompagniet.dk/products/roots-spisebord-o130',
+    configs: [
+      { name: 'Closed · Ø130 cm · 8.999 kr incl. leaf (før 11.999)', D: 1.30, L: 1.30, H: 0.76, leaves: 0, seats: 5 },
+      { name: 'Open · 170 × 130 cm (40 cm leaf in)', D: 1.30, L: 1.70, H: 0.76, leaves: 1, seats: 8 },
+    ],
+    finishes: [{ name: 'Natur egetræ (massiv eg, olie)', top: 0xb7834f, edge: 0xab774a, legs: 0xb07c4b, grain: true }] },
   // Gianluca (2026-11-15): not decided, but thinking of ILVA's Ø120 round tables (extendable or not), in a wood colour. All four from ilva.dk,
   // Nov 2026, 75 cm high. Torsby is the only Ø120 that extends (2 × 50 cm leaves, 1.699 kr each).
   { brand: 'ILVA', name: 'Torsby Ø120', style: 'straight', url: IL('torsby-spisebord-d-120-cm'),
@@ -259,15 +269,32 @@ function buildDining(tryPlace) {
   const g = new THREE.Group(); g.position.copy(dining.O); g.rotation.y = dining.angle;
   const add = (geo, mat, x, y, z, parent = g) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; };
   // table: 25 mm top with an oak edge band, slim apron, four tapered splayed oak legs
-  const TT = 0.025, sh = stadiumShape(T.L, T.D);
+  const TT = TABLE_MODELS[dining.t].style === 'roots' ? 0.032 : 0.025, sh = stadiumShape(T.L, T.D);
+  if (TABLE_MODELS[dining.t].style === 'roots') {      // solid oak top with a soft rounded edge (bevelled extrude)
+    const bv = 0.011, tg = new THREE.ExtrudeGeometry(stadiumShape(T.L - 2 * bv, T.D - 2 * bv), { depth: TT - 2 * bv, bevelEnabled: true, bevelThickness: bv, bevelSize: bv, bevelSegments: 4, curveSegments: 56 });
+    const top = add(tg, MATS.tTop, 0, T.H - bv, 0); top.rotation.x = Math.PI / 2;
+  } else {
   const top = add(new THREE.ExtrudeGeometry(sh, { depth: TT - 0.004, bevelEnabled: false, curveSegments: 48 }), MATS.tTop, 0, T.H - 0.002, 0); top.rotation.x = Math.PI / 2;
   const band = add(new THREE.ExtrudeGeometry(sh, { depth: 0.004, bevelEnabled: false, curveSegments: 48 }), MATS.tEdge, 0, T.H - TT + 0.002, 0); band.rotation.x = Math.PI / 2; band.scale.set(1.004, 1.004, 1);
+  }
   const s = (T.L - T.D) / 2;
   for (let i = 0; i < T.leaves + (T.leaves ? 1 : 0); i++) {        // seams where the leaves meet
     const x = T.leaves ? -s + (2 * s) * i / T.leaves : 0; add(new THREE.BoxGeometry(0.003, 0.002, T.D * 0.98), MATS.seam, x, T.H + 0.0005, 0);
   }
   const apR = T.D / 2 - 0.12, legH = T.H - TT, TM = TABLE_MODELS[dining.t], tstyle = TM.style || 'splay';
-  if (tstyle === 'straight') {                          // Torsby: a deep skirt under the top, four straight round legs; each half takes two when it pulls apart
+  if (tstyle === 'roots') {                             // Roots: four round tapered legs that fork into a Y under the top, slide rails along the pull-out
+    const lr = 0.52, lp = lr * Math.SQRT1_2, under = T.H - TT, fork = 0.11, LH = under - fork;
+    for (const [sx, sz] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const lx = sx * (s + lp), lz = sz * lp;
+      add(new THREE.CylinderGeometry(0.023, 0.018, LH, 20), MATS.tLegs, lx, LH / 2, lz);
+      // the Y: two flat arms rising from the leg top to the rail, the slot between them shows the gap
+      for (const k of [-1, 1]) { const arm = add(new THREE.BoxGeometry(0.03, fork + 0.02, 0.022), MATS.tLegs, lx - sx * 0.006 + k * 0.024 * sz * 0, LH + fork / 2 - 0.005, lz);
+        arm.rotation.set(0, 0, 0); arm.position.x += k * 0.018; arm.rotation.z = -k * 0.32; }
+      add(new THREE.BoxGeometry(0.03, 0.02, 0.045), MATS.tLegs, lx, LH + 0.005, lz);           // the solid knot where the arms meet
+    }
+    for (const sz of [1, -1]) add(new THREE.BoxGeometry(T.L - 2 * (T.D / 2 - lp) + 0.06, 0.065, 0.028), MATS.tLegs, 0, under - 0.0325, sz * lp);   // slide rails
+    for (const sx of [1, -1]) add(new THREE.BoxGeometry(0.05, 0.05, 2 * lp - 0.03), MATS.tLegs, sx * (s + lp), under - 0.025, 0);              // cross bearers over each leg pair
+  } else if (tstyle === 'straight') {                          // Torsby: a deep skirt under the top, four straight round legs; each half takes two when it pulls apart
     const ro = T.D / 2 - 0.035, ri = ro - 0.022, skirt = stadiumShape(T.L - (T.D - 2 * ro), 2 * ro); skirt.holes.push(new THREE.Path(stadiumShape(T.L - (T.D - 2 * ri), 2 * ri).getPoints(64).reverse()));
     const sk = add(new THREE.ExtrudeGeometry(skirt, { depth: 0.075, bevelEnabled: false, curveSegments: 48 }), MATS.tLegs, 0, T.H - TT, 0); sk.rotation.x = Math.PI / 2;
     const lr = ro - 0.045;
@@ -677,12 +704,12 @@ const diningMover = {
   link: () => { const Tm = TABLE_MODELS[dining.t]; return { href: (Tm.configs[dining.tc].urls || [])[dining.tf] || Tm.configs[dining.tc].url || Tm.url, text: `${Tm.brand} ${Tm.name} ↗`, href2: CHAIR_MODELS[dining.c].variants[dining.cv].url || CHAIR_MODELS[dining.c].url, text2: `${CHAIR_MODELS[dining.c].brand} ${CHAIR_MODELS[dining.c].name} ↗` }; },
   info: () => { const G = diningGaps(); const tight = Math.min(...G.map((g) => g.d ?? 9)); return `${Math.round(((dining.angle * 180 / Math.PI) % 360 + 360) % 360)}° · tightest gap ${tight.toFixed(2)} m · seats ${TABLE_MODELS[dining.t].configs[dining.tc].seats}`; },
   selects: [
-    { id: 'tmodel', label: 'Table', options: () => TABLE_MODELS.map((m) => ({ label: `${m.brand} ${m.name}` })), get: () => dining.t,
-      set: (i) => { dining.t = i; dining.tc = 0; dining.tf = 0; buildDining(); buildMoverSelects(diningMover); } },
-    { id: 'tsize', label: 'Table size', options: () => TABLE_MODELS[dining.t].configs.map((c) => ({ label: c.name })), get: () => dining.tc,
-      set: (i) => { dining.tc = i; buildDining(); } },
-    { id: 'tfin', label: 'Table finish', options: () => TABLE_MODELS[dining.t].finishes.map((f) => ({ label: f.name })), get: () => dining.tf,
-      set: (i) => { dining.tf = i; applyDiningMats(); } },
+    ...(TABLE_MODELS[0].decided ? [] : [{ id: 'tmodel', label: 'Table', options: () => TABLE_MODELS.map((m) => ({ label: `${m.brand} ${m.name}` })), get: () => dining.t,
+      set: (i) => { dining.t = i; dining.tc = 0; dining.tf = 0; buildDining(); buildMoverSelects(diningMover); } }]),
+    { id: 'tsize', label: TABLE_MODELS[0].decided ? 'Table (ordered)' : 'Table size', options: () => TABLE_MODELS[dining.t].configs.map((c) => ({ label: c.name })), get: () => dining.tc,
+      set: (i) => { dining.tc = i; buildDining(); if (TABLE_MODELS[dining.t].decided) showToast(i ? 'Leaf in: 170 × 130 cm' : 'Leaf out: Ø130 cm'); } },
+    ...(TABLE_MODELS[0].decided ? [] : [{ id: 'tfin', label: 'Table finish', options: () => TABLE_MODELS[dining.t].finishes.map((f) => ({ label: f.name })), get: () => dining.tf,
+      set: (i) => { dining.tf = i; applyDiningMats(); } }]),
     { id: 'cmod', label: 'Chairs', options: () => CHAIR_MODELS.map((m) => ({ label: `${m.brand} ${m.name}` })), get: () => dining.c,
       set: (i) => { dining.c = i; dining.cv = 0; buildDining(); buildMoverSelects(diningMover); } },
     { id: 'cvar', label: 'Chair colour', options: () => CHAIR_MODELS[dining.c].variants.map((v) => ({ label: v.name })), get: () => dining.cv,

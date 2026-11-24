@@ -33,7 +33,7 @@ function shopLines() {
   safe(() => { const UM = UNIT_MODELS[unitSel.m], p = parseKr(UM.price); if (UM.front === 'mistralPair') return; add('Living', 'tvunit', `${UM.brand} ${UM.name}`, { detail: `TV bench · ${UM.finishes[unitSel.f].name}`, kr: p && p.kr, approx: p && p.approx, href: UM.finishes[unitSel.f].url || UM.url }); });
   add('Living', 'sonos', 'Sonos Beam Ultra (black)', { detail: '75 × 6.5 × 10.5 cm soundbar under the TV', kr: 5699, href: 'https://www.sonos.com/da-dk/shop/beam-ultra' });
   safe(() => { const Tm = TABLE_MODELS[dining.t], C = Tm.configs[dining.tc], p = parseKr(C.name), lk = linkOf(diningMover);
-    add('Living', 'table', `${Tm.brand} ${Tm.name} dining table`, { detail: `${C.name.split('·')[0].trim()} · ${Tm.finishes[dining.tf].name}`, kr: p && p.kr, href: lk.href, note: 'Placeholder: table not decided' });
+    add('Living', 'table', `${Tm.brand} ${Tm.name} dining table`, { detail: Tm.decided ? `Ø130, opens to 170 × 130 with the leaf · ${Tm.finishes[dining.tf].name} · ordered` : `${C.name.split('·')[0].trim()} · ${Tm.finishes[dining.tf].name}`, kr: Tm.decided ? 8999 : p && p.kr, href: lk.href, note: Tm.decided ? '' : 'Placeholder: table not decided' });
     const Ch = CHAIR_MODELS[dining.c], V = Ch.variants[dining.cv], q = parseKr(V.name);
     add('Living', 'chairs', `${Ch.brand} ${Ch.name} chair`, { qty: dining.n, unit: q && q.kr, kr: q && q.kr * dining.n, detail: plainDetail(V.name), href: lk.href2 }); });
   safe(() => { const p = parseKr(PH5.price); add('Living', 'ph5', 'Louis Poulsen PH 5, grey', { detail: 'Ø50 cm pendant over the table', kr: p && p.kr, href: PH5.url }); });
@@ -46,7 +46,7 @@ function shopLines() {
     add('Living', 'skaenk', 'Hammel Mistral skænk', { detail: `177 × 42 × 61 cm · ${C.name} · by the sofa`, kr: SKAENK.kr, href: SKAENK.url });
     add('Living', 'skaenklegs', 'Konisk træben 14 cm (6-pack)', { detail: Lg.name, kr: SKAENK.legKr, href: SKAENK.legUrl }); });
   add('Living', 'vp9', 'Louis Poulsen Panthella 160 Portable v3, brass', { detail: 'wireless table lamp on the skænk · H 23.8 × Ø16 cm · SEK 2,280 (før 3,145)', kr: 2280 * SEK_DKK, approx: true, href: 'https://www.svenssons.se/varumarken/louis-poulsen/panthella-160-portable-v3-bordslampa/?variantId=634007-01', note: 'converted from SEK' });
-  safe(() => { const Z = CTAB.sizes[ctab.size]; add('Living', 'ctab', 'MAX | Zen coffee table', { detail: `${Z.name.split(' · ')[0]} · travertine, oak`, kr: Z.kr, href: CTAB.url }); });
+  safe(() => { const Z = CTAB.sizes[ctab.size]; add('Living', 'ctab', 'ILVA Willow sofabord', { detail: `${Z.name.split(' · ')[0]} · Natur, oiled oak veneer`, kr: Z.kr, href: CTAB.url }); });
   safe(() => { if (!rug.on) return; const R = RUGS[rug.m], Z = R.sizes[rug.size]; add('Living', 'rug', `ILVA ${R.name}`, { detail: `${Z.name.split(' · ')[0]} · ${R.cols[rug.col].name}`, kr: Z.kr, href: R.url, note: 'Placeholder' }); });
   safe(() => { if (books.hidden) return; const p = BOOKT.packs[books.pack]; add('Living', 'books', `Book tower, ${p.n}-pack (white)`, { detail: `Amazon · SEK ${Math.round(p.sek)}`, kr: p.sek * SEK_DKK, approx: true, href: BOOKT.url(p.asin), note: 'converted from SEK' }); });
   if (!plant.removed) add('Living', 'plant', `${PLANTS[plant.kind] ? PLANTS[plant.kind].name || 'Plant' : 'Plant'} + pot`, { note: 'No product picked yet' });
@@ -67,8 +67,8 @@ function shopLines() {
   return L;
 }
 // ticks for "we've decided on this one"; kept per browser and travel with shared layouts
-let shopDecided = { sofa: true, lounge: true, nilofs: true, chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true };
-try { const v = JSON.parse(localStorage.getItem('aptDecided') || 'null'); if (v) { if (!v._nov26) Object.assign(v, { chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, _nov26: true }); if (!v._nov26b) Object.assign(v, { lounge: true, nilofs: true, _nov26b: true }); shopDecided = v; } } catch (_) { /* ignore */ }
+let shopDecided = { sofa: true, lounge: true, nilofs: true, chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, table: true };
+try { const v = JSON.parse(localStorage.getItem('aptDecided') || 'null'); if (v) { if (!v._nov26) Object.assign(v, { chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, _nov26: true }); if (!v._nov26b) Object.assign(v, { lounge: true, nilofs: true, _nov26b: true }); if (!v._nov23t) Object.assign(v, { table: true, ctab: true, _nov23t: true }); shopDecided = v; } } catch (_) { /* ignore */ }
 function saveDecided() { try { localStorage.setItem('aptDecided', JSON.stringify(shopDecided)); } catch (_) { /* ignore */ } }
 function shopTotals(lines) {
   let pick = 0, dec = 0, approx = false, missing = 0;
@@ -208,7 +208,7 @@ function renderLayouts(box) {
 }
 // your last setup is kept in this browser and comes back on the next visit (2026-11-18). LAST_VER: bump it when the defaults change
 // on purpose (a saved setup from before would otherwise hide them).
-const LAST_KEY = 'aptLast', LAST_VER = '2026-11-18';
+const LAST_KEY = 'aptLast', LAST_VER = '2026-11-23';
 function lastSave() { try { const s = JSON.stringify(layoutSnapshot()); if (s !== lastSave.prev) { lastSave.prev = s; localStorage.setItem(LAST_KEY, JSON.stringify({ v: LAST_VER, s })); } } catch (_) { /* private mode */ } }
 function lastClear() { try { localStorage.removeItem(LAST_KEY); } catch (_) { /* ignore */ } }
 async function layoutBoot() {       // furnish() done: open the layout in the link, if any; otherwise your last setup in this browser

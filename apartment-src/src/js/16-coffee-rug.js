@@ -1,9 +1,27 @@
 // ------------------------------------------------------------ living: MAX | Zen coffee table and a rug under the sofa group (2026-11-15)
 // Zen (max-jessen.dk/max-i-zen-sofabord, Nov 2026): grey travertine top on an oiled oak-veneer base of three radiating panels.
 // Ø95 × 40 cm 3.299 kr (før 4.499) = Gianluca's pick ("the larger version"); Ø65 2.599 kr (før 3.499).
-const CTAB = { sizes: [{ name: 'Ø95 × 40 cm · 3.299 kr (før 4.499)', D: 0.95, H: 0.40, kr: 3299 }, { name: 'Ø65 cm · 2.599 kr (før 3.499)', D: 0.65, H: 0.40, kr: 2599 }],
-  url: 'https://www.max-jessen.dk/max-i-zen-sofabord' };
-const ctab = { size: 0, pos: null, angle: 0, group: null, parts: [] };
+// 2026-11-23 Gianluca: replaced by ILVA Willow sofabord (ilva.dk/products/willow-sofabord-2): Natur, oiled oak veneer on plywood (the layered edge
+// shows), 95 cm long × 45 cm high, 3.598 kr (normal 4.798; Black Week until 30/11/2026). A soft rounded-triangle ("pebble") top, three slim tapered
+// splayed legs, a smaller shelf of the same shape hung ~8 cm under the top on short black rods. ILVA lists only length and height: the width
+// (~72 cm) is read off the photos (it ships in a 79 × 119 box).
+const CTAB = { sizes: [{ name: '95 × ~72 × 45 cm · 3.598 kr (normal 4.798)', D: 0.95, W: 0.72, H: 0.45, kr: 3598 }],
+  url: 'https://ilva.dk/products/willow-sofabord-2', name: 'ILVA Willow sofabord' };
+function pebbleShape(L, W, k = 1) {                        // rounded triangle: convex hull of three corner circles and a centre circle (bulged sides), scaled to L × W
+  const V = [[0.34, 0], [-0.2, 0.3], [-0.2, -0.3]], rc = 0.17, pts = [];
+  for (const [x, y] of V) for (let j = 0; j < 48; j++) { const t = j / 48 * Math.PI * 2; pts.push([x + rc * Math.cos(t), y + rc * Math.sin(t)]); }
+  for (let j = 0; j < 96; j++) { const t = j / 96 * Math.PI * 2; pts.push([0.0 + 0.43 * Math.cos(t), 0.43 * Math.sin(t)]); }
+  pts.sort((p, q) => p[0] - q[0] || p[1] - q[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], hi = [];
+  for (const p of pts) { while (lo.length > 1 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+  for (const p of [...pts].reverse()) { while (hi.length > 1 && cr(hi[hi.length - 2], hi[hi.length - 1], p) <= 0) hi.pop(); hi.push(p); }
+  const hull = lo.slice(0, -1).concat(hi.slice(0, -1));
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; for (const [x, y] of hull) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, sx = L * k / (x1 - x0), sy = W * k / (y1 - y0);
+  const sh = new THREE.Shape(hull.map(([x, y]) => new THREE.Vector2((x - cx) * sx, (y - cy) * sy)));
+  return { shape: sh, corners: V.map(([x, y]) => [(x - cx) * sx, (y - cy) * sy]) };
+}
+const ctab = { size: 0, pos: null, angle: Math.PI / 2, group: null, parts: [] };   // pointed end away from the TV, broad side to the sofa
 // Rugs: Gianluca asked to assume one and show colours. Three ILVA rugs (ilva.dk, Nov 2026) in their sizes and colours; colours by eye from the names.
 const RUGS = [
   { name: 'Sofus tuftet tæppe', kind: 'boucle', pile: 0.014, url: 'https://ilva.dk/products/sofus-tuftet-taeppe-250-x-350-cm',
@@ -33,27 +51,28 @@ function buildCoffeeTable(tryPos) {
     ctab.pos = I.P(lx, I.zFront + 0.46 + r); }   // 46 cm in front of the sofa, centred on the TV (clears the Nilo footstool)
   const p = tryPos || ctab.pos, cx = THREE.MathUtils.clamp(p[0], LIV_BOX.x0 + 0.5, LIV_BOX.x1 - 0.5), cy = THREE.MathUtils.clamp(p[1], LIV_BOX.y0 + 0.5, LIV_BOX.y1 - 0.5);
   const ok = Math.abs(cx - p[0]) < 1e-6 && Math.abs(cy - p[1]) < 1e-6; ctab.pos = [cx, cy];
-  const Z = CTAB.sizes[ctab.size], R = Z.D / 2, H = Z.H, TT = 0.03;
+  const Z = CTAB.sizes[ctab.size], R = Z.D / 2, H = Z.H, TT = 0.018;
   const g = new THREE.Group(); g.position.copy(b2t(cx, cy, 0)); g.rotation.y = ctab.angle;
   const parts = [], add = (geo, m, px, py, pz, solid = true) => { const o = new THREE.Mesh(geo, m); o.position.set(px, py, pz); o.castShadow = o.receiveShadow = true; g.add(o); if (solid) parts.push(o); return o; };
-  const trav = stdc({ color: 0xb3aba0, roughness: 0.5, map: stoneTex() }), oak = stdc({ color: 0xd2ad7c, roughness: 0.6, map: grainTex() });
-  add(new THREE.CylinderGeometry(R, R, TT, 64), trav, 0, H - TT / 2, 0);
-  add(new THREE.CylinderGeometry(R - 0.004, R - 0.012, 0.004, 64), stdc({ color: 0xb9b0a3, roughness: 0.6 }), 0, H - TT - 0.002, 0, false);
-  const reach = R * 0.62, ph = H - TT;
-  for (let k = 0; k < 3; k++) {                            // three oak panels radiating from the centre, each with an arch cut out on its inner side
-    const a = k * Math.PI * 2 / 3 + Math.PI / 6, sh = new THREE.Shape(), c0 = 0.03, ar = ph * 0.55;
-    sh.moveTo(c0 + ar, 0); sh.lineTo(reach, 0); sh.lineTo(reach, ph); sh.lineTo(c0, ph); sh.lineTo(c0, ar); sh.absarc(c0, 0, ar, Math.PI / 2, 0, true);
-    const pan = add(new THREE.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: false }), oak, 0, 0, 0);
-    pan.geometry.translate(0, 0, -0.02); pan.rotation.y = -a;
+  const oak = stdc({ color: 0xa8784a, roughness: 0.55, map: grainTex() }), ply = stdc({ color: 0xd2b48c, roughness: 0.7 }), blk = stdc({ color: 0x1d1d1d, roughness: 0.4, metalness: 0.5 });
+  const flat = (shape, depth, mat, y, solid = true) => { const o = add(new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: false, curveSegments: 12 }), mat, 0, y, 0, solid); o.rotation.x = Math.PI / 2; return o; };
+  const T = pebbleShape(Z.D, Z.W), S = pebbleShape(Z.D, Z.W, 0.8);
+  flat(T.shape, 0.0015, oak, H, true); flat(T.shape, TT - 0.003, ply, H - 0.0015, false); flat(T.shape, 0.0015, oak, H - TT + 0.0015, false);   // veneer · plywood edge · veneer
+  const SY = H - TT - 0.075; flat(S.shape, 0.0015, oak, SY, false); flat(S.shape, 0.012, ply, SY - 0.0015, false);
+  for (const [x, y] of S.corners) add(new THREE.CylinderGeometry(0.006, 0.006, 0.075, 10), blk, x * 0.72, H - TT - 0.0375, y * 0.72, false);   // rods holding the shelf
+  for (const [x, y] of T.corners) {                        // three slim tapered legs, splayed outwards towards the corners
+    const lx = x * 0.9, lz = y * 0.9, ln = Math.hypot(lx, lz), dx = lx / ln, dz = lz / ln, LH = H - TT, tilt = 0.14;
+    const leg = add(new THREE.CylinderGeometry(0.021, 0.013, LH / Math.cos(tilt), 16), oak, lx + dx * Math.tan(tilt) * LH / 2, LH / 2, lz + dz * Math.tan(tilt) * LH / 2);
+    leg.rotation.set(dz * tilt, 0, -dx * tilt);
   }
-  add(new THREE.CylinderGeometry(0.05, 0.05, ph, 20), oak, 0, ph / 2, 0);   // the panels meet in a core
   // a few things on top: two books, a bowl
-  add(new THREE.BoxGeometry(0.24, 0.035, 0.17), stdc({ color: 0x7a2e2a, roughness: 0.8 }), -0.12, H + 0.0175, 0.05, false);
-  add(new THREE.BoxGeometry(0.21, 0.025, 0.15), stdc({ color: 0xe8e2d4, roughness: 0.8 }), -0.12, H + 0.0475, 0.05, false);
-  add(new THREE.CylinderGeometry(0.085, 0.05, 0.055, 28), stdc({ color: 0x3b3a36, roughness: 0.5 }), 0.16, H + 0.03, -0.08, false);
+  add(new THREE.BoxGeometry(0.24, 0.035, 0.17), stdc({ color: 0x7a2e2a, roughness: 0.8 }), -0.08, H + 0.0175, 0.05, false);
+  add(new THREE.BoxGeometry(0.21, 0.025, 0.15), stdc({ color: 0xe8e2d4, roughness: 0.8 }), -0.08, H + 0.0475, 0.05, false);
+  add(new THREE.CylinderGeometry(0.085, 0.05, 0.055, 28), stdc({ color: 0x3b3a36, roughness: 0.5 }), 0.14, H + 0.03, -0.1, false);
+  add(new THREE.BoxGeometry(0.3, 0.03, 0.22), stdc({ color: 0x2f4a5a, roughness: 0.8 }), -0.06, H - TT - 0.075 + 0.016, 0, false);   // magazines on the shelf
   { const mg = mergeByMaterial(g, new Set(parts)); parts.length = 0; parts.push(...mg.solids); }
   scene.add(g); g.updateMatrixWorld(true);
-  const door = { kind: 'swap', label: 'Coffee table', name: 'MAX Zen coffee table', parts, center: g.position.clone().setY(0.3),
+  const door = { kind: 'swap', label: 'Coffee table', name: 'ILVA Willow coffee table', parts, center: g.position.clone().setY(0.3),
     swap: () => selectFurniture(selected === ctabMover ? null : ctabMover), prompt: () => (selected === ctabMover ? 'Done with the coffee table' : 'Move the coffee table') };
   door._mover = ctabMover;
   for (const q of parts) { q.userData.door = door; q.userData.furniture = true; collidables.push(q); }
@@ -62,16 +81,17 @@ function buildCoffeeTable(tryPos) {
   return ok;
 }
 const ctabMover = {
-  name: 'Coffee table', title: () => `MAX | Zen sofabord · ${CTAB.sizes[ctab.size].name.split(' · ')[0]}`,
+  name: 'Coffee table', title: () => `ILVA Willow sofabord · ${CTAB.sizes[ctab.size].name.split(' · ')[0]}`,
   anchor: () => (ctab.group ? ctab.group.position.clone().setY(0.9) : null),
   axis: () => b2t(1, 0).normalize(), axis2: () => b2t(0, 1).normalize(),
   shift: (dir) => { if (!buildCoffeeTable([ctab.pos[0] + dir * 0.05, ctab.pos[1]])) showToast('Can’t go further'); },
   shift2: (dir) => { if (!buildCoffeeTable([ctab.pos[0], ctab.pos[1] + dir * 0.05])) showToast('Can’t go further'); },
-  selects: [],   // bought: Ø95 (Gianluca 2026-11-16)
-  link: () => ({ href: CTAB.url, text: 'Max Jessen · MAX | Zen sofabord ↗' }),
+  rotate: (dir) => { ctab.angle += dir * Math.PI / 12; if (!buildCoffeeTable()) showToast('No room to turn it'); }, angle: () => ctab.angle,
+  selects: [],   // decided (Gianluca 2026-11-23): Willow, Natur
+  link: () => ({ href: CTAB.url, text: 'ILVA · Willow sofabord ↗' }),
   info: () => { const I = sofaFrontInfo(), Z = CTAB.sizes[ctab.size]; let gaps = '';
-    if (I && ctab.group) { const c = ctab.group.position.clone().sub(I.S.O), z = c.dot(I.f); gaps = ` · ${(z - Z.D / 2 - I.zFront).toFixed(2)} m to the sofa · ${(I.zTV - z - Z.D / 2).toFixed(2)} m to the TV units`; }
-    return `Grey travertine top, oiled oak-veneer base · Ø${Math.round(Z.D * 100)} × ${Math.round(Z.H * 100)} cm${gaps}`; },
+    if (I && ctab.group) { const c = ctab.group.position.clone().sub(I.S.O), z = c.dot(I.f); gaps = ` · ${(z - Z.W / 2 - I.zFront).toFixed(2)} m to the sofa · ${(I.zTV - z - Z.W / 2).toFixed(2)} m to the TV units`; }
+    return `Oiled oak veneer, Natur · ${Math.round(Z.D * 100)} × ~${Math.round(Z.W * 100)} cm, ${Math.round(Z.H * 100)} cm high · shelf underneath${gaps}`; },
 };
 function rugTex(R, C) {                                   // a striped kelim gets its stripes; the others the shared fabric texture
   if (!C.stripe) return weaveTex(R.kind);
