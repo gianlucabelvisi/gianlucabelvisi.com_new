@@ -17,7 +17,10 @@
   <span class="eyebrow">Copenhagen · you are in</span>
   <span class="da" id="roomDa">Entré</span>
   <span class="en"><span id="roomEn">Hallway</span><span class="dim" id="roomDim"></span></span>
+  <button id="roomPhoto" hidden title="See this room photo-real (F)"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="4" width="13" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 4l1-1.6h3L10.5 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span>Photo-real view</span></button>
 </div>
+
+<div id="photo" aria-hidden="true"><img id="photoImg" alt=""><div id="photoBar" class="panel"><span id="photoTitle"></span><div class="seg" role="group" aria-label="Time of day"><button data-t="day">Day</button><button data-t="night">Night</button></div><button id="photoClose" aria-label="Back to the 3D view">✕</button></div></div>
 
 <div id="quick" class="panel" role="group" aria-label="View and show">
   <button id="qHide" title="Hide the bar (B)" aria-expanded="true" aria-label="Hide the bar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Hide</span></button>
@@ -31,6 +34,7 @@
   <button data-for="tMap" title="Mini map (M)"><i>M</i>Map</button>
   <button id="qMove" title="Move furniture: arrows on every piece (G)" aria-pressed="false"><i>G</i>Move</button>
   <button id="qPlan" title="Plan: shopping list, layouts, checks, sun (O)" aria-pressed="false"><i>O</i>Plan</button>
+  <button id="qRenders" title="Photo renders of every room, day and night (F)"><i>F</i>Renders</button>
   <button id="qLights" title="All lights on or off (L)" aria-pressed="false"><i>L</i>Lights</button>
   <button id="qRun" title="Run instead of walk (R; Shift also runs while held)" aria-pressed="false"><i>R</i>Run</button>
   <button id="qCrawl" title="Crawl, eyes at 50 cm (C)" aria-pressed="false"><i>C</i>Crawl</button>
@@ -142,6 +146,7 @@
   <figure><img id="lbImg" alt=""><button class="nav prev" id="lbPrev" aria-label="Previous">‹</button><button class="nav next" id="lbNext" aria-label="Next">›</button></figure>
   <div class="bar">
     <div class="meta"><span class="kind" id="lbKind">Render</span><span class="title" id="lbTitle"></span><span class="room" id="lbRoom"></span></div>
+    <div class="lbtime" id="lbTime" role="group" aria-label="Time of day"><button data-t="day" aria-pressed="true">Day</button><button data-t="night" aria-pressed="false">Night</button></div>
     <button class="primary" id="lbGo">Stand here</button>
     <button id="lbClose">Close</button>
   </div>

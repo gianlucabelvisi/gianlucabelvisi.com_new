@@ -250,8 +250,10 @@ function buildBathroomFinish() {
     if (d0 > 0.01) skin(A, B, W.w.n, z0, Hc, 0, d0); skin(A, B, W.w.n, z0, Hc, d1, 1); skin(A, B, W.w.n, 2.1, Hc, d0, d1);
   }
   // the mirror: a live reflection 2 mm in front of the GLB mirror (77 × 104 cm over the vanity, build.py: x 7.21–7.98, front y 3.103, z 1.005–2.045)
-  { const w = 7.9733 - 7.2147, h = 2.045 - 1.005, res = lite ? 512 : 1024;
+  { const w = 7.9733 - 7.2147, h = 2.045 - 1.005, res = lite ? 320 : 640;
     const R = new Reflector(new THREE.PlaneGeometry(w, h), { textureWidth: res, textureHeight: Math.round(res * h / w), color: 0xc9cfd1, clipBias: 0.003 });
+    // perf: the reflection is a second full render of the scene; refresh it every other frame (the mirror is seen from 1–3 m, it doesn't need more)
+    { const draw = R.onBeforeRender; let k = 0; R.onBeforeRender = function (...args) { if ((k++ & 1) === 0) draw.apply(this, args); }; }
     R.position.copy(b2t((7.2147 + 7.9733) / 2, 3.1028 - 0.002, (1.005 + 2.045) / 2)); R.visible = false; scene.add(R); bathFx.mirror = R; }
   // on the vanity (top z 0.87; basin centred at x 7.59): soap pump, tumbler with toothbrushes, folded hand towel, a small dish
   const M = (c, r = 0.5, m = 0) => stdc({ color: c, roughness: r, metalness: m });
@@ -272,15 +274,52 @@ function buildBathroomFinish() {
     for (let i = 0; i < 9; i++) { const a = r() * Math.PI * 2, hgt = 0.12 + r() * 0.12; const st = new THREE.Mesh(new THREE.CylinderGeometry(0.0015, 0.002, hgt, 5), M(0x6a5a3e, 0.8)); st.position.set(Math.cos(a) * 0.01, hgt / 2, Math.sin(a) * 0.01); st.rotation.set(Math.sin(a) * 0.25, 0, Math.cos(a) * 0.25); pl.add(st);
       for (let k = 0; k < 5; k++) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), leaf); l.scale.set(1, 0.3, 1); l.position.set(Math.cos(a) * (0.01 + k * 0.012), 0.04 + k * hgt / 6, Math.sin(a) * (0.01 + k * 0.012)); l.castShadow = true; pl.add(l); } } }
   put(new THREE.CylinderGeometry(0.03, 0.03, 0.06, 20), M(0xefe9dc, 0.8), 8.3, 2.725, 1.18);                                             // candle
+  for (const c of [...g.children]) if (c.isGroup) mergeByMaterial(c);
+  mergeByMaterial(g);                                            // perf: ~80 small meshes → one per material
   shadowDirty = true;
 }
+// ------------------------------------------------------------ windowless rooms (2026-11-25): the hall and the bathroom only get daylight through
+// their doors, but the web view has no real bounce light, so they looked as bright as the living room. Every lit material samples a plan mask
+// (x, y → how much sky/environment fill reaches that spot): 1 in the rooms with windows, ~0.5 in the hall, ~0.4 in the bathroom, softened at the
+// doorways. It depends on where the surface is, not where you stand, so a room looks the same from inside and from next door. Walk mode only
+// (from above, with the roof off, the rooms are lit from above anyway).
+const AMB = { x0: -1, y0: -1, size: 12, k: { hall: 0.5, bath: 0.4 }, on: { value: 0 }, tex: null, sig: 0 };
+AMB.tex = canvasTex(512, 512, (g, W) => {
+  const px = (x, y) => [(x - AMB.x0) / AMB.size * W, W - (y - AMB.y0) / AMB.size * W];
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, W); g.filter = 'blur(1px)'; g.lineJoin = 'round';
+  for (const [id, k] of Object.entries(AMB.k)) { const r = ROOM_BY_ID[id]; if (!r) continue; const v = Math.round(k * 255);
+    g.fillStyle = `rgb(${v},${v},${v})`; g.beginPath(); r.poly.forEach(([x, y], i) => { const [u, w] = px(x, y); if (i) g.lineTo(u, w); else g.moveTo(u, w); }); g.closePath(); g.fill();
+    g.strokeStyle = g.fillStyle; g.lineWidth = 0.14 / AMB.size * W; g.stroke(); }
+  { const v = Math.round(AMB.k.hall * 255), [u0, w0] = px(5.4, 0.47), [u1, w1] = px(6.55, -0.05); g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(u0, w0, u1 - u0, w1 - w0); }   // the front door in its deep reveal   // the polygons are the inner wall faces: grow them ~7 cm so the walls themselves are inside
+}, [1, 1], false);
+AMB.tex.wrapS = AMB.tex.wrapT = THREE.ClampToEdgeWrapping; AMB.tex.repeat.set(1, 1);
+function ambPatch(m) {
+  if (!m || !m.isMeshStandardMaterial || m.userData.amb) return; m.userData.amb = true;
+  const prev = m.onBeforeCompile, prevKey = m.customProgramCacheKey;
+  m.onBeforeCompile = function (sh, r) { if (prev) prev.call(this, sh, r);
+    sh.uniforms.ambMask = { value: AMB.tex }; sh.uniforms.ambOn = AMB.on;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vAmbW;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvAmbW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vAmbW; uniform sampler2D ambMask; uniform float ambOn;')
+      .replace('#include <lights_fragment_end>', `{ vec2 auv = vec2((vAmbW.x - (${AMB.x0.toFixed(1)})) / ${AMB.size.toFixed(1)}, (-vAmbW.z - (${AMB.y0.toFixed(1)})) / ${AMB.size.toFixed(1)});
+        float af = mix(1.0, texture2D(ambMask, auv).r, ambOn); irradiance *= af; iblIrradiance *= af; radiance *= min(1.0, af + 0.15); }
+      #include <lights_fragment_end>`); };
+  m.customProgramCacheKey = function () { return (prevKey ? prevKey.call(this) : '') + '|amb'; };
+  m.needsUpdate = true;
+}
+function ambPatchScene() { scene.traverse((o) => { if (!o.isMesh || !o.material || o === bathFx.mirror) return; for (const m of Array.isArray(o.material) ? o.material : [o.material]) ambPatch(m); }); }
 function bathMirrorTick() {                                   // the reflection costs a second render: only while you're in (or looking into) the bathroom
-  // a Hue motion sensor: the ceiling spots come on when you walk in and go off again when you leave (if the sensor turned them on)
-  const inBath = mode === 'walk' && playerRoomId() === 'bath';
+  AMB.on.value = mode === 'walk' ? 1 : 0;
+  if (++AMB.sig % 90 === 1) ambPatchScene();                  // furniture rebuilt since gets patched too
+  // a Hue motion sensor: the bathroom spots come on as you come into the hall or the bathroom (so the room already looks right from the
+  // corridor) and go off again when you leave both (if the sensor turned them on)
+  const rid = mode === 'walk' ? playerRoomId() : null, inBath = rid === 'bath' || rid === 'hall';
   if (inBath !== bathFx.was) { bathFx.was = inBath; const L = LIGHTS.bath;
     if (L && inBath && !L.on) { L.on = true; bathFx.sensor = true; applyLights(); }
     else if (L && !inBath && bathFx.sensor) { L.on = false; bathFx.sensor = false; applyLights(); } }
   const R = bathFx.mirror; if (!R) return;
-  const on = mode === 'walk' && camera.position.distanceTo(R.position) < 4.2 && (playerRoomId() === 'bath' || camera.position.distanceTo(R.position) < 2.6);
+  // only from in front of it (the bedroom is right behind that wall) and only from the bathroom, or the hall by its open door
+  const dist = camera.position.distanceTo(R.position), front = toBl(camera.position)[1] < 3.08, bd = doors.find((x) => x.id === 'door_bath');
+  const on = mode === 'walk' && front && (rid === 'bath' || (rid === 'hall' && dist < 3 && bd && bd.t > 0.2));
   if (R.visible !== on) R.visible = on;
 }

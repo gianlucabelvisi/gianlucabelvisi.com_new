@@ -295,11 +295,17 @@ addEventListener('keydown', (e) => { if (e.code === 'KeyZ' && (e.metaKey || e.ct
   if (ids.length) {
     const pop = $('measurePop');
     for (const id of ids) pop.appendChild($(id));
-    const btn = $('qMeasure'), sync = () => btn.setAttribute('aria-pressed', String(ids.some((id) => $(id).getAttribute('aria-pressed') === 'true')));
+    // what's on is read from the real toggles (the menu buttons used to keep a stale state once moved out of the quick bar), and the Measure
+    // button itself lights up and counts how many are on (2026-11-25, Gianluca: Sizes was on but nothing showed it)
+    const btn = $('qMeasure'), badge = document.createElement('b'); badge.className = 'mcount'; btn.appendChild(badge);
+    const sync = () => { let n = 0;
+      for (const id of ids) { const q = $(id), on = $(q.dataset.for).getAttribute('aria-pressed') === 'true'; if (q.getAttribute('aria-pressed') !== String(on)) q.setAttribute('aria-pressed', String(on)); n += on; }
+      btn.setAttribute('aria-pressed', String(n > 0)); badge.textContent = n ? String(n) : ''; badge.hidden = !n; };
+    sync();
     btn.addEventListener('click', (e) => { e.stopPropagation(); const open = pop.hidden; pop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); if (open) pop.style.top = `${Math.max(8, btn.getBoundingClientRect().top - 4)}px`; });
     for (const id of ids) $(id).addEventListener('click', () => setTimeout(sync, 0));
     addEventListener('pointerdown', (e) => { if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
-    setInterval(sync, 1000);
+    setInterval(sync, 400); addEventListener('keydown', () => setTimeout(sync, 0));
   }
 }
 
@@ -308,3 +314,114 @@ addEventListener('keydown', (e) => { if (e.code === 'KeyZ' && (e.metaKey || e.ct
 { const upd = () => { let cov = false; try { cov = window.parent !== window && Math.abs(window.parent.innerHeight - innerHeight) < 8; } catch (e) {} document.body.classList.toggle('covered', cov); };
   upd(); addEventListener('resize', upd);
   const b = document.getElementById('qSite'); if (b) b.onclick = () => { try { window.parent.postMessage({ type: 'project:menu' }, location.origin); } catch (e) {} }; }
+
+// ---- photo-real view, in place (2026-11-25, Gianluca: the renders felt like a separate experience). Each room's Cycles still opens right
+// where you are: you glide to the spot it was taken from (same height, direction and lens), then the photo fades in over the 3D view.
+// Any move, drag, click or Esc fades back to the walkthrough. In walk mode the room card offers it when the room has one ("Photo-real
+// view", F); from above, the camera pins open it (flying down first). Day or night follows the clock until you pick one.
+const PHOTO = { on: false, sh: null, anim: null, dy: 0, time: null };
+function photoShots() { return PLAN.shots.filter((s) => s.dn); }
+function photoForRoom(rid, near) {
+  const c = photoShots().filter((s) => s.rid === rid); if (!c.length) return null;
+  if (!near) return c[0];
+  const [x, y] = toBl(near); return c.sort((a, b) => Math.hypot(a.p[0] - x, a.p[1] - y) - Math.hypot(b.p[0] - x, b.p[1] - y))[0];
+}
+function photoHere() {
+  if (PHOTO.on) { photoHide(); return; }
+  if (mode === 'walk') { const s = photoForRoom(currentRoom, player.pos); if (s) photoShow(s); else showToast('No photo of this spot yet'); return; }
+  const [x, y] = toBl(orbit.target), all = photoShots(); if (!all.length) return;
+  photoShow(all.sort((a, b) => Math.hypot(a.p[0] - x, a.p[1] - y) - Math.hypot(b.p[0] - x, b.p[1] - y))[0]);
+}
+function photoTime() { return PHOTO.time || (typeof dayLevel === 'number' && dayLevel < 0.35 ? 'night' : 'day'); }
+function photoView(sh) {                                   // where the walkthrough camera must be to see what the photo shows
+  const a = innerWidth / Math.max(1, innerHeight);
+  const vfov = (a >= 1.5 ? 2 * Math.atan(18 / sh.lens / a) : 2 * Math.atan(12 / sh.lens)) * 180 / Math.PI;   // object-fit: cover crops the 3:2 photo
+  const d = b2t(sh.t[0], sh.t[1]).sub(b2t(sh.p[0], sh.p[1]));
+  return { pos: b2t(sh.p[0], sh.p[1], EYE), yaw: Math.atan2(-d.x, -d.z), pitch: Math.atan(sh.sy * 36 / sh.lens), fov: vfov, dy: sh.z - EYE };
+}
+function photoSetImg(sh) {
+  const img = $('photoImg'), src = MEDIA + sh.id + '_' + photoTime() + '.jpg';
+  for (const b of $('photoBar').querySelectorAll('.seg button')) b.setAttribute('aria-pressed', String(b.dataset.t === photoTime()));
+  $('photoTitle').textContent = sh.title;
+  if (img.getAttribute('src') === src) return Promise.resolve();
+  return new Promise((res) => { const pre = new Image(); pre.onload = pre.onerror = () => { img.src = src; res(); }; pre.src = src; });
+}
+function photoShow(sh) {
+  if (document.pointerLockElement) document.exitPointerLock();
+  if (focus) exitFocus();
+  PHOTO.sh = sh; const V = photoView(sh), ready = photoSetImg(sh);
+  const fin = () => { PHOTO.on = true; document.body.classList.add('photo'); ready.then(() => { if (PHOTO.sh === sh && PHOTO.on) $('photo').classList.add('show'); }); };
+  if (mode !== 'walk') {                                   // from above: fly down to the spot first (like "pick where to stand")
+    player.fy = 0; player.pos.copy(V.pos); player.yaw = V.yaw; player.pitch = V.pitch; frame.camY = undefined;
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(V.pitch, V.yaw, 0, camera.rotation.order));
+    orbit.enabled = false;
+    camTo(V.pos.clone().setY(sh.z), q, 1300, { fov: V.fov, done: () => { setMode('walk'); PHOTO.dy = V.dy; camera.fov = V.fov; camera.updateProjectionMatrix(); fin(); } });
+    return;
+  }
+  let dyaw = V.yaw - player.yaw; dyaw = Math.atan2(Math.sin(dyaw), Math.cos(dyaw));
+  const dist = player.pos.distanceTo(V.pos);
+  PHOTO.anim = { t0: performance.now(), dur: THREE.MathUtils.clamp(500 + dist * 260, 600, 1600), p0: player.pos.clone(), p1: V.pos, y0: player.yaw, y1: player.yaw + dyaw,
+    pi0: player.pitch, pi1: V.pitch, f0: camera.fov, f1: V.fov, d0: PHOTO.dy, d1: V.dy, done: fin };
+  player.fy = 0; frame.camY = undefined;
+}
+function photoHide() {
+  if (!PHOTO.on && !PHOTO.anim) return;
+  PHOTO.on = false; PHOTO.anim = null; $('photo').classList.remove('show'); document.body.classList.remove('photo');
+  PHOTO.back = { t0: performance.now(), d0: PHOTO.dy, f0: camera.fov };     // ease back to eye height and the walking lens
+}
+function photoTick() {
+  const now = performance.now();
+  if (PHOTO.anim) {
+    const A = PHOTO.anim, k = Math.min(1, (now - A.t0) / A.dur), e = easeIO(k);
+    player.pos.lerpVectors(A.p0, A.p1, e); player.yaw = A.y0 + (A.y1 - A.y0) * e; player.pitch = A.pi0 + (A.pi1 - A.pi0) * e;
+    PHOTO.dy = A.d0 + (A.d1 - A.d0) * e; camera.fov = A.f0 + (A.f1 - A.f0) * e; camera.updateProjectionMatrix(); frame.camY = player.pos.y;
+    if (k >= 1) { PHOTO.anim = null; A.done(); }
+  } else if (PHOTO.back) {
+    const B = PHOTO.back, k = Math.min(1, (now - B.t0) / 600), e = easeIO(k);
+    PHOTO.dy = B.d0 * (1 - e); camera.fov = B.f0 + (viewFov() - B.f0) * e; camera.updateProjectionMatrix();
+    if (k >= 1) PHOTO.back = null;
+  }
+  // the room card offers the photo of the room you're in; from above the camera pins show where photos were taken
+  const s = mode === 'walk' && !PHOTO.on && !PHOTO.anim ? photoForRoom(currentRoom) : null, chip = $('roomPhoto');
+  if (chip.hidden === !!s) chip.hidden = !s;
+  const pinsOn = mode === 'over' || $('tPhotos').getAttribute('aria-pressed') === 'true';
+  if (pinsGroup.visible !== pinsOn) pinsGroup.visible = pinsOn;
+}
+$('roomPhoto').addEventListener('click', (e) => { e.stopPropagation(); photoHere(); });
+$('photoClose').addEventListener('click', () => photoHide());
+for (const b of $('photoBar').querySelectorAll('.seg button')) b.addEventListener('click', (e) => {
+  e.stopPropagation(); PHOTO.time = b.dataset.t; const img = $('photoImg'); img.style.opacity = '0';
+  setTimeout(() => photoSetImg(PHOTO.sh).then(() => { img.style.opacity = '1'; }), 200);
+});
+$('photo').addEventListener('pointerdown', (e) => { if (!e.target.closest('#photoBar')) photoHide(); });
+$('photo').addEventListener('wheel', () => photoHide(), { passive: true });
+addEventListener('keydown', (e) => {
+  if (!PHOTO.on && !PHOTO.anim) return;
+  if (e.code === 'KeyN' && PHOTO.on) { PHOTO.time = photoTime() === 'day' ? 'night' : 'day'; photoSetImg(PHOTO.sh); return; }
+  if (['Escape', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyV', 'KeyC'].includes(e.code)) photoHide();
+});
+addEventListener('resize', () => { if (PHOTO.on && PHOTO.sh) { const V = photoView(PHOTO.sh); camera.fov = V.fov; camera.updateProjectionMatrix(); } });
+
+// ---- Sizes from above (2026-11-25, Gianluca's screenshot: a wall of overlapping labels). The labels keep a fixed size on screen, so from
+// above every dimension in the flat piled up. From above now only the ones around what you're looking at show (like the (i) buttons),
+// none overlapping, and their lines go with them; walking shows everything as before. Hidden ones move to layer 2 (not rendered).
+const dimsCull = { n: 0, hidden: new Set() };
+function dimsDeclutter() {
+  if (++dimsCull.n % 6) return;
+  const show = (o) => { if (dimsCull.hidden.delete(o)) o.layers.set(0); }, hide = (o) => { if (!dimsCull.hidden.has(o)) { dimsCull.hidden.add(o); o.layers.set(2); } };
+  if (!dimsGroup.visible || mode === 'walk') { for (const o of [...dimsCull.hidden]) show(o); return; }
+  const camD = camera.position.distanceTo(orbit.target), R = camD < 9 ? 2.6 : 1.8, placed = [], v = new THREE.Vector3(), sc = { x: 0, y: 0 };
+  const items = []; dimsGroup.traverse((o) => { if (o.isSprite || o.isLine || o.isLineSegments || o.isMesh) items.push(o); });
+  // labels first (nearest the target win), then each line/mark follows the nearest label's fate by distance
+  const labels = items.filter((o) => o.isSprite).map((o) => { o.getWorldPosition(v); return { o, p: v.clone(), d: Math.hypot(v.x - orbit.target.x, v.z - orbit.target.z) }; }).sort((a, b) => a.d - b.d);
+  const kept = [];
+  for (const L of labels) {
+    let ok = L.d < R && toScreen(L.p, sc);
+    if (ok) { const w = (L.o.scale.x / L.o.scale.y) * 30 + 10; ok = !placed.some((q) => Math.abs(q[0] - sc.x) < (q[2] + w) / 2 && Math.abs(q[1] - sc.y) < 30); if (ok) placed.push([sc.x, sc.y, w]); }
+    if (ok) { show(L.o); kept.push(L.p); } else hide(L.o);
+  }
+  for (const o of items) if (!o.isSprite) {
+    const bb = new THREE.Box3().setFromObject(o), c = bb.getCenter(v);
+    if (Math.hypot(c.x - orbit.target.x, c.z - orbit.target.z) < R + 0.4 && kept.some((p) => p.distanceTo(c) < 1.6)) show(o); else hide(o);
+  }
+}

@@ -89,6 +89,7 @@ function frame() {
     crawl.k += ((crawl.on ? 1 : 0) - crawl.k) * Math.min(1, dt * 7);                      // drop down to crawling height and back up, eased
     camera.position.set(player.pos.x, frame.camY - crawl.k * (EYE - CRAWL_EYE) + (crawl.on && (f || s) ? Math.sin(performance.now() / 140) * 0.012 : 0), player.pos.z);
     camera.rotation.set(player.pitch, player.yaw, 0);
+    if (PHOTO.dy) camera.position.y += PHOTO.dy;                                          // standing at the render camera's height (18-ux)
   } else {
     if (!stepCamTween()) orbit.update();
   }
@@ -113,7 +114,7 @@ function frame() {
   frame.sig = sig; if (busy) frame.busyAt = now;
   const idle = now - (frame.busyAt ?? 0) > 900;
   if (shadowDirty || frame.n % 600 === 0) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
-  xrayTick(); bathMirrorTick();
+  xrayTick(); bathMirrorTick(); photoTick(dt); dimsDeclutter();
   if (!idle || frame.n % 6 === 0) { if (composer) composer.render(); else renderer.render(scene, camera); busyAfterRender(); }
   requestAnimationFrame(frame);
 }

@@ -24,10 +24,10 @@ L = json.load(open(os.path.join(EXP, 'lights.json')))
 # cam: eye position, aim: point looked at; the camera stays level (vertical walls stay vertical) and lens shift frames up/down.
 SHOTS = {
     'dining':   dict(cam=(4.25, 4.3, 1.32), aim=(0.9, 1.5, 1.32), lens=20, shift_y=-0.07, ev_day=3.0, ev_night=1.4),
-    'living':   dict(cam=(3.95, 4.85, 1.28), aim=(0.6, 8.3, 1.28), lens=16, shift_y=-0.08, ev_day=2.9, ev_night=1.4),
+    'living':   dict(cam=(4.15, 5.35, 1.28), aim=(0.6, 8.3, 1.28), lens=16, shift_y=-0.08, ev_day=2.9, ev_night=1.4),
     'bedroom':  dict(cam=(9.9, 3.95, 1.42), aim=(7.4, 7.1, 1.42), lens=17, shift_y=-0.09, ev_day=3.3, ev_night=1.6),
     'vaerelse': dict(cam=(4.85, 5.5, 1.40), aim=(7.4, 8.1, 1.40), lens=17, shift_y=-0.08, ev_day=3.3, ev_night=1.6),
-    'entrance': dict(cam=(6.35, 4.15, 1.45), aim=(5.55, 0.25, 1.45), lens=17, shift_y=-0.06, day_lights=['hall'], ev_day=2.1, ev_night=1.5),
+    'entrance': dict(cam=(6.35, 4.15, 1.45), aim=(5.55, 0.25, 1.45), lens=17, shift_y=-0.06, day_lights=['hall'], ev_day=1.0, ev_night=1.5),
     'bathroom': dict(cam=(7.18, 1.25, 1.50), aim=(9.7, 2.75, 1.50), lens=15, shift_y=-0.10, day_lights=['bath'], ev_day=1.5, ev_night=1.5),
 }
 

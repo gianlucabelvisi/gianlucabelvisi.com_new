@@ -37,6 +37,20 @@
     display: grid; gap: 3px; pointer-events: none; max-width: calc(100% - 100px); }
   #room .da { font: 700 20px/1.15 var(--ui); letter-spacing: -.01em; }
   #room .en { font-size: 12.5px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+  #roomPhoto { margin-top: 7px; display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px 6px 8px; border-radius: 999px; border: 1px solid var(--line);
+    background: rgba(207,145,82,.14); color: var(--ink); font: 600 12px/1 var(--ui); cursor: pointer; pointer-events: auto; }
+  #roomPhoto svg { width: 15px; height: 15px; color: var(--oak); }
+  #roomPhoto:hover { background: rgba(207,145,82,.26); }
+  #roomPhoto[hidden] { display: none; }
+  #photo { position: fixed; inset: 0; z-index: 5; pointer-events: none; opacity: 0; transition: opacity .7s ease; }
+  #photo.show { opacity: 1; pointer-events: auto; }
+  #photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .35s ease; }
+  #photoBar { position: fixed; left: 50%; bottom: calc(var(--gut) + var(--safe-b)); transform: translateX(-50%); display: flex; align-items: center; gap: 10px;
+    padding: 6px 6px 6px 14px; border-radius: 999px; font: 600 13px/1 var(--ui); color: var(--ink); white-space: nowrap; }
+  #photoBar .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; gap: 2px; }
+  #photoBar button { font: 600 12.5px/1 var(--ui); color: var(--ink); background: transparent; border: 0; border-radius: 999px; padding: 7px 11px; cursor: pointer; }
+  #photoBar .seg button[aria-pressed="true"] { background: var(--ink); color: #14120f; }
+  body.photo #hud3d, body.photo #cross, body.photo #undoChip { display: none; }
   #room .dim { font-family: var(--mono); font-size: 12px; color: var(--oak); }
   #menuBtn { position: fixed; right: var(--gut); top: calc(var(--gut) + var(--safe-t)); width: 48px; height: 48px;
     display: grid; place-items: center; cursor: pointer; color: var(--ink); z-index: 6; }
@@ -240,6 +254,10 @@
   #lightbox .room { font-size: 13px; color: var(--muted); }
   #lightbox button { font: 500 14px/1 var(--ui); color: var(--ink); background: transparent; border: 1px solid var(--line);
     border-radius: 999px; padding: 12px 16px; cursor: pointer; }
+  #lightbox .lbtime { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; gap: 2px; }
+  #lightbox .lbtime[hidden] { display: none; }
+  #lightbox .lbtime button { border: 0; border-radius: 999px; padding: 8px 14px; }
+  #lightbox .lbtime button[aria-pressed="true"] { background: var(--ink); color: #14120f; font-weight: 700; }
   #lightbox button.primary { background: var(--oak); border-color: var(--oak); color: #1a1208; font-weight: 700; }
   #lightbox .nav { position: absolute; top: 50%; transform: translateY(-50%); width: 46px; height: 46px; border-radius: 50%;
     padding: 0; font-size: 22px; background: rgba(22,20,16,.75); }
@@ -412,6 +430,14 @@
   #measurePop { position: fixed; right: calc(var(--gut) + 140px); top: 120px; display: grid; gap: 2px; padding: 4px; z-index: 8; min-width: 150px; }
   #measurePop button { display: flex; align-items: center; gap: 8px; font: 500 13px/1 var(--ui); color: var(--ink); background: transparent; border: 0; border-radius: 8px; padding: 10px 10px; cursor: pointer; text-align: left; }
   #measurePop button:hover { background: rgba(242,237,228,.08); }
+  #measurePop button[aria-pressed="true"] { background: var(--oak-dim); }
+  #measurePop button[aria-pressed="true"] i { border-color: var(--oak); color: var(--oak); }
+  #measurePop button::after { content: ''; margin-left: auto; padding-left: 0; width: 26px; height: 14px; border-radius: 999px; flex: none;
+    background: radial-gradient(circle at 7px 50%, #f2ede4 4.5px, transparent 5px), rgba(242,237,228,.2); }
+  #measurePop button[aria-pressed="true"]::after { background: radial-gradient(circle at 19px 50%, #1a1208 4.5px, transparent 5px), var(--oak); }
+  #qMeasure { position: relative; }
+  #qMeasure .mcount { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; border-radius: 999px; background: var(--oak); color: #1a1208; font: 700 10.5px/16px var(--ui); text-align: center; padding: 0 4px; box-sizing: border-box; }
+  #qMeasure .mcount[hidden] { display: none; }
   #measurePop button i { font: 500 10px/1 var(--mono); font-style: normal; border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px; color: var(--muted); }
   #measurePop button[aria-pressed="true"] { background: var(--oak-dim); }
   #measurePop button[aria-pressed="true"] i { border-color: var(--oak); color: var(--oak); }
@@ -440,7 +466,10 @@ body.covered #qSite { display: flex !important; }
   <span class="eyebrow">Copenhagen · you are in</span>
   <span class="da" id="roomDa">Entré</span>
   <span class="en"><span id="roomEn">Hallway</span><span class="dim" id="roomDim"></span></span>
+  <button id="roomPhoto" hidden title="See this room photo-real (F)"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="4" width="13" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 4l1-1.6h3L10.5 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span>Photo-real view</span></button>
 </div>
+
+<div id="photo" aria-hidden="true"><img id="photoImg" alt=""><div id="photoBar" class="panel"><span id="photoTitle"></span><div class="seg" role="group" aria-label="Time of day"><button data-t="day">Day</button><button data-t="night">Night</button></div><button id="photoClose" aria-label="Back to the 3D view">✕</button></div></div>
 
 <div id="quick" class="panel" role="group" aria-label="View and show">
   <button id="qHide" title="Hide the bar (B)" aria-expanded="true" aria-label="Hide the bar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Hide</span></button>
@@ -454,6 +483,7 @@ body.covered #qSite { display: flex !important; }
   <button data-for="tMap" title="Mini map (M)"><i>M</i>Map</button>
   <button id="qMove" title="Move furniture: arrows on every piece (G)" aria-pressed="false"><i>G</i>Move</button>
   <button id="qPlan" title="Plan: shopping list, layouts, checks, sun (O)" aria-pressed="false"><i>O</i>Plan</button>
+  <button id="qRenders" title="Photo renders of every room, day and night (F)"><i>F</i>Renders</button>
   <button id="qLights" title="All lights on or off (L)" aria-pressed="false"><i>L</i>Lights</button>
   <button id="qRun" title="Run instead of walk (R; Shift also runs while held)" aria-pressed="false"><i>R</i>Run</button>
   <button id="qCrawl" title="Crawl, eyes at 50 cm (C)" aria-pressed="false"><i>C</i>Crawl</button>
@@ -565,6 +595,7 @@ body.covered #qSite { display: flex !important; }
   <figure><img id="lbImg" alt=""><button class="nav prev" id="lbPrev" aria-label="Previous">‹</button><button class="nav next" id="lbNext" aria-label="Next">›</button></figure>
   <div class="bar">
     <div class="meta"><span class="kind" id="lbKind">Render</span><span class="title" id="lbTitle"></span><span class="room" id="lbRoom"></span></div>
+    <div class="lbtime" id="lbTime" role="group" aria-label="Time of day"><button data-t="day" aria-pressed="true">Day</button><button data-t="night" aria-pressed="false">Night</button></div>
     <button class="primary" id="lbGo">Stand here</button>
     <button id="lbClose">Close</button>
   </div>
@@ -608,6 +639,20 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 const PLAN = {"walls":[[[[5.305,1.587],[5.305,1.454],[5.363,1.454],[5.363,1.587]]],[[[5.363,2.982],[4.503,2.982],[4.495,0.468],[0.468,0.468],[0.459,2.03],[0.0,2.03],[0.0,0.008],[5.464,0.008],[5.464,0.468],[5.363,0.476],[5.363,0.81],[5.305,0.81],[5.305,0.493],[5.288,0.468],[4.578,0.468],[4.561,0.485],[4.561,2.899],[4.578,2.916],[5.288,2.916],[5.305,2.899],[5.305,2.239],[5.363,2.239]]],[[[0.0,5.439],[0.0,3.567],[0.459,3.567],[0.459,5.439]]],[[[6.675,8.546],[6.642,8.087],[7.26,8.037],[7.327,8.045],[7.377,8.028],[7.469,8.028],[7.485,8.012],[7.469,7.803],[7.477,7.694],[7.46,7.678],[7.243,4.486],[7.226,4.47],[7.143,4.478],[7.135,4.419],[7.218,4.411],[7.235,4.394],[7.226,4.269],[7.285,4.269],[7.519,7.527],[7.51,7.661],[7.527,7.678],[7.544,7.995],[7.561,8.02],[7.619,8.02],[7.644,8.471]]],[[[4.077,8.722],[4.043,8.262],[4.486,8.237],[4.503,8.221],[4.503,4.603],[4.561,4.595],[4.561,5.23],[4.578,5.246],[5.606,5.171],[5.614,5.104],[5.572,4.528],[6.19,4.486],[6.199,4.545],[6.007,4.561],[5.881,4.553],[5.865,4.57],[5.656,4.578],[5.639,4.595],[5.681,5.23],[4.578,5.305],[4.561,5.322],[4.561,8.212],[4.578,8.229],[4.987,8.195],[5.113,8.195],[5.138,8.647]]],[[[0.0,9.006],[0.0,6.976],[0.459,6.976],[0.459,8.154],[0.443,8.162],[0.443,8.179],[0.459,8.187],[0.459,8.505],[0.56,8.513],[0.81,8.488],[0.844,8.947]]],[[[10.618,9.799],[10.301,9.816],[10.201,9.783],[10.125,9.708],[10.092,9.591],[10.008,8.329],[9.992,8.312],[9.19,8.371],[9.173,8.363],[9.148,7.911],[10.234,7.836],[10.317,7.82],[10.301,7.577],[10.309,7.494],[10.292,7.46],[9.983,3.033],[9.708,3.033],[9.691,3.049],[7.226,3.216],[7.218,3.325],[7.16,3.325],[7.076,2.189],[7.084,2.164],[7.101,2.164],[7.168,3.183],[7.185,3.2],[7.995,3.141],[8.003,3.049],[7.978,2.765],[9.048,2.69],[9.064,3.024],[9.081,3.066],[9.641,3.024],[9.741,3.033],[9.758,3.016],[9.891,3.008],[9.9,2.874],[9.808,1.654],[9.791,1.637],[9.039,1.696],[8.997,1.696],[8.989,1.679],[9.098,1.662],[9.791,1.621],[9.808,1.604],[9.783,1.32],[9.791,1.195],[9.774,1.178],[9.766,0.961],[9.749,0.936],[9.616,0.936],[9.532,0.952],[7.043,1.119],[7.026,1.136],[7.034,1.22],[7.018,1.228],[6.984,0.877],[6.984,0.476],[6.842,0.459],[6.508,0.468],[6.508,0.008],[7.135,0.008],[7.143,0.693],[9.983,0.693]],[[8.02,3.083],[8.037,3.099],[9.031,3.033],[9.048,3.016],[9.031,2.74],[9.014,2.715],[8.02,2.782],[8.003,2.799]]]],"floor":[[10.618,9.799],[10.301,9.816],[10.201,9.783],[10.125,9.708],[10.092,9.591],[10.017,8.404],[9.992,8.312],[0.0,9.006],[0.0,0.008],[5.455,0.008],[5.464,-0.008],[7.135,0.008],[7.143,0.693],[9.983,0.693]],"balcony":[[0.045,10.532],[-0.147,10.521],[-0.329,10.46],[-0.489,10.355],[-0.617,10.211],[-0.703,10.04],[-0.741,9.852],[-0.73,9.66],[-0.669,9.478],[-0.564,9.318],[-0.42,9.19],[-0.249,9.104],[-0.061,9.066],[4.339,8.748],[4.445,10.215]],"rooms":[{"id":"living","da":"K\u00f8kken-alrum","en":"Kitchen & living","poly":[[0.476,8.48],[4.486,8.48],[4.486,0.476],[0.476,0.476]],"dim":"4 \u00d7 8 m"},{"id":"vaer","da":"V\u00e6relse","en":"Room","poly":[[4.57,8.212],[7.452,8.003],[7.243,4.453],[6.199,4.495],[5.614,4.536],[5.656,5.205],[4.57,5.288]],"dim":"2.9 \u00d7 3.5 m"},{"id":"bed","da":"Sovev\u00e6relse","en":"Bedroom","poly":[[7.494,7.962],[10.317,7.811],[9.958,3.074],[7.176,3.241]],"dim":"2.7 \u00d7 4.8 m"},{"id":"bath","da":"Bad","en":"Bathroom","poly":[[7.16,3.2],[9.9,3.016],[9.766,0.927],[7.009,1.128]],"dim":"2.7 \u00d7 2 m"},{"id":"tek","da":"Teknik","en":"Utility","poly":[[4.57,2.907],[5.297,2.907],[5.297,0.476],[4.57,0.476]],"dim":""},{"id":"hall","da":"Entr\u00e9","en":"Hallway","poly":[[4.486,5.288],[5.656,5.205],[5.614,4.536],[7.243,4.411],[6.992,0.443],[4.486,0.443]],"dim":"2.7 \u00d7 3.9 m"},{"id":"bal","da":"Altan","en":"Balcony","poly":[[0.045,10.532],[-0.147,10.521],[-0.329,10.46],[-0.489,10.355],[-0.617,10.211],[-0.703,10.04],[-0.741,9.852],[-0.73,9.66],[-0.669,9.478],[-0.564,9.318],[-0.42,9.19],[-0.249,9.104],[-0.061,9.066],[4.339,8.748],[4.445,10.215]],"dim":""},{"id":"stair","da":"Opgang","en":"Stairwell","dim":"","poly":[[0.25,-2.8],[7.2,-2.8],[7.2,-0.01],[0.25,-0.01]]}],"spawns":{"living":{"p":[3.734,3.2],"t":[0.894,8.379]},"kitchen":{"p":[2.314,5.205],"t":[2.523,0.693]},"hall":{"p":[6.115,0.777],"t":[5.99,5.205]},"vaer":{"p":[6.241,4.954],"t":[5.823,8.045]},"bed":{"p":[8.58,3.534],"t":[8.496,7.794]},"bath":{"p":[7.661,1.445],"t":[8.914,2.698]},"bal":{"p":[3.4,9.549],"t":[0.142,9.841]},"stair":{"p":[3.2,-1.15],"t":[6.0,0.3]}},"outlets":[{"label":"Socket, west wall","p":[0.485,3.743],"z":0.3,"n":[1,0],"kind":"socket"},{"label":"Socket, by balcony door","p":[0.668,8.471],"z":0.3,"n":[0,-1],"kind":"socket"},{"label":"Socket, living east wall","p":[4.478,8.045],"z":0.3,"n":[-1,0],"kind":"socket"},{"label":"Double socket, kitchen","p":[3.584,0.485],"z":1.05,"n":[0,1],"kind":"socket2"},{"label":"Socket, kitchen by tall unit","p":[1.579,0.485],"z":1.05,"n":[0,1],"kind":"socket"},{"label":"Switch, hallway by V\u00e6relse door","p":[5.99,4.444],"z":1.05,"n":[0,-1],"kind":"switch"}],"dims":[{"label":"4 m","a":[0.493,8.17],"b":[4.486,7.878]},{"label":"8 m","a":[0.852,8.48],"b":[0.852,0.485]},{"label":"2.9 m","a":[4.586,7.962],"b":[7.452,7.728]},{"label":"3.5 m","a":[7.368,8.045],"b":[7.118,4.495]},{"label":"2.7 m","a":[7.536,7.694],"b":[10.317,7.477]},{"label":"4.8 m","a":[7.536,7.962],"b":[7.243,3.2]},{"label":"2.7 m","a":[4.47,4.478],"b":[7.201,4.353]},{"label":"3.9 m","a":[7.16,4.353],"b":[6.867,0.459]},{"label":"2.7 m","a":[7.076,1.32],"b":[9.791,1.153]},{"label":"2 m","a":[9.749,3.033],"b":[9.624,0.944]},{"label":"1.1 m","a":[4.586,5.414],"b":[5.698,5.33]},{"label":"0.7 m","a":[5.739,5.205],"b":[5.714,4.511]}],"shots":[{"id":"render_entrance","kind":"render","title":"Entrance, looking in","room":"Entr\u00e9","p":[6.115,0.693],"t":[5.99,5.205],"z":1.55},{"id":"render_living_to_entrance","kind":"render","title":"Living room towards the entrance","room":"K\u00f8kken-alrum","p":[1.729,7.627],"t":[5.405,1.696],"z":1.5},{"id":"render_kitchen","kind":"render","title":"Kitchen area","room":"K\u00f8kken-alrum","p":[2.314,5.205],"t":[2.523,0.693],"z":1.4},{"id":"render_living","kind":"render","title":"Living room, sofa and TV side","room":"K\u00f8kken-alrum","p":[4.319,2.949],"t":[0.727,8.296],"z":1.45},{"id":"render_bath","kind":"render","title":"Bathroom","room":"Bad","p":[7.31,1.529],"t":[9.415,2.698],"z":1.55},{"id":"render_bed_door","kind":"render","title":"Bedroom from the door","room":"Sovev\u00e6relse","p":[7.87,3.826],"t":[8.622,7.794],"z":1.55},{"id":"render_bed_window","kind":"render","title":"Bedroom from the window","room":"Sovev\u00e6relse","p":[8.789,7.335],"t":[7.87,3.283],"z":1.55},{"id":"render_vaer_door","kind":"render","title":"V\u00e6relse from the door","room":"V\u00e6relse","p":[6.617,4.745],"t":[5.823,7.962],"z":1.55},{"id":"render_vaer_window","kind":"render","title":"V\u00e6relse from the window","room":"V\u00e6relse","p":[5.99,7.627],"t":[6.324,4.62],"z":1.55},{"id":"render_balcony","kind":"render","title":"Balcony, looking north","room":"Altan","p":[3.734,9.424],"t":[-0.109,9.883],"z":1.55},{"id":"render_doll","kind":"render","title":"Cutaway from the balcony side","room":"Overview"},{"id":"render_doll2","kind":"render","title":"Cutaway from the entrance side","room":"Overview"},{"id":"render_axo","kind":"render","title":"Axonometric projection","room":"Overview"}],"doors":[{"id":"win_vaer_sash0","label":"Window","hinge":[5.181,8.5704],"closed":[0.9971,-0.0759],"open":[0.0,-1.0],"len":0.711,"h":2.2,"z0":0.14,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_vaer_sash1","label":"Window","hinge":[6.5985,8.4626],"closed":[-0.9971,0.0759],"open":[0.0,-1.0],"len":0.711,"h":2.2,"z0":0.14,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_bed_sash0","label":"Window","hinge":[7.6956,8.395],"closed":[0.9971,-0.0759],"open":[0.0,-1.0],"len":0.711,"h":2.2,"z0":0.14,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_bed_sash1","label":"Window","hinge":[9.1131,8.2871],"closed":[-0.9971,0.0759],"open":[0.0,-1.0],"len":0.711,"h":2.2,"z0":0.14,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_w1_sash0","label":"Window","hinge":[0.0716,6.9158],"closed":[0.0,-1.0],"open":[1.0,0.0],"len":0.713,"h":1.83,"z0":0.46,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_w1_sash1","label":"Window","hinge":[0.0716,5.4902],"closed":[-0.0,1.0],"open":[1.0,0.0],"len":0.713,"h":1.83,"z0":0.46,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_w2_sash0","label":"Window","hinge":[0.0716,3.5073],"closed":[0.0,-1.0],"open":[1.0,0.0],"len":0.713,"h":1.83,"z0":0.46,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"win_w2_sash1","label":"Window","hinge":[0.0716,2.0817],"closed":[-0.0,1.0],"open":[1.0,0.0],"len":0.713,"h":1.83,"z0":0.46,"thick":0.05,"mat":"frame","shape":"sash"},{"id":"door_entry","label":"Front door","hinge":[5.4637,0.2339],"closed":[1.0,0.0],"open":[-0.0,1.0],"len":1.033,"h":2.09,"z0":0.0,"thick":0.04,"mat":"door","handle":true},{"id":"door_vaer","label":"V\u00e6relse door","hinge":[7.1345,4.4152],"closed":[-0.9961,0.0882],"open":[-0.0,1.0],"len":0.928,"h":2.09,"z0":0.0,"thick":0.04,"mat":"door","handle":true},{"id":"door_bed","label":"Bedroom door","hinge":[7.1888,3.2999],"closed":[0.0597,0.9982],"open":[1.0,0.0],"len":0.959,"h":2.09,"z0":0.0,"thick":0.04,"mat":"door","handle":true},{"id":"door_bath","label":"Bathroom door","hinge":[7.0802,1.1947],"closed":[0.0431,0.9991],"open":[1.0,0.0],"len":0.95,"h":2.09,"z0":0.0,"thick":0.04,"mat":"door","handle":true},{"id":"door_tek1","label":"Teknik cupboard","hinge":[5.33,2.264],"closed":[0.0,-1.0],"open":[1.0,0.0],"len":0.665,"h":2.09,"z0":0.0,"thick":0.04,"mat":"door","handle":true},{"id":"door_tek2","label":"Teknik cupboard","hinge":[5.33,0.7853],"closed":[0.0,1.0],"open":[1.0,0.0],"len":0.648,"h":2.09,"z0":0.0,"thick":0.04,"mat":"door","handle":true},{"id":"fridge","label":"Fridge","hinge":[0.4802,1.0852],"closed":[1.0,0.0],"open":[0.0,1.0],"len":0.612,"h":1.163,"z0":0.982,"thick":0.018,"mat":"oak","handle":false},{"id":"wc_lid","label":"Toilet lid","shape":"lid","hinge":[8.396,2.6396],"closed":[0.0,-1.0],"open":[0.0,-1.0],"len":0.46,"w":0.35,"open_angle":1.6,"h":0.025,"z0":0.422,"thick":0.025,"mat":"porcelain"},{"id":"washer_door","label":"Washing machine","shape":"round","hinge":[9.1943,1.4615],"closed":[0.0,-1.0],"open":[-1.0,0.0],"len":0.35,"h":0.35,"z0":0.205,"thick":0.045,"mat":"chrome"},{"id":"dryer_door","label":"Dryer","shape":"round","hinge":[9.1943,1.4615],"closed":[0.0,-1.0],"open":[-1.0,0.0],"len":0.35,"h":0.35,"z0":1.055,"thick":0.045,"mat":"chrome"}],"sliders":[{"id":"balcony_slide","label":"Balcony door","a":[0.857,8.8736],"dir":[0.9974,-0.072],"n":[0.0,-1.0],"w":1.053,"z0":0.0,"z1":2.45,"inset":0.06,"travel":1.023}]};
+// 2026-11-25: the room renders are the new Cycles stills of the furnished flat (render_shots.py), each in a day and a night version
+// (media/<id>_day.jpg / _night.jpg, thumbnails _t). p/t/z = the Blender camera, so "Stand here" puts you where the photo was taken.
+// The three overview renders (empty flat from above) stay as they were.
+const RENDERS_V2 = true;    // media/shot_*_day|night(_t).jpg published 2026-11-25 (false = the old Sept renders)
+// contextual (2026-11-25, Gianluca: no separate gallery, no empty-flat renders): rid = the room it belongs to, lens/sy = the Blender lens (mm on
+// a 36 mm sensor) and vertical lens shift, so the walkthrough camera can line up with the photo before it fades in.
+if (RENDERS_V2) PLAN.shots = [
+  { id: 'shot_dining', kind: 'render', dn: true, rid: 'living', title: 'Dining & kitchen', room: 'Køkken-alrum', p: [4.25, 4.3], t: [0.9, 1.5], z: 1.32, lens: 20, sy: -0.07 },
+  { id: 'shot_living', kind: 'render', dn: true, rid: 'living', title: 'Living room', room: 'Køkken-alrum', p: [4.15, 5.35], t: [0.6, 8.3], z: 1.28, lens: 16, sy: -0.08 },
+  { id: 'shot_bedroom', kind: 'render', dn: true, rid: 'bed', title: 'Bedroom', room: 'Soveværelse', p: [9.9, 3.95], t: [7.4, 7.1], z: 1.42, lens: 17, sy: -0.09 },
+  { id: 'shot_vaerelse', kind: 'render', dn: true, rid: 'vaer', title: 'Desk and sofa bed', room: 'Værelse', p: [4.85, 5.5], t: [7.4, 8.1], z: 1.4, lens: 17, sy: -0.08 },
+  { id: 'shot_entrance', kind: 'render', dn: true, rid: 'hall', title: 'Entrance hall', room: 'Entré', p: [6.35, 4.15], t: [5.55, 0.25], z: 1.45, lens: 17, sy: -0.06 },
+  { id: 'shot_bathroom', kind: 'render', dn: true, rid: 'bath', title: 'Bathroom', room: 'Bad', p: [7.18, 1.25], t: [9.7, 2.75], z: 1.5, lens: 15, sy: -0.10 },
+];
 const $ = (id) => document.getElementById(id);
 const coarse = matchMedia('(pointer: coarse)').matches;
 const lite = coarse || location.search.includes('lite');
@@ -1693,7 +1738,7 @@ document.fonts.ready.then(() => {
     sp.position.copy(top).add(new THREE.Vector3(0, 0.05, 0)); plugsGroup.add(sp);
   }
 });
-function syncQuick() { for (const q of document.querySelectorAll('#quick button[data-for]')) q.setAttribute('aria-pressed', $(q.dataset.for).getAttribute('aria-pressed')); }
+function syncQuick() { for (const q of document.querySelectorAll('#quick button[data-for], #measurePop button[data-for]')) q.setAttribute('aria-pressed', $(q.dataset.for).getAttribute('aria-pressed')); }
 function toggle(btn, group, extra) {
   btn.addEventListener('click', () => {
     const on = btn.getAttribute('aria-pressed') !== 'true';
@@ -1869,15 +1914,20 @@ function pinAt(clientX, clientY) {
   }
   return hits[0].object.userData.shot;
 }
-let lbIndex = 0;
+let lbIndex = 0, lbTimeSel = null;
 const lbOrder = shots.map((_, i) => i);
+function shotTime() { return lbTimeSel || (typeof dayLevel === 'number' && dayLevel < 0.35 ? 'night' : 'day'); }   // follows the clock until you pick one
+function shotSrc(sh, thumb) { return MEDIA + sh.id + (sh.dn ? '_' + shotTime() : '') + (thumb ? '_t' : '') + '.jpg'; }
 function openShot(i) {
+  if (shots[i] && shots[i].dn && typeof photoShow === 'function') { photoShow(shots[i]); return; }   // the new renders open in place (18-ux)
   lbIndex = i;
   const sh = shots[i];
   if (document.pointerLockElement) document.exitPointerLock();
-  $('lbImg').src = MEDIA + sh.id + '.jpg';
+  $('lbImg').src = shotSrc(sh);
   $('lbImg').alt = sh.title;
-  $('lbKind').textContent = 'Blender render · Cycles';
+  $('lbTime').hidden = !sh.dn;
+  for (const b of $('lbTime').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.t === shotTime()));
+  $('lbKind').textContent = sh.dn ? `Blender render · Cycles · ${shotTime() === 'night' ? 'evening, Hue lights on' : 'morning daylight'}` : 'Blender render · Cycles';
   $('lbTitle').textContent = sh.title;
   $('lbRoom').textContent = sh.room;
   $('lbGo').hidden = !sh.p;
@@ -1887,6 +1937,9 @@ function openShot(i) {
 function closeShot() { $('lightbox').hidden = true; canvas.focus(); }
 function stepShot(d) { openShot((lbIndex + d + shots.length) % shots.length); }
 $('lbClose').addEventListener('click', closeShot);
+for (const b of $('lbTime').querySelectorAll('button')) b.addEventListener('click', () => { lbTimeSel = b.dataset.t; openShot(lbIndex); galThumbs(); });
+$('qRenders').addEventListener('click', () => photoHere());
+addEventListener('keydown', (e) => { if (e.code === 'KeyF' && !e.repeat && $('lightbox').hidden && e.target.tagName !== 'INPUT' && !e.metaKey && !e.ctrlKey && !e.altKey) photoHere(); });
 $('lbPrev').addEventListener('click', () => stepShot(-1));
 $('lbNext').addEventListener('click', () => stepShot(1));
 $('lbGo').addEventListener('click', () => {
@@ -1900,6 +1953,7 @@ $('lightbox').addEventListener('click', (e) => { if (e.target === $('lightbox') 
 addEventListener('keydown', (e) => {
   if ($('lightbox').hidden) return;
   if (e.key === 'Escape') closeShot();
+  else if (e.key === 'n' || e.key === 'N' || e.key === 'd' || e.key === 'D') { if (shots[lbIndex].dn) { lbTimeSel = shotTime() === 'day' ? 'night' : 'day'; openShot(lbIndex); } }
   else if (e.key === 'ArrowRight') stepShot(1);
   else if (e.key === 'ArrowLeft') stepShot(-1);
   e.stopPropagation();
@@ -1908,7 +1962,7 @@ addEventListener('keydown', (e) => {
 for (const [i, sh] of shots.entries()) {
   const b = document.createElement('button');
   b.innerHTML = `<img loading="lazy" alt=""><span></span>`;
-  b.querySelector('img').src = MEDIA + sh.id + '_t.jpg';
+  b.querySelector('img').src = shotSrc(sh, true); b.dataset.shot = i;
   b.querySelector('img').alt = sh.title;
   const tag = b.querySelector('span');
   tag.textContent = sh.room === 'Overview' ? 'Overview' : sh.room;
@@ -1916,6 +1970,7 @@ for (const [i, sh] of shots.entries()) {
   b.addEventListener('click', () => openShot(i));
   (sh.p ? $('gRenders') : $('gOverview')).appendChild(b);
 }
+function galThumbs() { for (const b of document.querySelectorAll('.gal button[data-shot]')) b.querySelector('img').src = shotSrc(shots[+b.dataset.shot], true); }
 toggle($('tPhotos'), pinsGroup);
 pinsGroup.visible = false;
 // click routing: pins win over pointer-lock / measuring
@@ -3590,11 +3645,17 @@ function sofaClear(O, cfg, side) {
 // rounded, subdivided box with analytic normals and metric UVs (for fabric); o.top / o.front / o.side crown the faces like a filled cushion
 function softBox(w, h, d, r, o = {}) {
   r = Math.max(0.002, Math.min(r, w / 2 - 1e-3, h / 2 - 1e-3, d / 2 - 1e-3));
-  const geo = new THREE.BoxGeometry(w, h, d, Math.max(2, Math.ceil(w / 0.05)), Math.max(2, Math.ceil(h / 0.05)), Math.max(2, Math.ceil(d / 0.05)));
+  // perf (2026-11-25): a uniform 5 cm grid made big pieces (beds, sofas) tens of thousands of triangles. Now each axis gets at most CAP
+  // segments, packed towards the edges (where the rounding happens) instead of spread evenly; small pieces are unchanged.
+  const CAP = (o.top || o.front || o.side) ? 14 : 9, seg = (L) => Math.max(2, Math.min(CAP, Math.ceil(L / 0.05)));
+  const sx = seg(w), sy = seg(h), sz = seg(d);
+  const geo = new THREE.BoxGeometry(w, h, d, sx, sy, sz);
   const P = geo.attributes.position, N = geo.attributes.normal, UVa = geo.attributes.uv, hx = w / 2, hy = h / 2, hz = d / 2;
   const v = new THREE.Vector3(), c = new THREE.Vector3(), n = new THREE.Vector3(), cl = THREE.MathUtils.clamp;
+  const pack = (q, hq, L) => { if (Math.ceil(L / 0.05) <= CAP) return q; const t = Math.abs(q) / hq; return Math.sign(q) * hq * (1 - Math.pow(1 - t, 2.2)); };
   for (let i = 0; i < P.count; i++) {
     v.fromBufferAttribute(P, i);
+    v.set(pack(v.x, hx, w), pack(v.y, hy, h), pack(v.z, hz, d));
     c.set(cl(v.x, -hx + r, hx - r), cl(v.y, -hy + r, hy - r), cl(v.z, -hz + r, hz - r));
     n.subVectors(v, c); const len = n.length(); if (len < 1e-9) n.fromBufferAttribute(N, i); else n.divideScalar(len);
     v.copy(c).addScaledVector(n, r);
@@ -6157,8 +6218,6 @@ function roomDarkTick() {
   const [bx, by] = toBl(player.pos), inBed = mode === 'walk' && ROOM_BY_ID.bed && inPoly(bx, by, ROOM_BY_ID.bed.poly);
   const lamp = ['bedA', 'bedB'].reduce((m, id) => Math.max(m, LIGHTS[id] && LIGHTS[id].on ? Math.pow(LIGHTS[id].bri, 1.6) : 0), 0);   // the bedside lamps bounce light around
   let k = inBed ? Math.pow(1 - c.t, 1.5) * 0.97 * (1 - 0.6 * Math.min(1, lamp * 2)) : 0;
-  // the bathroom has no window: daylight only comes in through the door, so the sky fill is cut there too (its ceiling spots do the work)
-  if (mode === 'walk' && ROOM_BY_ID.bath && inPoly(bx, by, ROOM_BY_ID.bath.poly)) k = Math.max(k, 0.62);
   if (Math.abs(k - roomDarkK) < 0.004 && !hemi.userData.dirty) return; roomDarkK = k; hemi.userData.dirty = false;
   hemi.intensity = (hemi.userData.base ?? hemi.intensity) * (1 - k);
   scene.environmentIntensity = (scene.userData.envBase ?? scene.environmentIntensity) * (1 - k);
@@ -7178,8 +7237,10 @@ function buildBathroomFinish() {
     if (d0 > 0.01) skin(A, B, W.w.n, z0, Hc, 0, d0); skin(A, B, W.w.n, z0, Hc, d1, 1); skin(A, B, W.w.n, 2.1, Hc, d0, d1);
   }
   // the mirror: a live reflection 2 mm in front of the GLB mirror (77 × 104 cm over the vanity, build.py: x 7.21–7.98, front y 3.103, z 1.005–2.045)
-  { const w = 7.9733 - 7.2147, h = 2.045 - 1.005, res = lite ? 512 : 1024;
+  { const w = 7.9733 - 7.2147, h = 2.045 - 1.005, res = lite ? 320 : 640;
     const R = new Reflector(new THREE.PlaneGeometry(w, h), { textureWidth: res, textureHeight: Math.round(res * h / w), color: 0xc9cfd1, clipBias: 0.003 });
+    // perf: the reflection is a second full render of the scene; refresh it every other frame (the mirror is seen from 1–3 m, it doesn't need more)
+    { const draw = R.onBeforeRender; let k = 0; R.onBeforeRender = function (...args) { if ((k++ & 1) === 0) draw.apply(this, args); }; }
     R.position.copy(b2t((7.2147 + 7.9733) / 2, 3.1028 - 0.002, (1.005 + 2.045) / 2)); R.visible = false; scene.add(R); bathFx.mirror = R; }
   // on the vanity (top z 0.87; basin centred at x 7.59): soap pump, tumbler with toothbrushes, folded hand towel, a small dish
   const M = (c, r = 0.5, m = 0) => stdc({ color: c, roughness: r, metalness: m });
@@ -7200,16 +7261,53 @@ function buildBathroomFinish() {
     for (let i = 0; i < 9; i++) { const a = r() * Math.PI * 2, hgt = 0.12 + r() * 0.12; const st = new THREE.Mesh(new THREE.CylinderGeometry(0.0015, 0.002, hgt, 5), M(0x6a5a3e, 0.8)); st.position.set(Math.cos(a) * 0.01, hgt / 2, Math.sin(a) * 0.01); st.rotation.set(Math.sin(a) * 0.25, 0, Math.cos(a) * 0.25); pl.add(st);
       for (let k = 0; k < 5; k++) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), leaf); l.scale.set(1, 0.3, 1); l.position.set(Math.cos(a) * (0.01 + k * 0.012), 0.04 + k * hgt / 6, Math.sin(a) * (0.01 + k * 0.012)); l.castShadow = true; pl.add(l); } } }
   put(new THREE.CylinderGeometry(0.03, 0.03, 0.06, 20), M(0xefe9dc, 0.8), 8.3, 2.725, 1.18);                                             // candle
+  for (const c of [...g.children]) if (c.isGroup) mergeByMaterial(c);
+  mergeByMaterial(g);                                            // perf: ~80 small meshes → one per material
   shadowDirty = true;
 }
+// ------------------------------------------------------------ windowless rooms (2026-11-25): the hall and the bathroom only get daylight through
+// their doors, but the web view has no real bounce light, so they looked as bright as the living room. Every lit material samples a plan mask
+// (x, y → how much sky/environment fill reaches that spot): 1 in the rooms with windows, ~0.5 in the hall, ~0.4 in the bathroom, softened at the
+// doorways. It depends on where the surface is, not where you stand, so a room looks the same from inside and from next door. Walk mode only
+// (from above, with the roof off, the rooms are lit from above anyway).
+const AMB = { x0: -1, y0: -1, size: 12, k: { hall: 0.5, bath: 0.4 }, on: { value: 0 }, tex: null, sig: 0 };
+AMB.tex = canvasTex(512, 512, (g, W) => {
+  const px = (x, y) => [(x - AMB.x0) / AMB.size * W, W - (y - AMB.y0) / AMB.size * W];
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, W); g.filter = 'blur(1px)'; g.lineJoin = 'round';
+  for (const [id, k] of Object.entries(AMB.k)) { const r = ROOM_BY_ID[id]; if (!r) continue; const v = Math.round(k * 255);
+    g.fillStyle = `rgb(${v},${v},${v})`; g.beginPath(); r.poly.forEach(([x, y], i) => { const [u, w] = px(x, y); if (i) g.lineTo(u, w); else g.moveTo(u, w); }); g.closePath(); g.fill();
+    g.strokeStyle = g.fillStyle; g.lineWidth = 0.14 / AMB.size * W; g.stroke(); }
+  { const v = Math.round(AMB.k.hall * 255), [u0, w0] = px(5.4, 0.47), [u1, w1] = px(6.55, -0.05); g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(u0, w0, u1 - u0, w1 - w0); }   // the front door in its deep reveal   // the polygons are the inner wall faces: grow them ~7 cm so the walls themselves are inside
+}, [1, 1], false);
+AMB.tex.wrapS = AMB.tex.wrapT = THREE.ClampToEdgeWrapping; AMB.tex.repeat.set(1, 1);
+function ambPatch(m) {
+  if (!m || !m.isMeshStandardMaterial || m.userData.amb) return; m.userData.amb = true;
+  const prev = m.onBeforeCompile, prevKey = m.customProgramCacheKey;
+  m.onBeforeCompile = function (sh, r) { if (prev) prev.call(this, sh, r);
+    sh.uniforms.ambMask = { value: AMB.tex }; sh.uniforms.ambOn = AMB.on;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vAmbW;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvAmbW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vAmbW; uniform sampler2D ambMask; uniform float ambOn;')
+      .replace('#include <lights_fragment_end>', `{ vec2 auv = vec2((vAmbW.x - (${AMB.x0.toFixed(1)})) / ${AMB.size.toFixed(1)}, (-vAmbW.z - (${AMB.y0.toFixed(1)})) / ${AMB.size.toFixed(1)});
+        float af = mix(1.0, texture2D(ambMask, auv).r, ambOn); irradiance *= af; iblIrradiance *= af; radiance *= min(1.0, af + 0.15); }
+      #include <lights_fragment_end>`); };
+  m.customProgramCacheKey = function () { return (prevKey ? prevKey.call(this) : '') + '|amb'; };
+  m.needsUpdate = true;
+}
+function ambPatchScene() { scene.traverse((o) => { if (!o.isMesh || !o.material || o === bathFx.mirror) return; for (const m of Array.isArray(o.material) ? o.material : [o.material]) ambPatch(m); }); }
 function bathMirrorTick() {                                   // the reflection costs a second render: only while you're in (or looking into) the bathroom
-  // a Hue motion sensor: the ceiling spots come on when you walk in and go off again when you leave (if the sensor turned them on)
-  const inBath = mode === 'walk' && playerRoomId() === 'bath';
+  AMB.on.value = mode === 'walk' ? 1 : 0;
+  if (++AMB.sig % 90 === 1) ambPatchScene();                  // furniture rebuilt since gets patched too
+  // a Hue motion sensor: the bathroom spots come on as you come into the hall or the bathroom (so the room already looks right from the
+  // corridor) and go off again when you leave both (if the sensor turned them on)
+  const rid = mode === 'walk' ? playerRoomId() : null, inBath = rid === 'bath' || rid === 'hall';
   if (inBath !== bathFx.was) { bathFx.was = inBath; const L = LIGHTS.bath;
     if (L && inBath && !L.on) { L.on = true; bathFx.sensor = true; applyLights(); }
     else if (L && !inBath && bathFx.sensor) { L.on = false; bathFx.sensor = false; applyLights(); } }
   const R = bathFx.mirror; if (!R) return;
-  const on = mode === 'walk' && camera.position.distanceTo(R.position) < 4.2 && (playerRoomId() === 'bath' || camera.position.distanceTo(R.position) < 2.6);
+  // only from in front of it (the bedroom is right behind that wall) and only from the bathroom, or the hall by its open door
+  const dist = camera.position.distanceTo(R.position), front = toBl(camera.position)[1] < 3.08, bd = doors.find((x) => x.id === 'door_bath');
+  const on = mode === 'walk' && front && (rid === 'bath' || (rid === 'hall' && dist < 3 && bd && bd.t > 0.2));
   if (R.visible !== on) R.visible = on;
 }
 // ------------------------------------------------------------ PLAN panel (O): shopping list, saved/shared layouts, placement check, daylight
@@ -7600,7 +7698,7 @@ $('qPlan').addEventListener('click', () => setPlan(!PLAN_UI.open));
 addEventListener('keydown', (e) => { if (e.code === 'KeyO' && !e.repeat && e.target.tagName !== 'INPUT' && !e.metaKey && !e.ctrlKey && !e.altKey) setPlan(!PLAN_UI.open); else if (e.code === 'Escape' && PLAN_UI.open) setPlan(false); });
 bedMover.selects = [{ id: 'nstand', label: 'Nightstands', options: () => NIGHT.map((n) => ({ label: `${n.brand} ${n.name} · ${Math.round(n.W * 100)} × ${Math.round(n.D * 100)} × ${Math.round(n.H * 100)} cm · ${n.kr} kr` })), get: () => night.m, set: (i) => { night.m = i; night.col = 0; buildBed(); } }];
 bedMover.link = () => { const N = NIGHT[night.m]; return { href: N.url, text: `IKEA · ${N.name} nightstand · ${N.kr} kr ↗` }; };
-function furnish() { buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknik(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); buildHolm(); buildSkaenk(); buildCoffeeTable(); buildRug(); buildRoomFixtures(); buildRoomSwitches(); buildRoomFurniture(); try { buildBathroomFinish(); } catch (e) { console.warn('bathroom finish', e); } autoLightTick(clockHour, dayLevel, true); try { updateNight(); } catch (_) { /* ok */ } layoutBoot(); }
+function furnish() { buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknik(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); buildHolm(); buildSkaenk(); buildCoffeeTable(); buildRug(); buildRoomFixtures(); buildRoomSwitches(); buildRoomFurniture(); try { buildBathroomFinish(); ambPatchScene(); } catch (e) { console.warn('bathroom finish', e); } autoLightTick(clockHour, dayLevel, true); try { updateNight(); } catch (_) { /* ok */ } layoutBoot(); }
 function prewarmShaders() {
   // compile every material variant now (incl. hidden things: ceiling, upper floors, closed panels), not the first time it comes into view
   // lights first exactly as perfTick leaves them (light counts are part of every shader), then the meshes
@@ -8158,11 +8256,17 @@ addEventListener('keydown', (e) => { if (e.code === 'KeyZ' && (e.metaKey || e.ct
   if (ids.length) {
     const pop = $('measurePop');
     for (const id of ids) pop.appendChild($(id));
-    const btn = $('qMeasure'), sync = () => btn.setAttribute('aria-pressed', String(ids.some((id) => $(id).getAttribute('aria-pressed') === 'true')));
+    // what's on is read from the real toggles (the menu buttons used to keep a stale state once moved out of the quick bar), and the Measure
+    // button itself lights up and counts how many are on (2026-11-25, Gianluca: Sizes was on but nothing showed it)
+    const btn = $('qMeasure'), badge = document.createElement('b'); badge.className = 'mcount'; btn.appendChild(badge);
+    const sync = () => { let n = 0;
+      for (const id of ids) { const q = $(id), on = $(q.dataset.for).getAttribute('aria-pressed') === 'true'; if (q.getAttribute('aria-pressed') !== String(on)) q.setAttribute('aria-pressed', String(on)); n += on; }
+      btn.setAttribute('aria-pressed', String(n > 0)); badge.textContent = n ? String(n) : ''; badge.hidden = !n; };
+    sync();
     btn.addEventListener('click', (e) => { e.stopPropagation(); const open = pop.hidden; pop.hidden = !open; btn.setAttribute('aria-expanded', String(open)); if (open) pop.style.top = `${Math.max(8, btn.getBoundingClientRect().top - 4)}px`; });
     for (const id of ids) $(id).addEventListener('click', () => setTimeout(sync, 0));
     addEventListener('pointerdown', (e) => { if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); } });
-    setInterval(sync, 1000);
+    setInterval(sync, 400); addEventListener('keydown', () => setTimeout(sync, 0));
   }
 }
 
@@ -8171,6 +8275,117 @@ addEventListener('keydown', (e) => { if (e.code === 'KeyZ' && (e.metaKey || e.ct
 { const upd = () => { let cov = false; try { cov = window.parent !== window && Math.abs(window.parent.innerHeight - innerHeight) < 8; } catch (e) {} document.body.classList.toggle('covered', cov); };
   upd(); addEventListener('resize', upd);
   const b = document.getElementById('qSite'); if (b) b.onclick = () => { try { window.parent.postMessage({ type: 'project:menu' }, location.origin); } catch (e) {} }; }
+
+// ---- photo-real view, in place (2026-11-25, Gianluca: the renders felt like a separate experience). Each room's Cycles still opens right
+// where you are: you glide to the spot it was taken from (same height, direction and lens), then the photo fades in over the 3D view.
+// Any move, drag, click or Esc fades back to the walkthrough. In walk mode the room card offers it when the room has one ("Photo-real
+// view", F); from above, the camera pins open it (flying down first). Day or night follows the clock until you pick one.
+const PHOTO = { on: false, sh: null, anim: null, dy: 0, time: null };
+function photoShots() { return PLAN.shots.filter((s) => s.dn); }
+function photoForRoom(rid, near) {
+  const c = photoShots().filter((s) => s.rid === rid); if (!c.length) return null;
+  if (!near) return c[0];
+  const [x, y] = toBl(near); return c.sort((a, b) => Math.hypot(a.p[0] - x, a.p[1] - y) - Math.hypot(b.p[0] - x, b.p[1] - y))[0];
+}
+function photoHere() {
+  if (PHOTO.on) { photoHide(); return; }
+  if (mode === 'walk') { const s = photoForRoom(currentRoom, player.pos); if (s) photoShow(s); else showToast('No photo of this spot yet'); return; }
+  const [x, y] = toBl(orbit.target), all = photoShots(); if (!all.length) return;
+  photoShow(all.sort((a, b) => Math.hypot(a.p[0] - x, a.p[1] - y) - Math.hypot(b.p[0] - x, b.p[1] - y))[0]);
+}
+function photoTime() { return PHOTO.time || (typeof dayLevel === 'number' && dayLevel < 0.35 ? 'night' : 'day'); }
+function photoView(sh) {                                   // where the walkthrough camera must be to see what the photo shows
+  const a = innerWidth / Math.max(1, innerHeight);
+  const vfov = (a >= 1.5 ? 2 * Math.atan(18 / sh.lens / a) : 2 * Math.atan(12 / sh.lens)) * 180 / Math.PI;   // object-fit: cover crops the 3:2 photo
+  const d = b2t(sh.t[0], sh.t[1]).sub(b2t(sh.p[0], sh.p[1]));
+  return { pos: b2t(sh.p[0], sh.p[1], EYE), yaw: Math.atan2(-d.x, -d.z), pitch: Math.atan(sh.sy * 36 / sh.lens), fov: vfov, dy: sh.z - EYE };
+}
+function photoSetImg(sh) {
+  const img = $('photoImg'), src = MEDIA + sh.id + '_' + photoTime() + '.jpg';
+  for (const b of $('photoBar').querySelectorAll('.seg button')) b.setAttribute('aria-pressed', String(b.dataset.t === photoTime()));
+  $('photoTitle').textContent = sh.title;
+  if (img.getAttribute('src') === src) return Promise.resolve();
+  return new Promise((res) => { const pre = new Image(); pre.onload = pre.onerror = () => { img.src = src; res(); }; pre.src = src; });
+}
+function photoShow(sh) {
+  if (document.pointerLockElement) document.exitPointerLock();
+  if (focus) exitFocus();
+  PHOTO.sh = sh; const V = photoView(sh), ready = photoSetImg(sh);
+  const fin = () => { PHOTO.on = true; document.body.classList.add('photo'); ready.then(() => { if (PHOTO.sh === sh && PHOTO.on) $('photo').classList.add('show'); }); };
+  if (mode !== 'walk') {                                   // from above: fly down to the spot first (like "pick where to stand")
+    player.fy = 0; player.pos.copy(V.pos); player.yaw = V.yaw; player.pitch = V.pitch; frame.camY = undefined;
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(V.pitch, V.yaw, 0, camera.rotation.order));
+    orbit.enabled = false;
+    camTo(V.pos.clone().setY(sh.z), q, 1300, { fov: V.fov, done: () => { setMode('walk'); PHOTO.dy = V.dy; camera.fov = V.fov; camera.updateProjectionMatrix(); fin(); } });
+    return;
+  }
+  let dyaw = V.yaw - player.yaw; dyaw = Math.atan2(Math.sin(dyaw), Math.cos(dyaw));
+  const dist = player.pos.distanceTo(V.pos);
+  PHOTO.anim = { t0: performance.now(), dur: THREE.MathUtils.clamp(500 + dist * 260, 600, 1600), p0: player.pos.clone(), p1: V.pos, y0: player.yaw, y1: player.yaw + dyaw,
+    pi0: player.pitch, pi1: V.pitch, f0: camera.fov, f1: V.fov, d0: PHOTO.dy, d1: V.dy, done: fin };
+  player.fy = 0; frame.camY = undefined;
+}
+function photoHide() {
+  if (!PHOTO.on && !PHOTO.anim) return;
+  PHOTO.on = false; PHOTO.anim = null; $('photo').classList.remove('show'); document.body.classList.remove('photo');
+  PHOTO.back = { t0: performance.now(), d0: PHOTO.dy, f0: camera.fov };     // ease back to eye height and the walking lens
+}
+function photoTick() {
+  const now = performance.now();
+  if (PHOTO.anim) {
+    const A = PHOTO.anim, k = Math.min(1, (now - A.t0) / A.dur), e = easeIO(k);
+    player.pos.lerpVectors(A.p0, A.p1, e); player.yaw = A.y0 + (A.y1 - A.y0) * e; player.pitch = A.pi0 + (A.pi1 - A.pi0) * e;
+    PHOTO.dy = A.d0 + (A.d1 - A.d0) * e; camera.fov = A.f0 + (A.f1 - A.f0) * e; camera.updateProjectionMatrix(); frame.camY = player.pos.y;
+    if (k >= 1) { PHOTO.anim = null; A.done(); }
+  } else if (PHOTO.back) {
+    const B = PHOTO.back, k = Math.min(1, (now - B.t0) / 600), e = easeIO(k);
+    PHOTO.dy = B.d0 * (1 - e); camera.fov = B.f0 + (viewFov() - B.f0) * e; camera.updateProjectionMatrix();
+    if (k >= 1) PHOTO.back = null;
+  }
+  // the room card offers the photo of the room you're in; from above the camera pins show where photos were taken
+  const s = mode === 'walk' && !PHOTO.on && !PHOTO.anim ? photoForRoom(currentRoom) : null, chip = $('roomPhoto');
+  if (chip.hidden === !!s) chip.hidden = !s;
+  const pinsOn = mode === 'over' || $('tPhotos').getAttribute('aria-pressed') === 'true';
+  if (pinsGroup.visible !== pinsOn) pinsGroup.visible = pinsOn;
+}
+$('roomPhoto').addEventListener('click', (e) => { e.stopPropagation(); photoHere(); });
+$('photoClose').addEventListener('click', () => photoHide());
+for (const b of $('photoBar').querySelectorAll('.seg button')) b.addEventListener('click', (e) => {
+  e.stopPropagation(); PHOTO.time = b.dataset.t; const img = $('photoImg'); img.style.opacity = '0';
+  setTimeout(() => photoSetImg(PHOTO.sh).then(() => { img.style.opacity = '1'; }), 200);
+});
+$('photo').addEventListener('pointerdown', (e) => { if (!e.target.closest('#photoBar')) photoHide(); });
+$('photo').addEventListener('wheel', () => photoHide(), { passive: true });
+addEventListener('keydown', (e) => {
+  if (!PHOTO.on && !PHOTO.anim) return;
+  if (e.code === 'KeyN' && PHOTO.on) { PHOTO.time = photoTime() === 'day' ? 'night' : 'day'; photoSetImg(PHOTO.sh); return; }
+  if (['Escape', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyV', 'KeyC'].includes(e.code)) photoHide();
+});
+addEventListener('resize', () => { if (PHOTO.on && PHOTO.sh) { const V = photoView(PHOTO.sh); camera.fov = V.fov; camera.updateProjectionMatrix(); } });
+
+// ---- Sizes from above (2026-11-25, Gianluca's screenshot: a wall of overlapping labels). The labels keep a fixed size on screen, so from
+// above every dimension in the flat piled up. From above now only the ones around what you're looking at show (like the (i) buttons),
+// none overlapping, and their lines go with them; walking shows everything as before. Hidden ones move to layer 2 (not rendered).
+const dimsCull = { n: 0, hidden: new Set() };
+function dimsDeclutter() {
+  if (++dimsCull.n % 6) return;
+  const show = (o) => { if (dimsCull.hidden.delete(o)) o.layers.set(0); }, hide = (o) => { if (!dimsCull.hidden.has(o)) { dimsCull.hidden.add(o); o.layers.set(2); } };
+  if (!dimsGroup.visible || mode === 'walk') { for (const o of [...dimsCull.hidden]) show(o); return; }
+  const camD = camera.position.distanceTo(orbit.target), R = camD < 9 ? 2.6 : 1.8, placed = [], v = new THREE.Vector3(), sc = { x: 0, y: 0 };
+  const items = []; dimsGroup.traverse((o) => { if (o.isSprite || o.isLine || o.isLineSegments || o.isMesh) items.push(o); });
+  // labels first (nearest the target win), then each line/mark follows the nearest label's fate by distance
+  const labels = items.filter((o) => o.isSprite).map((o) => { o.getWorldPosition(v); return { o, p: v.clone(), d: Math.hypot(v.x - orbit.target.x, v.z - orbit.target.z) }; }).sort((a, b) => a.d - b.d);
+  const kept = [];
+  for (const L of labels) {
+    let ok = L.d < R && toScreen(L.p, sc);
+    if (ok) { const w = (L.o.scale.x / L.o.scale.y) * 30 + 10; ok = !placed.some((q) => Math.abs(q[0] - sc.x) < (q[2] + w) / 2 && Math.abs(q[1] - sc.y) < 30); if (ok) placed.push([sc.x, sc.y, w]); }
+    if (ok) { show(L.o); kept.push(L.p); } else hide(L.o);
+  }
+  for (const o of items) if (!o.isSprite) {
+    const bb = new THREE.Box3().setFromObject(o), c = bb.getCenter(v);
+    if (Math.hypot(c.x - orbit.target.x, c.z - orbit.target.z) < R + 0.4 && kept.some((p) => p.distanceTo(c) < 1.6)) show(o); else hide(o);
+  }
+}
 // ------------------------------------------------------------ clouds
 (function clouds() {
   const W = 2048, Hh = 512;
@@ -8262,6 +8477,7 @@ function frame() {
     crawl.k += ((crawl.on ? 1 : 0) - crawl.k) * Math.min(1, dt * 7);                      // drop down to crawling height and back up, eased
     camera.position.set(player.pos.x, frame.camY - crawl.k * (EYE - CRAWL_EYE) + (crawl.on && (f || s) ? Math.sin(performance.now() / 140) * 0.012 : 0), player.pos.z);
     camera.rotation.set(player.pitch, player.yaw, 0);
+    if (PHOTO.dy) camera.position.y += PHOTO.dy;                                          // standing at the render camera's height (18-ux)
   } else {
     if (!stepCamTween()) orbit.update();
   }
@@ -8286,7 +8502,7 @@ function frame() {
   frame.sig = sig; if (busy) frame.busyAt = now;
   const idle = now - (frame.busyAt ?? 0) > 900;
   if (shadowDirty || frame.n % 600 === 0) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
-  xrayTick(); bathMirrorTick();
+  xrayTick(); bathMirrorTick(); photoTick(dt); dimsDeclutter();
   if (!idle || frame.n % 6 === 0) { if (composer) composer.render(); else renderer.render(scene, camera); busyAfterRender(); }
   requestAnimationFrame(frame);
 }

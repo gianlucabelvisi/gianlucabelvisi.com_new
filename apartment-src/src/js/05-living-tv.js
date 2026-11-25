@@ -684,11 +684,17 @@ function sofaClear(O, cfg, side) {
 // rounded, subdivided box with analytic normals and metric UVs (for fabric); o.top / o.front / o.side crown the faces like a filled cushion
 function softBox(w, h, d, r, o = {}) {
   r = Math.max(0.002, Math.min(r, w / 2 - 1e-3, h / 2 - 1e-3, d / 2 - 1e-3));
-  const geo = new THREE.BoxGeometry(w, h, d, Math.max(2, Math.ceil(w / 0.05)), Math.max(2, Math.ceil(h / 0.05)), Math.max(2, Math.ceil(d / 0.05)));
+  // perf (2026-11-25): a uniform 5 cm grid made big pieces (beds, sofas) tens of thousands of triangles. Now each axis gets at most CAP
+  // segments, packed towards the edges (where the rounding happens) instead of spread evenly; small pieces are unchanged.
+  const CAP = (o.top || o.front || o.side) ? 14 : 9, seg = (L) => Math.max(2, Math.min(CAP, Math.ceil(L / 0.05)));
+  const sx = seg(w), sy = seg(h), sz = seg(d);
+  const geo = new THREE.BoxGeometry(w, h, d, sx, sy, sz);
   const P = geo.attributes.position, N = geo.attributes.normal, UVa = geo.attributes.uv, hx = w / 2, hy = h / 2, hz = d / 2;
   const v = new THREE.Vector3(), c = new THREE.Vector3(), n = new THREE.Vector3(), cl = THREE.MathUtils.clamp;
+  const pack = (q, hq, L) => { if (Math.ceil(L / 0.05) <= CAP) return q; const t = Math.abs(q) / hq; return Math.sign(q) * hq * (1 - Math.pow(1 - t, 2.2)); };
   for (let i = 0; i < P.count; i++) {
     v.fromBufferAttribute(P, i);
+    v.set(pack(v.x, hx, w), pack(v.y, hy, h), pack(v.z, hz, d));
     c.set(cl(v.x, -hx + r, hx - r), cl(v.y, -hy + r, hy - r), cl(v.z, -hz + r, hz - r));
     n.subVectors(v, c); const len = n.length(); if (len < 1e-9) n.fromBufferAttribute(N, i); else n.divideScalar(len);
     v.copy(c).addScaledVector(n, r);

@@ -18,6 +18,20 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 const PLAN = __PLAN__;
+// 2026-11-25: the room renders are the new Cycles stills of the furnished flat (render_shots.py), each in a day and a night version
+// (media/<id>_day.jpg / _night.jpg, thumbnails _t). p/t/z = the Blender camera, so "Stand here" puts you where the photo was taken.
+// The three overview renders (empty flat from above) stay as they were.
+const RENDERS_V2 = true;    // media/shot_*_day|night(_t).jpg published 2026-11-25 (false = the old Sept renders)
+// contextual (2026-11-25, Gianluca: no separate gallery, no empty-flat renders): rid = the room it belongs to, lens/sy = the Blender lens (mm on
+// a 36 mm sensor) and vertical lens shift, so the walkthrough camera can line up with the photo before it fades in.
+if (RENDERS_V2) PLAN.shots = [
+  { id: 'shot_dining', kind: 'render', dn: true, rid: 'living', title: 'Dining & kitchen', room: 'Køkken-alrum', p: [4.25, 4.3], t: [0.9, 1.5], z: 1.32, lens: 20, sy: -0.07 },
+  { id: 'shot_living', kind: 'render', dn: true, rid: 'living', title: 'Living room', room: 'Køkken-alrum', p: [4.15, 5.35], t: [0.6, 8.3], z: 1.28, lens: 16, sy: -0.08 },
+  { id: 'shot_bedroom', kind: 'render', dn: true, rid: 'bed', title: 'Bedroom', room: 'Soveværelse', p: [9.9, 3.95], t: [7.4, 7.1], z: 1.42, lens: 17, sy: -0.09 },
+  { id: 'shot_vaerelse', kind: 'render', dn: true, rid: 'vaer', title: 'Desk and sofa bed', room: 'Værelse', p: [4.85, 5.5], t: [7.4, 8.1], z: 1.4, lens: 17, sy: -0.08 },
+  { id: 'shot_entrance', kind: 'render', dn: true, rid: 'hall', title: 'Entrance hall', room: 'Entré', p: [6.35, 4.15], t: [5.55, 0.25], z: 1.45, lens: 17, sy: -0.06 },
+  { id: 'shot_bathroom', kind: 'render', dn: true, rid: 'bath', title: 'Bathroom', room: 'Bad', p: [7.18, 1.25], t: [9.7, 2.75], z: 1.5, lens: 15, sy: -0.10 },
+];
 const $ = (id) => document.getElementById(id);
 const coarse = matchMedia('(pointer: coarse)').matches;
 const lite = coarse || location.search.includes('lite');

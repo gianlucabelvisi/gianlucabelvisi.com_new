@@ -518,7 +518,7 @@ document.fonts.ready.then(() => {
     sp.position.copy(top).add(new THREE.Vector3(0, 0.05, 0)); plugsGroup.add(sp);
   }
 });
-function syncQuick() { for (const q of document.querySelectorAll('#quick button[data-for]')) q.setAttribute('aria-pressed', $(q.dataset.for).getAttribute('aria-pressed')); }
+function syncQuick() { for (const q of document.querySelectorAll('#quick button[data-for], #measurePop button[data-for]')) q.setAttribute('aria-pressed', $(q.dataset.for).getAttribute('aria-pressed')); }
 function toggle(btn, group, extra) {
   btn.addEventListener('click', () => {
     const on = btn.getAttribute('aria-pressed') !== 'true';
@@ -694,15 +694,20 @@ function pinAt(clientX, clientY) {
   }
   return hits[0].object.userData.shot;
 }
-let lbIndex = 0;
+let lbIndex = 0, lbTimeSel = null;
 const lbOrder = shots.map((_, i) => i);
+function shotTime() { return lbTimeSel || (typeof dayLevel === 'number' && dayLevel < 0.35 ? 'night' : 'day'); }   // follows the clock until you pick one
+function shotSrc(sh, thumb) { return MEDIA + sh.id + (sh.dn ? '_' + shotTime() : '') + (thumb ? '_t' : '') + '.jpg'; }
 function openShot(i) {
+  if (shots[i] && shots[i].dn && typeof photoShow === 'function') { photoShow(shots[i]); return; }   // the new renders open in place (18-ux)
   lbIndex = i;
   const sh = shots[i];
   if (document.pointerLockElement) document.exitPointerLock();
-  $('lbImg').src = MEDIA + sh.id + '.jpg';
+  $('lbImg').src = shotSrc(sh);
   $('lbImg').alt = sh.title;
-  $('lbKind').textContent = 'Blender render · Cycles';
+  $('lbTime').hidden = !sh.dn;
+  for (const b of $('lbTime').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.t === shotTime()));
+  $('lbKind').textContent = sh.dn ? `Blender render · Cycles · ${shotTime() === 'night' ? 'evening, Hue lights on' : 'morning daylight'}` : 'Blender render · Cycles';
   $('lbTitle').textContent = sh.title;
   $('lbRoom').textContent = sh.room;
   $('lbGo').hidden = !sh.p;
@@ -712,6 +717,9 @@ function openShot(i) {
 function closeShot() { $('lightbox').hidden = true; canvas.focus(); }
 function stepShot(d) { openShot((lbIndex + d + shots.length) % shots.length); }
 $('lbClose').addEventListener('click', closeShot);
+for (const b of $('lbTime').querySelectorAll('button')) b.addEventListener('click', () => { lbTimeSel = b.dataset.t; openShot(lbIndex); galThumbs(); });
+$('qRenders').addEventListener('click', () => photoHere());
+addEventListener('keydown', (e) => { if (e.code === 'KeyF' && !e.repeat && $('lightbox').hidden && e.target.tagName !== 'INPUT' && !e.metaKey && !e.ctrlKey && !e.altKey) photoHere(); });
 $('lbPrev').addEventListener('click', () => stepShot(-1));
 $('lbNext').addEventListener('click', () => stepShot(1));
 $('lbGo').addEventListener('click', () => {
@@ -725,6 +733,7 @@ $('lightbox').addEventListener('click', (e) => { if (e.target === $('lightbox') 
 addEventListener('keydown', (e) => {
   if ($('lightbox').hidden) return;
   if (e.key === 'Escape') closeShot();
+  else if (e.key === 'n' || e.key === 'N' || e.key === 'd' || e.key === 'D') { if (shots[lbIndex].dn) { lbTimeSel = shotTime() === 'day' ? 'night' : 'day'; openShot(lbIndex); } }
   else if (e.key === 'ArrowRight') stepShot(1);
   else if (e.key === 'ArrowLeft') stepShot(-1);
   e.stopPropagation();
@@ -733,7 +742,7 @@ addEventListener('keydown', (e) => {
 for (const [i, sh] of shots.entries()) {
   const b = document.createElement('button');
   b.innerHTML = `<img loading="lazy" alt=""><span></span>`;
-  b.querySelector('img').src = MEDIA + sh.id + '_t.jpg';
+  b.querySelector('img').src = shotSrc(sh, true); b.dataset.shot = i;
   b.querySelector('img').alt = sh.title;
   const tag = b.querySelector('span');
   tag.textContent = sh.room === 'Overview' ? 'Overview' : sh.room;
@@ -741,6 +750,7 @@ for (const [i, sh] of shots.entries()) {
   b.addEventListener('click', () => openShot(i));
   (sh.p ? $('gRenders') : $('gOverview')).appendChild(b);
 }
+function galThumbs() { for (const b of document.querySelectorAll('.gal button[data-shot]')) b.querySelector('img').src = shotSrc(shots[+b.dataset.shot], true); }
 toggle($('tPhotos'), pinsGroup);
 pinsGroup.visible = false;
 // click routing: pins win over pointer-lock / measuring
