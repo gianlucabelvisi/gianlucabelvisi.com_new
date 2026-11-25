@@ -23,13 +23,29 @@ function fxAssign(force) {
   const lit = FX.filter((f) => LIGHTS[f.id] && LIGHTS[f.id].on);
   const sig = here + '|' + lit.map((f) => f.id).join(',') + '|' + Math.round(cam.x * 2) + ',' + Math.round(cam.z * 2);
   if (!force && sig === fxSig) return; fxSig = sig;
-  lit.sort((p, q) => ((p.room === here ? 0 : 6) + p.pos.distanceTo(cam)) - ((q.room === here ? 0 : 6) + q.pos.distanceTo(cam)));
-  LPOOL.forEach((L, i) => {
-    const f = lit[i];
-    if (!f) { L.intensity = 0; return; }
-    const Lt = LIGHTS[f.id], lv = Math.pow(Lt.bri, 1.6);
-    L.position.copy(f.pos); L.color.copy(lightRGB(Lt)); L.intensity = f.power * lv; L.distance = f.dist;
-  });
+  // 2026-11-25 (Gianluca: "lights blink"): slots used to jump straight to the nearest fixtures, so a light popped on/off every
+  // half metre you walked. Now a fixture keeps its slot while it stays among the nearest (with a 1.2 m stickiness), and a slot
+  // that changes fixture fades out, moves, and fades back in (fxFade, every frame).
+  const score = (f) => (f.room === here ? 0 : 6) + f.pos.distanceTo(cam) - (LPOOL.some((L) => L.userData.f === f) ? 1.2 : 0);
+  const want = lit.slice().sort((p, q) => score(p) - score(q)).slice(0, LPOOL.length);
+  const keep = new Set(LPOOL.map((L) => L.userData.want).filter((f) => want.includes(f)));
+  LPOOL.forEach((L) => { if (!want.includes(L.userData.want)) L.userData.want = null; });
+  for (const f of want) if (!keep.has(f)) { const L = LPOOL.find((q) => !q.userData.want); if (L) L.userData.want = f; }
+  if (force) LPOOL.forEach((L) => { const f = L.userData.want; if (f && L.userData.f === f) fxTarget(L, f); });
+}
+function fxTarget(L, f) { const Lt = LIGHTS[f.id]; L.color.copy(lightRGB(Lt)); L.distance = f.dist; L.userData.ti = f.power * Math.pow(Lt.bri, 1.6); }
+function fxFade(dt) {
+  const k = Math.min(1, dt * 6);
+  for (const L of LPOOL) {
+    const u = L.userData;
+    if (u.f !== u.want) {                                                    // fading out the old fixture
+      L.intensity += (0 - L.intensity) * k;
+      if (L.intensity < 0.01 || !u.f) { u.f = u.want; L.intensity = 0; if (u.f) { L.position.copy(u.f.pos); fxTarget(L, u.f); } else u.ti = 0; }
+    } else {
+      if (u.f && !(LIGHTS[u.f.id] && LIGHTS[u.f.id].on)) u.ti = 0;
+      L.intensity += ((u.ti || 0) - L.intensity) * k; if (Math.abs(L.intensity - (u.ti || 0)) < 1e-3) L.intensity = u.ti || 0;
+    }
+  }
 }
 function fxGlow(mat, L, rgb, lv, k = 3) { if (!mat) return; mat.emissive.copy(rgb); mat.emissiveIntensity = k * lv; }
 MATS.fxHall = new THREE.MeshStandardMaterial({ color: 0xf4f3ef, emissive: 0xffd6a8, emissiveIntensity: 0, roughness: 0.4 });

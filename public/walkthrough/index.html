@@ -37,6 +37,20 @@
     display: grid; gap: 3px; pointer-events: none; max-width: calc(100% - 100px); }
   #room .da { font: 700 20px/1.15 var(--ui); letter-spacing: -.01em; }
   #room .en { font-size: 12.5px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+  #photoPan { position: absolute; inset: 0; overflow: hidden; touch-action: none; cursor: grab; }
+  #photoPan img { position: absolute; left: 50%; top: 50%; width: auto; height: auto; max-width: none; transform-origin: 0 0; user-select: none; -webkit-user-drag: none; }
+  #photoBar #photoTitle { max-width: 38vw; overflow: hidden; text-overflow: ellipsis; }
+  #photoBar #photoPrev, #photoBar #photoNext { font-size: 18px; padding: 4px 9px; }
+  #rendersPop { position: fixed; right: calc(var(--gut) + 140px); top: 70px; width: min(460px, calc(100vw - 2 * var(--gut))); max-height: calc(100vh - 100px - var(--safe-b)); overflow-y: auto; padding: 12px; z-index: 8; border-radius: 16px; display: grid; gap: 10px; }
+  #rendersPop[hidden] { display: none; }
+  #rendersPop .rp-head { display: grid; gap: 3px; } #rendersPop .rp-head b { font: 700 15px/1.2 var(--ui); } #rendersPop .rp-head span { font-size: 12px; color: var(--muted); }
+  #rendersPop h4 { margin: 6px 0 2px; font: 600 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--oak); display: flex; gap: 8px; }
+  #rendersPop h4 em { font-style: normal; color: var(--ink); background: var(--oak-dim); border-radius: 999px; padding: 2px 7px; letter-spacing: .04em; }
+  #rendersPop .rp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  #rendersPop .rp-grid button { position: relative; padding: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; aspect-ratio: 3 / 2; cursor: pointer; background: #000; }
+  #rendersPop .rp-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #rendersPop .rp-grid span { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 7px 6px; font: 600 11.5px/1.2 var(--ui); color: #fff; text-align: left; background: linear-gradient(transparent, rgba(0,0,0,.7)); }
+  @media (max-width: 720px), (pointer: coarse) { #rendersPop { left: var(--gut); right: var(--gut); top: auto; bottom: calc(var(--gut) + var(--safe-b)); width: auto; max-height: 70vh; } }
   #roomPhoto { margin-top: 7px; display: inline-flex; align-items: center; gap: 7px; padding: 6px 10px 6px 8px; border-radius: 999px; border: 1px solid var(--line);
     background: rgba(207,145,82,.14); color: var(--ink); font: 600 12px/1 var(--ui); cursor: pointer; pointer-events: auto; }
   #roomPhoto svg { width: 15px; height: 15px; color: var(--oak); }
@@ -44,7 +58,7 @@
   #roomPhoto[hidden] { display: none; }
   #photo { position: fixed; inset: 0; z-index: 5; pointer-events: none; opacity: 0; transition: opacity .7s ease; }
   #photo.show { opacity: 1; pointer-events: auto; }
-  #photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .35s ease; }
+  #photo img { transition: opacity .35s ease; }
   #photoBar { position: fixed; left: 50%; bottom: calc(var(--gut) + var(--safe-b)); transform: translateX(-50%); display: flex; align-items: center; gap: 10px;
     padding: 6px 6px 6px 14px; border-radius: 999px; font: 600 13px/1 var(--ui); color: var(--ink); white-space: nowrap; }
   #photoBar .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; gap: 2px; }
@@ -466,10 +480,10 @@ body.covered #qSite { display: flex !important; }
   <span class="eyebrow">Copenhagen · you are in</span>
   <span class="da" id="roomDa">Entré</span>
   <span class="en"><span id="roomEn">Hallway</span><span class="dim" id="roomDim"></span></span>
-  <button id="roomPhoto" hidden title="See this room photo-real (F)"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="4" width="13" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8.5" r="2.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 4l1-1.6h3L10.5 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span>Photo-real view</span></button>
 </div>
 
-<div id="photo" aria-hidden="true"><img id="photoImg" alt=""><div id="photoBar" class="panel"><span id="photoTitle"></span><div class="seg" role="group" aria-label="Time of day"><button data-t="day">Day</button><button data-t="night">Night</button></div><button id="photoClose" aria-label="Back to the 3D view">✕</button></div></div>
+<div id="photo" aria-hidden="true"><div id="photoPan"><img id="photoImg" alt="" draggable="false"></div><div id="photoBar" class="panel"><button id="photoPrev" aria-label="Previous photo">‹</button><span id="photoTitle"></span><button id="photoNext" aria-label="Next photo">›</button><div class="seg" role="group" aria-label="Time of day"><button data-t="day">Day</button><button data-t="night">Night</button></div><button id="photoClose" aria-label="Back to the 3D view">✕</button></div></div>
+<div id="rendersPop" class="panel" hidden role="dialog" aria-label="Photo-real renders"><div class="rp-head"><b>Photo-real renders</b><span>Cycles stills of the furnished flat · pick one to see it from where it was taken</span></div><div id="rpList"></div></div>
 
 <div id="quick" class="panel" role="group" aria-label="View and show">
   <button id="qHide" title="Hide the bar (B)" aria-expanded="true" aria-label="Hide the bar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Hide</span></button>
@@ -645,13 +659,21 @@ const PLAN = {"walls":[[[[5.305,1.587],[5.305,1.454],[5.363,1.454],[5.363,1.587]
 const RENDERS_V2 = true;    // media/shot_*_day|night(_t).jpg published 2026-11-25 (false = the old Sept renders)
 // contextual (2026-11-25, Gianluca: no separate gallery, no empty-flat renders): rid = the room it belongs to, lens/sy = the Blender lens (mm on
 // a 36 mm sensor) and vertical lens shift, so the walkthrough camera can line up with the photo before it fades in.
-if (RENDERS_V2) PLAN.shots = [
-  { id: 'shot_dining', kind: 'render', dn: true, rid: 'living', title: 'Dining & kitchen', room: 'Køkken-alrum', p: [4.25, 4.3], t: [0.9, 1.5], z: 1.32, lens: 20, sy: -0.07 },
-  { id: 'shot_living', kind: 'render', dn: true, rid: 'living', title: 'Living room', room: 'Køkken-alrum', p: [4.15, 5.35], t: [0.6, 8.3], z: 1.28, lens: 16, sy: -0.08 },
-  { id: 'shot_bedroom', kind: 'render', dn: true, rid: 'bed', title: 'Bedroom', room: 'Soveværelse', p: [9.9, 3.95], t: [7.4, 7.1], z: 1.42, lens: 17, sy: -0.09 },
-  { id: 'shot_vaerelse', kind: 'render', dn: true, rid: 'vaer', title: 'Desk and sofa bed', room: 'Værelse', p: [4.85, 5.5], t: [7.4, 8.1], z: 1.4, lens: 17, sy: -0.08 },
-  { id: 'shot_entrance', kind: 'render', dn: true, rid: 'hall', title: 'Entrance hall', room: 'Entré', p: [6.35, 4.15], t: [5.55, 0.25], z: 1.45, lens: 17, sy: -0.06 },
-  { id: 'shot_bathroom', kind: 'render', dn: true, rid: 'bath', title: 'Bathroom', room: 'Bad', p: [7.18, 1.25], t: [9.7, 2.75], z: 1.5, lens: 15, sy: -0.10 },
+if (RENDERS_V2) PLAN.shots = [   // generated from render_shots.py SHOTS (2026-11-25: 14 viewpoints)
+  { id: 'shot_living_sofa', kind: 'render', dn: true, rid: 'living', title: 'Behind the sofa', p: [0.8, 7.15], t: [3.9, 3.2], z: 1.55, lens: 16, sy: -0.13 },
+  { id: 'shot_living_painting', kind: 'render', dn: true, rid: 'living', title: 'From the painting, towards the balcony', p: [0.75, 4.35], t: [3.9, 8.4], z: 1.4, lens: 16, sy: -0.08 },
+  { id: 'shot_kitchen_painting', kind: 'render', dn: true, rid: 'living', title: 'From the painting, towards the kitchen', p: [0.75, 4.75], t: [3.4, 0.7], z: 1.4, lens: 16, sy: -0.08 },
+  { id: 'shot_kitchen_table', kind: 'render', dn: true, rid: 'living', title: 'From the table, the kitchen', p: [1.85, 4.05], t: [2.9, 0.5], z: 1.3, lens: 18, sy: -0.08 },
+  { id: 'shot_dining', kind: 'render', dn: true, rid: 'living', title: 'Kitchen and dining table', p: [4.25, 4.3], t: [0.9, 1.5], z: 1.32, lens: 20, sy: -0.07 },
+  { id: 'shot_living', kind: 'render', dn: true, rid: 'living', title: 'Living room', p: [4.15, 5.35], t: [0.6, 8.3], z: 1.28, lens: 16, sy: -0.08 },
+  { id: 'shot_living_balcony', kind: 'render', dn: true, rid: 'living', title: 'From the balcony door, back to the kitchen', p: [4.05, 8.15], t: [1.0, 2.2], z: 1.45, lens: 16, sy: -0.08 },
+  { id: 'shot_vaerelse', kind: 'render', dn: true, rid: 'vaer', title: 'Desk by the window', p: [4.85, 5.5], t: [7.4, 8.1], z: 1.4, lens: 17, sy: -0.08 },
+  { id: 'shot_vaerelse_door', kind: 'render', dn: true, rid: 'vaer', title: 'From the door', p: [7.05, 4.8], t: [4.9, 8.0], z: 1.45, lens: 16, sy: -0.08 },
+  { id: 'shot_vaerelse_window', kind: 'render', dn: true, rid: 'vaer', title: 'From the window, the closet and door', p: [4.95, 8.05], t: [7.1, 5.0], z: 1.45, lens: 16, sy: -0.08 },
+  { id: 'shot_bedroom', kind: 'render', dn: true, rid: 'bed', title: 'Bedroom', p: [9.9, 3.95], t: [7.4, 7.1], z: 1.42, lens: 17, sy: -0.09 },
+  { id: 'shot_bedroom_bed', kind: 'render', dn: true, rid: 'bed', title: 'The bed from its foot', p: [9.95, 5.15], t: [7.3, 6.0], z: 1.45, lens: 17, sy: -0.12 },
+  { id: 'shot_entrance', kind: 'render', dn: true, rid: 'hall', title: 'Entrance hall', p: [6.35, 4.15], t: [5.55, 0.25], z: 1.45, lens: 17, sy: -0.06 },
+  { id: 'shot_bathroom', kind: 'render', dn: true, rid: 'bath', title: 'Bathroom', p: [7.18, 1.25], t: [9.7, 2.75], z: 1.5, lens: 15, sy: -0.1 },
 ];
 const $ = (id) => document.getElementById(id);
 const coarse = matchMedia('(pointer: coarse)').matches;
@@ -1254,6 +1276,33 @@ function blocked(from, step) {
   }
   return false;
 }
+// ---- where you may stand (2026-11-25, Gianluca: you could materialise inside a wall or a wardrobe). A spot is free when you're inside a room
+// of the flat (or out on the balcony / stairwell / street levels), nothing solid is under the ceiling right there (looking down from 2.55 m,
+// the first thing hit must be the floor: no wardrobe, bed or table) and nothing is within your radius at knee, hip and head height.
+// safeSpot() returns the spot itself if free, else the nearest free one within 1.5 m (same room first), else null.
+const _sr = new THREE.Raycaster(), _sv = new THREE.Vector3(), _sd = new THREE.Vector3(0, -1, 0);
+function spotFree(P) {
+  const fy = P.y, list = fy < -0.6 ? outdoorBlockers(P) : collidables; _sr.firstHitOnly = true;
+  _sr.set(_sv.set(P.x, fy + 2.55, P.z), _sd); _sr.far = 2.5;
+  const down = _sr.intersectObjects(list, false)[0]; if (down && down.point.y > fy + 0.12) return false;
+  _sr.far = RADIUS + 0.04;
+  for (const h of [0.3, 0.95, 1.55]) for (let k = 0; k < 8; k++) {
+    const a = k * Math.PI / 4; _sr.set(_sv.set(P.x, fy + h, P.z), new THREE.Vector3(Math.cos(a), 0, Math.sin(a)));
+    if (_sr.intersectObjects(list, false).length) return false;
+  }
+  return true;
+}
+function roomAt(bx, by) { for (const r of PLAN.rooms) if (inPoly(bx, by, r.poly)) return r.id; return null; }
+function safeSpot(P) {
+  const indoor = Math.abs(P.y) < 0.3, [bx, by] = toBl(P), home = roomAt(bx, by);
+  const ok = (Q, sameRoom) => { const [x, y] = toBl(Q), r = roomAt(x, y); if (indoor && !r) return false; if (sameRoom && home && r !== home) return false;
+    const g = groundAt(Q.x, Q.z, P.y); if (g === null) return false; Q.y = g; return spotFree(Q); };
+  if (ok(P.clone(), false)) return P.clone();
+  for (const same of [true, false]) for (let r = 0.12; r <= 1.5; r += 0.12) for (let k = 0; k < 16; k++) {
+    const a = k * Math.PI / 8 + r, Q = new THREE.Vector3(P.x + Math.cos(a) * r, P.y, P.z + Math.sin(a) * r); if (ok(Q, same)) return Q;
+  }
+  return null;
+}
 // below our floor (stairwell, lobby, street) the buildings and street furniture outside also block you
 let _outdoor = null;
 function outdoorBlockers(at) {
@@ -1298,6 +1347,9 @@ function tryMove(step) {
 
 // look: pointer lock on desktop, drag fallback, touch joystick + drag
 let locked = false;
+// 2026-11-25: walking no longer grabs the mouse on the first click (you had to press Esc to reach any button). Drag to look around, click
+// the floor to walk there. Mouse-look (pointer lock, the old way) is still there with the X key, remembered.
+const MOUSELOOK = { on: false }; try { MOUSELOOK.on = localStorage.getItem('aptMouseLook') === '1'; } catch (_) { /* ignore */ }
 const canvas = renderer.domElement;
 document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === canvas;
@@ -1305,7 +1357,7 @@ document.addEventListener('pointerlockchange', () => {
   showHint();
 });
 canvas.addEventListener('click', () => {
-  if (mode === 'walk' && started && !coarse && !locked && !measuring) {
+  if (mode === 'walk' && started && !coarse && !locked && !measuring && MOUSELOOK.on) {
     try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* optional */ }
   }
 });
@@ -1445,9 +1497,11 @@ canvas.addEventListener('pointerup', (e) => {
     ray.far = Infinity;
     ray.setFromCamera(ndc, camera);
     const hit = ray.intersectObjects(pickables, false)[0];
-    if (hit) {
+    const S = hit && safeSpot(hit.point.clone());
+    if (hit && !S) showToast('You can’t stand there');
+    if (S) {
       const f = new THREE.Vector3(); camera.getWorldDirection(f);
-      player.pos.set(hit.point.x, hit.point.y + EYE, hit.point.z); player.fy = hit.point.y;
+      player.pos.set(S.x, S.y + EYE, S.z); player.fy = S.y;
       player.yaw = Math.atan2(-f.x, -f.z); player.pitch = -0.05;
       setMode('walk');
     }
@@ -1479,13 +1533,18 @@ joyBase.addEventListener('pointercancel', endJoy);
 let autoTarget = null;
 const tapRing = new THREE.Mesh(new THREE.RingGeometry(0.16, 0.22, 32), new THREE.MeshBasicMaterial({ color: 0xcf9152, transparent: true, opacity: 0.9, depthTest: false, toneMapped: false }));
 tapRing.rotation.x = -Math.PI / 2; tapRing.visible = false; tapRing.renderOrder = 33; scene.add(tapRing);
+const clickDown = { x: 0, y: 0, t: 0 };
+canvas.addEventListener('pointerdown', (e) => { clickDown.x = e.clientX; clickDown.y = e.clientY; clickDown.t = performance.now(); }, true);
 canvas.addEventListener('click', (e) => {
-  if (!coarse || !started || mode !== 'walk' || measuring) return;
+  if (!started || mode !== 'walk' || measuring || locked || (typeof PHOTO !== 'undefined' && PHOTO.on)) return;
+  if (Math.hypot(e.clientX - clickDown.x, e.clientY - clickDown.y) > 6 || performance.now() - clickDown.t > 450) return;   // that was a drag to look
   const ndc = new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.far = 25; ray.setFromCamera(ndc, camera);
   const all = ray.intersectObject(modelRoot, true).filter((h) => h.object.material !== MATS.glass);
   const hit = all[0];
   if (!hit || !pickables.includes(hit.object)) return;
+  const S = safeSpot(new THREE.Vector3(hit.point.x, player.fy, hit.point.z)); if (!S) { showToast('You can’t stand there'); return; }
+  hit.point.x = S.x; hit.point.z = S.z;
   autoTarget = new THREE.Vector3(hit.point.x, EYE, hit.point.z);
   tapRing.position.set(hit.point.x, hit.point.y + 0.02, hit.point.z); tapRing.visible = true;
 });
@@ -1543,7 +1602,7 @@ function showHint() {
   if (measuring) { h.textContent = locked ? 'Aim the dot and click to drop a point · Esc to use the pointer' : 'Click two points to measure · Ctrl/Cmd+Z undoes the last one'; h.hidden = false; }
   else if (place.on) { h.hidden = true; }
   else if (mode === 'over') { h.textContent = 'Drag to turn · scroll to zoom · Walk (V) to step inside, or double-click a floor'; h.hidden = false; }
-  else if (!locked) { h.textContent = 'Click the view to look around · W A S D to move · R to run'; h.hidden = false; }
+  else if (!locked) { h.textContent = 'Drag to look around · click the floor to walk there · W A S D to move · X mouse-look'; h.hidden = false; }
   else h.hidden = true;
 }
 
@@ -1651,9 +1710,9 @@ map.addEventListener('click', (e) => {
     for (let k = 1; k <= 20 && !PLAN.rooms.some((rm) => inPoly(px, py, rm.poly)); k++) { px = x + (best[0] - x) * k / 20; py = y + (best[1] - y) * k / 20; }
     px = x + (px - x) * 1.15; py = y + (py - y) * 1.15;          // a little further in, away from the wall
   }
-  const x2 = px, y2 = py;
+  const S = safeSpot(b2t(px, py, 0)); if (!S) { showToast('You can’t stand there'); return; }
   autoTarget = null;
-  player.pos.set(x2, EYE, -y2); player.fy = 0;
+  player.pos.set(S.x, EYE, S.z); player.fy = 0;
   setMode('walk');
 });
 map.style.cursor = 'crosshair';
@@ -4100,16 +4159,15 @@ function swanChair(ch, C, add) {
     const m = add(new THREE.CylinderGeometry(rt, rb, v.length(), metal ? 12 : 14), legs, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, ch);
     m.quaternion.setFromUnitVectors(UP, v.normalize()); return m; };
   const r0 = metal ? 0.011 : 0.024, r1 = metal ? 0.011 : 0.017, under = SH - st, fx = sw / 2 - 0.085, rx = sw / 2 - 0.1;
-  // as in ILVA's photos (2026-11-24 fix, Gianluca: legs looked "super tilted"): front legs almost upright; each rear leg rakes back a little to
-  // the floor, then rises behind the shell only up to its lower third, where it holds it (not all the way to the top)
-  const zr = -d / 2 + 0.1;                                                                                                          // rear leg's knee, under the seat
+  // 2026-11-25 (Gianluca: legs "a bit unnatural"): four plain tapered legs under the seat, each splayed a little outwards and the
+  // rear pair raked back a touch; nothing rising behind the shell (the rods sticking up behind read as odd)
+  const zf = sz + sd / 2 - 0.1, zr = -d / 2 + 0.11;
   for (const sx of [1, -1]) {
-    leg(sx * (fx + 0.008), 0, sz + sd / 2 - 0.085, sx * fx, under, sz + sd / 2 - 0.1, r0 * 0.95, r1);                          // front legs, nearly upright
-    leg(sx * (rx + 0.008), 0, -d / 2 + 0.04, sx * rx, under, zr, r0, r1);                                                     // rear legs, raked back slightly
-    leg(sx * rx, under - 0.01, zr, sx * rx, SH + 0.17, -d / 2 + 0.005, r0 * 0.9, r0 * 0.85);                                  // …and up behind the shell
-    if (!metal) add(new THREE.BoxGeometry(0.022, 0.05, sd - 0.12), legs, sx * (fx - 0.01), under - 0.03, sz - 0.02, ch);       // side rails under the seat
+    leg(sx * (fx + 0.03), 0, zf + 0.025, sx * fx, under, zf, r0, r1 * 0.85);                                              // front
+    leg(sx * (rx + 0.035), 0, zr - 0.06, sx * rx, under, zr, r0, r1 * 0.85);                                               // rear, raked back
+    if (!metal) add(new THREE.BoxGeometry(0.022, 0.05, zf - zr), legs, sx * (fx - 0.01), under - 0.03, (zf + zr) / 2, ch);   // side rails
   }
-  if (!metal) for (const z of [sz + sd / 2 - 0.1, -d / 2 + 0.1]) add(new THREE.BoxGeometry(2 * fx - 0.02, 0.045, 0.022), legs, 0, under - 0.03, z, ch);
+  if (!metal) for (const z of [zf, zr]) add(new THREE.BoxGeometry(2 * fx - 0.02, 0.045, 0.022), legs, 0, under - 0.03, z, ch);
   else add(new THREE.BoxGeometry(sw - 0.16, 0.012, sd - 0.16), legs, 0, under - 0.008, sz, ch);                                 // steel seat plate
 }
 function stadiumShape(L, D) {
@@ -4931,14 +4989,14 @@ function buildPetra(tryPos, tryAngle) {
     for (const sx of [-1, 1]) {
       const arm = add(softBox(0.15, 0.27, 0.6, 0.07, { top: 0.03, side: 0.02 }), fab, sx * (W2 - 0.075), LG + 0.33, 0.02); arm.rotation.z = sx * 0.07;   // rolled arms
       const wing = add(softBox(0.12, 0.3, 0.22, 0.055, { side: 0.02 }), fab, sx * (W2 - 0.1), 0.68, -D2 + 0.2); wing.rotation.set(-0.08, sx * 0.25, sx * 0.08);
-      for (const sz of [-1, 1]) { const leg = add(new THREE.CylinderGeometry(0.02, 0.012, LG + 0.02, 12), oak, sx * (W2 - 0.1), LG / 2, sz * (D2 - 0.1)); leg.rotation.x = sz * 0.16; leg.rotation.z = -sx * 0.12; }
+      for (const sz of [-1, 1]) { const leg = add(new THREE.CylinderGeometry(0.02, 0.012, LG + 0.02, 12), oak, sx * (W2 - 0.1), LG / 2, sz * (D2 - 0.1)); leg.rotation.x = -sz * 0.16; leg.rotation.z = sx * 0.12; }   // splayed outwards at the floor (2026-11-25: they converged — "unnatural")
     }
     const btn = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(NILO.c).multiplyScalar(0.7), roughness: 0.9 });
     for (const bx of [-0.09, 0.09]) add(new THREE.SphereGeometry(0.013, 8, 6), btn, bx, 0.7, -D2 + 0.19);
     // footstool, 30 cm in front of the seat
     const fz = D2 + 0.3 + 0.25, FL = 0.16;
     add(softBox(0.6, 0.24, 0.5, 0.08, { top: 0.03 }), fab, 0, FL + 0.12, fz);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const leg = add(new THREE.CylinderGeometry(0.018, 0.011, FL + 0.01, 10), oak, sx * 0.24, FL / 2, fz + sz * 0.19); leg.rotation.x = sz * 0.14; leg.rotation.z = -sx * 0.14; }
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const leg = add(new THREE.CylinderGeometry(0.018, 0.011, FL + 0.01, 10), oak, sx * 0.24, FL / 2, fz + sz * 0.19); leg.rotation.x = -sz * 0.14; leg.rotation.z = sx * 0.14; }
   } else if (petra.model === 1) {
     // House Nordic Gudrun: a plump wingback in curly light-brown teddy fabric, 84 × 86 × 87 cm, short black splayed legs
     const G = GUDRUN, gf = new THREE.MeshPhysicalMaterial({ color: G.c, map: weaveTex('boucle'), bumpMap: weaveTex('boucle'), bumpScale: 0.035, roughness: 0.98, sheen: 0.6, sheenRoughness: 0.8, sheenColor: new THREE.Color(G.c).lerp(new THREE.Color(0xffffff), 0.2), envMapIntensity: 0.2 });
@@ -5970,6 +6028,116 @@ function levelLabel() {
   if (x > 0 && x < 7.5 && y > -7.9 && y <= -3.05) return ['Opgang nr. 9', 'Street lobby', ''];
   return null;
 }
+
+// ------------------------------------------------------------ the canal and our quay, lived in (2026-11-25, Gianluca: "why doesn't the canal look
+// like a canal, the sidewalk like a sidewalk?"). Our side, from the facade (x = 0) to the water (x = −11): a 2.6 m paved sidewalk, the quay
+// quay path (no parking: people and bikes only), a 2.4 m timber boardwalk with a granite edge, then ~1.1 m down to the
+// water. Here: rippling dark water, concrete paving slabs, a granite coping with bollards, ladders and life rings, trees in grates, benches
+// facing the water, quay lamps that glow at night, parked cars and bikes, a few more boats moored on our side.
+const canal = { t: 0, ripple: null, lampM: null };
+function canalTextures() {
+  // ripple normal map: a few interfering wave trains, tileable
+  const N = 256, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d'), im = g.createImageData(N, N), r = rng(5);
+  const waves = Array.from({ length: 9 }, () => ({ kx: Math.round((r() - 0.5) * 14), ky: Math.round((r() - 0.5) * 14) || 3, a: 0.4 + r(), p: r() * 6.28 }));
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    let dx = 0, dy = 0; for (const w of waves) { const ph = (w.kx * x + w.ky * y) / N * Math.PI * 2 + w.p, cs = Math.cos(ph) * w.a; dx += cs * w.kx; dy += cs * w.ky; }
+    const nx = -dx * 0.012, ny = -dy * 0.012, l = Math.hypot(nx, ny, 1), i = (y * N + x) * 4;
+    im.data[i] = (nx / l * 0.5 + 0.5) * 255; im.data[i + 1] = (ny / l * 0.5 + 0.5) * 255; im.data[i + 2] = (1 / l * 0.5 + 0.5) * 255; im.data[i + 3] = 255;
+  }
+  g.putImageData(im, 0, 0); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / 7, 1 / 7); return t;
+}
+function buildCanalLife() {
+  // water: deep green-grey, glossy, with moving ripples (two layers drifting apart)
+  canal.ripple = canalTextures();
+  Object.assign(MATS.water, { color: new THREE.Color(0x1c2f2d), roughness: 0.07, metalness: 0.0, envMapIntensity: 0.5, normalMap: canal.ripple, normalScale: new THREE.Vector2(0.45, 0.45) });
+  MATS.water.needsUpdate = true;
+  // paving: grey concrete slabs 50 × 50 with darker joints, a little colour variation (the quay's ground and our sidewalk)
+  MATS.quay.map = canvasTex(512, 512, (g, W) => { const r = rng(17), n = 4, s = W / n; g.fillStyle = '#6f6b66'; g.fillRect(0, 0, W, W);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const v = 150 + (r() - 0.5) * 22; g.fillStyle = `rgb(${v},${v - 2},${v - 6})`; g.fillRect(i * s + 2, j * s + 2, s - 4, s - 4);
+      for (let k = 0; k < 40; k++) { const q = v + (r() - 0.5) * 30; g.fillStyle = `rgba(${q},${q},${q - 4},0.5)`; g.fillRect(i * s + 2 + r() * (s - 6), j * s + 2 + r() * (s - 6), 2, 2); } } }, [2, 2]);
+  MATS.quay.color.set(0xffffff); MATS.quay.roughness = 0.92; MATS.quay.needsUpdate = true;
+  MATS.asphalt.map = canvasTex(256, 256, (g, W) => { const r = rng(23); g.fillStyle = '#3a3b3d'; g.fillRect(0, 0, W, W);
+    for (let k = 0; k < 2200; k++) { const v = 40 + r() * 50; g.fillStyle = `rgb(${v},${v},${v + 2})`; g.fillRect(r() * W, r() * W, 1.5, 1.5); } }, [1.5, 1.5]);
+  MATS.asphalt.color.set(0xffffff); MATS.asphalt.needsUpdate = true;
+  const g = new THREE.Group(); scene.add(g);
+  const M = (c, r = 0.8, m = 0) => stdc({ color: c, roughness: r, metalness: m });
+  const put = (geo, mat, bx, by, bz, ry = 0) => { const o = new THREE.Mesh(geo, mat); o.position.copy(b2t(bx, by, bz)); o.rotation.y = ry; o.castShadow = o.receiveShadow = true; g.add(o); return o; };
+  const Y0 = -60, Y1 = 46, WX = -11.0;                       // the stretch you see from the flat and walk along
+  // granite coping along the water's edge (joints every 1.2 m)
+  const granite = M(0x9c9a95, 0.7), joint = M(0x6b6965, 0.9);
+  for (let y = Y0; y < Y1; y += 1.2) { put(new THREE.BoxGeometry(0.45, 0.1, 1.18), granite, WX + 0.22, y + 0.6, ZG + 0.06); }
+  put(new THREE.BoxGeometry(0.46, 0.02, Y1 - Y0), joint, WX + 0.22, (Y0 + Y1) / 2, ZG + 0.015);
+  const paint = M(0xe8e6de, 0.6);
+  // no parking by the canal: the quay is a car-free path for people and bikes — a dashed centre line and painted bike symbols
+  for (let y = Y0; y < Y1; y += 3) put(new THREE.BoxGeometry(0.1, 0.006, 1.5), paint, -5.6, y, ZG + 0.033);
+  for (let y = Y0 + 6; y < Y1; y += 24) for (const [bx, dir] of [[-7.1, 1], [-4.1, -1]]) {
+    for (const s2 of [-0.32, 0.32]) { const w = put(new THREE.TorusGeometry(0.2, 0.025, 4, 18), paint, bx, y + s2 * dir, ZG + 0.034); w.rotation.x = -Math.PI / 2; }
+    put(new THREE.BoxGeometry(0.04, 0.006, 0.62), paint, bx, y, ZG + 0.034); }
+  // bollards, ladders and life rings on the edge
+  const tyre = M(0x151515, 0.9), iron = M(0x1c1d1f, 0.5, 0.6), steel = M(0xb8bcbf, 0.35, 0.9), ringR = M(0xd33a2c, 0.6), ringW = M(0xf2f0ea, 0.6), postM = M(0xd9d6cf, 0.7);
+  for (let y = Y0 + 4; y < Y1; y += 9) { put(new THREE.CylinderGeometry(0.11, 0.14, 0.42, 14), iron, WX + 0.25, y, ZG + 0.32); put(new THREE.SphereGeometry(0.13, 14, 8), iron, WX + 0.25, y, ZG + 0.55); }
+  for (let y = Y0 + 10; y < Y1; y += 26) {
+    for (const s of [-0.22, 0.22]) put(new THREE.CylinderGeometry(0.02, 0.02, 1.9, 8), steel, WX - 0.05, y + s, ZG - 0.35);   // ladder down into the water
+    for (let k = 0; k < 6; k++) { const o = put(new THREE.CylinderGeometry(0.015, 0.015, 0.44, 8), steel, WX - 0.05, y, ZG - 1.1 + k * 0.3); o.rotation.x = Math.PI / 2; }
+    for (const s of [-0.22, 0.22]) { const o = put(new THREE.TorusGeometry(0.22, 0.02, 6, 16, Math.PI), steel, WX + 0.05, y + s, ZG + 0.12); o.rotation.y = Math.PI / 2; }
+    put(new THREE.BoxGeometry(0.08, 1.4, 0.08), postM, WX + 0.7, y + 3, ZG + 0.7);                                         // life-ring post
+    const lr = put(new THREE.TorusGeometry(0.28, 0.07, 8, 20), ringR, WX + 0.76, y + 3, ZG + 1.1); lr.rotation.y = Math.PI / 2;
+    for (let q = 0; q < 4; q++) { const w = put(new THREE.TorusGeometry(0.28, 0.072, 8, 3, 0.35), ringW, WX + 0.76, y + 3, ZG + 1.1); w.rotation.set(0, Math.PI / 2, q * Math.PI / 2); }
+  }
+  // trees in grates along the inner edge of the boardwalk, benches facing the water between them
+  const bark = M(0x4c3a2c, 1), leafA = M(0x56783f, 1), leafB = M(0x6a8a45, 1), grate = M(0x2a2b2d, 0.6, 0.5), wood = M(0x8a6a4c, 0.8), benchIron = M(0x2f3133, 0.5, 0.5);
+  const tree = (bx, by, s) => { const r = rng(Math.round(by * 7 + 99));
+    put(new THREE.BoxGeometry(1.2, 0.03, 1.2), grate, bx, by, ZG + 0.07);
+    put(new THREE.CylinderGeometry(0.09 * s, 0.13 * s, 3.2 * s, 9), bark, bx, by, ZG + 1.6 * s);
+    for (let k = 0; k < 7; k++) { const a = r() * 6.28, d = r() * 1.0 * s, h = (2.8 + r() * 2.2) * s, rr = (0.8 + r() * 0.7) * s;
+      const o = put(new THREE.IcosahedronGeometry(rr, 1), k % 2 ? leafA : leafB, bx + Math.cos(a) * d, by + Math.sin(a) * d, ZG + h); o.scale.y = 0.8; }
+  };
+  const bench = (bx, by) => { for (const dz of [0, 0.12, 0.24]) put(new THREE.BoxGeometry(0.11, 0.04, 1.8), wood, bx + 0.05 - dz, by, ZG + 0.45 + dz * 0.15);
+    for (const dz of [0, 0.12]) put(new THREE.BoxGeometry(0.03, 0.1, 1.8), wood, bx + 0.28, by, ZG + 0.62 + dz * 1.4);
+    for (const s of [-0.75, 0.75]) put(new THREE.BoxGeometry(0.5, 0.45, 0.05), benchIron, bx + 0.05, by + s, ZG + 0.225); };
+  for (let y = Y0 + 2, k = 0; y < Y1 - 2; y += 11, k++) { tree(-9.15, y, 0.9 + (k % 3) * 0.08); if (y + 5.5 < Y1) bench(-9.9, y + 5.5); }
+  // quay lamps (slim poles, a lantern head that glows at night)
+  canal.lampM = new THREE.MeshStandardMaterial({ color: 0xf4efe2, emissive: 0xffd7a0, emissiveIntensity: 0, roughness: 0.4 });
+  for (let y = Y0 + 7; y < Y1; y += 18) { put(new THREE.CylinderGeometry(0.05, 0.07, 4.2, 10), M(0x3a3d40, 0.5, 0.6), -8.95, y, ZG + 2.1); put(new THREE.CylinderGeometry(0.16, 0.22, 0.3, 14), canal.lampM, -8.95, y, ZG + 4.3); }
+  // warm pools of light on the boardwalk under each lamp at night (additive decals, cheaper than real lights)
+  { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), gr = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+    canal.poolM = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), color: 0xffc98a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    const pg = new THREE.PlaneGeometry(7, 7).rotateX(-Math.PI / 2), pools = [];
+    for (let y = Y0 + 7; y < Y1; y += 18) pools.push(b2t(-8.6, y, ZG + 0.04));
+    const im = new THREE.InstancedMesh(pg, canal.poolM, pools.length); pools.forEach((v, i) => im.setMatrixAt(i, new THREE.Matrix4().makeTranslation(v.x, v.y, v.z)));
+    im.renderOrder = 2; im.name = 'nocollide__lamppools'; im.visible = false; canal.pools = im; scene.add(im); }
+  // bikes leaning on stands along the path, by the benches (people stop here)
+  { const fc = [0x1f3b5c, 0x9a2f27, 0x1d1d1d, 0x6b7f5a, 0xd9d4c7, 0x2f5d50];
+    for (let y = Y0 + 14, k = 0; y < Y1 - 2; y += 22, k++) for (let q = 0; q < 2 + (k % 2); q++) {
+      const by = y + q * 0.7, bx = -8.25, fm = M(fc[(k + q) % fc.length], 0.4, 0.5);
+      for (const s2 of [-0.5, 0.5]) { const w = put(new THREE.TorusGeometry(0.33, 0.025, 6, 20), tyre, bx, by + s2, ZG + 0.35); w.rotation.y = Math.PI / 2; }
+      put(new THREE.BoxGeometry(0.04, 0.04, 0.95), fm, bx, by, ZG + 0.55); put(new THREE.BoxGeometry(0.04, 0.5, 0.04), fm, bx, by - 0.1, ZG + 0.65); put(new THREE.BoxGeometry(0.5, 0.04, 0.04), tyre, bx, by + 0.42, ZG + 0.92); } }
+  // bikes in a rack by our block (north of the entrance)
+  const frameCols = [0x1f3b5c, 0x9a2f27, 0x1d1d1d, 0x6b7f5a, 0xd9d4c7];
+  for (let k = 0; k < 6; k++) { const by = -2.6 + k * 0.62, bx = -1.25, fm = M(frameCols[k % 5], 0.4, 0.5);
+    put(new THREE.TorusGeometry(0.4, 0.015, 6, 24, Math.PI), steel, -0.55, by, ZG + 0.02);                                 // rack hoop
+    for (const s of [-0.5, 0.5]) { const w = put(new THREE.TorusGeometry(0.33, 0.025, 6, 20), tyre, bx + s, by, ZG + 0.35); w.rotation.y = Math.PI / 2; }
+    const f = put(new THREE.BoxGeometry(0.95, 0.04, 0.04), fm, bx, by, ZG + 0.55); f.rotation.y = Math.PI / 2;
+    const st = put(new THREE.BoxGeometry(0.04, 0.5, 0.04), fm, bx + 0.1, by, ZG + 0.65); const hb = put(new THREE.BoxGeometry(0.04, 0.04, 0.5), tyre, bx - 0.42, by, ZG + 0.92);
+  }
+  for (const c of [...g.children]) c.updateMatrix();
+  mergeByMaterial(g);
+  // two more small boats on our side, by the ladders
+  try { const hullM = M(0xf2f1ee, 0.45), wood2 = M(0x7a5a3e, 0.7);
+    for (const [by, len, dark] of [[-24.5, 5.0, 0x2b3440], [12.5, 4.2, 0xf2f1ee]]) { const b = new THREE.Group(); b.position.copy(b2t(-12.2, by, ZG - 1.1)); b.rotation.y = Math.PI + 0.02; scene.add(b);
+      const sh = new THREE.Shape(), w = len * 0.36; sh.moveTo(-len / 2, -w / 2); sh.lineTo(len * 0.2, -w / 2); sh.quadraticCurveTo(len * 0.48, -w * 0.35, len / 2, 0); sh.quadraticCurveTo(len * 0.48, w * 0.35, len * 0.2, w / 2); sh.lineTo(-len / 2, w / 2); sh.closePath();
+      const hull = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.55, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2 }), M(dark, 0.45)); hull.rotation.x = -Math.PI / 2; hull.position.y = -0.25; hull.castShadow = true; b.add(hull);
+      const deck = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.02, bevelEnabled: false }), wood2); deck.rotation.x = -Math.PI / 2; deck.position.y = 0.3; deck.scale.set(0.9, 0.82, 1); b.add(deck);
+      for (const bx2 of [-len * 0.15, len * 0.15]) { const s2 = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.05, w * 0.8), wood2); s2.position.set(bx2, 0.38, 0); b.add(s2); }
+      const line = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.6, 4), M(0xd9cfb4, 0.9)); line.position.set(len / 2 - 0.2, 0.75, 0); line.rotation.z = 0.9; b.add(line); } } catch (e) { console.warn(e); }
+  shadowDirty = true;
+}
+function canalTick(dt) {
+  if (!canal.ripple) return;
+  canal.t += dt; canal.ripple.offset.set(canal.t * 0.012, canal.t * 0.006);
+  if (canal.lampM) { const k = THREE.MathUtils.clamp(1 - (dayLevel ?? 1) * 1.6, 0, 1); if (Math.abs(canal.lampM.emissiveIntensity - k * 2.2) > 0.01) { canal.lampM.emissiveIntensity = k * 2.2; if (canal.poolM) { canal.poolM.opacity = k * 0.55; canal.pools.visible = k > 0.02; } } }
+}
 // ------------------------------------------------------------ Værelse: IKEA PAX / FLISBERGET on the wall opposite the sofa bed, nearer the door
 // widths 50 (1 door) / 100 (2) / 150 (3) / 200 (4) cm, heights 201.2 / 236.4 cm, 60 cm deep with the doors; frame and door colours
 const VPAX = {
@@ -6870,13 +7038,29 @@ function fxAssign(force) {
   const lit = FX.filter((f) => LIGHTS[f.id] && LIGHTS[f.id].on);
   const sig = here + '|' + lit.map((f) => f.id).join(',') + '|' + Math.round(cam.x * 2) + ',' + Math.round(cam.z * 2);
   if (!force && sig === fxSig) return; fxSig = sig;
-  lit.sort((p, q) => ((p.room === here ? 0 : 6) + p.pos.distanceTo(cam)) - ((q.room === here ? 0 : 6) + q.pos.distanceTo(cam)));
-  LPOOL.forEach((L, i) => {
-    const f = lit[i];
-    if (!f) { L.intensity = 0; return; }
-    const Lt = LIGHTS[f.id], lv = Math.pow(Lt.bri, 1.6);
-    L.position.copy(f.pos); L.color.copy(lightRGB(Lt)); L.intensity = f.power * lv; L.distance = f.dist;
-  });
+  // 2026-11-25 (Gianluca: "lights blink"): slots used to jump straight to the nearest fixtures, so a light popped on/off every
+  // half metre you walked. Now a fixture keeps its slot while it stays among the nearest (with a 1.2 m stickiness), and a slot
+  // that changes fixture fades out, moves, and fades back in (fxFade, every frame).
+  const score = (f) => (f.room === here ? 0 : 6) + f.pos.distanceTo(cam) - (LPOOL.some((L) => L.userData.f === f) ? 1.2 : 0);
+  const want = lit.slice().sort((p, q) => score(p) - score(q)).slice(0, LPOOL.length);
+  const keep = new Set(LPOOL.map((L) => L.userData.want).filter((f) => want.includes(f)));
+  LPOOL.forEach((L) => { if (!want.includes(L.userData.want)) L.userData.want = null; });
+  for (const f of want) if (!keep.has(f)) { const L = LPOOL.find((q) => !q.userData.want); if (L) L.userData.want = f; }
+  if (force) LPOOL.forEach((L) => { const f = L.userData.want; if (f && L.userData.f === f) fxTarget(L, f); });
+}
+function fxTarget(L, f) { const Lt = LIGHTS[f.id]; L.color.copy(lightRGB(Lt)); L.distance = f.dist; L.userData.ti = f.power * Math.pow(Lt.bri, 1.6); }
+function fxFade(dt) {
+  const k = Math.min(1, dt * 6);
+  for (const L of LPOOL) {
+    const u = L.userData;
+    if (u.f !== u.want) {                                                    // fading out the old fixture
+      L.intensity += (0 - L.intensity) * k;
+      if (L.intensity < 0.01 || !u.f) { u.f = u.want; L.intensity = 0; if (u.f) { L.position.copy(u.f.pos); fxTarget(L, u.f); } else u.ti = 0; }
+    } else {
+      if (u.f && !(LIGHTS[u.f.id] && LIGHTS[u.f.id].on)) u.ti = 0;
+      L.intensity += ((u.ti || 0) - L.intensity) * k; if (Math.abs(L.intensity - (u.ti || 0)) < 1e-3) L.intensity = u.ti || 0;
+    }
+  }
 }
 function fxGlow(mat, L, rgb, lv, k = 3) { if (!mat) return; mat.emissive.copy(rgb); mat.emissiveIntensity = k * lv; }
 MATS.fxHall = new THREE.MeshStandardMaterial({ color: 0xf4f3ef, emissive: 0xffd6a8, emissiveIntensity: 0, roughness: 0.4 });
@@ -7698,7 +7882,7 @@ $('qPlan').addEventListener('click', () => setPlan(!PLAN_UI.open));
 addEventListener('keydown', (e) => { if (e.code === 'KeyO' && !e.repeat && e.target.tagName !== 'INPUT' && !e.metaKey && !e.ctrlKey && !e.altKey) setPlan(!PLAN_UI.open); else if (e.code === 'Escape' && PLAN_UI.open) setPlan(false); });
 bedMover.selects = [{ id: 'nstand', label: 'Nightstands', options: () => NIGHT.map((n) => ({ label: `${n.brand} ${n.name} · ${Math.round(n.W * 100)} × ${Math.round(n.D * 100)} × ${Math.round(n.H * 100)} cm · ${n.kr} kr` })), get: () => night.m, set: (i) => { night.m = i; night.col = 0; buildBed(); } }];
 bedMover.link = () => { const N = NIGHT[night.m]; return { href: N.url, text: `IKEA · ${N.name} nightstand · ${N.kr} kr ↗` }; };
-function furnish() { buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknik(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); buildHolm(); buildSkaenk(); buildCoffeeTable(); buildRug(); buildRoomFixtures(); buildRoomSwitches(); buildRoomFurniture(); try { buildBathroomFinish(); ambPatchScene(); } catch (e) { console.warn('bathroom finish', e); } autoLightTick(clockHour, dayLevel, true); try { updateNight(); } catch (_) { /* ok */ } layoutBoot(); }
+function furnish() { buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknik(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); try { buildCanalLife(); } catch (e) { console.warn('canal', e); } buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); buildHolm(); buildSkaenk(); buildCoffeeTable(); buildRug(); buildRoomFixtures(); buildRoomSwitches(); buildRoomFurniture(); try { buildBathroomFinish(); ambPatchScene(); } catch (e) { console.warn('bathroom finish', e); } autoLightTick(clockHour, dayLevel, true); try { updateNight(); } catch (_) { /* ok */ } layoutBoot(); }
 function prewarmShaders() {
   // compile every material variant now (incl. hidden things: ceiling, upper floors, closed panels), not the first time it comes into view
   // lights first exactly as perfTick leaves them (light counts are part of every shader), then the meshes
@@ -8051,6 +8235,10 @@ function stopPlacing() {
   syncModeUI(); showHint();
 }
 function placeFinish(p, dir) {
+  const S = safeSpot(p.clone());
+  if (!S) { showToast('You can’t stand there: pick a spot on the floor'); return; }
+  if (S.distanceTo(p) > 0.05) showToast('Moved you to the nearest spot you can stand');
+  p = S;
   stopPlacing();
   player.fy = p.y; player.pos.set(p.x, p.y + EYE, p.z);
   player.yaw = Math.atan2(-dir.x, -dir.z); player.pitch = -0.05; frame.camY = undefined;
@@ -8276,55 +8464,86 @@ addEventListener('keydown', (e) => { if (e.code === 'KeyZ' && (e.metaKey || e.ct
   upd(); addEventListener('resize', upd);
   const b = document.getElementById('qSite'); if (b) b.onclick = () => { try { window.parent.postMessage({ type: 'project:menu' }, location.origin); } catch (e) {} }; }
 
-// ---- photo-real view, in place (2026-11-25, Gianluca: the renders felt like a separate experience). Each room's Cycles still opens right
-// where you are: you glide to the spot it was taken from (same height, direction and lens), then the photo fades in over the 3D view.
-// Any move, drag, click or Esc fades back to the walkthrough. In walk mode the room card offers it when the room has one ("Photo-real
-// view", F); from above, the camera pins open it (flying down first). Day or night follows the clock until you pick one.
-const PHOTO = { on: false, sh: null, anim: null, dy: 0, time: null };
+// ---- photo-real renders, in place (2026-11-25). Optional: the quick bar's Renders (F) opens a picker with every Cycles still, the ones of
+// the room you're in first. Picking one glides the walkthrough camera to where it was taken (same spot, height, direction, lens), then the photo
+// fades in over the 3D view. In the photo: drag to pan and pinch / scroll to zoom (phones see only part of a 3:2 image), ‹ › for the next
+// viewpoint, Day / Night (N). Esc, ✕, a click or any move key fades back to the walkthrough where the photo was taken.
+const PHOTO = { on: false, sh: null, anim: null, dy: 0, time: null, z: 1, ox: 0, oy: 0 };
 function photoShots() { return PLAN.shots.filter((s) => s.dn); }
-function photoForRoom(rid, near) {
-  const c = photoShots().filter((s) => s.rid === rid); if (!c.length) return null;
-  if (!near) return c[0];
-  const [x, y] = toBl(near); return c.sort((a, b) => Math.hypot(a.p[0] - x, a.p[1] - y) - Math.hypot(b.p[0] - x, b.p[1] - y))[0];
-}
+const PHOTO_ROOMS = ['living', 'vaer', 'bed', 'hall', 'bath'];
+function photoNearest(list, x, y) { return list.slice().sort((a, b) => Math.hypot(a.p[0] - x, a.p[1] - y) - Math.hypot(b.p[0] - x, b.p[1] - y))[0]; }
 function photoHere() {
   if (PHOTO.on) { photoHide(); return; }
-  if (mode === 'walk') { const s = photoForRoom(currentRoom, player.pos); if (s) photoShow(s); else showToast('No photo of this spot yet'); return; }
-  const [x, y] = toBl(orbit.target), all = photoShots(); if (!all.length) return;
-  photoShow(all.sort((a, b) => Math.hypot(a.p[0] - x, a.p[1] - y) - Math.hypot(b.p[0] - x, b.p[1] - y))[0]);
+  const pop = $('rendersPop'); if (!pop.hidden) { pop.hidden = true; return; }
+  rendersPopOpen();
 }
+function rendersPopOpen() {
+  const pop = $('rendersPop'), list = $('rpList'), here = mode === 'walk' ? currentRoom : null, all = photoShots();
+  list.innerHTML = '';
+  const rooms = PHOTO_ROOMS.filter((r) => all.some((s) => s.rid === r)); if (here && rooms.includes(here)) { rooms.splice(rooms.indexOf(here), 1); rooms.unshift(here); }
+  for (const rid of rooms) {
+    const R = ROOM_BY_ID[rid], h = document.createElement('h4'); h.textContent = R ? `${R.da} · ${R.en}` : rid;
+    if (rid === here) { const em = document.createElement('em'); em.textContent = 'you are here'; h.appendChild(em); }
+    const grid = document.createElement('div'); grid.className = 'rp-grid';
+    for (const sh of all.filter((s) => s.rid === rid)) {
+      const b = document.createElement('button'); b.type = 'button'; b.title = sh.title;
+      b.innerHTML = `<img loading="lazy" alt=""><span></span>`; b.querySelector('img').src = MEDIA + sh.id + '_' + photoTime() + '_t.jpg'; b.querySelector('span').textContent = sh.title;
+      b.addEventListener('click', (e) => { e.stopPropagation(); pop.hidden = true; photoShow(sh); });
+      grid.appendChild(b);
+    }
+    list.append(h, grid);
+  }
+  pop.hidden = false; const q = $('qRenders').getBoundingClientRect(); if (innerWidth > 720 && !coarse) pop.style.top = `${Math.max(8, q.top - 4)}px`;
+}
+addEventListener('pointerdown', (e) => { const pop = $('rendersPop'); if (!pop.hidden && !pop.contains(e.target) && e.target !== $('qRenders') && !$('qRenders').contains(e.target)) pop.hidden = true; });
 function photoTime() { return PHOTO.time || (typeof dayLevel === 'number' && dayLevel < 0.35 ? 'night' : 'day'); }
 function photoView(sh) {                                   // where the walkthrough camera must be to see what the photo shows
   const a = innerWidth / Math.max(1, innerHeight);
-  const vfov = (a >= 1.5 ? 2 * Math.atan(18 / sh.lens / a) : 2 * Math.atan(12 / sh.lens)) * 180 / Math.PI;   // object-fit: cover crops the 3:2 photo
+  const vfov = (a >= 1.5 ? 2 * Math.atan(18 / sh.lens / a) : 2 * Math.atan(12 / sh.lens)) * 180 / Math.PI;   // the photo covers the screen
   const d = b2t(sh.t[0], sh.t[1]).sub(b2t(sh.p[0], sh.p[1]));
   return { pos: b2t(sh.p[0], sh.p[1], EYE), yaw: Math.atan2(-d.x, -d.z), pitch: Math.atan(sh.sy * 36 / sh.lens), fov: vfov, dy: sh.z - EYE };
+}
+function photoLayout() {                                   // cover the screen, then the user's zoom and pan (clamped so no edge shows)
+  const img = $('photoImg'), W = img.naturalWidth, H = img.naturalHeight; if (!W) return;
+  const vw = innerWidth, vh = innerHeight, k = Math.max(vw / W, vh / H) * PHOTO.z, w = W * k, h = H * k;
+  const mx = Math.max(0, (w - vw) / 2), my = Math.max(0, (h - vh) / 2);
+  PHOTO.ox = THREE.MathUtils.clamp(PHOTO.ox, -mx, mx); PHOTO.oy = THREE.MathUtils.clamp(PHOTO.oy, -my, my);
+  img.style.left = '0'; img.style.top = '0'; img.style.width = w + 'px'; img.style.height = h + 'px';
+  img.style.transform = `translate(${(vw - w) / 2 + PHOTO.ox}px, ${(vh - h) / 2 + PHOTO.oy}px)`;
 }
 function photoSetImg(sh) {
   const img = $('photoImg'), src = MEDIA + sh.id + '_' + photoTime() + '.jpg';
   for (const b of $('photoBar').querySelectorAll('.seg button')) b.setAttribute('aria-pressed', String(b.dataset.t === photoTime()));
   $('photoTitle').textContent = sh.title;
   if (img.getAttribute('src') === src) return Promise.resolve();
-  return new Promise((res) => { const pre = new Image(); pre.onload = pre.onerror = () => { img.src = src; res(); }; pre.src = src; });
+  return new Promise((res) => { const pre = new Image(); pre.onload = pre.onerror = () => { img.src = src; img.onload = photoLayout; photoLayout(); res(); }; pre.src = src; });
 }
+function photoPose(V) { player.fy = 0; player.pos.copy(V.pos); player.yaw = V.yaw; player.pitch = V.pitch; PHOTO.dy = V.dy; camera.fov = V.fov; camera.updateProjectionMatrix(); frame.camY = undefined; }
 function photoShow(sh) {
   if (document.pointerLockElement) document.exitPointerLock();
   if (focus) exitFocus();
-  PHOTO.sh = sh; const V = photoView(sh), ready = photoSetImg(sh);
-  const fin = () => { PHOTO.on = true; document.body.classList.add('photo'); ready.then(() => { if (PHOTO.sh === sh && PHOTO.on) $('photo').classList.add('show'); }); };
+  $('rendersPop').hidden = true;
+  const V = photoView(sh), ready = photoSetImg(sh);
+  if (PHOTO.on) {                                          // already looking at a photo: swap it (the 3D camera moves underneath, out of sight)
+    PHOTO.sh = sh; PHOTO.z = 1; PHOTO.ox = PHOTO.oy = 0; const img = $('photoImg'); img.style.opacity = '0';
+    ready.then(() => { photoPose(V); photoLayout(); img.style.opacity = '1'; }); return;
+  }
+  PHOTO.sh = sh; PHOTO.z = 1; PHOTO.ox = PHOTO.oy = 0;
+  const fin = () => { PHOTO.on = true; document.body.classList.add('photo'); ready.then(() => { if (PHOTO.sh === sh && PHOTO.on) { photoLayout(); $('photo').classList.add('show'); } }); };
   if (mode !== 'walk') {                                   // from above: fly down to the spot first (like "pick where to stand")
     player.fy = 0; player.pos.copy(V.pos); player.yaw = V.yaw; player.pitch = V.pitch; frame.camY = undefined;
     const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(V.pitch, V.yaw, 0, camera.rotation.order));
     orbit.enabled = false;
-    camTo(V.pos.clone().setY(sh.z), q, 1300, { fov: V.fov, done: () => { setMode('walk'); PHOTO.dy = V.dy; camera.fov = V.fov; camera.updateProjectionMatrix(); fin(); } });
+    camTo(V.pos.clone().setY(sh.z), q, 1300, { fov: V.fov, done: () => { setMode('walk'); photoPose(V); fin(); } });
     return;
   }
   let dyaw = V.yaw - player.yaw; dyaw = Math.atan2(Math.sin(dyaw), Math.cos(dyaw));
   const dist = player.pos.distanceTo(V.pos);
   PHOTO.anim = { t0: performance.now(), dur: THREE.MathUtils.clamp(500 + dist * 260, 600, 1600), p0: player.pos.clone(), p1: V.pos, y0: player.yaw, y1: player.yaw + dyaw,
     pi0: player.pitch, pi1: V.pitch, f0: camera.fov, f1: V.fov, d0: PHOTO.dy, d1: V.dy, done: fin };
-  player.fy = 0; frame.camY = undefined;
+  player.fy = 0; frame.camY = undefined; autoTarget = null;
 }
+function photoStep(d) { const L = photoShots(), i = Math.max(0, L.indexOf(PHOTO.sh)); photoShow(L[(i + d + L.length) % L.length]); }
 function photoHide() {
   if (!PHOTO.on && !PHOTO.anim) return;
   PHOTO.on = false; PHOTO.anim = null; $('photo').classList.remove('show'); document.body.classList.remove('photo');
@@ -8342,26 +8561,36 @@ function photoTick() {
     PHOTO.dy = B.d0 * (1 - e); camera.fov = B.f0 + (viewFov() - B.f0) * e; camera.updateProjectionMatrix();
     if (k >= 1) PHOTO.back = null;
   }
-  // the room card offers the photo of the room you're in; from above the camera pins show where photos were taken
-  const s = mode === 'walk' && !PHOTO.on && !PHOTO.anim ? photoForRoom(currentRoom) : null, chip = $('roomPhoto');
-  if (chip.hidden === !!s) chip.hidden = !s;
-  const pinsOn = mode === 'over' || $('tPhotos').getAttribute('aria-pressed') === 'true';
-  if (pinsGroup.visible !== pinsOn) pinsGroup.visible = pinsOn;
 }
-$('roomPhoto').addEventListener('click', (e) => { e.stopPropagation(); photoHere(); });
 $('photoClose').addEventListener('click', () => photoHide());
+$('photoPrev').addEventListener('click', (e) => { e.stopPropagation(); photoStep(-1); });
+$('photoNext').addEventListener('click', (e) => { e.stopPropagation(); photoStep(1); });
 for (const b of $('photoBar').querySelectorAll('.seg button')) b.addEventListener('click', (e) => {
   e.stopPropagation(); PHOTO.time = b.dataset.t; const img = $('photoImg'); img.style.opacity = '0';
   setTimeout(() => photoSetImg(PHOTO.sh).then(() => { img.style.opacity = '1'; }), 200);
 });
-$('photo').addEventListener('pointerdown', (e) => { if (!e.target.closest('#photoBar')) photoHide(); });
-$('photo').addEventListener('wheel', () => photoHide(), { passive: true });
+{ // pan (drag) and zoom (pinch, scroll); a plain click / tap goes back to the 3D view
+  const pan = $('photoPan'), pts = new Map(); let moved = false, t0 = 0, pinch0 = null;
+  pan.addEventListener('pointerdown', (e) => { pts.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY }); if (pts.size === 1) { moved = false; t0 = performance.now(); }
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = { d: Math.hypot(a.x - b.x, a.y - b.y), z: PHOTO.z }; } try { pan.setPointerCapture(e.pointerId); } catch (_) { /* optional */ } });
+  pan.addEventListener('pointermove', (e) => {
+    const p = pts.get(e.pointerId); if (!p) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+    if (pts.size === 2 && pinch0) { const [a, b] = [...pts.values()]; PHOTO.z = THREE.MathUtils.clamp(pinch0.z * Math.hypot(a.x - b.x, a.y - b.y) / Math.max(1, pinch0.d), 1, 3); moved = true; photoLayout(); return; }
+    if (dx || dy) { PHOTO.ox += dx; PHOTO.oy += dy; if (Math.hypot(e.clientX - p.sx, e.clientY - p.sy) > 6) moved = true; photoLayout(); }
+  });
+  const up = (e) => { if (!pts.has(e.pointerId)) return; pts.delete(e.pointerId); if (pts.size < 2) pinch0 = null;
+    if (!pts.size && !moved && performance.now() - t0 < 350) photoHide(); };
+  pan.addEventListener('pointerup', up); pan.addEventListener('pointercancel', (e) => { pts.delete(e.pointerId); pinch0 = null; });
+  pan.addEventListener('wheel', (e) => { e.preventDefault(); PHOTO.z = THREE.MathUtils.clamp(PHOTO.z * Math.exp(-e.deltaY * 0.0015), 1, 3); photoLayout(); }, { passive: false });
+}
 addEventListener('keydown', (e) => {
   if (!PHOTO.on && !PHOTO.anim) return;
   if (e.code === 'KeyN' && PHOTO.on) { PHOTO.time = photoTime() === 'day' ? 'night' : 'day'; photoSetImg(PHOTO.sh); return; }
+  if (PHOTO.on && (e.code === 'BracketRight' || e.code === 'Period')) { photoStep(1); return; }
+  if (PHOTO.on && (e.code === 'BracketLeft' || e.code === 'Comma')) { photoStep(-1); return; }
   if (['Escape', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyV', 'KeyC'].includes(e.code)) photoHide();
 });
-addEventListener('resize', () => { if (PHOTO.on && PHOTO.sh) { const V = photoView(PHOTO.sh); camera.fov = V.fov; camera.updateProjectionMatrix(); } });
+addEventListener('resize', () => { if (PHOTO.on && PHOTO.sh) { const V = photoView(PHOTO.sh); camera.fov = V.fov; camera.updateProjectionMatrix(); photoLayout(); } });
 
 // ---- Sizes from above (2026-11-25, Gianluca's screenshot: a wall of overlapping labels). The labels keep a fixed size on screen, so from
 // above every dimension in the flat piled up. From above now only the ones around what you're looking at show (like the (i) buttons),
@@ -8385,6 +8614,28 @@ function dimsDeclutter() {
     const bb = new THREE.Box3().setFromObject(o), c = bb.getCenter(v);
     if (Math.hypot(c.x - orbit.target.x, c.z - orbit.target.z) < R + 0.4 && kept.some((p) => p.distanceTo(c) < 1.6)) show(o); else hide(o);
   }
+}
+
+// ---- mouse-look toggle (X): the old pointer-lock look, for those who prefer it; off by default (2026-11-25)
+addEventListener('keydown', (e) => {
+  if (e.code !== 'KeyX' || e.repeat || e.metaKey || e.ctrlKey || e.altKey || (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName))) return;
+  MOUSELOOK.on = !MOUSELOOK.on; try { localStorage.setItem('aptMouseLook', MOUSELOOK.on ? '1' : '0'); } catch (_) { /* ignore */ }
+  if (!MOUSELOOK.on && document.pointerLockElement) document.exitPointerLock();
+  showToast(MOUSELOOK.on ? 'Mouse-look on: click the view to grab the mouse, Esc to let go' : 'Mouse-look off: drag to look, click the floor to walk');
+  showHint();
+});
+// a soft ring on the floor under the mouse while walking shows where a click takes you (amber where you can stand)
+{ const ring = new THREE.Mesh(new THREE.RingGeometry(0.13, 0.17, 32), new THREE.MeshBasicMaterial({ color: 0xcf9152, transparent: true, opacity: 0.55, depthTest: false, toneMapped: false }));
+  ring.rotation.x = -Math.PI / 2; ring.visible = false; ring.renderOrder = 33; scene.add(ring);
+  let t = 0;
+  canvas.addEventListener('pointermove', (e) => {
+    if (e.pointerType !== 'mouse' || mode !== 'walk' || locked || measuring || e.buttons || (PHOTO && PHOTO.on) || (++t % 2)) { if (e.buttons || mode !== 'walk') ring.visible = false; return; }
+    const h = floorHitAt(e); if (!h || h.distance > 12) { ring.visible = false; return; }
+    ray.far = h.distance - 0.05; const occ = ray.intersectObjects(collidables, false).find((x) => x.object.material !== MATS.glass); ray.far = Infinity;
+    if (occ) { ring.visible = false; return; }                                            // floor behind a wall or under furniture
+    ring.position.set(h.point.x, h.point.y + 0.015, h.point.z); ring.visible = true;
+  });
+  canvas.addEventListener('pointerleave', () => { ring.visible = false; });
 }
 // ------------------------------------------------------------ clouds
 (function clouds() {
@@ -8463,13 +8714,14 @@ function frame() {
     if (keys.has('KeyA') || keys.has('ArrowLeft')) s -= 1;
     if (keys.has('KeyD') || keys.has('ArrowRight')) s += 1;
     f -= joy.y; s += joy.x;
-    if (f || s) {
-      const speed = (crawl.on ? 0.55 : running !== (keys.has('ShiftLeft') || keys.has('ShiftRight')) ? 3.2 : 1.5) * dt;
-      fwd.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
-      right.set(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
-      step.set(0, 0, 0).addScaledVector(fwd, f).addScaledVector(right, s);
-      if (step.lengthSq() > 1) step.normalize();
-      tryMove(step.multiplyScalar(speed));
+    // 2026-11-25: walking eases in and out (~0.15 s) instead of starting and stopping dead
+    { const speed = crawl.on ? 0.55 : running !== (keys.has('ShiftLeft') || keys.has('ShiftRight')) ? 3.2 : 1.5;
+      fwd.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw)); right.set(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
+      step.set(0, 0, 0).addScaledVector(fwd, f).addScaledVector(right, s); if (step.lengthSq() > 1) step.normalize(); step.multiplyScalar(speed);
+      frame.vel = frame.vel || new THREE.Vector3(); frame.vel.lerp(step, 1 - Math.exp(-dt * (f || s ? 14 : 18)));
+      if (frame.vel.lengthSq() < 1e-4 && !(f || s)) frame.vel.set(0, 0, 0); }
+    if (frame.vel.lengthSq() > 0) {
+      tryMove(frame.vel.clone().multiplyScalar(dt));
       autoTarget = null; if (hintArrow.on) stopArrow();
     } else { if (autoTarget && hintArrow.on) stopArrow(); stepAuto(dt); }
     if (frame.camY === undefined || Math.abs(frame.camY - player.pos.y) > 0.8) frame.camY = player.pos.y;
@@ -8488,7 +8740,7 @@ function frame() {
   placeMover();
   hudUpdate();
   updateOcclusion();
-  updateDoors(dt); if (frame.n % 3 === 0) roomDarkTick(); if (frame.n % 10 === 5) fxAssign(); updateArrow(); updateTV(performance.now());
+  updateDoors(dt); if (frame.n % 3 === 0) roomDarkTick(); if (frame.n % 10 === 5) fxAssign(); fxFade(dt); updateArrow(); updateTV(performance.now());
   if (window.__clouds) window.__clouds.rotation.y += dt * 0.004;
   if (stars.visible) { stars.material.uniforms.uT.value += dt; stars.material.uniforms.uPR.value = renderer.getPixelRatio(); }
   frame.n = (frame.n || 0) + 1;
@@ -8502,7 +8754,7 @@ function frame() {
   frame.sig = sig; if (busy) frame.busyAt = now;
   const idle = now - (frame.busyAt ?? 0) > 900;
   if (shadowDirty || frame.n % 600 === 0) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
-  xrayTick(); bathMirrorTick(); photoTick(dt); dimsDeclutter();
+  xrayTick(); bathMirrorTick(); photoTick(dt); dimsDeclutter(); canalTick(dt);
   if (!idle || frame.n % 6 === 0) { if (composer) composer.render(); else renderer.render(scene, camera); busyAfterRender(); }
   requestAnimationFrame(frame);
 }
@@ -8794,7 +9046,7 @@ $('qLights').addEventListener('click', () => toggleAllLights());
 addEventListener('resize', () => { hud.vsig = ''; });
 window.__hudDbg = () => doors.filter((d) => !isFurn(d)).map((d) => { const P = ringPoint(d, new THREE.Vector3()); const dist = P.distanceTo(camera.position); if (dist > REACH) return null; const sc = {}; const on = toScreen(P, sc); hud.occ.delete(d); const vis = hudVisible(d, camera.position, P, d.parts); return [d.label, dist.toFixed(2), on, vis, Math.round(sc.x), Math.round(sc.y), started, measuring, mode, !!focus]; }).filter(Boolean);
 window.__bvc = () => buildVaerCloset(); window.__bs = () => { buildSofa(); livingDims(); }; window.__bd = () => { buildDining(); };
-window.__apt = { MATS, setCrawl, crawl, plant, dchair, DCHAIRS, deskMaxW, deskModel, deskFree, buildDesk, buildVaerCloset, skaenk, buildSkaenk, skaenkMover, mpair, mpMoverUp, mpMoverLo, mpTry, ctab, buildCoffeeTable, ctabMover, rug, buildRug, rugMover, RUGS, shopLines, shopText, layoutSnapshot, layoutApply, layoutEncode, layoutDecode, placementCheck, computeDaylight, setPlan, roomsState, night, buildRoomFurniture, ROOMF, NIGHT, getDaylight: () => DAYLIGHT, curtainProbe, fxAssign, FX, LPOOL, setAutoLights, autoLightTick, autoLightsCfg, roomLightMovers, placeBedPendants, holm, buildHolm, holmMover, desk, buildDesk, deskMover, swapDeskCloset, alc, buildAlcove, alcoveMover, cons, buildConsole, consoleMover, art, buildArt, artMover, curtains, books, booksMover, buildBooks, plant, plantMover, buildPlant, setAllLights, toggleAllLights, hueLights, getHold: () => lightHold, THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, petra, petraMover, buildPetra, hud, focusFurniture, exitFocus, setMoveLayer, getFocus: () => focus, getTween: () => camTween, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
+window.__apt = { MATS, safeSpot, spotFree, setCrawl, crawl, plant, dchair, DCHAIRS, deskMaxW, deskModel, deskFree, buildDesk, buildVaerCloset, skaenk, buildSkaenk, skaenkMover, mpair, mpMoverUp, mpMoverLo, mpTry, ctab, buildCoffeeTable, ctabMover, rug, buildRug, rugMover, RUGS, shopLines, shopText, layoutSnapshot, layoutApply, layoutEncode, layoutDecode, placementCheck, computeDaylight, setPlan, roomsState, night, buildRoomFurniture, ROOMF, NIGHT, getDaylight: () => DAYLIGHT, curtainProbe, fxAssign, FX, LPOOL, setAutoLights, autoLightTick, autoLightsCfg, roomLightMovers, placeBedPendants, holm, buildHolm, holmMover, desk, buildDesk, deskMover, swapDeskCloset, alc, buildAlcove, alcoveMover, cons, buildConsole, consoleMover, art, buildArt, artMover, curtains, books, booksMover, buildBooks, plant, plantMover, buildPlant, setAllLights, toggleAllLights, hueLights, getHold: () => lightHold, THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, petra, petraMover, buildPetra, hud, focusFurniture, exitFocus, setMoveLayer, getFocus: () => focus, getTween: () => camTween, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
 </script>
 
 </body></html>

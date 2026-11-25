@@ -236,16 +236,15 @@ function swanChair(ch, C, add) {
     const m = add(new THREE.CylinderGeometry(rt, rb, v.length(), metal ? 12 : 14), legs, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, ch);
     m.quaternion.setFromUnitVectors(UP, v.normalize()); return m; };
   const r0 = metal ? 0.011 : 0.024, r1 = metal ? 0.011 : 0.017, under = SH - st, fx = sw / 2 - 0.085, rx = sw / 2 - 0.1;
-  // as in ILVA's photos (2026-11-24 fix, Gianluca: legs looked "super tilted"): front legs almost upright; each rear leg rakes back a little to
-  // the floor, then rises behind the shell only up to its lower third, where it holds it (not all the way to the top)
-  const zr = -d / 2 + 0.1;                                                                                                          // rear leg's knee, under the seat
+  // 2026-11-25 (Gianluca: legs "a bit unnatural"): four plain tapered legs under the seat, each splayed a little outwards and the
+  // rear pair raked back a touch; nothing rising behind the shell (the rods sticking up behind read as odd)
+  const zf = sz + sd / 2 - 0.1, zr = -d / 2 + 0.11;
   for (const sx of [1, -1]) {
-    leg(sx * (fx + 0.008), 0, sz + sd / 2 - 0.085, sx * fx, under, sz + sd / 2 - 0.1, r0 * 0.95, r1);                          // front legs, nearly upright
-    leg(sx * (rx + 0.008), 0, -d / 2 + 0.04, sx * rx, under, zr, r0, r1);                                                     // rear legs, raked back slightly
-    leg(sx * rx, under - 0.01, zr, sx * rx, SH + 0.17, -d / 2 + 0.005, r0 * 0.9, r0 * 0.85);                                  // …and up behind the shell
-    if (!metal) add(new THREE.BoxGeometry(0.022, 0.05, sd - 0.12), legs, sx * (fx - 0.01), under - 0.03, sz - 0.02, ch);       // side rails under the seat
+    leg(sx * (fx + 0.03), 0, zf + 0.025, sx * fx, under, zf, r0, r1 * 0.85);                                              // front
+    leg(sx * (rx + 0.035), 0, zr - 0.06, sx * rx, under, zr, r0, r1 * 0.85);                                               // rear, raked back
+    if (!metal) add(new THREE.BoxGeometry(0.022, 0.05, zf - zr), legs, sx * (fx - 0.01), under - 0.03, (zf + zr) / 2, ch);   // side rails
   }
-  if (!metal) for (const z of [sz + sd / 2 - 0.1, -d / 2 + 0.1]) add(new THREE.BoxGeometry(2 * fx - 0.02, 0.045, 0.022), legs, 0, under - 0.03, z, ch);
+  if (!metal) for (const z of [zf, zr]) add(new THREE.BoxGeometry(2 * fx - 0.02, 0.045, 0.022), legs, 0, under - 0.03, z, ch);
   else add(new THREE.BoxGeometry(sw - 0.16, 0.012, sd - 0.16), legs, 0, under - 0.008, sz, ch);                                 // steel seat plate
 }
 function stadiumShape(L, D) {

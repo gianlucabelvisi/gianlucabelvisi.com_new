@@ -121,14 +121,14 @@ function buildPetra(tryPos, tryAngle) {
     for (const sx of [-1, 1]) {
       const arm = add(softBox(0.15, 0.27, 0.6, 0.07, { top: 0.03, side: 0.02 }), fab, sx * (W2 - 0.075), LG + 0.33, 0.02); arm.rotation.z = sx * 0.07;   // rolled arms
       const wing = add(softBox(0.12, 0.3, 0.22, 0.055, { side: 0.02 }), fab, sx * (W2 - 0.1), 0.68, -D2 + 0.2); wing.rotation.set(-0.08, sx * 0.25, sx * 0.08);
-      for (const sz of [-1, 1]) { const leg = add(new THREE.CylinderGeometry(0.02, 0.012, LG + 0.02, 12), oak, sx * (W2 - 0.1), LG / 2, sz * (D2 - 0.1)); leg.rotation.x = sz * 0.16; leg.rotation.z = -sx * 0.12; }
+      for (const sz of [-1, 1]) { const leg = add(new THREE.CylinderGeometry(0.02, 0.012, LG + 0.02, 12), oak, sx * (W2 - 0.1), LG / 2, sz * (D2 - 0.1)); leg.rotation.x = -sz * 0.16; leg.rotation.z = sx * 0.12; }   // splayed outwards at the floor (2026-11-25: they converged — "unnatural")
     }
     const btn = new THREE.MeshPhysicalMaterial({ color: new THREE.Color(NILO.c).multiplyScalar(0.7), roughness: 0.9 });
     for (const bx of [-0.09, 0.09]) add(new THREE.SphereGeometry(0.013, 8, 6), btn, bx, 0.7, -D2 + 0.19);
     // footstool, 30 cm in front of the seat
     const fz = D2 + 0.3 + 0.25, FL = 0.16;
     add(softBox(0.6, 0.24, 0.5, 0.08, { top: 0.03 }), fab, 0, FL + 0.12, fz);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const leg = add(new THREE.CylinderGeometry(0.018, 0.011, FL + 0.01, 10), oak, sx * 0.24, FL / 2, fz + sz * 0.19); leg.rotation.x = sz * 0.14; leg.rotation.z = -sx * 0.14; }
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const leg = add(new THREE.CylinderGeometry(0.018, 0.011, FL + 0.01, 10), oak, sx * 0.24, FL / 2, fz + sz * 0.19); leg.rotation.x = -sz * 0.14; leg.rotation.z = sx * 0.14; }
   } else if (petra.model === 1) {
     // House Nordic Gudrun: a plump wingback in curly light-brown teddy fabric, 84 × 86 × 87 cm, short black splayed legs
     const G = GUDRUN, gf = new THREE.MeshPhysicalMaterial({ color: G.c, map: weaveTex('boucle'), bumpMap: weaveTex('boucle'), bumpScale: 0.035, roughness: 0.98, sheen: 0.6, sheenRoughness: 0.8, sheenColor: new THREE.Color(G.c).lerp(new THREE.Color(0xffffff), 0.2), envMapIntensity: 0.2 });

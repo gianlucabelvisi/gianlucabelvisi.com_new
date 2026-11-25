@@ -34,6 +34,33 @@ function blocked(from, step) {
   }
   return false;
 }
+// ---- where you may stand (2026-11-25, Gianluca: you could materialise inside a wall or a wardrobe). A spot is free when you're inside a room
+// of the flat (or out on the balcony / stairwell / street levels), nothing solid is under the ceiling right there (looking down from 2.55 m,
+// the first thing hit must be the floor: no wardrobe, bed or table) and nothing is within your radius at knee, hip and head height.
+// safeSpot() returns the spot itself if free, else the nearest free one within 1.5 m (same room first), else null.
+const _sr = new THREE.Raycaster(), _sv = new THREE.Vector3(), _sd = new THREE.Vector3(0, -1, 0);
+function spotFree(P) {
+  const fy = P.y, list = fy < -0.6 ? outdoorBlockers(P) : collidables; _sr.firstHitOnly = true;
+  _sr.set(_sv.set(P.x, fy + 2.55, P.z), _sd); _sr.far = 2.5;
+  const down = _sr.intersectObjects(list, false)[0]; if (down && down.point.y > fy + 0.12) return false;
+  _sr.far = RADIUS + 0.04;
+  for (const h of [0.3, 0.95, 1.55]) for (let k = 0; k < 8; k++) {
+    const a = k * Math.PI / 4; _sr.set(_sv.set(P.x, fy + h, P.z), new THREE.Vector3(Math.cos(a), 0, Math.sin(a)));
+    if (_sr.intersectObjects(list, false).length) return false;
+  }
+  return true;
+}
+function roomAt(bx, by) { for (const r of PLAN.rooms) if (inPoly(bx, by, r.poly)) return r.id; return null; }
+function safeSpot(P) {
+  const indoor = Math.abs(P.y) < 0.3, [bx, by] = toBl(P), home = roomAt(bx, by);
+  const ok = (Q, sameRoom) => { const [x, y] = toBl(Q), r = roomAt(x, y); if (indoor && !r) return false; if (sameRoom && home && r !== home) return false;
+    const g = groundAt(Q.x, Q.z, P.y); if (g === null) return false; Q.y = g; return spotFree(Q); };
+  if (ok(P.clone(), false)) return P.clone();
+  for (const same of [true, false]) for (let r = 0.12; r <= 1.5; r += 0.12) for (let k = 0; k < 16; k++) {
+    const a = k * Math.PI / 8 + r, Q = new THREE.Vector3(P.x + Math.cos(a) * r, P.y, P.z + Math.sin(a) * r); if (ok(Q, same)) return Q;
+  }
+  return null;
+}
 // below our floor (stairwell, lobby, street) the buildings and street furniture outside also block you
 let _outdoor = null;
 function outdoorBlockers(at) {
@@ -78,6 +105,9 @@ function tryMove(step) {
 
 // look: pointer lock on desktop, drag fallback, touch joystick + drag
 let locked = false;
+// 2026-11-25: walking no longer grabs the mouse on the first click (you had to press Esc to reach any button). Drag to look around, click
+// the floor to walk there. Mouse-look (pointer lock, the old way) is still there with the X key, remembered.
+const MOUSELOOK = { on: false }; try { MOUSELOOK.on = localStorage.getItem('aptMouseLook') === '1'; } catch (_) { /* ignore */ }
 const canvas = renderer.domElement;
 document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === canvas;
@@ -85,7 +115,7 @@ document.addEventListener('pointerlockchange', () => {
   showHint();
 });
 canvas.addEventListener('click', () => {
-  if (mode === 'walk' && started && !coarse && !locked && !measuring) {
+  if (mode === 'walk' && started && !coarse && !locked && !measuring && MOUSELOOK.on) {
     try { const p = canvas.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (_) { /* optional */ }
   }
 });
@@ -225,9 +255,11 @@ canvas.addEventListener('pointerup', (e) => {
     ray.far = Infinity;
     ray.setFromCamera(ndc, camera);
     const hit = ray.intersectObjects(pickables, false)[0];
-    if (hit) {
+    const S = hit && safeSpot(hit.point.clone());
+    if (hit && !S) showToast('You can’t stand there');
+    if (S) {
       const f = new THREE.Vector3(); camera.getWorldDirection(f);
-      player.pos.set(hit.point.x, hit.point.y + EYE, hit.point.z); player.fy = hit.point.y;
+      player.pos.set(S.x, S.y + EYE, S.z); player.fy = S.y;
       player.yaw = Math.atan2(-f.x, -f.z); player.pitch = -0.05;
       setMode('walk');
     }
@@ -259,13 +291,18 @@ joyBase.addEventListener('pointercancel', endJoy);
 let autoTarget = null;
 const tapRing = new THREE.Mesh(new THREE.RingGeometry(0.16, 0.22, 32), new THREE.MeshBasicMaterial({ color: 0xcf9152, transparent: true, opacity: 0.9, depthTest: false, toneMapped: false }));
 tapRing.rotation.x = -Math.PI / 2; tapRing.visible = false; tapRing.renderOrder = 33; scene.add(tapRing);
+const clickDown = { x: 0, y: 0, t: 0 };
+canvas.addEventListener('pointerdown', (e) => { clickDown.x = e.clientX; clickDown.y = e.clientY; clickDown.t = performance.now(); }, true);
 canvas.addEventListener('click', (e) => {
-  if (!coarse || !started || mode !== 'walk' || measuring) return;
+  if (!started || mode !== 'walk' || measuring || locked || (typeof PHOTO !== 'undefined' && PHOTO.on)) return;
+  if (Math.hypot(e.clientX - clickDown.x, e.clientY - clickDown.y) > 6 || performance.now() - clickDown.t > 450) return;   // that was a drag to look
   const ndc = new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.far = 25; ray.setFromCamera(ndc, camera);
   const all = ray.intersectObject(modelRoot, true).filter((h) => h.object.material !== MATS.glass);
   const hit = all[0];
   if (!hit || !pickables.includes(hit.object)) return;
+  const S = safeSpot(new THREE.Vector3(hit.point.x, player.fy, hit.point.z)); if (!S) { showToast('You can’t stand there'); return; }
+  hit.point.x = S.x; hit.point.z = S.z;
   autoTarget = new THREE.Vector3(hit.point.x, EYE, hit.point.z);
   tapRing.position.set(hit.point.x, hit.point.y + 0.02, hit.point.z); tapRing.visible = true;
 });
@@ -323,7 +360,7 @@ function showHint() {
   if (measuring) { h.textContent = locked ? 'Aim the dot and click to drop a point · Esc to use the pointer' : 'Click two points to measure · Ctrl/Cmd+Z undoes the last one'; h.hidden = false; }
   else if (place.on) { h.hidden = true; }
   else if (mode === 'over') { h.textContent = 'Drag to turn · scroll to zoom · Walk (V) to step inside, or double-click a floor'; h.hidden = false; }
-  else if (!locked) { h.textContent = 'Click the view to look around · W A S D to move · R to run'; h.hidden = false; }
+  else if (!locked) { h.textContent = 'Drag to look around · click the floor to walk there · W A S D to move · X mouse-look'; h.hidden = false; }
   else h.hidden = true;
 }
 
@@ -431,9 +468,9 @@ map.addEventListener('click', (e) => {
     for (let k = 1; k <= 20 && !PLAN.rooms.some((rm) => inPoly(px, py, rm.poly)); k++) { px = x + (best[0] - x) * k / 20; py = y + (best[1] - y) * k / 20; }
     px = x + (px - x) * 1.15; py = y + (py - y) * 1.15;          // a little further in, away from the wall
   }
-  const x2 = px, y2 = py;
+  const S = safeSpot(b2t(px, py, 0)); if (!S) { showToast('You can’t stand there'); return; }
   autoTarget = null;
-  player.pos.set(x2, EYE, -y2); player.fy = 0;
+  player.pos.set(S.x, EYE, S.z); player.fy = 0;
   setMode('walk');
 });
 map.style.cursor = 'crosshair';

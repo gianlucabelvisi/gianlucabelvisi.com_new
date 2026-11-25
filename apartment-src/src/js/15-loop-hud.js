@@ -75,13 +75,14 @@ function frame() {
     if (keys.has('KeyA') || keys.has('ArrowLeft')) s -= 1;
     if (keys.has('KeyD') || keys.has('ArrowRight')) s += 1;
     f -= joy.y; s += joy.x;
-    if (f || s) {
-      const speed = (crawl.on ? 0.55 : running !== (keys.has('ShiftLeft') || keys.has('ShiftRight')) ? 3.2 : 1.5) * dt;
-      fwd.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
-      right.set(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
-      step.set(0, 0, 0).addScaledVector(fwd, f).addScaledVector(right, s);
-      if (step.lengthSq() > 1) step.normalize();
-      tryMove(step.multiplyScalar(speed));
+    // 2026-11-25: walking eases in and out (~0.15 s) instead of starting and stopping dead
+    { const speed = crawl.on ? 0.55 : running !== (keys.has('ShiftLeft') || keys.has('ShiftRight')) ? 3.2 : 1.5;
+      fwd.set(-Math.sin(player.yaw), 0, -Math.cos(player.yaw)); right.set(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
+      step.set(0, 0, 0).addScaledVector(fwd, f).addScaledVector(right, s); if (step.lengthSq() > 1) step.normalize(); step.multiplyScalar(speed);
+      frame.vel = frame.vel || new THREE.Vector3(); frame.vel.lerp(step, 1 - Math.exp(-dt * (f || s ? 14 : 18)));
+      if (frame.vel.lengthSq() < 1e-4 && !(f || s)) frame.vel.set(0, 0, 0); }
+    if (frame.vel.lengthSq() > 0) {
+      tryMove(frame.vel.clone().multiplyScalar(dt));
       autoTarget = null; if (hintArrow.on) stopArrow();
     } else { if (autoTarget && hintArrow.on) stopArrow(); stepAuto(dt); }
     if (frame.camY === undefined || Math.abs(frame.camY - player.pos.y) > 0.8) frame.camY = player.pos.y;
@@ -100,7 +101,7 @@ function frame() {
   placeMover();
   hudUpdate();
   updateOcclusion();
-  updateDoors(dt); if (frame.n % 3 === 0) roomDarkTick(); if (frame.n % 10 === 5) fxAssign(); updateArrow(); updateTV(performance.now());
+  updateDoors(dt); if (frame.n % 3 === 0) roomDarkTick(); if (frame.n % 10 === 5) fxAssign(); fxFade(dt); updateArrow(); updateTV(performance.now());
   if (window.__clouds) window.__clouds.rotation.y += dt * 0.004;
   if (stars.visible) { stars.material.uniforms.uT.value += dt; stars.material.uniforms.uPR.value = renderer.getPixelRatio(); }
   frame.n = (frame.n || 0) + 1;
@@ -114,7 +115,7 @@ function frame() {
   frame.sig = sig; if (busy) frame.busyAt = now;
   const idle = now - (frame.busyAt ?? 0) > 900;
   if (shadowDirty || frame.n % 600 === 0) { renderer.shadowMap.needsUpdate = true; shadowDirty = false; }
-  xrayTick(); bathMirrorTick(); photoTick(dt); dimsDeclutter();
+  xrayTick(); bathMirrorTick(); photoTick(dt); dimsDeclutter(); canalTick(dt);
   if (!idle || frame.n % 6 === 0) { if (composer) composer.render(); else renderer.render(scene, camera); busyAfterRender(); }
   requestAnimationFrame(frame);
 }
@@ -406,4 +407,4 @@ $('qLights').addEventListener('click', () => toggleAllLights());
 addEventListener('resize', () => { hud.vsig = ''; });
 window.__hudDbg = () => doors.filter((d) => !isFurn(d)).map((d) => { const P = ringPoint(d, new THREE.Vector3()); const dist = P.distanceTo(camera.position); if (dist > REACH) return null; const sc = {}; const on = toScreen(P, sc); hud.occ.delete(d); const vis = hudVisible(d, camera.position, P, d.parts); return [d.label, dist.toFixed(2), on, vis, Math.round(sc.x), Math.round(sc.y), started, measuring, mode, !!focus]; }).filter(Boolean);
 window.__bvc = () => buildVaerCloset(); window.__bs = () => { buildSofa(); livingDims(); }; window.__bd = () => { buildDining(); };
-window.__apt = { MATS, setCrawl, crawl, plant, dchair, DCHAIRS, deskMaxW, deskModel, deskFree, buildDesk, buildVaerCloset, skaenk, buildSkaenk, skaenkMover, mpair, mpMoverUp, mpMoverLo, mpTry, ctab, buildCoffeeTable, ctabMover, rug, buildRug, rugMover, RUGS, shopLines, shopText, layoutSnapshot, layoutApply, layoutEncode, layoutDecode, placementCheck, computeDaylight, setPlan, roomsState, night, buildRoomFurniture, ROOMF, NIGHT, getDaylight: () => DAYLIGHT, curtainProbe, fxAssign, FX, LPOOL, setAutoLights, autoLightTick, autoLightsCfg, roomLightMovers, placeBedPendants, holm, buildHolm, holmMover, desk, buildDesk, deskMover, swapDeskCloset, alc, buildAlcove, alcoveMover, cons, buildConsole, consoleMover, art, buildArt, artMover, curtains, books, booksMover, buildBooks, plant, plantMover, buildPlant, setAllLights, toggleAllLights, hueLights, getHold: () => lightHold, THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, petra, petraMover, buildPetra, hud, focusFurniture, exitFocus, setMoveLayer, getFocus: () => focus, getTween: () => camTween, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };
+window.__apt = { MATS, safeSpot, spotFree, setCrawl, crawl, plant, dchair, DCHAIRS, deskMaxW, deskModel, deskFree, buildDesk, buildVaerCloset, skaenk, buildSkaenk, skaenkMover, mpair, mpMoverUp, mpMoverLo, mpTry, ctab, buildCoffeeTable, ctabMover, rug, buildRug, rugMover, RUGS, shopLines, shopText, layoutSnapshot, layoutApply, layoutEncode, layoutDecode, placementCheck, computeDaylight, setPlan, roomsState, night, buildRoomFurniture, ROOMF, NIGHT, getDaylight: () => DAYLIGHT, curtainProbe, fxAssign, FX, LPOOL, setAutoLights, autoLightTick, autoLightsCfg, roomLightMovers, placeBedPendants, holm, buildHolm, holmMover, desk, buildDesk, deskMover, swapDeskCloset, alc, buildAlcove, alcoveMover, cons, buildConsole, consoleMover, art, buildArt, artMover, curtains, books, booksMover, buildBooks, plant, plantMover, buildPlant, setAllLights, toggleAllLights, hueLights, getHold: () => lightHold, THREE_Raycaster: THREE.Raycaster, blockedWhy: (bx, by) => { const d = b2t(bx, by).normalize(), fy = player.fy, out = []; const r = new THREE.Raycaster(); r.far = 0.4; for (const h of [0.45, 0.95, 1.55]) { r.set(new THREE.Vector3(player.pos.x, fy + h, player.pos.z), d); const hit = r.intersectObjects(fy < -0.6 ? outdoorBlockers(player.pos) : collidables, false)[0]; if (hit) out.push([h, hit.object.name, hit.object.material && hit.object.material.name, hit.distance.toFixed(2), Object.keys(MATS).find((k) => MATS[k] === hit.object.material)]); } return [out, groundAt(player.pos.x + d.x * 0.1, player.pos.z + d.z * 0.1, fy)]; }, stepWalk: (bx, by, dist) => { const d = b2t(bx, by).normalize(); let moved = 0; for (let t = 0; t < dist; t += 0.04) { const b = player.pos.clone(); tryMove(d.clone().multiplyScalar(0.04)); moved += b.distanceTo(player.pos) > 1e-4 ? 0.04 : 0; } return [...toBl(player.pos).map((v) => +v.toFixed(2)), +player.fy.toFixed(2), +moved.toFixed(2)]; }, lift, LIFT, rideTo, callLift, setFeet, groundAt, setTV, tvState, nook, nookMover, vpax, vpaxMover, petra, petraMover, buildPetra, hud, focusFurniture, exitFocus, setMoveLayer, getFocus: () => focus, getTween: () => camTween, LIGHTS, applyLights, livingLights, lamp, lampMover, guest, guestMover, furn, closetMover, dining, diningMover, diningGaps, renderer, scene, collidables, nearestDoor, blocked, player, doors, b2t, bed, tv, tvMover, liv, sofaMover, mediaMover, sofaGaps, SOFA_MODELS, sofaFull, getSofas: () => SOFAS, sofaName, selectFurniture, camera, orbit, setMode, furn, gapTo, getHit: () => lastGapHit };

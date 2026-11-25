@@ -503,3 +503,113 @@ function levelLabel() {
   if (x > 0 && x < 7.5 && y > -7.9 && y <= -3.05) return ['Opgang nr. 9', 'Street lobby', ''];
   return null;
 }
+
+// ------------------------------------------------------------ the canal and our quay, lived in (2026-11-25, Gianluca: "why doesn't the canal look
+// like a canal, the sidewalk like a sidewalk?"). Our side, from the facade (x = 0) to the water (x = −11): a 2.6 m paved sidewalk, the quay
+// quay path (no parking: people and bikes only), a 2.4 m timber boardwalk with a granite edge, then ~1.1 m down to the
+// water. Here: rippling dark water, concrete paving slabs, a granite coping with bollards, ladders and life rings, trees in grates, benches
+// facing the water, quay lamps that glow at night, parked cars and bikes, a few more boats moored on our side.
+const canal = { t: 0, ripple: null, lampM: null };
+function canalTextures() {
+  // ripple normal map: a few interfering wave trains, tileable
+  const N = 256, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d'), im = g.createImageData(N, N), r = rng(5);
+  const waves = Array.from({ length: 9 }, () => ({ kx: Math.round((r() - 0.5) * 14), ky: Math.round((r() - 0.5) * 14) || 3, a: 0.4 + r(), p: r() * 6.28 }));
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    let dx = 0, dy = 0; for (const w of waves) { const ph = (w.kx * x + w.ky * y) / N * Math.PI * 2 + w.p, cs = Math.cos(ph) * w.a; dx += cs * w.kx; dy += cs * w.ky; }
+    const nx = -dx * 0.012, ny = -dy * 0.012, l = Math.hypot(nx, ny, 1), i = (y * N + x) * 4;
+    im.data[i] = (nx / l * 0.5 + 0.5) * 255; im.data[i + 1] = (ny / l * 0.5 + 0.5) * 255; im.data[i + 2] = (1 / l * 0.5 + 0.5) * 255; im.data[i + 3] = 255;
+  }
+  g.putImageData(im, 0, 0); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / 7, 1 / 7); return t;
+}
+function buildCanalLife() {
+  // water: deep green-grey, glossy, with moving ripples (two layers drifting apart)
+  canal.ripple = canalTextures();
+  Object.assign(MATS.water, { color: new THREE.Color(0x1c2f2d), roughness: 0.07, metalness: 0.0, envMapIntensity: 0.5, normalMap: canal.ripple, normalScale: new THREE.Vector2(0.45, 0.45) });
+  MATS.water.needsUpdate = true;
+  // paving: grey concrete slabs 50 × 50 with darker joints, a little colour variation (the quay's ground and our sidewalk)
+  MATS.quay.map = canvasTex(512, 512, (g, W) => { const r = rng(17), n = 4, s = W / n; g.fillStyle = '#6f6b66'; g.fillRect(0, 0, W, W);
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const v = 150 + (r() - 0.5) * 22; g.fillStyle = `rgb(${v},${v - 2},${v - 6})`; g.fillRect(i * s + 2, j * s + 2, s - 4, s - 4);
+      for (let k = 0; k < 40; k++) { const q = v + (r() - 0.5) * 30; g.fillStyle = `rgba(${q},${q},${q - 4},0.5)`; g.fillRect(i * s + 2 + r() * (s - 6), j * s + 2 + r() * (s - 6), 2, 2); } } }, [2, 2]);
+  MATS.quay.color.set(0xffffff); MATS.quay.roughness = 0.92; MATS.quay.needsUpdate = true;
+  MATS.asphalt.map = canvasTex(256, 256, (g, W) => { const r = rng(23); g.fillStyle = '#3a3b3d'; g.fillRect(0, 0, W, W);
+    for (let k = 0; k < 2200; k++) { const v = 40 + r() * 50; g.fillStyle = `rgb(${v},${v},${v + 2})`; g.fillRect(r() * W, r() * W, 1.5, 1.5); } }, [1.5, 1.5]);
+  MATS.asphalt.color.set(0xffffff); MATS.asphalt.needsUpdate = true;
+  const g = new THREE.Group(); scene.add(g);
+  const M = (c, r = 0.8, m = 0) => stdc({ color: c, roughness: r, metalness: m });
+  const put = (geo, mat, bx, by, bz, ry = 0) => { const o = new THREE.Mesh(geo, mat); o.position.copy(b2t(bx, by, bz)); o.rotation.y = ry; o.castShadow = o.receiveShadow = true; g.add(o); return o; };
+  const Y0 = -60, Y1 = 46, WX = -11.0;                       // the stretch you see from the flat and walk along
+  // granite coping along the water's edge (joints every 1.2 m)
+  const granite = M(0x9c9a95, 0.7), joint = M(0x6b6965, 0.9);
+  for (let y = Y0; y < Y1; y += 1.2) { put(new THREE.BoxGeometry(0.45, 0.1, 1.18), granite, WX + 0.22, y + 0.6, ZG + 0.06); }
+  put(new THREE.BoxGeometry(0.46, 0.02, Y1 - Y0), joint, WX + 0.22, (Y0 + Y1) / 2, ZG + 0.015);
+  const paint = M(0xe8e6de, 0.6);
+  // no parking by the canal: the quay is a car-free path for people and bikes — a dashed centre line and painted bike symbols
+  for (let y = Y0; y < Y1; y += 3) put(new THREE.BoxGeometry(0.1, 0.006, 1.5), paint, -5.6, y, ZG + 0.033);
+  for (let y = Y0 + 6; y < Y1; y += 24) for (const [bx, dir] of [[-7.1, 1], [-4.1, -1]]) {
+    for (const s2 of [-0.32, 0.32]) { const w = put(new THREE.TorusGeometry(0.2, 0.025, 4, 18), paint, bx, y + s2 * dir, ZG + 0.034); w.rotation.x = -Math.PI / 2; }
+    put(new THREE.BoxGeometry(0.04, 0.006, 0.62), paint, bx, y, ZG + 0.034); }
+  // bollards, ladders and life rings on the edge
+  const tyre = M(0x151515, 0.9), iron = M(0x1c1d1f, 0.5, 0.6), steel = M(0xb8bcbf, 0.35, 0.9), ringR = M(0xd33a2c, 0.6), ringW = M(0xf2f0ea, 0.6), postM = M(0xd9d6cf, 0.7);
+  for (let y = Y0 + 4; y < Y1; y += 9) { put(new THREE.CylinderGeometry(0.11, 0.14, 0.42, 14), iron, WX + 0.25, y, ZG + 0.32); put(new THREE.SphereGeometry(0.13, 14, 8), iron, WX + 0.25, y, ZG + 0.55); }
+  for (let y = Y0 + 10; y < Y1; y += 26) {
+    for (const s of [-0.22, 0.22]) put(new THREE.CylinderGeometry(0.02, 0.02, 1.9, 8), steel, WX - 0.05, y + s, ZG - 0.35);   // ladder down into the water
+    for (let k = 0; k < 6; k++) { const o = put(new THREE.CylinderGeometry(0.015, 0.015, 0.44, 8), steel, WX - 0.05, y, ZG - 1.1 + k * 0.3); o.rotation.x = Math.PI / 2; }
+    for (const s of [-0.22, 0.22]) { const o = put(new THREE.TorusGeometry(0.22, 0.02, 6, 16, Math.PI), steel, WX + 0.05, y + s, ZG + 0.12); o.rotation.y = Math.PI / 2; }
+    put(new THREE.BoxGeometry(0.08, 1.4, 0.08), postM, WX + 0.7, y + 3, ZG + 0.7);                                         // life-ring post
+    const lr = put(new THREE.TorusGeometry(0.28, 0.07, 8, 20), ringR, WX + 0.76, y + 3, ZG + 1.1); lr.rotation.y = Math.PI / 2;
+    for (let q = 0; q < 4; q++) { const w = put(new THREE.TorusGeometry(0.28, 0.072, 8, 3, 0.35), ringW, WX + 0.76, y + 3, ZG + 1.1); w.rotation.set(0, Math.PI / 2, q * Math.PI / 2); }
+  }
+  // trees in grates along the inner edge of the boardwalk, benches facing the water between them
+  const bark = M(0x4c3a2c, 1), leafA = M(0x56783f, 1), leafB = M(0x6a8a45, 1), grate = M(0x2a2b2d, 0.6, 0.5), wood = M(0x8a6a4c, 0.8), benchIron = M(0x2f3133, 0.5, 0.5);
+  const tree = (bx, by, s) => { const r = rng(Math.round(by * 7 + 99));
+    put(new THREE.BoxGeometry(1.2, 0.03, 1.2), grate, bx, by, ZG + 0.07);
+    put(new THREE.CylinderGeometry(0.09 * s, 0.13 * s, 3.2 * s, 9), bark, bx, by, ZG + 1.6 * s);
+    for (let k = 0; k < 7; k++) { const a = r() * 6.28, d = r() * 1.0 * s, h = (2.8 + r() * 2.2) * s, rr = (0.8 + r() * 0.7) * s;
+      const o = put(new THREE.IcosahedronGeometry(rr, 1), k % 2 ? leafA : leafB, bx + Math.cos(a) * d, by + Math.sin(a) * d, ZG + h); o.scale.y = 0.8; }
+  };
+  const bench = (bx, by) => { for (const dz of [0, 0.12, 0.24]) put(new THREE.BoxGeometry(0.11, 0.04, 1.8), wood, bx + 0.05 - dz, by, ZG + 0.45 + dz * 0.15);
+    for (const dz of [0, 0.12]) put(new THREE.BoxGeometry(0.03, 0.1, 1.8), wood, bx + 0.28, by, ZG + 0.62 + dz * 1.4);
+    for (const s of [-0.75, 0.75]) put(new THREE.BoxGeometry(0.5, 0.45, 0.05), benchIron, bx + 0.05, by + s, ZG + 0.225); };
+  for (let y = Y0 + 2, k = 0; y < Y1 - 2; y += 11, k++) { tree(-9.15, y, 0.9 + (k % 3) * 0.08); if (y + 5.5 < Y1) bench(-9.9, y + 5.5); }
+  // quay lamps (slim poles, a lantern head that glows at night)
+  canal.lampM = new THREE.MeshStandardMaterial({ color: 0xf4efe2, emissive: 0xffd7a0, emissiveIntensity: 0, roughness: 0.4 });
+  for (let y = Y0 + 7; y < Y1; y += 18) { put(new THREE.CylinderGeometry(0.05, 0.07, 4.2, 10), M(0x3a3d40, 0.5, 0.6), -8.95, y, ZG + 2.1); put(new THREE.CylinderGeometry(0.16, 0.22, 0.3, 14), canal.lampM, -8.95, y, ZG + 4.3); }
+  // warm pools of light on the boardwalk under each lamp at night (additive decals, cheaper than real lights)
+  { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), gr = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+    canal.poolM = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), color: 0xffc98a, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+    const pg = new THREE.PlaneGeometry(7, 7).rotateX(-Math.PI / 2), pools = [];
+    for (let y = Y0 + 7; y < Y1; y += 18) pools.push(b2t(-8.6, y, ZG + 0.04));
+    const im = new THREE.InstancedMesh(pg, canal.poolM, pools.length); pools.forEach((v, i) => im.setMatrixAt(i, new THREE.Matrix4().makeTranslation(v.x, v.y, v.z)));
+    im.renderOrder = 2; im.name = 'nocollide__lamppools'; im.visible = false; canal.pools = im; scene.add(im); }
+  // bikes leaning on stands along the path, by the benches (people stop here)
+  { const fc = [0x1f3b5c, 0x9a2f27, 0x1d1d1d, 0x6b7f5a, 0xd9d4c7, 0x2f5d50];
+    for (let y = Y0 + 14, k = 0; y < Y1 - 2; y += 22, k++) for (let q = 0; q < 2 + (k % 2); q++) {
+      const by = y + q * 0.7, bx = -8.25, fm = M(fc[(k + q) % fc.length], 0.4, 0.5);
+      for (const s2 of [-0.5, 0.5]) { const w = put(new THREE.TorusGeometry(0.33, 0.025, 6, 20), tyre, bx, by + s2, ZG + 0.35); w.rotation.y = Math.PI / 2; }
+      put(new THREE.BoxGeometry(0.04, 0.04, 0.95), fm, bx, by, ZG + 0.55); put(new THREE.BoxGeometry(0.04, 0.5, 0.04), fm, bx, by - 0.1, ZG + 0.65); put(new THREE.BoxGeometry(0.5, 0.04, 0.04), tyre, bx, by + 0.42, ZG + 0.92); } }
+  // bikes in a rack by our block (north of the entrance)
+  const frameCols = [0x1f3b5c, 0x9a2f27, 0x1d1d1d, 0x6b7f5a, 0xd9d4c7];
+  for (let k = 0; k < 6; k++) { const by = -2.6 + k * 0.62, bx = -1.25, fm = M(frameCols[k % 5], 0.4, 0.5);
+    put(new THREE.TorusGeometry(0.4, 0.015, 6, 24, Math.PI), steel, -0.55, by, ZG + 0.02);                                 // rack hoop
+    for (const s of [-0.5, 0.5]) { const w = put(new THREE.TorusGeometry(0.33, 0.025, 6, 20), tyre, bx + s, by, ZG + 0.35); w.rotation.y = Math.PI / 2; }
+    const f = put(new THREE.BoxGeometry(0.95, 0.04, 0.04), fm, bx, by, ZG + 0.55); f.rotation.y = Math.PI / 2;
+    const st = put(new THREE.BoxGeometry(0.04, 0.5, 0.04), fm, bx + 0.1, by, ZG + 0.65); const hb = put(new THREE.BoxGeometry(0.04, 0.04, 0.5), tyre, bx - 0.42, by, ZG + 0.92);
+  }
+  for (const c of [...g.children]) c.updateMatrix();
+  mergeByMaterial(g);
+  // two more small boats on our side, by the ladders
+  try { const hullM = M(0xf2f1ee, 0.45), wood2 = M(0x7a5a3e, 0.7);
+    for (const [by, len, dark] of [[-24.5, 5.0, 0x2b3440], [12.5, 4.2, 0xf2f1ee]]) { const b = new THREE.Group(); b.position.copy(b2t(-12.2, by, ZG - 1.1)); b.rotation.y = Math.PI + 0.02; scene.add(b);
+      const sh = new THREE.Shape(), w = len * 0.36; sh.moveTo(-len / 2, -w / 2); sh.lineTo(len * 0.2, -w / 2); sh.quadraticCurveTo(len * 0.48, -w * 0.35, len / 2, 0); sh.quadraticCurveTo(len * 0.48, w * 0.35, len * 0.2, w / 2); sh.lineTo(-len / 2, w / 2); sh.closePath();
+      const hull = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.55, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2 }), M(dark, 0.45)); hull.rotation.x = -Math.PI / 2; hull.position.y = -0.25; hull.castShadow = true; b.add(hull);
+      const deck = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: 0.02, bevelEnabled: false }), wood2); deck.rotation.x = -Math.PI / 2; deck.position.y = 0.3; deck.scale.set(0.9, 0.82, 1); b.add(deck);
+      for (const bx2 of [-len * 0.15, len * 0.15]) { const s2 = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.05, w * 0.8), wood2); s2.position.set(bx2, 0.38, 0); b.add(s2); }
+      const line = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1.6, 4), M(0xd9cfb4, 0.9)); line.position.set(len / 2 - 0.2, 0.75, 0); line.rotation.z = 0.9; b.add(line); } } catch (e) { console.warn(e); }
+  shadowDirty = true;
+}
+function canalTick(dt) {
+  if (!canal.ripple) return;
+  canal.t += dt; canal.ripple.offset.set(canal.t * 0.012, canal.t * 0.006);
+  if (canal.lampM) { const k = THREE.MathUtils.clamp(1 - (dayLevel ?? 1) * 1.6, 0, 1); if (Math.abs(canal.lampM.emissiveIntensity - k * 2.2) > 0.01) { canal.lampM.emissiveIntensity = k * 2.2; if (canal.poolM) { canal.poolM.opacity = k * 0.55; canal.pools.visible = k > 0.02; } } }
+}
