@@ -222,4 +222,65 @@ function roomShopLines(add) {
   put('Bathroom', 'rail', ROOMF.rail[R.rail]); put('Bathroom', 'cab', ROOMF.cab[R.cab]);
   put('Balcony', 'balc', ROOMF.balc[R.balc], ROOMF.balc[R.balc].desc);
 }
-
+// ------------------------------------------------------------ bathroom finish (2026-11-24, Gianluca: "doesn't look realistic, the sink should have a mirror")
+// The room shell and fixtures come from build.py. Here: glazed wall tiles on every wall (the shower keeps its dark tiles in front), a real
+// reflecting mirror over the vanity (three's Reflector, only rendered while you're in the bathroom), and the small things on the vanity,
+// a bath mat, a toilet-roll holder and a plant on the boxed-in cistern.
+const bathFx = { mirror: null, was: false, sensor: false };
+function buildBathroomFinish() {
+  const g = new THREE.Group(); scene.add(g);
+  const Hc = 2.6, z0 = 0.004, hy = 2.45;
+  const wl = (A, B, dir) => { const h1 = wallHit(A, dir, hy), h2 = wallHit(B, dir, hy); if (!h1 || !h2) return null;   // probe above the fixtures
+    const t = h2.p.clone().sub(h1.p).normalize(), n = new THREE.Vector3(-t.z, 0, t.x); if (n.dot(b2t(dir[0], dir[1])) > 0) n.negate(); return { p: h1.p, n }; };
+  const W = { n: wl([7.6, 2.0], [8.9, 2.0], [0, 1]), s: wl([7.6, 2.0], [8.9, 2.0], [0, -1]), w: wl([8.0, 2.6], [8.0, 1.5], [-1, 0]), e: wl([8.5, 1.3], [8.5, 2.6], [1, 0]) };
+  for (const k of Object.keys(W)) if (!W[k]) return;
+  const tan = (L) => new THREE.Vector3(L.n.z, 0, -L.n.x);
+  const C = { nw: lineMeet(W.n.p, tan(W.n), W.w.p, tan(W.w)), ne: lineMeet(W.n.p, tan(W.n), W.e.p, tan(W.e)), sw: lineMeet(W.s.p, tan(W.s), W.w.p, tan(W.w)), se: lineMeet(W.s.p, tan(W.s), W.e.p, tan(W.e)) };
+  const skin = (A, B, n, za, zb, s0 = 0, s1 = 1) => {           // a tiled sheet on the wall between corners A and B (fractions s0–s1), 2 mm proud
+    const L = A.distanceTo(B), a = A.clone().lerp(B, s0), b = A.clone().lerp(B, s1), len = a.distanceTo(b), u0 = s0 * L;
+    const geo = new THREE.PlaneGeometry(len, zb - za); const uv = geo.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, u0 + uv.getX(i) * len, za + uv.getY(i) * (zb - za));
+    const m = new THREE.Mesh(geo, MATS.bathwall); m.position.copy(a).add(b).multiplyScalar(0.5).addScaledVector(n, 0.002).setY((za + zb) / 2);
+    m.lookAt(m.position.clone().add(n)); m.receiveShadow = true; g.add(m);
+  };
+  skin(C.nw, C.ne, W.n.n, z0, Hc); skin(C.se, C.sw, W.s.n, z0, Hc); skin(C.ne, C.se, W.e.n, z0, Hc);
+  { // the door wall: around the door opening (door 0.95 m wide from the hinge at y 1.19, 2.09 m high)
+    const A = C.sw, B = C.nw, L = A.distanceTo(B), t = B.clone().sub(A).normalize(), at = (bx, by) => b2t(bx, by, 0).sub(A).dot(t) / L;
+    const d0 = at(7.08, 1.16), d1 = at(7.12, 2.17);
+    if (d0 > 0.01) skin(A, B, W.w.n, z0, Hc, 0, d0); skin(A, B, W.w.n, z0, Hc, d1, 1); skin(A, B, W.w.n, 2.1, Hc, d0, d1);
+  }
+  // the mirror: a live reflection 2 mm in front of the GLB mirror (77 × 104 cm over the vanity, build.py: x 7.21–7.98, front y 3.103, z 1.005–2.045)
+  { const w = 7.9733 - 7.2147, h = 2.045 - 1.005, res = lite ? 512 : 1024;
+    const R = new Reflector(new THREE.PlaneGeometry(w, h), { textureWidth: res, textureHeight: Math.round(res * h / w), color: 0xc9cfd1, clipBias: 0.003 });
+    R.position.copy(b2t((7.2147 + 7.9733) / 2, 3.1028 - 0.002, (1.005 + 2.045) / 2)); R.visible = false; scene.add(R); bathFx.mirror = R; }
+  // on the vanity (top z 0.87; basin centred at x 7.59): soap pump, tumbler with toothbrushes, folded hand towel, a small dish
+  const M = (c, r = 0.5, m = 0) => stdc({ color: c, roughness: r, metalness: m });
+  const put = (geo, mat, bx, by, bz, rx = 0, ry = 0, rz = 0) => { const o = new THREE.Mesh(geo, mat); o.position.copy(b2t(bx, by, bz)); o.rotation.set(rx, ry, rz); o.castShadow = o.receiveShadow = true; g.add(o); return o; };
+  const T = 0.87, blackM = M(0x1e1e1e, 0.45);
+  put(new THREE.CylinderGeometry(0.034, 0.036, 0.15, 24), M(0x8f8a82, 0.35), 7.9, 3.03, T + 0.075); put(new THREE.CylinderGeometry(0.008, 0.008, 0.035, 10), blackM, 7.9, 3.03, T + 0.168);
+  put(new THREE.BoxGeometry(0.045, 0.012, 0.014), blackM, 7.9, 3.012, T + 0.18);                                                        // pump nozzle
+  put(new THREE.CylinderGeometry(0.036, 0.03, 0.1, 24), M(0xd8d2c6, 0.6), 7.29, 3.03, T + 0.05);                                       // stone tumbler
+  for (const [dx, c] of [[-0.01, 0x3a7ca5], [0.012, 0xd98c5f]]) put(new THREE.CylinderGeometry(0.005, 0.005, 0.19, 8), M(c, 0.4), 7.29 + dx, 3.03, T + 0.13, 0, 0, dx * 8);
+  put(softBox(0.2, 0.05, 0.14, 0.015, { top: 0.008 }), M(0xe9e4da, 1), 7.86, 2.76, T + 0.025);                                          // folded hand towel
+  put(new THREE.CylinderGeometry(0.05, 0.045, 0.012, 24), M(0x2b2b2b, 0.3), 7.32, 2.8, T + 0.006);                                     // dish
+  // bath mat in front of the vanity
+  put(softBox(0.8, 0.012, 0.5, 0.005), stdc({ color: 0xcfcac0, roughness: 1, map: weaveTex('boucle') }), 7.6, 2.3, 0.006);
+  // toilet-roll holder on the cistern box (front face y 2.69) and a plant + candle on its top (z 1.15)
+  put(new THREE.BoxGeometry(0.02, 0.02, 0.06), M(0xdadde0, 0.15, 1), 8.72, 2.66, 0.68); put(new THREE.CylinderGeometry(0.055, 0.055, 0.1, 20), M(0xf4f2ee, 0.9), 8.72, 2.62, 0.63, 0, 0, Math.PI / 2);
+  put(new THREE.CylinderGeometry(0.035, 0.03, 0.09, 20), M(0xe2ddd3, 0.5), 8.52, 2.725, 1.195);
+  { const pl = new THREE.Group(); pl.position.copy(b2t(8.52, 2.725, 1.24)); g.add(pl); const r = rng(77), leaf = M(0x7c9a86, 0.8);
+    for (let i = 0; i < 9; i++) { const a = r() * Math.PI * 2, hgt = 0.12 + r() * 0.12; const st = new THREE.Mesh(new THREE.CylinderGeometry(0.0015, 0.002, hgt, 5), M(0x6a5a3e, 0.8)); st.position.set(Math.cos(a) * 0.01, hgt / 2, Math.sin(a) * 0.01); st.rotation.set(Math.sin(a) * 0.25, 0, Math.cos(a) * 0.25); pl.add(st);
+      for (let k = 0; k < 5; k++) { const l = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), leaf); l.scale.set(1, 0.3, 1); l.position.set(Math.cos(a) * (0.01 + k * 0.012), 0.04 + k * hgt / 6, Math.sin(a) * (0.01 + k * 0.012)); l.castShadow = true; pl.add(l); } } }
+  put(new THREE.CylinderGeometry(0.03, 0.03, 0.06, 20), M(0xefe9dc, 0.8), 8.3, 2.725, 1.18);                                             // candle
+  shadowDirty = true;
+}
+function bathMirrorTick() {                                   // the reflection costs a second render: only while you're in (or looking into) the bathroom
+  // a Hue motion sensor: the ceiling spots come on when you walk in and go off again when you leave (if the sensor turned them on)
+  const inBath = mode === 'walk' && playerRoomId() === 'bath';
+  if (inBath !== bathFx.was) { bathFx.was = inBath; const L = LIGHTS.bath;
+    if (L && inBath && !L.on) { L.on = true; bathFx.sensor = true; applyLights(); }
+    else if (L && !inBath && bathFx.sensor) { L.on = false; bathFx.sensor = false; applyLights(); } }
+  const R = bathFx.mirror; if (!R) return;
+  const on = mode === 'walk' && camera.position.distanceTo(R.position) < 4.2 && (playerRoomId() === 'bath' || camera.position.distanceTo(R.position) < 2.6);
+  if (R.visible !== on) R.visible = on;
+}

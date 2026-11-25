@@ -233,12 +233,16 @@ function swanChair(ch, C, add) {
   const bm = add(back, MATS.cSeat, 0, yb, zb, ch); bm.rotation.x = -0.12;
   // legs: oak (square-ish, tapering) or thin black steel tubes; the rear pair rises behind the shell
   const leg = (x0, y0, z0, x1, y1, z1, rt, rb) => { const p0 = new THREE.Vector3(x0, y0, z0), p1 = new THREE.Vector3(x1, y1, z1), v = p1.clone().sub(p0);
-    const m = add(new THREE.CylinderGeometry(rt, rb, v.length(), metal ? 12 : 4), legs, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, ch);
-    m.quaternion.setFromUnitVectors(UP, v.normalize()); if (!metal) m.rotateY(Math.PI / 4); return m; };
+    const m = add(new THREE.CylinderGeometry(rt, rb, v.length(), metal ? 12 : 14), legs, (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2, ch);
+    m.quaternion.setFromUnitVectors(UP, v.normalize()); return m; };
   const r0 = metal ? 0.011 : 0.024, r1 = metal ? 0.011 : 0.017, under = SH - st, fx = sw / 2 - 0.085, rx = sw / 2 - 0.1;
+  // as in ILVA's photos (2026-11-24 fix, Gianluca: legs looked "super tilted"): front legs almost upright; each rear leg rakes back a little to
+  // the floor, then rises behind the shell only up to its lower third, where it holds it (not all the way to the top)
+  const zr = -d / 2 + 0.1;                                                                                                          // rear leg's knee, under the seat
   for (const sx of [1, -1]) {
-    leg(sx * (fx + 0.025), 0, sz + sd / 2 - 0.05, sx * fx, under, sz + sd / 2 - 0.1, r0 * 0.9, r1);                          // front legs, splayed a little
-    leg(sx * (rx + 0.02), 0, -d / 2 + 0.13, sx * rx, yb + 0.02, -d / 2 + 0.035, r0, r1);                                      // rear legs up behind the shell
+    leg(sx * (fx + 0.008), 0, sz + sd / 2 - 0.085, sx * fx, under, sz + sd / 2 - 0.1, r0 * 0.95, r1);                          // front legs, nearly upright
+    leg(sx * (rx + 0.008), 0, -d / 2 + 0.04, sx * rx, under, zr, r0, r1);                                                     // rear legs, raked back slightly
+    leg(sx * rx, under - 0.01, zr, sx * rx, SH + 0.17, -d / 2 + 0.005, r0 * 0.9, r0 * 0.85);                                  // …and up behind the shell
     if (!metal) add(new THREE.BoxGeometry(0.022, 0.05, sd - 0.12), legs, sx * (fx - 0.01), under - 0.03, sz - 0.02, ch);       // side rails under the seat
   }
   if (!metal) for (const z of [sz + sd / 2 - 0.1, -d / 2 + 0.1]) add(new THREE.BoxGeometry(2 * fx - 0.02, 0.045, 0.022), legs, 0, under - 0.03, z, ch);

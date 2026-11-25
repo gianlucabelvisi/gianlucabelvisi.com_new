@@ -90,58 +90,51 @@ function buildCoffee() {
     const t = labelSprite(txt, { h: 0.028 }); t.position.copy(b2t(bx, by, h)); kitDims.add(t);
   }
 }
-// ------------------------------------------------------------ easter egg: something lives in the Teknik cupboard (only visible with the doors open)
-// an original riveted-steel boiler golem: barrel body, pipe limbs, clamp claws, a gauge for a heart and a glowing visor slit
-function buildTeknikGolem() {
-  const steel = std({ color: 0x6f757b, roughness: 0.45, metalness: 1 }), dark = std({ color: 0x24272b, roughness: 0.5, metalness: 0.9 });
-  const rust = std({ color: 0x6a3b22, roughness: 0.9, metalness: 0.3 }), glow = new THREE.MeshStandardMaterial({ color: 0x220000, emissive: 0xff2a10, emissiveIntensity: 2.2 });
-  const g = new THREE.Group(); g.position.copy(b2t(4.9, 1.92, 0)); g.rotation.y = Math.PI / 2;   // facing the left door (towards the hall)
-  const put = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
-  const cyl = (r1, r2, h, s = 20) => new THREE.CylinderGeometry(r1, r2, h, s);
-  // legs: bent pipes with flanged feet
-  for (const sx of [-0.11, 0.11]) {
-    put(cyl(0.045, 0.05, 0.42), steel, sx, 0.23, -0.02, 0.18);
-    put(cyl(0.07, 0.07, 0.04), dark, sx, 0.02, 0.02);
-    put(new THREE.SphereGeometry(0.06, 14, 10), dark, sx, 0.44, -0.05);
+// ------------------------------------------------------------ Teknik cupboard (2026-11-24, Gianluca: no more golem): what a Danish teknikskab holds —
+// district-heating pipes with valves and a heat meter, a water meter, the underfloor-heating manifold, the electrical panel (gruppetavle)
+// and the fibre box + router on a shelf. Back wall at x ≈ 4.58, doors at x ≈ 5.33 (y 0.79–2.26), inside y 0.48–2.9.
+function buildTeknik() {
+  const g = new THREE.Group(), WX = 4.582;
+  const M = (c, r = 0.5, m = 0, extra = {}) => std({ color: c, roughness: r, metalness: m, ...extra });
+  const white = M(0xeeeeea, 0.45), grey = M(0x8b8f93, 0.4, 0.6), copper = M(0xb8693c, 0.3, 1), brass = M(0xc7a04e, 0.3, 1), insul = M(0xd9d9d4, 0.85);
+  const red = M(0xc0392b, 0.4), blue = M(0x2c5aa0, 0.4), black = M(0x1d1d1f, 0.4), lcd = M(0x9fb39a, 0.3, 0, { emissive: 0x23301f, emissiveIntensity: 0.4 });
+  const ledG = new THREE.MeshStandardMaterial({ color: 0x0b2a12, emissive: 0x3cff6a, emissiveIntensity: 2 }), ledB = new THREE.MeshStandardMaterial({ color: 0x0b1530, emissive: 0x4aa8ff, emissiveIntensity: 2 });
+  const box = (x0, x1, y0, y1, z0, z1, m) => { const o = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, z1 - z0, y1 - y0), m); o.position.copy(b2t((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2)); o.castShadow = o.receiveShadow = true; g.add(o); return o; };
+  const vpipe = (x, y, r, z0, z1, m) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, z1 - z0, 16), m); o.position.copy(b2t(x, y, (z0 + z1) / 2)); o.castShadow = true; g.add(o); return o; };
+  const ypipe = (x, y0, y1, z, r, m) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(r, r, Math.abs(y1 - y0), 14), m); o.rotation.x = Math.PI / 2; o.position.copy(b2t(x, (y0 + y1) / 2, z)); o.castShadow = true; g.add(o); return o; };
+  const valve = (x, y, z, m) => { box(x - 0.02, x + 0.02, y - 0.02, y + 0.02, z - 0.025, z + 0.025, brass); box(x + 0.02, x + 0.07, y - 0.012, y + 0.012, z - 0.008, z + 0.008, m); };
+  // district heating: two insulated supply/return mains from the floor to the ceiling, copper branches, valves, the heat meter
+  for (const [y, c] of [[0.95, red], [1.07, blue]]) {
+    vpipe(WX + 0.06, y, 0.032, 0, 2.6, insul);
+    for (const z of [0.25, 1.95]) box(WX + 0.02, WX + 0.1, y - 0.04, y + 0.04, z, z + 0.02, grey);                                // wall clamps
+    valve(WX + 0.06, y, 0.9, c); valve(WX + 0.06, y, 1.55, c);
+    ypipe(WX + 0.08, y, 1.4, c === red ? 0.62 : 0.48, 0.011, copper);                                                             // branch to the floor-heating manifold
   }
-  // barrel torso, leaning forward, with rivet bands and a rusty seam
-  const torso = new THREE.Group(); torso.position.set(0, 0.5, -0.05); torso.rotation.x = 0.28; g.add(torso);
-  const tp = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.castShadow = true; torso.add(m); return m; };
-  tp(cyl(0.2, 0.17, 0.72, 28), steel, 0, 0.36, 0);
-  for (const y of [0.06, 0.36, 0.66]) {
-    tp(new THREE.TorusGeometry(0.2, 0.012, 6, 32), dark, 0, y, 0, Math.PI / 2);
-    for (let k = 0; k < 14; k++) { const a = k / 14 * Math.PI * 2; tp(new THREE.SphereGeometry(0.011, 6, 5), dark, Math.cos(a) * 0.212, y + 0.025, Math.sin(a) * 0.212); }
+  box(WX + 0.02, WX + 0.1, 1.14, 1.3, 1.32, 1.52, white); box(WX + 0.1, WX + 0.102, 1.17, 1.27, 1.42, 1.48, lcd);                    // heat meter (white, LCD)
+  // cold water main with the water meter and a stop valve
+  vpipe(WX + 0.05, 0.7, 0.014, 0, 1.4, copper); box(WX + 0.03, WX + 0.11, 0.66, 0.74, 0.62, 0.72, M(0x3a6ea5, 0.4)); valve(WX + 0.05, 0.7, 0.45, blue);
+  // underfloor-heating manifold: two brass bars with six loops each going down to the floor, blue caps
+  for (const [z, m] of [[0.62, red], [0.48, blue]]) {
+    ypipe(WX + 0.08, 1.4, 1.95, z, 0.016, brass);
+    for (let k = 0; k < 6; k++) { const y = 1.45 + k * 0.09; vpipe(WX + 0.08, y, 0.008, 0, z, M(0xe8e4dc, 0.6)); box(WX + 0.1, WX + 0.12, y - 0.01, y + 0.01, z + 0.015, z + 0.035, m); }
   }
-  tp(new THREE.BoxGeometry(0.02, 0.6, 0.02), rust, 0.14, 0.36, 0.14);
-  tp(cyl(0.07, 0.07, 0.03, 24), dark, 0, 0.45, 0.19, Math.PI / 2);                       // the gauge
-  tp(new THREE.CircleGeometry(0.058, 24), std({ color: 0xe8e2d0, roughness: 0.6 }), 0, 0.45, 0.206);
-  tp(new THREE.BoxGeometry(0.004, 0.05, 0.004), glow, 0.012, 0.465, 0.21, 0, 0, -0.9);  // needle in the red
-  // hunched head: a squat dome with a single glowing slit
-  tp(cyl(0.07, 0.09, 0.06), dark, 0, 0.75, 0.02);
-  const head = tp(new THREE.SphereGeometry(0.15, 22, 14, 0, Math.PI * 2, 0, Math.PI * 0.62), steel, 0, 0.8, 0.06);
-  tp(cyl(0.152, 0.152, 0.03, 24), dark, 0, 0.81, 0.06);
-  tp(new THREE.BoxGeometry(0.2, 0.022, 0.04), glow, 0, 0.865, 0.19, 0.25);
-  for (const sx of [-0.13, 0.13]) tp(cyl(0.012, 0.004, 0.14, 8), dark, sx, 0.97, 0.03, 0, 0, sx > 0 ? -0.5 : 0.5);   // antenna spikes
-  tp(cyl(0.03, 0.03, 0.25, 12), rust, -0.12, 0.85, -0.12, 0.3);                          // exhaust pipe
-  // long pipe arms reaching for the door, ending in three-pronged clamps
-  for (const sx of [-1, 1]) {
-    const arm = new THREE.Group(); arm.position.set(sx * 0.22, 0.6, 0.02); arm.rotation.set(-0.45, 0, sx * 0.35); torso.add(arm);
-    const ap = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.castShadow = true; arm.add(m); return m; };
-    ap(new THREE.SphereGeometry(0.05, 12, 8), dark, 0, 0, 0);
-    ap(cyl(0.03, 0.03, 0.34), steel, 0, -0.17, 0);
-    ap(new THREE.SphereGeometry(0.04, 12, 8), dark, 0, -0.34, 0);
-    ap(cyl(0.026, 0.026, 0.3), steel, 0, -0.49, 0.05, -0.35);
-    for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI * 2; ap(cyl(0.008, 0.002, 0.14, 6), dark, Math.cos(a) * 0.03, -0.69, 0.1 + Math.sin(a) * 0.03, -0.35 + Math.sin(a) * 0.35, 0, Math.cos(a) * 0.35); }
+  box(WX + 0.01, WX + 0.03, 1.36, 2.0, 0.3, 0.75, grey);                                                                             // manifold bracket plate
+  // electrical panel (gruppetavle): white cabinet, smoked door, two rows of breakers + HPFI
+  const PZ = 1.3, PH = 0.55, py0 = 2.08, py1 = 2.5;
+  box(WX, WX + 0.11, py0, py1, PZ, PZ + PH, white);
+  for (const [row, n] of [[0, 9], [1, 7]]) for (let k = 0; k < n; k++) {
+    const y = py0 + 0.04 + k * 0.038, z = PZ + 0.32 - row * 0.2; box(WX + 0.11, WX + 0.125, y, y + 0.032, z, z + 0.09, k === 0 && row === 0 ? M(0x3b3b3d, 0.4) : M(0xf6f6f4, 0.4));
+    box(WX + 0.125, WX + 0.13, y + 0.01, y + 0.022, z + 0.035, z + 0.055, row === 1 && k === 0 ? blue : black);
   }
-  for (const c of [torso, ...torso.children.filter((x) => x.isGroup)]) mergeByMaterial(c);
-  mergeByMaterial(g);
-  scene.add(g); g.updateMatrixWorld(true);
-  // keep every bit of it behind the closed doors: cupboard interior runs from x≈4.55 (back wall) to x≈5.24 (inside of the doors)
-  const bb = new THREE.Box3().setFromObject(g), over = bb.max.x - 5.2;
-  if (over > 0) { g.position.x -= over; g.updateMatrixWorld(true); }
-  const bb2 = new THREE.Box3().setFromObject(g);
-  if (bb2.min.x < 4.62) { const k = (5.2 - 4.62) / (bb2.max.x - bb2.min.x); g.scale.setScalar(Math.min(1, k)); g.updateMatrixWorld(true); const bb3 = new THREE.Box3().setFromObject(g); g.position.x += 5.2 - bb3.max.x; g.updateMatrixWorld(true); }
-  window.__golem = g;
+  box(WX + 0.11, WX + 0.112, py0 + 0.01, py1 - 0.01, PZ + PH - 0.07, PZ + PH - 0.015, M(0xdedede, 0.6));                            // label strip
+  // shelf with the fibre box (ONT) and the router, cables down to the panel side
+  box(WX, WX + 0.28, 2.05, 2.85, 1.0, 1.02, M(0xd8c4a3, 0.7));
+  box(WX + 0.02, WX + 0.06, 2.6, 2.76, 1.12, 1.32, white); box(WX + 0.06, WX + 0.062, 2.66, 2.7, 1.28, 1.3, ledG);                   // fibre box on the wall
+  box(WX + 0.06, WX + 0.24, 2.18, 2.42, 1.02, 1.06, white);                                                                         // router, lying flat
+  for (let k = 0; k < 4; k++) box(WX + 0.24, WX + 0.242, 2.22 + k * 0.03, 2.235 + k * 0.03, 1.035, 1.045, k ? ledG : ledB);
+  for (const y of [2.22, 2.38]) { const a = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.16, 8), black); a.position.copy(b2t(WX + 0.08, y, 1.14)); a.rotation.z = 0.25; g.add(a); }   // antennas
+  vpipe(WX + 0.035, 2.66, 0.004, 1.02, 1.12, M(0xf2d64a, 0.5)); ypipe(WX + 0.05, 2.42, 2.66, 1.025, 0.003, M(0x3d6fd1, 0.5));           // fibre patch + LAN cable
+  mergeByMaterial(g); scene.add(g); g.updateMatrixWorld(true);
 }
 // ------------------------------------------------------------ fridge contents: food on the shelves, beers, white wine (door racks move with the door)
 function buildFridgeFood() {

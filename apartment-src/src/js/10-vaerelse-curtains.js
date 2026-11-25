@@ -245,7 +245,9 @@ function roomDarkTick() {
   const c = curtains.find((x) => x.id === 'cur_bed'); if (!c) return;
   const [bx, by] = toBl(player.pos), inBed = mode === 'walk' && ROOM_BY_ID.bed && inPoly(bx, by, ROOM_BY_ID.bed.poly);
   const lamp = ['bedA', 'bedB'].reduce((m, id) => Math.max(m, LIGHTS[id] && LIGHTS[id].on ? Math.pow(LIGHTS[id].bri, 1.6) : 0), 0);   // the bedside lamps bounce light around
-  const k = inBed ? Math.pow(1 - c.t, 1.5) * 0.97 * (1 - 0.6 * Math.min(1, lamp * 2)) : 0;
+  let k = inBed ? Math.pow(1 - c.t, 1.5) * 0.97 * (1 - 0.6 * Math.min(1, lamp * 2)) : 0;
+  // the bathroom has no window: daylight only comes in through the door, so the sky fill is cut there too (its ceiling spots do the work)
+  if (mode === 'walk' && ROOM_BY_ID.bath && inPoly(bx, by, ROOM_BY_ID.bath.poly)) k = Math.max(k, 0.62);
   if (Math.abs(k - roomDarkK) < 0.004 && !hemi.userData.dirty) return; roomDarkK = k; hemi.userData.dirty = false;
   hemi.intensity = (hemi.userData.base ?? hemi.intensity) * (1 - k);
   scene.environmentIntensity = (scene.userData.envBase ?? scene.environmentIntensity) * (1 - k);

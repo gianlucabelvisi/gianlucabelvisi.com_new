@@ -1,13 +1,11 @@
-// ------------------------------------------------------------ Værelse: Møbelkompagniet Arezzo 3-pers sovesofa (with storage) against the wall to the living room (x≈4.57, y 5.29–8.21)
-// shop drawing: 237 W × 107 D × 93 H cm, seat height 43, seat depth 60, inner width 198 (arms ≈ 19.5 each), back cushions 50 high;
-// bed 198 × 152 cm (pull-out; open depth ≈ 180 cm from the wall is our estimate). Black plastic legs, dark wood base strip.
-const GS_COLORS = [
-  ['Loop', 'Grå', 0x8a8886], ['Loop', 'Beige', 0xc9bca8], ['Loop', 'Mørk beige', 0xa39380], ['Loop', 'Grøn', 0x6f7a5e], ['Loop', 'Mørkeblå', 0x34405a],
-  ['Aragon', 'Beige', 0xcfc2ac], ['Aragon', 'Grå/Beige', 0xa8a095], ['Aragon', 'Grøn', 0x6b7a60], ['Aragon', 'Krystal Blå', 0x7f97a8], ['Aragon', 'Blå', 0x44597a],
-  ['Modesto', 'Brun', 0x6b4e3b], ['Modesto', 'Mørkegrøn', 0x3f4c3c], ['Modesto', 'Mørkeblå', 0x2e3a52], ['Modesto', 'Creme', 0xe4dccb],
-  ['Puente', 'Lys Greige', 0xc8c0b3], ['Puente', 'Grøn', 0x75805f], ['Puente', 'Gul', 0xc9a24a], ['Puente', 'Grå/blå', 0x7c8791],
-];
-const GS = { W: 2.37, D: 1.07, H: 0.93, seatH: 0.43, arm: 0.195, bedD: 1.52, openD: 1.80, url: 'https://moebelkompagniet.dk/products/arezzo-3-personers-sovesofa', price: '6,999 kr (sale, was 9,999)' };
+// ------------------------------------------------------------ Værelse: sofa bed against the wall to the living room (x≈4.57, y 5.29–8.21)
+// 2026-11-24 DECIDED (Gianluca): Møbelkompagniet "Firenze 3 personers sovesofa, opbevaring" (FCL-BEFAME), Capri Mørk beige
+// (variant 63782203097465), 5,999 kr (før 8,499). 220 W × 100 D × 88 H cm, seat height 42, sleeps 198 × 145 cm; storage; black legs;
+// MDF/plywood frame, PU foam, Nozag springs, polyester. From the photos: slim, round-topped arms (~13 cm, ~67 cm high), a deep seat block that
+// almost reaches the floor with a thin wood strip under it, two loose back cushions, two scatter cushions included; fine cord fabric.
+// As a bed the back folds down flat into one 198 × 145 surface between the arms (sticking ~0.5 m past them).
+const GS_COLORS = [['Capri', 'Mørk beige', 0x8d6c4f]];
+const GS = { W: 2.20, D: 1.00, H: 0.88, seatH: 0.42, arm: 0.11, bedW: 1.98, bedD: 1.45, url: 'https://moebelkompagniet.dk/products/firenze-3-personers-sovesofa?variant=63782203097465', price: '5,999 kr (før 8,499)' };
 const guest = { offset: 0, open: false, color: 0, group: null, parts: [], wall: null };
 const guestDims = new THREE.Group(); dimsGroup.add(guestDims);
 function buildGuestSofa() {
@@ -23,27 +21,27 @@ function buildGuestSofa() {
   guest.offset = Math.max(-lim, Math.min(lim, guest.offset));
   const O = guest.wall.base.clone().addScaledVector(a, guest.offset).addScaledVector(n, 0.01);
   const g = new THREE.Group(); g.position.copy(O); g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(a, UP, n));
+  guest.color = 0;                                                // one colour now (old saved layouts may hold another index)
   const [, , hex] = GS_COLORS[guest.color];
   const fab = std({ color: hex, roughness: 1 }), wood = std({ color: 0x4a3222, roughness: 0.6 }), leg = std({ color: 0x151515, roughness: 0.5 });
   const parts = [];
   const add = (geo, m, x, y, z, solid = true) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; g.add(o); if (solid) parts.push(o); return o; };
   const RB = (w, h, d, r) => new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2, h / 2, d / 2) - 1e-4);
-  const W = GS.W, D = GS.D, iw = W - 2 * GS.arm, legH = 0.05, baseTop = 0.13;
-  for (const x of [-W / 2 + 0.12, W / 2 - 0.12]) for (const z of [0.1, D - 0.12]) add(new THREE.BoxGeometry(0.04, legH, 0.05), leg, x, legH / 2, z, false);
-  add(new THREE.BoxGeometry(iw + 0.06, baseTop - legH, D - 0.14), wood, 0, legH + (baseTop - legH) / 2, (D - 0.14) / 2 + 0.04);   // storage base
-  for (const sx of [-1, 1]) add(RB(GS.arm, 0.62 - legH, D, 0.09), fab, sx * (W / 2 - GS.arm / 2), legH + (0.62 - legH) / 2, D / 2);  // rounded arms
-  add(RB(iw, 0.62 - baseTop, 0.24, 0.05), fab, 0, baseTop + (0.62 - baseTop) / 2, 0.12);                                           // back frame
+  const W = GS.W, D = GS.D, iw = W - 2 * GS.arm, legH = 0.035, armH = 0.67, seatTop = 0.45;
+  fab.map = weaveTex('velvet'); fab.roughness = 0.95;
+  for (const x of [-W / 2 + 0.06, W / 2 - 0.06]) for (const z of [0.08, D - 0.08]) add(new THREE.CylinderGeometry(0.018, 0.018, legH, 12), leg, x, legH / 2, z, false);
+  add(new THREE.BoxGeometry(iw - 0.04, 0.018, 0.02), std({ color: 0x8a5a34, roughness: 0.6 }), 0, legH + 0.012, D - 0.06, false);           // the thin wood strip under the seat
+  for (const sx of [-1, 1]) add(RB(GS.arm, armH - legH, D, 0.05), fab, sx * (W / 2 - GS.arm / 2), legH + (armH - legH) / 2, D / 2);  // slim round-topped arms
   if (!guest.open) {
-    add(RB(iw, GS.seatH - baseTop, D - 0.22, 0.05), fab, 0, baseTop + (GS.seatH - baseTop) / 2, 0.22 + (D - 0.22) / 2);            // seat
-  } else {                                                                                                                         // pulled out as a bed
-    const z0 = 0.26, bd = GS.bedD, top = 0.44;
-    add(RB(iw - 0.01, top - 0.2, bd, 0.04), fab, 0, 0.2 + (top - 0.2) / 2, z0 + bd / 2);
-    add(new THREE.BoxGeometry(iw - 0.04, 0.2 - legH, 0.04), wood, 0, legH + (0.2 - legH) / 2, z0 + bd - 0.03, false);
-    for (const x of [-iw / 2 + 0.08, iw / 2 - 0.08]) add(new THREE.BoxGeometry(0.04, legH, 0.05), leg, x, legH / 2, z0 + bd - 0.05, false);
+    add(RB(iw, 0.44 - legH, 0.22, 0.04), fab, 0, legH + (0.44 - legH) / 2, 0.11);                                                   // back frame (low, behind the cushions)
+    add(RB(iw - 0.01, seatTop - legH - 0.02, D - 0.2, 0.05), fab, 0, legH + 0.02 + (seatTop - legH - 0.02) / 2, 0.2 + (D - 0.2) / 2);   // deep seat block
+    for (const sx of [-1, 1]) { const c = add(RB(iw / 2 - 0.012, 0.44, 0.2, 0.07), fab, sx * iw / 4, seatTop + 0.21, 0.17); c.rotation.x = -0.14; }   // back cushions
+    for (const sx of [-1, 1]) { const c = add(RB(0.43, 0.43, 0.13, 0.06), fab, sx * (iw / 2 - 0.27), seatTop + 0.2, 0.36, false); c.rotation.set(-0.25, sx * 0.25, sx * 0.08); }   // scatter cushions
+  } else {                                                                                                                         // flat as a bed, 198 × 145
+    add(RB(GS.bedW, seatTop - legH - 0.02, GS.bedD, 0.05), fab, 0, legH + 0.02 + (seatTop - legH - 0.02) / 2, 0.02 + GS.bedD / 2);
+    for (const x of [-GS.bedW / 2 + 0.06, GS.bedW / 2 - 0.06]) add(new THREE.CylinderGeometry(0.018, 0.018, legH + 0.02, 12), leg, x, (legH + 0.02) / 2, 0.02 + GS.bedD - 0.08, false);
+    for (const sx of [-1, 1]) { const c = add(RB(0.43, 0.43, 0.13, 0.06), fab, sx * 0.45, seatTop + 0.08, 0.2, false); c.rotation.x = -1.2; }
   }
-  // two back cushions (tilted back a little) and the round bolster by the left arm
-  for (const sx of [-1, 1]) { const c = add(RB(iw / 2 - 0.01, 0.5, 0.2, 0.07), fab, sx * iw / 4, GS.seatH + 0.25 + (guest.open ? 0.01 : 0), 0.2); c.rotation.x = -0.12; }
-  if (!guest.open) add(new THREE.SphereGeometry(0.12, 20, 14), fab, -iw / 2 + 0.15, GS.seatH + 0.12, 0.42, false);
   { const mg = mergeByMaterial(g, new Set(parts)); parts.length = 0; parts.push(...mg.solids); }
   const door = { kind: 'swap', label: 'Sofa bed', parts, center: O.clone().setY(0.5).addScaledVector(n, 0.5),
     swap: () => selectFurniture(selected === guestMover ? null : guestMover),
@@ -55,7 +53,7 @@ function buildGuestSofa() {
   guest.group = g; guest.parts = parts;
   guestDimsUpdate();
 }
-function guestFront() { return guest.open ? 0.26 + GS.bedD : GS.D; }
+function guestFront() { return guest.open ? 0.02 + GS.bedD : GS.D; }
 function guestGaps() {
   const { n, a } = guest.wall, O = guest.group.position, f = guestFront();
   const front = gapTo(O.clone().addScaledVector(n, f + 0.01).setY(0.3), n.clone(), 4) ?? 4;
@@ -68,11 +66,11 @@ function guestDimsUpdate() {
   const { n, a } = guest.wall, O = guest.group.position, f = guestFront(), G = guestGaps();
   const P = (s, t) => toBl(O.clone().addScaledVector(a, s).addScaledVector(n, t));
   guestDims.add(dimLine(P(-GS.W / 2, f + 0.08), P(GS.W / 2, f + 0.08), `${(GS.W * 100).toFixed(0)} cm`, 0.06));
-  guestDims.add(dimLine(P(GS.W / 2 + 0.08, 0), P(GS.W / 2 + 0.08, f), `${(f * 100).toFixed(0)} cm ${guest.open ? '(bed, est.)' : 'deep'}`, 0.06));
+  guestDims.add(dimLine(P(GS.W / 2 + 0.08, 0), P(GS.W / 2 + 0.08, f), `${(f * 100).toFixed(0)} cm ${guest.open ? '(as a bed)' : 'deep'}`, 0.06));
   guestDims.add(dimLine(P(0, f), P(0, f + G.front), `${G.front.toFixed(2)} m free${G.front < 0.6 ? ' (tight)' : ''}`, 0.3));
   for (const [s, d] of [[1, G.sideP], [-1, G.sideN]]) guestDims.add(dimLine(P(s * GS.W / 2, 0.5), P(s * (GS.W / 2 + d), 0.5), `${d.toFixed(2)} m`, 0.3));
   const [coll, name] = GS_COLORS[guest.color];
-  const t = labelSprite(`Arezzo sovesofa · ${coll} ${name}${guest.open ? ' · bed 198 × 152' : ''}`, { h: 0.03 }); t.position.copy(O).addScaledVector(n, 0.5).setY(1.2); guestDims.add(t);
+  const t = labelSprite(`Firenze sovesofa · ${coll} ${name}${guest.open ? ' · bed 198 × 145' : ''}`, { h: 0.03 }); t.position.copy(O).addScaledVector(n, 0.5).setY(1.2); guestDims.add(t);
 }
 // ------------------------------------------------------------ Living: &Tradition Little Petra VB1 lounge chair (Viggo Boesen, 1938), free to move and turn
 // interiorshop.dk (Oct 2026): W 81 × D 83 × H 75 cm, seat 40; oiled oak or walnut legs; 6 upholsteries; variantId per combination
@@ -647,16 +645,13 @@ const plantMover = {
   info: () => `About ${Math.round(PLANTS[plant.kind].h * 100)} cm tall in a Ø${Math.round(plant.potR * 200)} cm pot · a generic plant (no product picked yet) · Hue Lightstrip Plus on the wall behind it · ⟲ ⟳ turn it to show its best side`,
 };
 const guestMover = {
-  name: 'Sofa bed', title: () => `Arezzo 3-pers sovesofa${guest.open ? ' · as bed' : ''}`,
+  name: 'Sofa bed', title: () => `Firenze 3-pers sovesofa · Capri Mørk beige${guest.open ? ' · as bed' : ''}`,
   anchor: () => (guest.group ? guest.group.position.clone().addScaledVector(guest.wall.n, guestFront() + 0.2).setY(0.9) : null),
   axis: () => guest.wall.a,
   shift: (dir) => { const b = guest.offset; guest.offset += dir * 0.05; buildGuestSofa(); if (Math.abs(guest.offset - b) < 1e-6) showToast('Can’t go further: end of the wall'); },
-  variant: { label: () => (guest.open ? 'Close to sofa' : 'Open as bed'), run: () => { guest.open = !guest.open; buildGuestSofa(); if (vpax.run) vpaxDimsUpdate(); showToast(guest.open ? 'Pulled out as a bed (198 × 152)' : 'Back to a sofa'); } },
-  selects: [
-    { id: 'gscol', label: 'Fabric & colour', options: () => GS_COLORS.map(([c, nm]) => ({ group: c, label: `${c} ${nm}` })), get: () => guest.color,
-      set: (i) => { guest.color = i; buildGuestSofa(); } },
-  ],
-  link: () => ({ href: GS.url, text: 'Møbelkompagniet · Arezzo ↗' }),
+  variant: { label: () => (guest.open ? 'Close to sofa' : 'Open as bed'), run: () => { guest.open = !guest.open; buildGuestSofa(); if (vpax.run) vpaxDimsUpdate(); showToast(guest.open ? 'Folded out as a bed (198 × 145)' : 'Back to a sofa'); } },
+  selects: [],   // decided (2026-11-24): Capri Mørk beige
+  link: () => ({ href: GS.url, text: 'Møbelkompagniet · Firenze sovesofa ↗' }),
   info: () => { const G = guestGaps();
-    return `237 × 107 × 93 cm · seat 43 cm · bed 198 × 152 · ${GS.price} · ${G.front.toFixed(2)} m free in front${guest.open ? ' of the bed' : ''} · ${G.sideN.toFixed(2)} / ${G.sideP.toFixed(2)} m to the ends`; },
+    return `220 × 100 × 88 cm · seat 42 cm · bed 198 × 145 · storage · ${GS.price} · ${G.front.toFixed(2)} m free in front${guest.open ? ' of the bed' : ''} · ${G.sideN.toFixed(2)} / ${G.sideP.toFixed(2)} m to the ends`; },
 };

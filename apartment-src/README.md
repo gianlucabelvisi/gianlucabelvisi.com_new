@@ -45,3 +45,15 @@ cd web && npm i three@0.186 three-mesh-bvh@0.8.3   # only for test.html
 `src/js/01-core.js` … in order (16-coffee-rug, 17-study and 18-ux are included before 15-loop-hud, because the
 loop's MOVERS list uses their objects). Add new features as a new numbered module or in the module of the room
 they belong to; later modules may use anything defined earlier.
+
+## High-quality stills (Cycles, since 2026-11-24)
+
+The furniture only exists in the viewer, so stills go through an export:
+1. `node render_export.mjs renders/export 10.5 21` (serve web/ on :8765 first): Playwright loads test.html and exports the furnished
+   scene with three's GLTFExporter, once by day (lights off) and once at night (every Hue light on): `scene_day.glb`, `scene_night.glb`,
+   plus `lights.json` (sun/moon direction, every lit light and Hue fixture in Blender coordinates).
+2. `Blender -b --python render_shots.py -- renders/export renders/shots all all 2400 1024` (on the Mac: Metal GPU). Imports the GLB,
+   turns window glass into real glass (light passes through it), Nishita sky + sun by day, dark sky + moon + the Hue lights by night,
+   then renders the framed shots in `SHOTS` (dining, living, bedroom, værelse, entrance, bathroom) as `<shot>_<day|night>.jpg`.
+   Arguments: export dir, out dir, day|night|all, shot list|all, width, samples. Windowless rooms get their ceiling lights by day too.
+`renders/` is git-ignored.

@@ -8,6 +8,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
@@ -261,12 +262,24 @@ MATS.chrome = std({ color: 0xdadde0, roughness: 0.12, metalness: 1 });
 MATS.portholeglass = std({ color: 0x101316, roughness: 0.05, metalness: 0.3 });
 MATS.mirror = std({ color: 0xffffff, roughness: 0.02, metalness: 1 });
 MATS.showertile = std({ map: canvasTex(512, 512, (g, W) => { g.fillStyle = '#3e332b'; g.fillRect(0, 0, W, W); g.fillStyle = '#2c241e'; g.fillRect(0, W / 2 - 1, W, 2); g.fillRect(W / 2 - 1, 0, 2, W); }, [1.2, 1.2]), roughness: 0.3 });
-MATS.bathwall = std({ color: 0xa9b0b2, roughness: 0.6 });
+// bathroom walls (2026-11-24, "make it realistic"): light warm-grey glazed 30 × 60 tiles in a horizontal stack bond, fine grout
+const bathTileTex = canvasTex(1024, 1024, (g, W) => {
+  const r = rng(29); g.fillStyle = '#bdb6ab'; g.fillRect(0, 0, W, W);
+  const tw = W / 2, th = W / 4, gr = 3;
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 4; j++) {
+    const v = (r() - 0.5) * 7, c = (k) => Math.round(k + v);
+    const grd = g.createLinearGradient(i * tw, j * th, (i + 1) * tw, (j + 1) * th);
+    grd.addColorStop(0, `rgb(${c(223)},${c(219)},${c(211)})`); grd.addColorStop(1, `rgb(${c(214)},${c(210)},${c(202)})`);
+    g.fillStyle = grd; g.fillRect(i * tw + gr / 2, j * th + gr / 2, tw - gr, th - gr);
+    for (let k = 0; k < 60; k++) { g.fillStyle = `rgba(${r() < 0.5 ? '255,255,255' : '150,140,128'},0.04)`; g.fillRect(i * tw + r() * tw, j * th + r() * th, 2 + r() * 10, 1 + r() * 3); }
+  }
+}, [1.2, 1.2]);
+MATS.bathwall = std({ map: bathTileTex, roughness: 0.22 });
 MATS.vanity = std({ map: veneerTex, color: 0x9a6a48, roughness: 0.5 });
 MATS.fridgeliner = std({ color: 0xf1f3f5, roughness: 0.3 });
 MATS.fridgelight = std({ color: 0xffffff, emissive: 0xfff4dd, emissiveIntensity: 2.2 });
 MATS.shelfglass = new THREE.MeshPhysicalMaterial({ color: 0xcfe3e3, roughness: 0.05, transparent: true, opacity: 0.35, depthWrite: false });
-MATS.bathmirror = std({ color: 0xc3d0d6, roughness: 0.08, metalness: 0.55, envMapIntensity: 1.6 });
+MATS.bathmirror = std({ color: 0xdfe6e8, roughness: 0.03, metalness: 1, envMapIntensity: 1.2 });   // under the live reflection (13-rooms) when you're in the bathroom
 MATS.basin = std({ color: 0xd9dbdc, roughness: 0.2 });
 MATS.towel = std({ color: 0x9aa58f, roughness: 1.0 });
 MATS.bottleamber = std({ color: 0x8c5a2e, roughness: 0.25 });

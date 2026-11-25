@@ -5,7 +5,8 @@ const fabricTex = canvasTex(256, 256, (g, W) => { const r = rng(71); g.fillStyle
 MATS.fabric = std({ map: fabricTex, color: 0xe9e1d4, roughness: 0.95 });
 MATS.linen = std({ color: 0xf6f4ef, roughness: 0.9 });
 MATS.legwood = std({ color: 0xc9a473, roughness: 0.5 });
-const bed = { width: 1.6, offset: null, doorGap: 0.90, group: null, dims: [], door: null, wall: null };
+const bed = { width: 1.8,   // 2026-11-24 Gianluca: settled on 180 × 200
+  offset: null, doorGap: 0.90, group: null, dims: [], door: null, wall: null };
 // one draw call per material for a finished piece of furniture (the pieces never move relative to each other)
 // many small static meshes with the same material (lamp lenses, spots, fittings) → one draw call per material
 function bakeLoose(list, opts = {}) {
@@ -65,6 +66,7 @@ function buildBed() {
   const { W, u3, n3, sDoor, sEnd, cast } = bed.wall;
   if (bed.group) { scene.remove(bed.group); for (const p of bed.parts) { const i = collidables.indexOf(p); if (i >= 0) collidables.splice(i, 1); } }
   furnDims.clear();
+  bed.width = 1.8;                                               // decided (old saved layouts may still say 1.6)
   const w = bed.width, L = 2.0, HB = 0.08;
   const w0 = bed.width;
   const lim = (sEnd - sDoor) / 2 - w0 / 2 - 0.02;                  // keep the bed clear of the door opening and the window wall
@@ -75,24 +77,21 @@ function buildBed() {
   const g = new THREE.Group(); g.position.copy(O); g.rotation.y = Math.atan2(-n3.z, n3.x);
   const parts = [];
   const add = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); parts.push(m); return m; };
-  // headboard with three buttons
-  add(new THREE.BoxGeometry(HB, 1.15, w + 0.04), MATS.fabric, HB / 2, 0.575, 0);
-  for (const z of [-0.28, 0, 0.28]) add(new THREE.SphereGeometry(0.018, 10, 8), MATS.fabric, HB + 0.004, 0.9, z * w / 1.6);
-  // two base units side by side, with the drawer grip on the long side
+  // softer upholstered bed (2026-11-24): rounded headboard with a padded front, rounded base, pillow-top mattress, a duvet that drapes
+  add(softBox(HB, 1.15, w + 0.04, 0.03, {}), MATS.fabric, HB / 2, 0.575, 0);
+  add(softBox(0.05, 0.62, w - 0.02, 0.022, { top: 0 }), MATS.fabric, HB + 0.02, 0.86, 0);                      // padded panel on the headboard front
+  for (const z of [-0.28, 0, 0.28]) add(new THREE.SphereGeometry(0.016, 10, 8), MATS.fabric, HB + 0.045, 0.9, z * w / 1.6);
   const half = w / 2;
-  for (const zc of [-half / 2, half / 2]) {
-    add(new THREE.BoxGeometry(L, 0.3, half - 0.006), MATS.fabric, HB + L / 2, 0.1 + 0.15, zc);
-    add(new THREE.BoxGeometry(L - 0.02, 0.012, half - 0.02), MATS.linen, HB + L / 2, 0.1 + 0.3 + 0.001, zc).visible = false;
-  }
+  for (const zc of [-half / 2, half / 2]) add(softBox(L, 0.3, half - 0.006, 0.025), MATS.fabric, HB + L / 2, 0.1 + 0.15, zc);   // two base units
   add(new THREE.BoxGeometry(0.22, 0.03, 0.012), new THREE.MeshStandardMaterial({ color: 0x8e8779, roughness: 1 }), HB + 0.45, 0.34, -w / 2 - 0.001);
-  // continental mattress, duvet, pillows
-  add(new THREE.BoxGeometry(L, 0.2, w), MATS.fabric, HB + L / 2, 0.4 + 0.1, 0);
-  add(new THREE.BoxGeometry(L - 0.02, 0.06, w - 0.02), MATS.linen, HB + L / 2, 0.63, 0);             // topper
-  const duvet = add(new THREE.BoxGeometry(L * 0.72, 0.1, w + 0.1), MATS.linen, HB + L - L * 0.36, 0.7, 0);
-  duvet.geometry.translate(0, 0, 0);
-  add(new THREE.BoxGeometry(0.02, 0.28, w + 0.1), MATS.linen, HB + L + 0.005, 0.56, 0);                 // duvet drop at the foot
+  add(softBox(L, 0.2, w, 0.04, { top: 0.008 }), MATS.fabric, HB + L / 2, 0.4 + 0.1, 0);                          // continental mattress
+  add(softBox(L - 0.02, 0.07, w - 0.02, 0.03, { top: 0.01 }), MATS.linen, HB + L / 2, 0.635, 0);                 // topper
+  add(softBox(L * 0.72, 0.09, w + 0.08, 0.04, { top: 0.03 }), MATS.linen, HB + L - L * 0.36, 0.705, 0);          // duvet, soft top
+  add(softBox(0.035, 0.3, w + 0.08, 0.015, {}), MATS.linen, HB + L + 0.004, 0.55, 0);                            // duvet drop at the foot
+  for (const zs of [-1, 1]) add(softBox(L * 0.62, 0.3, 0.035, 0.015, {}), MATS.linen, HB + L - L * 0.31 - 0.04, 0.55, zs * (w / 2 + 0.035));   // and over the sides
+  { const fold = add(softBox(0.24, 0.03, w + 0.04, 0.014, { top: 0.006 }), MATS.linen, HB + L * 0.28 + 0.12, 0.748, 0); fold.rotation.z = -0.03; }   // the folded-back top of the duvet
   for (const zc of (w > 1.7 ? [-0.43, 0.43] : [-0.38, 0.38])) {
-    const pl = add(new THREE.BoxGeometry(0.42, 0.13, 0.66), MATS.linen, HB + 0.26, 0.73, zc); pl.rotation.z = 0.18;
+    const pl = add(softBox(0.44, 0.14, 0.66, 0.06, { top: 0.03 }), MATS.linen, HB + 0.27, 0.74, zc); pl.rotation.z = 0.2;
   }
   // oak legs: corners + the seam between the two units
   for (const x of [HB + 0.08, HB + L - 0.08]) for (const z of [-w / 2 + 0.06, 0, w / 2 - 0.06]) add(new THREE.CylinderGeometry(0.024, 0.02, 0.1, 12), MATS.legwood, x, 0.05, z);
@@ -131,7 +130,6 @@ const bedMover = {
     if (Math.abs(bed.offset - before) < 1e-6) showToast('Can’t go further: door or wall'); },
   info: () => { const w = bed.wall; const sC = (w.sDoor + w.sEnd) / 2 + bed.offset; const e1 = sC - bed.width / 2 - 0.02 - w.sDoor, e2 = w.sEnd - sC - bed.width / 2 - 0.02;
     return `${Math.round(bed.width * 100)} × 200 cm · ${e1.toFixed(2)} m to door · ${e2.toFixed(2)} m to window wall`; },
-  variant: { label: () => `Try ${bed.width > 1.7 ? '160' : '180'} cm`, run: () => { const nw = bed.width > 1.7 ? 1.6 : 1.8; bed.offset += (nw - bed.width) / 2; bed.width = nw; buildBed(); if (furn.gianluca || furn.svetlanaInfo) furnitureDims(); showToast(`Bed ${Math.round(bed.width * 100)} × 200 cm`); } },
 };
 function selectFurniture(m) {
   if (focus && m !== focus.mover && !focus.switching) exitFocus();

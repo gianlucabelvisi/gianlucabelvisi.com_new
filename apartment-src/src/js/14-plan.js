@@ -52,7 +52,7 @@ function shopLines() {
   if (!plant.removed) add('Living', 'plant', `${PLANTS[plant.kind] ? PLANTS[plant.kind].name || 'Plant' : 'Plant'} + pot`, { note: 'No product picked yet' });
   add('Living', 'balcurt', 'Balcony-door curtains (light)', { note: 'No product picked yet' });
   // værelse
-  safe(() => { const p = parseKr(GS.price); add('Værelse', 'guest', 'Møbelkompagniet Arezzo sofa bed', { detail: '237 cm, 3 seats', kr: p && p.kr, href: GS.url }); });
+  safe(() => { const p = parseKr(GS.price); add('Værelse', 'guest', 'Møbelkompagniet Firenze sofa bed', { detail: '220 × 100 cm, sleeps 198 × 145 · Capri Mørk beige', kr: p && p.kr, href: GS.url }); });
   safe(() => { if (vpax.model !== 2) return; add('Værelse', 'vpax', 'Lattice closet (already ours)', { detail: '85 × 37 × 180 cm, between the desk and the door', kr: 0 }); });
   safe(() => { if (vpax.model === 2) return; const lk = linkOf(vpaxMover), p = parseKr(vpaxMover.info()); add('Værelse', 'vpax', 'IKEA PAX closet', { detail: 'by the window wall', kr: p && p.kr * SEK_DKK, approx: true, href: lk.href, note: 'IKEA SE price, converted from SEK' }); });
   safe(() => { const Dm = deskModel(); if (Dm.fit) add('Værelse', 'desk', `Brown desk ${Math.round(Dm.W * 100)} × ${Math.round(Dm.D * 100)} cm`, { detail: `max ${Math.round(deskMaxW() * 100)} cm next to the closet`, note: 'No product picked yet' });
@@ -67,8 +67,8 @@ function shopLines() {
   return L;
 }
 // ticks for "we've decided on this one"; kept per browser and travel with shared layouts
-let shopDecided = { sofa: true, lounge: true, nilofs: true, chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, table: true };
-try { const v = JSON.parse(localStorage.getItem('aptDecided') || 'null'); if (v) { if (!v._nov26) Object.assign(v, { chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, _nov26: true }); if (!v._nov26b) Object.assign(v, { lounge: true, nilofs: true, _nov26b: true }); if (!v._nov23t) Object.assign(v, { table: true, ctab: true, _nov23t: true }); shopDecided = v; } } catch (_) { /* ignore */ }
+let shopDecided = { sofa: true, lounge: true, nilofs: true, chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, table: true, guest: true };
+try { const v = JSON.parse(localStorage.getItem('aptDecided') || 'null'); if (v) { if (!v._nov26) Object.assign(v, { chairs: true, skaenk: true, skaenklegs: true, ctab: true, tvunit: true, tvshelf: true, _nov26: true }); if (!v._nov26b) Object.assign(v, { lounge: true, nilofs: true, _nov26b: true }); if (!v._nov23t) Object.assign(v, { table: true, ctab: true, _nov23t: true }); if (!v._nov24g) Object.assign(v, { guest: true, _nov24g: true }); shopDecided = v; } } catch (_) { /* ignore */ }
 function saveDecided() { try { localStorage.setItem('aptDecided', JSON.stringify(shopDecided)); } catch (_) { /* ignore */ } }
 function shopTotals(lines) {
   let pick = 0, dec = 0, approx = false, missing = 0;
@@ -386,7 +386,7 @@ $('qPlan').addEventListener('click', () => setPlan(!PLAN_UI.open));
 addEventListener('keydown', (e) => { if (e.code === 'KeyO' && !e.repeat && e.target.tagName !== 'INPUT' && !e.metaKey && !e.ctrlKey && !e.altKey) setPlan(!PLAN_UI.open); else if (e.code === 'Escape' && PLAN_UI.open) setPlan(false); });
 bedMover.selects = [{ id: 'nstand', label: 'Nightstands', options: () => NIGHT.map((n) => ({ label: `${n.brand} ${n.name} · ${Math.round(n.W * 100)} × ${Math.round(n.D * 100)} × ${Math.round(n.H * 100)} cm · ${n.kr} kr` })), get: () => night.m, set: (i) => { night.m = i; night.col = 0; buildBed(); } }];
 bedMover.link = () => { const N = NIGHT[night.m]; return { href: N.url, text: `IKEA · ${N.name} nightstand · ${N.kr} kr ↗` }; };
-function furnish() { buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknikGolem(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); buildHolm(); buildSkaenk(); buildCoffeeTable(); buildRug(); buildRoomFixtures(); buildRoomSwitches(); buildRoomFurniture(); autoLightTick(clockHour, dayLevel, true); try { updateNight(); } catch (_) { /* ok */ } layoutBoot(); }
+function furnish() { buildBed(); buildClosets(); buildTV(); buildMedia(); buildSofa(); livingDims(); buildCoffee(); buildDining(); buildTeknik(); buildFridgeFood(); buildGuestSofa(); buildVaerCloset(); buildNookCloset(); buildPetra(); buildBooks(); buildPlant(); buildOutside(); buildSwitches(); buildLift(); buildCurtains(); buildArt(); buildAlcove(); buildDesk(); buildHolm(); buildSkaenk(); buildCoffeeTable(); buildRug(); buildRoomFixtures(); buildRoomSwitches(); buildRoomFurniture(); try { buildBathroomFinish(); } catch (e) { console.warn('bathroom finish', e); } autoLightTick(clockHour, dayLevel, true); try { updateNight(); } catch (_) { /* ok */ } layoutBoot(); }
 function prewarmShaders() {
   // compile every material variant now (incl. hidden things: ceiling, upper floors, closed panels), not the first time it comes into view
   // lights first exactly as perfTick leaves them (light counts are part of every shader), then the meshes
