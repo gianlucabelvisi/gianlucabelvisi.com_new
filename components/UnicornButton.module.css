@@ -1,362 +1,125 @@
-@keyframes bounce {
-  0% { transform: scale(1) rotate(0deg); }
-  25% { transform: scale(1.4) rotate(-5deg); }
-  50% { transform: scale(1.6) rotate(5deg); }
-  75% { transform: scale(1.3) rotate(-3deg); }
-  100% { transform: scale(1) rotate(0deg); }
-}
-
-@keyframes magicPulse {
-  0% { 
-    box-shadow: 0 0 20px rgba(255, 105, 180, 0.3),
-                0 0 40px rgba(255, 215, 0, 0.2),
-                0 0 60px rgba(138, 43, 226, 0.1);
-  }
-  50% { 
-    box-shadow: 0 0 30px rgba(255, 105, 180, 0.6),
-                0 0 60px rgba(255, 215, 0, 0.4),
-                0 0 90px rgba(138, 43, 226, 0.3);
-  }
-  100% { 
-    box-shadow: 0 0 20px rgba(255, 105, 180, 0.3),
-                0 0 40px rgba(255, 215, 0, 0.2),
-                0 0 60px rgba(138, 43, 226, 0.1);
-  }
-}
-
-@keyframes auraRotate {
-  0% { transform: rotate(0deg) scale(1); opacity: 0.3; }
-  50% { transform: rotate(180deg) scale(1.1); opacity: 0.6; }
-  100% { transform: rotate(360deg) scale(1); opacity: 0.3; }
-}
-
-@keyframes sparkleFloat {
-  0% { transform: translateY(0px) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(-20px) rotate(360deg); opacity: 0; }
-}
-
-@keyframes floatingSparkles {
-  0% { 
-    transform: translateY(0px) rotate(0deg) scale(1);
-    opacity: 0.6;
-  }
-  25% { 
-    transform: translateY(-15px) rotate(90deg) scale(1.2);
-    opacity: 1;
-  }
-  50% { 
-    transform: translateY(-30px) rotate(180deg) scale(0.8);
-    opacity: 0.8;
-  }
-  75% { 
-    transform: translateY(-15px) rotate(270deg) scale(1.1);
-    opacity: 1;
-  }
-  100% { 
-    transform: translateY(0px) rotate(360deg) scale(1);
-    opacity: 0.6;
-  }
-}
-
-@keyframes sparkleOrbit {
-  0% { transform: rotate(0deg) translateX(45px) rotate(0deg); }
-  100% { transform: rotate(360deg) translateX(45px) rotate(-360deg); }
-}
-
-@keyframes countGlow {
-  0% { 
-    color: white; 
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-  }
-  50% { 
-    color: #ffd700; 
-    text-shadow: 0 0 20px #ffd700,
-                 0 0 30px #ff69b4,
-                 0 0 40px #9370db;
-  }
-  100% { 
-    color: white; 
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-  }
-}
-
-@keyframes tooltipAppear {
-  0%   { opacity: 0; }
-  100% { opacity: 1; }
-}
+/* The unicorn button (components/UnicornButton.tsx): calm at rest, confetti on click */
 
 .wrapper {
   position: relative;
   display: flex;
   justify-content: center;
-  margin: 1rem 0;
-  z-index: 1;
+  margin: 1.5rem 0;
 }
 
+/* A pill with a rainbow rim: the rim is a gradient painted behind a border-wide gap */
 .button {
   position: relative;
-  background: linear-gradient(135deg, 
-    rgba(255, 105, 180, 0.1) 0%, 
-    rgba(255, 215, 0, 0.1) 50%, 
-    rgba(138, 43, 226, 0.1) 100%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 1.15rem 0.5rem 0.75rem;
   border: 2px solid transparent;
-  background-clip: padding-box;
-  border-radius: 18px;
-  padding: 0.6rem 1.2rem;
+  border-radius: 999px;
+  background:
+    linear-gradient(var(--color-background-card), var(--color-background-card)) padding-box,
+    linear-gradient(100deg, #ff6b6b, #ffb347, #ffe066, #6bd98c, #5fb8ff, #b388ff, #ff6bd6) border-box;
+  color: var(--color-text-primary);
+  font-family: var(--font-ui);
   cursor: pointer;
-  font-size: 1.2rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  box-shadow: 0 3px 15px rgba(255, 105, 180, 0.2),
-              0 6px 25px rgba(255, 215, 0, 0.1);
-  overflow: visible;
-  min-width: 140px;
-  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s cubic-bezier(0.2, 1.4, 0.4, 1), box-shadow 0.25s ease;
 }
 
-.button:before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  background: linear-gradient(45deg, #ff69b4, #ffd700, #9370db, #00bfff, #ff69b4);
-  background-size: 300% 300%;
-  border-radius: 18px;
-  z-index: -1;
-  animation: magicPulse 3s ease-in-out infinite;
+.button:hover,
+.button:focus-visible {
+  transform: translateY(-2px) rotate(-1.5deg);
+  box-shadow: var(--shadow-md);
 }
 
-.button:hover {
-  transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 6px 30px rgba(255, 105, 180, 0.4),
-              0 9px 45px rgba(255, 215, 0, 0.3),
-              0 0 80px rgba(138, 43, 226, 0.2);
-}
-
-.button.hovered:before {
-  animation-duration: 1s;
-}
-
-.button.clicked {
-  animation: bounce 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-}
-
-.unicornContainer {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.button:active {
+  transform: scale(0.94);
 }
 
 .unicorn {
-  font-size: 2rem;
-  filter: drop-shadow(0 0 8px rgba(255, 105, 180, 0.5));
-  transition: all 0.3s ease;
-  z-index: 2;
-  position: relative;
+  display: inline-block;
+  font-size: 1.7rem;
+  line-height: 1;
 }
 
 .button:hover .unicorn {
-  transform: scale(1.1);
-  filter: drop-shadow(0 0 15px rgba(255, 105, 180, 0.8))
-          drop-shadow(0 0 30px rgba(255, 215, 0, 0.6));
+  animation: nod 0.6s ease-in-out;
 }
 
-.magicAura {
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    rgba(255, 105, 180, 0.3) 90deg,
-    transparent 180deg,
-    rgba(255, 215, 0, 0.3) 270deg,
-    transparent 360deg
-  );
-  border-radius: 50%;
-  animation: auraRotate 4s linear infinite;
-  z-index: 1;
-}
-
-.button:hover .magicAura {
-  animation-duration: 2s;
-  opacity: 0.8;
-}
-
-/* Floating Sparkle Ring */
-.sparkleRing {
-  position: absolute;
-  width: 90px;
-  height: 90px;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-.floatingSparkle {
-  position: absolute;
-  font-size: 0.9rem;
-  animation: sparkleOrbit 3s linear infinite;
-  animation-delay: var(--delay);
-  top: 50%;
-  left: 50%;
-  transform-origin: 0 0;
-}
-
-.button:hover .floatingSparkle {
-  animation-duration: 1.5s;
-  font-size: 1.1rem;
-}
-
-.countContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1rem;
+.bump {
+  animation: bump 0.45s cubic-bezier(0.2, 1.6, 0.4, 1);
 }
 
 .count {
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: white;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.8),
-               0 0 15px rgba(255, 105, 180, 0.4),
-               0 2px 4px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
+  min-width: 1.5ch;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-.button.clicked .count {
-  animation: countGlow 1s ease-in-out;
-}
+/* ── Confetti: each piece flies from the centre to its own --dx/--dy ── */
 
-/* Particle System */
-.particleContainer {
+.particles {
   position: absolute;
-  top: 50%;
   left: 50%;
+  top: 50%;
   width: 0;
   height: 0;
   pointer-events: none;
-  z-index: 10;
+  z-index: 3;
 }
 
 .particle {
   position: absolute;
-  font-size: 1.2rem;
-  pointer-events: none;
-  z-index: 10;
-  animation: sparkleFloat 3s ease-out forwards;
-  filter: drop-shadow(0 0 3px currentColor);
+  left: 0;
+  top: 0;
+  font-size: 1.15rem;
+  line-height: 1;
+  opacity: 0;
+  animation: fly 1.05s cubic-bezier(0.15, 0.7, 0.3, 1) both;
 }
 
-/* Enhanced Tooltip */
+@keyframes fly {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+  12% { opacity: 1; }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 40px)) rotate(var(--spin)) scale(1.1); }
+}
+
+@keyframes bump {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.5) rotate(-14deg); }
+  100% { transform: scale(1); }
+}
+
+@keyframes nod {
+  0%, 100% { transform: rotate(0); }
+  30% { transform: rotate(-14deg); }
+  65% { transform: rotate(10deg); }
+}
+
+/* ── Tooltip ── */
+
 .tooltip {
   position: absolute;
-  bottom: calc(100% + 0.8rem);
   left: 50%;
-  transform: translateX(-50%);
-  background: var(--color-primary);
-  color: white;
-  padding: 0.8rem 1.2rem;
-  border-radius: 10px;
-  font-size: 0.85rem;
-  /* Wrap rather than overflow viewport. Cap to viewport width minus
-     1rem on each side so we never clip on narrow phones. */
-  white-space: normal;
-  text-align: center;
+  bottom: calc(100% + 0.6rem);
+  z-index: 4;
   width: max-content;
-  max-width: min(280px, calc(100vw - 2rem));
-  line-height: 1.3;
-  z-index: 1000;
+  max-width: min(18rem, calc(100vw - 2rem));
+  padding: 0.5rem 0.8rem;
+  border-radius: 10px;
+  background: var(--color-text-primary);
+  color: var(--color-background-main);
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 550;
+  line-height: 1.35;
+  text-align: center;
   pointer-events: none;
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.25),
-              0 0 15px rgba(var(--color-primary-rgb), 0.35);
-  border: 1px solid var(--color-primary-dark);
-  animation: tooltipAppear 0.3s ease-out forwards;
+  animation: tip 0.18s ease-out both;
 }
 
-.tooltipContent {
-  position: relative;
-  z-index: 2;
-  font-weight: 500;
+@keyframes tip {
+  from { opacity: 0; translate: 0 4px; }
 }
-
-.tooltipSparkle {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  font-size: 0.8rem;
-  animation: floatingSparkles 2s ease-in-out infinite;
-}
-
-.tooltipSparkle2 {
-  position: absolute;
-  top: -6px;
-  left: -6px;
-  font-size: 0.9rem;
-  animation: floatingSparkles 2.5s ease-in-out infinite;
-  animation-delay: 0.7s;
-}
-
-.tooltipSparkle3 {
-  position: absolute;
-  bottom: -4px;
-  right: 20%;
-  font-size: 0.7rem;
-  animation: floatingSparkles 1.8s ease-in-out infinite;
-  animation-delay: 1.2s;
-}
-
-.tooltip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 6px solid transparent;
-  border-top-color: var(--color-primary);
-}
-
-.tooltip::before {
-  content: '';
-  position: absolute;
-  top: calc(100% + 1px);
-  left: 50%;
-  transform: translateX(-50%);
-  border: 7px solid transparent;
-  border-top-color: var(--color-primary-dark);
-}
-
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .button {
-    font-size: 1rem;
-    padding: 0.5rem 1rem;
-    min-width: 120px;
-  }
-  
-  .unicorn {
-    font-size: 1.8rem;
-  }
-  
-  .count {
-    font-size: 1rem;
-  }
-  
-  .magicAura {
-    width: 50px;
-    height: 50px;
-  }
-
-  .sparkleRing {
-    width: 80px;
-    height: 80px;
-  }
-
-  .floatingSparkle {
-    font-size: 0.8rem;
-  }
-} 

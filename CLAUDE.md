@@ -20,6 +20,8 @@ npm run typecheck    # tsc --noEmit
 npm run clean        # Remove .next/ and public/images/posts/
 npm run fresh-build  # clean + build
 npm run copy-images  # Manually copy post images to public/
+npm run convex       # Convex dev backend: pushes convex/ on save (run next to `npm run dev`)
+npm run deploy       # Deploy Convex functions, then build against that deployment (needs CONVEX_DEPLOY_KEY)
 ```
 
 There are no tests beyond `test-posts.js` and `test-hashtags.tsx` (ad-hoc scripts, not a test suite).
@@ -64,14 +66,26 @@ In order: "Pick up where you left off" (only for returning readers), Latest, Ser
 - **Out of context** (`lib/captions.ts`): figure captions pulled from posts at build time. Every `<FigureLabel>` gets an anchor `#caption-N`, so each card links to its exact spot.
 - **Reading progress** (`lib/progress.ts`, `lib/useProgress.ts`): kept in `localStorage` (`blog-progress`), written by `components/ReadingProgress.tsx`. Feeds the continue row and the progress bars on cards.
 
-### Firebase (`lib/firebase.ts`)
-Used for real-time features (view counters, reactions, polls). Configured via `NEXT_PUBLIC_FIREBASE_*` environment variables.
+### Convex (`convex/`, `lib/convex.ts`)
+The backend for everything live: view counters, reactions, polls, unicorn-button clicks. It replaced Firebase.
+- `convex/schema.ts` defines one `counters` table (`kind`, `subject`, `key`, `count`); one module per feature exposes the public functions (`views.ts`, `reactions.ts`, `polls.ts`, `unicorns.ts`), sharing the helpers in `convex/counters.ts`. `convex/_generated/` is written by the Convex CLI and is committed.
+- The browser talks to it through `convex/react` hooks (`useQuery` is live: other readers' votes and reactions arrive without a reload). `pages/_app.tsx` provides the client.
+- `lib/convex.ts` exports `convex`, which is `null` when `NEXT_PUBLIC_CONVEX_URL` is unset. Every component that uses a Convex hook is split into a live part (hooks) and a wrapper that checks `convex` first, so the site renders without a backend. Keep that pattern.
+- Local development: `npm run convex` in one terminal (pushes functions on save, writes `.env.local`), `npm run dev` in another.
+- Deploys: `netlify.toml` runs `npm run deploy` when `CONVEX_DEPLOY_KEY` is set, which deploys the functions and builds the site against that deployment.
+- `lib/voter.ts` remembers in `localStorage` what this browser already did (voted, reacted, counted a view). The server only counts; it does not know who anyone is.
+- `scripts/firebase-to-convex.mjs` is the one-off converter for the old Firebase data.
 
 ### Theming (`contexts/ThemeContext.tsx`)
 Theme (`light`/`dark`) stored in `localStorage` under key `blog-theme`. Applied as `data-theme` attribute on `<html>`. Browse pages (home, archive, tags, search, projects) force dark ("ink"); post pages respect user preference, defaulting to light ("paper"). Every post opens on an ink hero (marked `data-ink-zone`) so browse and read feel like one site; the header wears its dark look while over it.
 
+### Page transitions (`lib/viewTransitions.ts`)
+Navigation runs inside the browser's View Transitions API: a clicked card image grows into the post hero, the title rises and the paper sheet slides up; leaving a post plays it backwards. The module patches the router's `push` and takes over back/forward through `beforePopState` (only one `beforePopState` handler can exist, so add to that one). The post page names its parts with inline `viewTransitionName` styles (`post-hero`, `post-title`, `post-sheet`); anything that can be the other end of the hero morph carries `data-vt-image` (card thumbnails, the homepage hero image). The choreography is CSS at the bottom of `styles/globals.css`. Browsers without the API get plain entrance animations; reduced motion gets none.
+
 ### Custom MDX Components
 Registered in `pages/[...slug].tsx`. Components live in `components/` and `components/mdx/`. To add a new component usable in `.mdx` files: create it in `components/`, import it in `[...slug].tsx`, and add it to the `components` object.
+
+House style for anything that sits inside a post: flat surfaces (`--color-background-hover` for an aside, `--color-background-card` plus a 1px `--color-border` for a card, `--ink` for something loud), corners from `--radius-sm/md/lg`, vertical room from `--block-gap`, labels with `font: var(--kicker)`, titles in `--font-display`, interface text in `--font-ui`. No gradients, glows, decorative blobs or looping animations; motion is a response to the reader (hover, click, reveal). `<Spoiler>` and `<Nsfw>` share `components/Reveal.tsx`; `<FilmCard>` and `<TvCard>` share `components/mdx/SpecCard.module.css`; `<YouTube>` and `<ResponsiveEmbed>` share `components/Embed.module.css`.
 
 ### Styling
 CSS Modules (`.module.css`) for component-scoped styles. Global styles in `styles/globals.css`, `styles/utils.css`, `styles/blog.css`.

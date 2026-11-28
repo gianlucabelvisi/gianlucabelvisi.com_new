@@ -2,9 +2,8 @@
   font-family: var(--font-ui);
   margin: 0 0 2.5rem;
   padding: 1.1rem 1.25rem 1rem;
-  border-radius: var(--border-radius-md);
-  background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.08) 0%, var(--color-background-card) 100%);
-  border: 1px solid rgba(var(--color-primary-rgb), 0.3);
+  border-radius: var(--radius-lg);
+  background: var(--color-background-hover);
 }
 
 .kicker {
@@ -13,7 +12,7 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 .name {
@@ -84,4 +83,21 @@
 
 .link:hover {
   color: var(--color-primary) !important;
+}
+
+/* A collection has no reading order: no numbers, and it sits at the end of the post rather than the top */
+.collection {
+  margin-top: 2.5rem;
+}
+
+.collection .number {
+  flex-basis: 0.45rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  font-size: 0;
+  background: var(--color-text-light);
+}
+
+.collection .current .number {
+  background: var(--color-primary);
 }

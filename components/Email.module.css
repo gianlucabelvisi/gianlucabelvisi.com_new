@@ -1,11 +1,11 @@
 /* An email open in a mail client: subject bar → sender row → body */
 
 .email {
-  margin: 2rem 0;
+  margin: var(--block-gap) 0;
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background: var(--color-background-card);
-  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.25), var(--shadow-sm);
+  font-family: var(--font-ui);
   overflow: hidden;
 }
 
@@ -22,7 +22,7 @@
 
 .toolbarIcon {
   flex-shrink: 0;
-  color: var(--color-primary);
+  color: var(--color-link);
   font-size: 1.05rem;
 }
 
@@ -60,8 +60,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary-dark));
-  color: #fff;
+  background: var(--color-text-primary);
+  color: var(--color-background-main);
   font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -106,8 +106,8 @@
 /* Beat the post's `.mdxContent p` rules */
 .email .body p {
   margin: 0 0 0.9rem;
-  font-size: 1.05rem;
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 .email .body p:last-child {

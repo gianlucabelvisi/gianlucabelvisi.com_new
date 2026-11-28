@@ -130,7 +130,7 @@ export default function Header() {
 
   return (
     <>
-      <header className={headerClass}>
+      <header className={headerClass} style={{ viewTransitionName: 'site-header' }}>
         <div className={styles.inner}>
           {project ? (
             <>
@@ -210,7 +210,7 @@ export default function Header() {
       </header>
 
       {showTabBar && (
-        <nav className={styles.tabBar} aria-label="Sections">
+        <nav className={styles.tabBar} aria-label="Sections" style={{ viewTransitionName: 'site-tabbar' }}>
           {TABS.map(t => {
             const on = t.match(router.pathname)
             const Icon = t.icon

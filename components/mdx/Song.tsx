@@ -5,12 +5,10 @@ interface SongProps {
   children: React.ReactNode
 }
 
-const Song: React.FC<SongProps> = ({ children }) => {
-  return (
-    <div className={styles.song}>
-      {children}
-    </div>
-  )
-}
+/**
+ * One line of a song. Lines that follow each other form a verse (the first gets the note);
+ * a <Break/> between them starts the next verse.
+ */
+const Song: React.FC<SongProps> = ({ children }) => <div className={styles.song}>{children}</div>
 
-export default Song 
+export default Song

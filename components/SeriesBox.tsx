@@ -24,7 +24,7 @@ export default function SeriesBox({ name, kind = 'serial', posts, currentSlug }:
   const index = posts.findIndex(p => p.slug === currentSlug)
 
   return (
-    <aside className={styles.box} aria-labelledby="series-heading">
+    <aside className={`${styles.box} ${kind === 'collection' ? styles.collection : ''}`} aria-labelledby="series-heading">
       <p className={styles.kicker}>{kind === 'serial' ? 'Series' : 'More from the collection'}</p>
       <h2 id="series-heading" className={styles.name}>
         {name}

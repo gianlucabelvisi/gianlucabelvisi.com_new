@@ -1,35 +1,14 @@
+/* A subtitle written into the body of a post (components/BlogSubTitle.tsx) */
+
 .subtitle {
-  margin-bottom: 2rem;
-  text-align: left;
-  font-size: 1.4rem;
-  position: relative;
+  margin: 0 0 2rem;
+  font-style: italic;
+  font-size: 1.25em;
   line-height: 1.4;
+  color: var(--color-text-secondary);
 }
 
-.subtitle .quoteStart {
-  position: absolute;
-  top: 0;
-  left: -1.5rem;
-  color: var(--color-primary);
+.quoteStart,
+.quoteEnd {
+  display: none;
 }
-
-.subtitle .quoteEnd {
-  position: absolute;
-  bottom: 0;
-  right: -1.5rem;
-  color: var(--color-primary);
-}
-
-@media screen and (max-width: 768px) {
-  .subtitle {
-    font-size: 1.2rem;
-  }
-  
-  .subtitle .quoteStart {
-    left: -1rem;
-  }
-  
-  .subtitle .quoteEnd {
-    right: -1rem;
-  }
-} 

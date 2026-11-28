@@ -1,97 +1,67 @@
-.textbox {
-  background: linear-gradient(135deg, rgba(255, 150, 100, 0.08) 0%, rgba(255, 150, 100, 0.04) 100%);
-  border-left: 4px solid var(--color-primary-light);
-  border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
-  padding: var(--spacing-lg);
-  margin-top: var(--spacing-xl);
-  margin-bottom: var(--spacing-xl);
-  box-shadow: var(--shadow-md);
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-}
+/* An aside inside a post (components/TextBox.tsx) */
 
-.textbox::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 100px;
-  height: 100px;
-  background: radial-gradient(circle, rgba(255, 150, 100, 0.1) 0%, transparent 70%);
-  border-radius: 50%;
-  transform: translate(50%, -50%);
-  pointer-events: none;
+.textbox {
+  margin: var(--block-gap) 0;
+  padding: 1.3rem 1.5rem 1.4rem;
+  border-radius: var(--radius-lg);
+  background: var(--color-background-hover);
+  font-size: 0.93em;
+  line-height: 1.6;
 }
 
 .header {
   display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
-  margin-bottom: var(--spacing-md);
-  position: relative;
-  z-index: 1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .title {
-  font-size: 0.9rem;
+  font: var(--kicker);
+  letter-spacing: var(--kicker-tracking);
+  text-transform: uppercase;
+  color: var(--color-link);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: -0.35rem -0.4rem -0.35rem auto;
+  padding: 0.35rem 0.4rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--color-primary-light);
-  margin-bottom: 0;
-  margin-right: auto;
-}
-
-.toggleButton {
-  background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary) 100%);
-  border: none;
-  color: var(--color-white);
   cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 500;
-  padding: 0.4rem 0.8rem;
-  border-radius: var(--border-radius-sm);
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(255, 150, 100, 0.3);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  transition: color 0.2s ease, background-color 0.2s ease;
 }
 
-.toggleButton:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(255, 150, 100, 0.4);
+.toggle:hover {
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-text-primary) 8%, transparent);
 }
 
-.toggleButton:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+.toggle svg {
+  font-size: 1rem;
+  transition: transform 0.3s ease;
 }
 
-.toggleButton.closed {
-  background: transparent;
-  color: var(--color-primary-light);
-  border: 1px solid var(--color-primary-light);
-  box-shadow: none;
-}
-
-.toggleButton.closed:hover {
-  background: var(--color-primary-light);
-  color: var(--color-white);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(255, 150, 100, 0.4);
+.toggleOpen svg {
+  transform: rotate(180deg);
 }
 
 /* Collapse via grid rows: 1fr <-> 0fr animates to the content's real height,
    whatever it becomes (lazy images, embeds), so nothing is ever clipped when open */
 .content {
-  position: relative;
-  z-index: 1;
-  line-height: 1.6;
   display: grid;
   grid-template-rows: 1fr;
   opacity: 1;
-  transition: grid-template-rows 0.3s ease, opacity 0.3s ease;
+  transition: grid-template-rows 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
 }
 
 .collapsed {
@@ -99,33 +69,42 @@
   opacity: 0;
 }
 
-.contentInner {
-  min-height: 0;
-  overflow: clip;
-  overflow-clip-margin: 8px; /* let image shadows breathe; still collapses to 0 */
+/* Closed: the title sits alone, so the header's bottom gap would only be dead space */
+.textbox:has(.collapsed) .header {
+  margin-bottom: 0;
 }
 
-/* Inside a post the last paragraph's margin would otherwise double up with the box padding */
+/* Clipped so it can collapse to nothing. The clip edge sits a little outside the text (negative margin,
+   matching padding) so things that hang in the margin, like a dialogue's opening quote, aren't cut off. */
+.contentInner {
+  min-height: 0;
+  margin: 0 -1.1rem;
+  padding: 0 1.1rem;
+  overflow: clip;
+}
+
+/* The box has its own padding: the first and last things inside shouldn't add to it */
+.contentInner > :first-child {
+  margin-top: 0;
+}
+
 .contentInner > :last-child {
   margin-bottom: 0;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .content {
-    transition: none;
-  }
-}
-
-/* Images within TextBox */
 .textbox img {
   width: 100%;
   max-width: 100%;
   height: auto;
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-sm);
-  margin: var(--spacing-md) 0;
+  margin: 0.75rem 0;
+  border-radius: var(--radius-sm);
   display: block;
-  background: var(--color-background-light);
-  padding: var(--spacing-sm);
   object-fit: contain;
-} 
+}
+
+@media (max-width: 700px) {
+  .textbox {
+    padding: 1.1rem 1.15rem 1.2rem;
+    border-radius: var(--radius-md);
+  }
+}

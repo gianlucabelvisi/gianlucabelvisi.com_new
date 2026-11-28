@@ -5,11 +5,11 @@
   align-items: center;
   gap: 0.9rem;
   margin: var(--spacing-lg) 0 var(--spacing-xl);
-  padding: 0.6rem 0.9rem 0.6rem 0.6rem;
+  padding: 0.55rem 1.1rem 0.55rem 0.55rem;
   border-radius: 999px;
   border: 1px solid var(--color-border);
-  background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.08) 0%, var(--color-background-card) 100%);
-  box-shadow: var(--shadow-sm);
+  background: var(--color-background-card);
+  font-family: var(--font-ui);
   width: fit-content;
   max-width: 100%;
 }
@@ -21,19 +21,18 @@
   border-radius: 50%;
   border: none;
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
   font-size: 1.05rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(var(--color-primary-rgb), 0.35);
-  transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease, background 0.2s ease;
 }
 
 .playButton:hover,
 .playButton:focus-visible {
-  background: var(--color-primary-dark);
+  background: var(--color-primary-light);
   transform: scale(1.06);
 }
 
@@ -41,9 +40,11 @@
   transform: scale(0.96);
 }
 
-.playing {
+.playing,
+.playing:hover,
+.playing:focus-visible {
   background: var(--color-text-primary);
-  box-shadow: none;
+  color: var(--color-background-main);
 }
 
 /* Optical centering: a play triangle looks off-centre unless nudged right */
@@ -73,7 +74,7 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 .title {

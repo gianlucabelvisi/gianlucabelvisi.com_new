@@ -1,37 +1,37 @@
+/* The end of the writing (components/PostFooter.tsx): reactions, who wrote it, how often it's been read */
+
 .container {
-  /* Base styles - no changes needed */
+  margin-top: 3.5rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--color-border);
+  font-family: var(--font-ui);
 }
 
-.reactionsRow {
+.prompt {
+  margin: 0 0 0.75rem;
+  font: var(--kicker);
+  letter-spacing: var(--kicker-tracking);
+  text-transform: uppercase;
+  color: var(--color-text-light);
+}
+
+/* Reserve the row before Firebase loads, so the page doesn't jump when the buttons arrive */
+.reactions {
+  min-height: 2.5rem;
+}
+
+.meta {
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.3rem 1.5rem;
+  margin: 1.1rem 0 0;
+  font-size: 0.88rem;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
-@media (max-width: 550px) {
-  .reactionsRow {
-    display: block;
-    flex-direction: column;
-    justify-items: start;
-    gap: 0.7rem;
-  }
+.meta strong {
+  font-weight: 650;
+  color: var(--color-text-primary);
 }
-
-.authorRow {
-  margin-top: 2rem;
-  display: flex;
-}
-
-@media (max-width: 550px) {
-  .authorRow {
-    flex-direction: column;
-    gap: 2rem;
-  }
-}
-
-.authorInfo {
-  flex-basis: 40%;
-  flex-grow: 1;
-} 

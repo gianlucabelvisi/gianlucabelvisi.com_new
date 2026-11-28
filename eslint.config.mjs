@@ -14,6 +14,7 @@ export default defineConfig([
     'pantelleria-src/**', // Pantelleria map sources (prep/Blender/three.js build kit), not part of the Next app
     'lund-src/**', // Lund apartment walkthrough sources (OSM prep + three.js kit), not part of the Next app
     'next-env.d.ts',
+    'convex/_generated/**', // written by `npx convex dev` / `npx convex deploy`
   ]),
   {
     rules: {

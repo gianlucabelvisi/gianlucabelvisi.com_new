@@ -44,7 +44,7 @@ export default function PostCard({ post, compact = false, priority = false }: Po
 
   return (
     <Link href={`/${post.slug}`} className={`${styles.card} ${compact ? styles.compact : ''}`}>
-      <div className={styles.imageWrap}>
+      <div className={styles.imageWrap} data-vt-image>
         {image ? (
           <Image
             src={image}

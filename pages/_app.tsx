@@ -11,6 +11,9 @@ import Header from "../components/Header";
 import SiteFooter from "../components/SiteFooter";
 import RouteProgress from "../components/RouteProgress";
 import { isDarkOnlyRoute } from "../lib/routes";
+import { installViewTransitions } from "../lib/viewTransitions";
+import { ConvexProvider } from "convex/react";
+import { convex } from "../lib/convex";
 import { Fraunces, Literata, Inter } from "next/font/google";
 
 // Self-hosted at build time by next/font. The tokens that use them live in styles/globals.css.
@@ -26,6 +29,9 @@ export default function App({ Component, pageProps }: AppProps) {
 
   // Browse pages (home, archive, tags, search) are always dark; posts respect the toggle
   const forceTheme = isDarkOnlyRoute(router.pathname) ? 'dark' : undefined;
+
+  // Page transitions: card image grows into the post hero, the sheet slides up (lib/viewTransitions.ts)
+  React.useEffect(() => installViewTransitions(), []);
 
   // Register PWA service worker (production only — avoids stale SW in dev)
   React.useEffect(() => {
@@ -65,7 +71,14 @@ export default function App({ Component, pageProps }: AppProps) {
       <RouteProgress />
       <Header />
       <main id="main-content">
-        <Component {...pageProps} />
+        {/* Convex powers the live counters (views, reactions, polls). Without a backend URL the page renders without it. */}
+        {convex ? (
+          <ConvexProvider client={convex}>
+            <Component {...pageProps} />
+          </ConvexProvider>
+        ) : (
+          <Component {...pageProps} />
+        )}
       </main>
       <SiteFooter />
     </ThemeProvider>

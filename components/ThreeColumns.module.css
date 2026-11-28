@@ -1,15 +1,27 @@
+/* A picture beside some text: a book cover and its review, a portrait and a list (ThreeColumns + Col23) */
+
 .threeColumns {
   display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 2rem;
-  margin: 2rem 0;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  gap: 1.75rem;
+  margin: var(--block-gap) 0;
   align-items: start;
 }
 
-@media (max-width: 768px) {
+.threeColumns img {
+  margin: 0;
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 700px) {
   .threeColumns {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    text-align: center;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.1rem;
   }
-} 
+
+  /* The picture: centred and kept small, so the text below still starts on the first screen */
+  .threeColumns > :first-child {
+    justify-self: center;
+    max-width: 11rem;
+  }
+}

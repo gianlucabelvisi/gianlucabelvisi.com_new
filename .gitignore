@@ -62,3 +62,7 @@ next-env.d.ts
 /apartment-src/*.blend
 /apartment-src/*.blend1
 /apartment-src/render_log.txt
+
+# Convex: local backend state (`npx convex dev` without an account) and the one-off Firebase export
+/.convex/
+/firebase-counters.json

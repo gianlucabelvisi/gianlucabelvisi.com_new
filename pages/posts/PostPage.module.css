@@ -26,16 +26,21 @@
   padding-top: calc(var(--header-height) + 4rem);
 }
 
+/* Image and shade travel together during the page transition */
+.heroMedia {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
 .heroImage img {
   object-fit: cover;
   object-position: center 20%;
-  z-index: -2;
 }
 
 .heroShade {
   position: absolute;
   inset: 0;
-  z-index: -1;
   background:
     linear-gradient(0deg, var(--ink) 0%, rgba(15, 13, 11, 0.88) 26%, rgba(15, 13, 11, 0.3) 64%, rgba(15, 13, 11, 0.5) 100%),
     linear-gradient(90deg, rgba(15, 13, 11, 0.55) 0%, rgba(15, 13, 11, 0) 70%);

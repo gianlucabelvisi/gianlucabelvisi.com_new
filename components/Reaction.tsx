@@ -1,6 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { ref, runTransaction, get } from 'firebase/database';
-import { database } from '../lib/firebase';
+import React, { useState } from 'react';
 import { ReactionData } from '../data/ReactionData';
 import { hasDone, markDone, unmarkDone } from '../lib/voter';
 import styles from './Reaction.module.css';
@@ -8,38 +6,29 @@ import styles from './Reaction.module.css';
 interface ReactionProps {
   id: string;
   item: ReactionData;
+  /** Current total, from the live query in Reactions.tsx */
+  count: number;
+  /** Called with true when the reader adds this reaction, false when they take it back */
+  onToggle: (on: boolean) => void;
 }
 
-const Reaction = ({ id, item }: ReactionProps) => {
+/** One reaction button. It remembers in this browser whether the reader already pressed it (lib/voter.ts). */
+const Reaction = ({ id, item, count, onToggle }: ReactionProps) => {
   const storageKey = `reaction:${id}:${item.name}`;
-  const [reaction, setReaction] = useState<number>(0);
   const [showTooltip, setShowTooltip] = useState(false);
   const [pulse, setPulse] = useState(false);
-  // Reaction is client-only (ssr: false via PostFooter), so reading storage up front is safe
+  // Client-only (ssr: false via PostFooter), so reading storage up front is safe
   const [reacted, setReacted] = useState(() => hasDone(storageKey));
 
   const toggle = () => {
-    const reactionRef = ref(database, 'reactions/' + id + '/' + item.name);
-    const delta = reacted ? -1 : 1;
-
-    setReaction(prev => Math.max(0, prev + delta));
-    setReacted(!reacted);
-    if (reacted) unmarkDone(storageKey); else markDone(storageKey);
+    const next = !reacted;
+    setReacted(next);
+    if (next) markDone(storageKey); else unmarkDone(storageKey);
+    onToggle(next);
 
     setPulse(true);
     window.setTimeout(() => setPulse(false), 400);
-
-    runTransaction(reactionRef, (stored) => Math.max(0, (stored || 0) + delta)).catch(err => {
-      console.error('Could not save reaction:', err);
-    });
   };
-
-  useEffect(() => {
-    const reactionRef = ref(database, 'reactions/' + id + '/' + item.name);
-    get(reactionRef)
-      .then(snapshot => setReaction(snapshot.val() || 0))
-      .catch(err => console.error('Could not load reaction:', err));
-  }, [id, item.name]);
 
   return (
     <div className={styles.wrapper}>
@@ -52,26 +41,19 @@ const Reaction = ({ id, item }: ReactionProps) => {
         onFocus={() => setShowTooltip(true)}
         onBlur={() => setShowTooltip(false)}
         aria-pressed={reacted}
-        aria-label={`${item.tooltip} (${reaction})`}
+        aria-label={`${item.tooltip} (${count})`}
       >
         <span className={styles.emojiContainer}>
           <span className={`${styles.emoji} ${pulse ? styles.pulse : ''}`} aria-hidden="true">
             {item.icon}
           </span>
         </span>
-        <span className={styles.count}>
-          {reaction ?? 0}
-        </span>
+        <span className={styles.count}>{count}</span>
       </button>
 
       {showTooltip && (
         <div className={styles.tooltip} role="tooltip">
-          <div className={styles.tooltipContent}>
-            {item.tooltip}
-          </div>
-          <div className={styles.tooltipSparkle}>✨</div>
-          <div className={styles.tooltipSparkle2}>🌟</div>
-          <div className={styles.tooltipSparkle3}>⭐</div>
+          {item.tooltip}
         </div>
       )}
     </div>

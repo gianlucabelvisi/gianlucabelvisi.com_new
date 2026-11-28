@@ -10,31 +10,13 @@ interface QuoteProps {
   bouncy?: boolean
 }
 
-const Quote = ({ children, from, title }: QuoteProps) => {
-  return (
-    <figure className={styles.quoteContainer} aria-label={title}>
-      {/* Decorative background elements */}
-      <div className={styles.decorativeTopRight} />
-      <div className={styles.decorativeBottomLeft} />
+/** A pull quote: someone else's words, set large in the display face with the source underneath */
+const Quote = ({ children, from, title }: QuoteProps) => (
+  <figure className={styles.quote} aria-label={title}>
+    <span className={styles.mark} aria-hidden="true">&ldquo;</span>
+    <blockquote className={styles.text}>{children}</blockquote>
+    {from && <figcaption className={styles.from}>{from}</figcaption>}
+  </figure>
+)
 
-      {/* Quote marks */}
-      <div className={styles.quoteMark}>
-        ❝
-      </div>
-      
-      {/* Quote content */}
-      <div className={`${styles.quoteContent} ${from ? styles.quoteContentWithAttribution : ''}`}>
-        {children}
-      </div>
-      
-      {/* Attribution */}
-      {from && (
-        <figcaption className={styles.attribution}>
-          — {from}
-        </figcaption>
-      )}
-    </figure>
-  )
-}
-
-export default Quote 
+export default Quote

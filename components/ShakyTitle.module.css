@@ -1,47 +1,47 @@
-@keyframes pulse-animation {
-  0% { transform: scale(1.5); }
-  25% { transform: scale(0.9); }
-  50% { transform: scale(1.5); }
-  75% { transform: scale(0.9); }
-  100% { transform: scale(1.5); }
-}
-
-@keyframes shake-animation {
-  10%, 90% { transform: translate3d(-1px, 2px, 0); }
-  20%, 80% { transform: translate3d(2px, -1px, 0); }
-  30%, 50%, 70% { transform: translate3d(-2px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 1px, 0); }
-}
+/* A heading that can't keep still (components/ShakyTitle.tsx): a short shiver, then a breather */
 
 .wrapper {
-  position: relative;
-  margin-top: 2rem;
-  margin-bottom: 1rem;
   display: flex;
-  gap: 1rem;
+  align-items: center;
+  gap: 0.75rem;
+  margin: var(--block-gap) 0 1.1rem;
 }
 
 .shakyIcon {
-  font-size: 1.6rem;
-  animation: pulse-animation 2s ease-in-out infinite;
-  display: flex;
-  flex-direction: column;
-  align-content: center;
-  justify-content: center;
-  padding: 0;
+  flex: none;
+  font-size: 1.7rem;
+  line-height: 1;
+  animation: thump 2.6s ease-in-out infinite;
 }
 
 .qualifier {
-  font-size: 1.5rem;
-  text-transform: uppercase;
-  color: #ff6600;
-  font-weight: bold;
-  animation: shake-animation 0.2s cubic-bezier(.36, .07, .19, .97) infinite;
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-wonk);
+  font-size: 1.55em;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.018em;
+  color: var(--color-link);
+  animation: shiver 2.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
   backface-visibility: hidden;
-  perspective: 1000px;
 }
 
 .title {
-  margin: 0;
+  margin: 0 !important;
   padding: 0;
-} 
+}
+
+@keyframes shiver {
+  0%, 22%, 100% { transform: none; }
+  2%, 18% { transform: translate3d(-1px, 1px, 0) rotate(-0.4deg); }
+  4%, 16% { transform: translate3d(2px, -1px, 0) rotate(0.5deg); }
+  6%, 10%, 14% { transform: translate3d(-2px, 0, 0) rotate(-0.6deg); }
+  8%, 12% { transform: translate3d(3px, 1px, 0) rotate(0.6deg); }
+}
+
+@keyframes thump {
+  0%, 22%, 100% { transform: scale(1); }
+  6% { transform: scale(1.35); }
+  12% { transform: scale(0.92); }
+  17% { transform: scale(1.2); }
+}

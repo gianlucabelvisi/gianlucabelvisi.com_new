@@ -1,0 +1,150 @@
+/* Newsletter sign-up at the end of a post (components/MailChimpForm.tsx): an ink card, whatever the theme */
+
+.card {
+  margin: 3.5rem 0 1rem;
+  padding: 2rem 2rem 2.1rem;
+  border-radius: var(--radius-lg);
+  background: var(--ink-raised);
+  color: var(--on-ink);
+  font-family: var(--font-ui);
+  box-shadow: 0 0 0 1px var(--ink-line);
+}
+
+.kicker {
+  margin: 0 0 0.5rem;
+  font: var(--kicker);
+  letter-spacing: var(--kicker-tracking);
+  text-transform: uppercase;
+  color: var(--color-primary-light);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-wonk);
+  font-size: clamp(1.7rem, 1.3rem + 1.6vw, 2.2rem);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--on-ink);
+}
+
+.copy {
+  margin: 0.8rem 0 0;
+  max-width: 34rem;
+  font-family: var(--font-text);
+  font-size: 1.02rem;
+  line-height: 1.55;
+  color: var(--on-ink-soft);
+}
+
+.copy a,
+.error a {
+  color: var(--color-primary-light);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  margin-top: 1.5rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.field span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--on-ink-faint);
+}
+
+.field input {
+  width: 100%;
+  min-height: 2.9rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid rgba(255, 238, 215, 0.2);
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--on-ink);
+  font: inherit;
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field input::placeholder {
+  color: #6f675c;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), 0.3);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem 1.2rem;
+  margin-top: 1.25rem;
+}
+
+.submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, gap 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--color-primary-light);
+  gap: 0.75rem;
+}
+
+.submit:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.error {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: #ffb4a8;
+}
+
+@media (max-width: 700px) {
+  .card {
+    padding: 1.5rem 1.25rem 1.6rem;
+    border-radius: var(--radius-md);
+  }
+
+  .fields {
+    grid-template-columns: 1fr;
+  }
+
+  .submit {
+    width: 100%;
+    justify-content: center;
+  }
+}

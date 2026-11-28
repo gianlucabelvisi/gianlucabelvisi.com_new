@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import MailchimpSubscribe, { EmailFormFields } from 'react-mailchimp-subscribe';
-import InputField from './InputField';
-import TextBox from './TextBox';
+import { FiArrowRight } from 'react-icons/fi';
+import styles from './MailChimpForm.module.css';
 
 // EMAIL is Mailchimp's canonical field (MERGE0 is its alias); MERGE1/2 = first/last name
 interface MailchimpFields extends EmailFormFields {
@@ -15,7 +15,7 @@ interface CustomFormProps {
   onValidated: (formData: MailchimpFields) => void;
 }
 
-// Helper function to convert message to string
+// Mailchimp answers with a string (which may contain a link) or an Error
 const getMessageString = (msg: string | Error | null): string => {
   if (!msg) return '';
   if (typeof msg === 'string') return msg;
@@ -26,98 +26,66 @@ const CustomForm = ({ status, message, onValidated }: CustomFormProps) => {
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  // No need to clear fields on success: the inputs are unmounted once status === "success".
+  const fieldId = useId();
+
+  const ready = Boolean(email && firstName && lastName && email.includes('@'));
+  const sending = status === 'sending';
+  const done = status === 'success';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email && firstName && lastName && email.indexOf("@") > -1) {
-      onValidated({
-        EMAIL: email,
-        MERGE1: firstName,
-        MERGE2: lastName,
-      });
-    }
+    if (ready) onValidated({ EMAIL: email, MERGE1: firstName, MERGE2: lastName });
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ position: 'relative' }}>
-      <TextBox title={status === "success" ? "I appreciate it!" : "Join my mailing list!"}>
-        
-        {status !== "success" && status !== "error" && status !== "submitted" && status !== "sending" && (
-          <>
-            <p style={{ marginBottom: '1rem' }}>
-              I will only send you mails when new posts are out. They will also contain original content,
-              easter eggs, and other fun stuff.
-            </p>
-            <p style={{ marginBottom: '1rem' }}>
-              You can unsubscribe at any time, and it might go to your spam
-              folder anyway.
-            </p>
-          </>
-        )}
+    <form onSubmit={handleSubmit} className={styles.card}>
+      <p className={styles.kicker}>Newsletter</p>
+      <h2 className={styles.title}>{done ? 'I appreciate it!' : 'Join my mailing list!'}</h2>
 
-        {status === "sending" && (
-          <p style={{ marginBottom: '1rem' }}>
-            sending...
+      {done ? (
+        // Mailchimp's own confirmation text
+        <p className={styles.copy} dangerouslySetInnerHTML={{ __html: getMessageString(message) }} />
+      ) : (
+        <>
+          <p className={styles.copy}>
+            I will only send you mails when new posts are out. They will also contain original content,
+            easter eggs, and other fun stuff. You can unsubscribe at any time, and it might go to your spam
+            folder anyway.
           </p>
-        )}
-        
-        {status === "error" && (
-          <p 
-            style={{ marginBottom: '1rem' }}
-            dangerouslySetInnerHTML={{ __html: getMessageString(message) }}
-          />
-        )}
-        
-        {status === "success" && (
-          <p
-            style={{ marginBottom: '1rem' }}
-            dangerouslySetInnerHTML={{ __html: getMessageString(message) }}
-          />
-        )}
 
-        {status !== "success" ? (
-          <>
-            <InputField
-              label="First Name"
-              onChangeHandler={setFirstName}
-              type="text"
-              value={firstName}
-              placeholder="Jane"
-              isRequired
-            />
+          <div className={styles.fields}>
+            <label className={styles.field} htmlFor={`${fieldId}-first`}>
+              <span>First name</span>
+              <input id={`${fieldId}-first`} type="text" autoComplete="given-name" placeholder="Jane" required
+                value={firstName} onChange={e => setFirstName(e.target.value)} />
+            </label>
+            <label className={styles.field} htmlFor={`${fieldId}-last`}>
+              <span>Last name</span>
+              <input id={`${fieldId}-last`} type="text" autoComplete="family-name" placeholder="Doe" required
+                value={lastName} onChange={e => setLastName(e.target.value)} />
+            </label>
+            <label className={`${styles.field} ${styles.wide}`} htmlFor={`${fieldId}-email`}>
+              <span>Email</span>
+              <input id={`${fieldId}-email`} type="email" autoComplete="email" placeholder="you@matter.to.me" required
+                value={email} onChange={e => setEmail(e.target.value)} />
+            </label>
+          </div>
 
-            <InputField
-              label="Last Name"
-              onChangeHandler={setLastName}
-              type="text"
-              value={lastName}
-              placeholder="Doe"
-              isRequired
-            />
-
-            <InputField
-              label="Email"
-              onChangeHandler={setEmail}
-              type="email"
-              value={email}
-              placeholder="you@matter.to.me"
-              isRequired
-            />
-          </>
-        ) : null}
-
-        <InputField
-          label="subscribe"
-          type="submit"
-          formValues={[email, firstName, lastName]}
-        />
-        
-      </TextBox>
+          <div className={styles.actions}>
+            <button type="submit" className={styles.submit} disabled={!ready || sending}>
+              {sending ? 'Sending…' : 'Subscribe'} <FiArrowRight aria-hidden="true" />
+            </button>
+            {status === 'error' && (
+              <p className={styles.error} role="alert" dangerouslySetInnerHTML={{ __html: getMessageString(message) }} />
+            )}
+          </div>
+        </>
+      )}
     </form>
   );
 };
 
+/** The newsletter sign-up at the end of every post (Mailchimp) */
 const MailChimpForm = () => {
   const postUrl = `https://gianlucabelvisi.us20.list-manage.com/subscribe/post?u=${process.env.NEXT_PUBLIC_MAILCHIMP_U}&id=${process.env.NEXT_PUBLIC_MAILCHIMP_ID}`;
 
@@ -135,4 +103,4 @@ const MailChimpForm = () => {
   );
 };
 
-export default MailChimpForm; 
+export default MailChimpForm;
