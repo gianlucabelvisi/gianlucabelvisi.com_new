@@ -1,0 +1,32 @@
+.label {
+  display: block;
+  max-width: 34rem;
+  margin: 0.75rem auto 2.25rem;
+  padding: 0 1rem;
+  font-size: 0.92em;
+  line-height: 1.45;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--color-text-secondary);
+  /* Linked to from the homepage ("Out of context"): land low on the screen, with the image above still in view */
+  scroll-margin-top: 62vh;
+  scroll-margin-bottom: 18vh;
+  border-radius: 8px;
+}
+
+/* Arriving via a caption link: the caption glows for a moment so the eye finds it */
+.label:target {
+  animation: found 2.4s ease-out 0.3s both;
+}
+
+@keyframes found {
+  0%, 35% {
+    background: rgba(var(--color-primary-rgb), 0.22);
+    box-shadow: 0 0 0 0.5rem rgba(var(--color-primary-rgb), 0.22);
+    color: var(--color-text-primary);
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 0.5rem transparent;
+  }
+}

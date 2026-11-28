@@ -3,8 +3,11 @@
 }
 
 .heading {
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-wonk);
+  letter-spacing: -0.015em;
+  font-size: 1.6rem;
+  font-weight: 520;
   margin: 0 0 1rem;
   color: var(--color-text-primary);
 }

@@ -119,42 +119,38 @@ function shuffle<T>(items: T[]): T[] {
   return arr
 }
 
-/** Cap for the "All Posts" homepage row; the full list lives on /archive. */
+/** Cap for the homepage's "From the archive" row; the full list lives on /archive. */
 export const CHRONOLOGICAL_ROW_LIMIT = 12
 
 /**
- * Group posts by content categories for Netflix-style sliders
+ * The homepage's topic rows: a title, the tags that feed it (substring match, any of), and where "See all" goes.
+ * Series and projects have their own rows (lib/series.ts, lib/projects.ts); these are the looser groupings.
+ * Add a row by adding a line. Rows with fewer than three posts are skipped.
+ */
+export const HOME_TOPICS: { title: string; hint?: string; tags: string[]; moreHref: string }[] = [
+  { title: 'Food & coffee', hint: 'eaten, brewed, regretted', tags: ['food', 'coffee', 'diet'], moreHref: '/tags/food' },
+  { title: 'Mind & body', hint: 'the owner\'s manual', tags: ['mindfulness', 'health', 'self-improvement'], moreHref: '/tags/mindfulness' },
+  { title: 'Screens & pages', hint: 'watched and read', tags: ['tv', 'films', 'books'], moreHref: '/tags/books' },
+  { title: 'Work & tech', tags: ['tech', 'work'], moreHref: '/tags/tech' },
+]
+
+const TOPIC_ROW_LIMIT = 15
+
+/**
+ * Everything the homepage rows need, grouped: the latest posts, the topic rows, a lucky dip and the oldest posts.
  */
 export function groupPostsForHomepage<T extends PostWithHashtags>(posts: T[]) {
-  const latest = posts.slice(1, 14) // Skip featured post, get next 13
-  const featured = posts[0] // Latest post as hero
+  // The hero shows the newest few; "Latest" carries on from the very first so nothing is hero-only
+  const latest = posts.slice(0, 14)
 
-  // Caterina Sforza series (your pride and joy!)
-  const caterina = filterPostsByHashtags(posts, 'caterina sforza').reverse()
+  const topics = HOME_TOPICS
+    .map(topic => ({ ...topic, posts: filterPostsByHashtags(posts, ...topic.tags).slice(0, TOPIC_ROW_LIMIT) }))
+    .filter(topic => topic.posts.length >= 3)
 
-  // Food & lifestyle content
-  const food = filterPostsByHashtags(posts, 'food', 'coffee', 'diet', '9barista', 'pizza', 'meat').reverse()
-
-  // Mindfulness & self-improvement
-  const mindfulness = shuffle(filterPostsByHashtags(posts, 'mindfulness')).slice(0, 15)
-
-  // Books content
-  const books = shuffle(filterPostsByHashtags(posts, 'books', 'bucket list')).slice(0, 15)
-
-  // Random chaos mode
   const randomized = shuffle(posts).slice(0, 15)
 
-  // "From the archive": the oldest posts, capped — the full list is on /archive
+  // "From the archive": the oldest posts, capped
   const chronological = [...posts].reverse().slice(0, CHRONOLOGICAL_ROW_LIMIT)
 
-  return {
-    featured,
-    latest,
-    caterina,
-    food,
-    mindfulness,
-    books,
-    randomized,
-    chronological
-  }
+  return { latest, topics, randomized, chronological }
 }

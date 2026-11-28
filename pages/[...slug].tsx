@@ -1,6 +1,9 @@
+import { useEffect } from 'react'
 import { GetStaticPaths, GetStaticProps } from 'next'
 import dynamic from 'next/dynamic'
-import Image from 'next/image'
+import Image, { getImageProps } from 'next/image'
+import Link from 'next/link'
+import { FiArrowRight } from 'react-icons/fi'
 import { serialize } from 'next-mdx-remote/serialize'
 import { MDXRemote, MDXRemoteSerializeResult } from 'next-mdx-remote'
 import remarkGfm from 'remark-gfm'
@@ -8,6 +11,8 @@ import rehypeSlug from 'rehype-slug'
 import rehypeShiki from '@shikijs/rehype'
 import { getAllPosts, getAllPostsForPaths, PostData, PostFrontmatter } from '../lib/posts'
 import { getRelatedPosts, getSeriesPosts } from '../lib/hashtags'
+import { seriesInfo } from '../lib/series'
+import { numberCaptions } from '../lib/captions'
 import { extractHeadings, Heading } from '../lib/headings'
 import { formatDate, formatReadingTime } from '../lib/dateUtils'
 import SEO from '../components/SEO'
@@ -95,7 +100,7 @@ interface PostPageProps {
   prevPost: NavPost | null
   nextPost: NavPost | null
   relatedPosts: CardPost[]
-  series: { name: string; posts: SeriesEntry[] } | null
+  series: { name: string; slug: string; title: string; kind: 'serial' | 'collection'; unit: string; posts: SeriesEntry[] } | null
 }
 
 type MdxImageProps = React.ImgHTMLAttributes<HTMLImageElement>
@@ -189,22 +194,58 @@ export default function PostPage({
   source, frontmatter, slug, imagePath, readingTime, wordCount, headings,
   prevPost, nextPost, relatedPosts, series,
 }: PostPageProps) {
-  const getImagePath = (imageName: string) => {
+  const getImagePath = (imageName?: string) => {
     if (!imageName) return ''
     if (imageName.startsWith('/')) return imageName
     return `/images/posts/${imagePath}/${imageName}`
   }
 
   const ogImage = frontmatter.featureImage
-    ? `/images/posts/${imagePath}/${frontmatter.featureImage}`
+    ? getImagePath(frontmatter.featureImage)
     : frontmatter.cardImage
-      ? `/images/posts/${imagePath}/${frontmatter.cardImage}`
+      ? getImagePath(frontmatter.cardImage)
       : undefined
 
   const postPath = frontmatter.path || `/${slug}`
 
+  // Hero art: the wide feature image, swapped for the phone crop on narrow screens
+  const wide = getImagePath(frontmatter.featureImage || frontmatter.cardImage)
+  const tall = getImagePath(frontmatter.featureImagePhone) || wide
+  const heroShared = { alt: '', fill: true, sizes: '100vw', priority: true } as const
+  const wideProps = wide ? getImageProps({ ...heroShared, src: wide }).props : null
+  const tallProps = tall ? getImageProps({ ...heroShared, src: tall }).props : null
+
+  // Arriving on a caption link (#caption-N, from the homepage's "Out of context" row): images above the caption
+  // are still loading and keep pushing it down, so re-settle on it until they're in or the reader takes over.
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1))
+    if (!id.startsWith('caption-')) return
+    const target = document.getElementById(id)
+    if (!target) return
+    const settle = () => target.scrollIntoView({ block: 'end' })
+    const stop = () => {
+      document.removeEventListener('load', settle, true)
+      window.removeEventListener('wheel', stop)
+      window.removeEventListener('touchstart', stop)
+      window.removeEventListener('keydown', stop)
+      clearTimeout(timer)
+    }
+    const timer = setTimeout(stop, 6000)
+    document.addEventListener('load', settle, true) // image loads don't bubble; capture catches them
+    window.addEventListener('wheel', stop, { passive: true })
+    window.addEventListener('touchstart', stop, { passive: true })
+    window.addEventListener('keydown', stop)
+    settle()
+    return stop
+  }, [slug])
+
+  // Where this post sits in its series, if it has one
+  const seriesIndex = series ? series.posts.findIndex(p => p.slug === slug) : -1
+  const serial = series?.kind === 'serial' && series.posts.length > 1
+  const nextInSeries = serial && seriesIndex >= 0 ? series.posts[seriesIndex + 1] : undefined
+
   return (
-    <article className={styles.container}>
+    <article className={styles.article}>
       <SEO
         title={frontmatter.title}
         description={frontmatter.subTitle}
@@ -218,58 +259,42 @@ export default function PostPage({
         wordCount={wordCount}
       />
 
-      <ReadingProgress />
+      <ReadingProgress slug={slug} />
 
-      {/* Post Header */}
-      <div className={styles.postHeader}>
-        <p className={styles.dateHeader}>
-          <time dateTime={frontmatter.date}>{formatDate(frontmatter.date)}</time>
-          <span className={styles.metaDivider} aria-hidden="true">·</span>
-          <span>{formatReadingTime(readingTime)}</span>
-        </p>
-      </div>
-
-      {/* Feature Image */}
-      {frontmatter.featureImage && (
-        <div className={styles.featureImageContainer}>
-          <Image
-            src={getImagePath(frontmatter.featureImage || '')}
-            alt={frontmatter.title}
-            fill
-            priority
-            sizes="(max-width: 900px) 100vw, 84vw"
-            style={{ objectFit: 'cover', objectPosition: 'top' }}
-          />
-        </div>
-      )}
-
-      {/* Right rail - table of contents (wide screens only; the inline variant takes over below 1440px) */}
-      <aside className={styles.tocRail}>
-        <div className={styles.tocSticky}>
-          <TableOfContents headings={headings} variant="sidebar" />
-        </div>
-      </aside>
-
-      {/* Sidebar - Social Share */}
-      <aside className={styles.sidebar}>
-        <SocialShare path={postPath} title={frontmatter.title} description={frontmatter.subTitle} image={ogImage} />
-      </aside>
-
-      {/* Main Content */}
-      <div className={styles.mainContent}>
-        {/* Post */}
-        <div className={styles.post}>
-          <h1 className={styles.postTitle}>
-            {frontmatter.title}
-          </h1>
-
-          <p className={styles.postSubtitle}>
-            <span className={styles.quoteStart} aria-hidden="true">❝</span>
-            {frontmatter.subTitle}
-            <span className={styles.quoteEnd} aria-hidden="true">❞</span>
+      {/* Ink hero: the post opens in the same dark as the homepage, then the paper rises over it */}
+      <header className={`${styles.hero} ${wideProps ? '' : styles.heroPlain}`} data-ink-zone>
+        {wideProps && (
+          <picture className={styles.heroImage}>
+            {tallProps && <source media="(max-width: 700px)" srcSet={tallProps.srcSet} sizes="100vw" />}
+            {/* eslint-disable-next-line jsx-a11y/alt-text -- alt comes with the props from next/image's getImageProps (art direction needs <picture>) */}
+            <img {...wideProps} />
+          </picture>
+        )}
+        <div className={styles.heroShade} />
+        <div className={styles.heroInner}>
+          <p className={styles.kicker}>
+            {series && serial && seriesIndex >= 0 && (
+              <Link href={`/?series=${series.slug}`} className={styles.kickerLabel}>{series.title} · {series.unit} {seriesIndex + 1} of {series.posts.length}</Link>
+            )}
+            <time dateTime={frontmatter.date}>{formatDate(frontmatter.date)}</time>
+            <span aria-hidden="true">·</span>
+            <span>{formatReadingTime(readingTime)}</span>
           </p>
+          <h1 className={styles.title}>{frontmatter.title}</h1>
+          {frontmatter.subTitle && <p className={styles.subtitle}>{frontmatter.subTitle}</p>}
+        </div>
+      </header>
 
-          {series && <SeriesBox name={series.name} posts={series.posts} currentSlug={slug} />}
+      <div className={styles.sheet}>
+        {/* Left rail: share (wide screens) */}
+        <aside className={styles.shareRail}>
+          <div className={styles.sticky}>
+            <SocialShare path={postPath} title={frontmatter.title} description={frontmatter.subTitle} image={ogImage} />
+          </div>
+        </aside>
+
+        <div className={styles.column}>
+          {series && serial && <SeriesBox name={series.title} kind="serial" posts={series.posts} currentSlug={slug} />}
 
           <div className={styles.tocInline}>
             <TableOfContents headings={headings} variant="inline" />
@@ -278,28 +303,48 @@ export default function PostPage({
           <div className={`mdx-content ${styles.mdxContent}`}>
             <MDXRemote {...source} components={components} />
           </div>
+
+          {/* ReadingProgress measures to here: the end of the writing, not of the page */}
+          <div data-reading-end />
+
+          {nextInSeries && series && (
+            <Link href={`/${nextInSeries.slug}`} className={styles.nextPart}>
+              <span className={styles.nextKicker}>Next in {series.title} · {series.unit} {seriesIndex + 2} of {series.posts.length}</span>
+              <span className={styles.nextTitle}>{nextInSeries.title} <FiArrowRight aria-hidden="true" /></span>
+            </Link>
+          )}
+
+          <PostFooter
+            path={postPath}
+            author={frontmatter.author}
+          />
+
+          <PostTags hashtags={frontmatter.hashtags} />
+
+          {/* Share row for narrow screens where the rail is hidden */}
+          <div className={styles.mobileShare}>
+            <SocialShare path={postPath} title={frontmatter.title} description={frontmatter.subTitle} image={ogImage} layout="horizontal" />
+          </div>
+
+          {series && !serial && series.posts.length > 1 && (
+            <SeriesBox name={series.title} kind="collection" posts={series.posts} currentSlug={slug} />
+          )}
+
+          <PostNavigation prev={prevPost} next={nextPost} />
+
+          <Comments term={postPath} />
+
+          <RelatedPosts posts={relatedPosts} />
+
+          <MailChimpForm />
         </div>
 
-        {/* Post Footer */}
-        <PostFooter
-          path={postPath}
-          author={frontmatter.author}
-        />
-
-        <PostTags hashtags={frontmatter.hashtags} />
-
-        {/* Share row for narrow screens where the sticky sidebar is hidden */}
-        <div className={styles.mobileShare}>
-          <SocialShare path={postPath} title={frontmatter.title} description={frontmatter.subTitle} image={ogImage} layout="horizontal" />
-        </div>
-
-        <PostNavigation prev={prevPost} next={nextPost} />
-
-        <Comments term={postPath} />
-
-        <RelatedPosts posts={relatedPosts} />
-
-        <MailChimpForm />
+        {/* Right rail: table of contents (wide screens; the inline variant takes over below) */}
+        <aside className={styles.tocRail}>
+          <div className={styles.sticky}>
+            <TableOfContents headings={headings} variant="sidebar" />
+          </div>
+        </aside>
       </div>
     </article>
   )
@@ -353,10 +398,12 @@ export const getStaticProps: GetStaticProps<PostPageProps> = async ({ params }) 
       members.push(post)
       members.sort((a, b) => a.frontmatter.date.localeCompare(b.frontmatter.date))
     }
-    series = { name: seriesName, posts: members.map(p => ({ slug: p.slug, title: p.frontmatter.title })) }
+    const info = seriesInfo(seriesName)
+    series = { name: seriesName, slug: info.slug, title: info.title, kind: info.kind, unit: info.unit, posts: members.map(p => ({ slug: p.slug, title: p.frontmatter.title })) }
   }
 
-  const mdxSource = await serialize(post.content, {
+  // Figure captions get stable anchors (#caption-N) so the homepage's "Out of context" cards can link to them
+  const mdxSource = await serialize(numberCaptions(post.content), {
     mdxOptions: {
       remarkPlugins: [remarkGfm],
       rehypePlugins: [

@@ -48,7 +48,7 @@
 }
 
 .homepage.scrolled {
-  background-color: rgba(13, 13, 13, 0.82);
+  background-color: rgba(15, 13, 11, 0.82);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -66,7 +66,10 @@
 /* ── Post-page variant — always themed background ─────────────────────────── */
 
 .page {
-  background-color: var(--color-background-main);
+  background-color: color-mix(in srgb, var(--color-background-main) 86%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 var(--color-border-light);
 }
 
 
@@ -89,59 +92,38 @@
 }
 
 
-/* ── Logo ─────────────────────────────────────────────────────────────────── */
+/* ── Wordmark ─────────────────────────────────────────────────────────────── */
 
-.logo {
-  display: flex;
-  align-items: center;
+.wordmark {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
   text-decoration: none;
-  color: inherit;
-  transition: transform 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.2, 1.4, 0.4, 1);
 }
 
-.logo:hover {
-  transform: scale(1.08);
+.wordmark span {
+  color: var(--color-primary);
 }
 
-.logoText {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  letter-spacing: 0.02em;
-  transition: color 0.2s ease;
-}
-
-.logoIcon {
-  width: 1.25rem;
-  height: 1.25rem;
-  color: var(--color-text-secondary);
-  stroke-width: 2;
-  transition: color 0.2s ease;
-}
-
-/* On homepage the page bg is always dark, keep text readable */
-.homepage .logoText {
-  color: rgba(255, 255, 255, 0.65);
-}
-
-.homepage .logoIcon {
-  color: rgba(255, 255, 255, 0.65);
-}
-
-.logo:hover .logoText {
+.wordmark:hover {
   color: var(--color-text-primary);
+  transform: rotate(-2deg) scale(1.04);
 }
 
-.logo:hover .logoIcon {
-  color: var(--color-text-primary);
+.homepage .wordmark,
+.homepage .wordmark:hover {
+  color: var(--on-ink);
 }
 
-.homepage .logo:hover .logoText {
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.homepage .logo:hover .logoIcon {
-  color: rgba(255, 255, 255, 0.95);
+.wordmark:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+  border-radius: 4px;
 }
 
 
@@ -258,7 +240,6 @@
 
 .iconButton:focus-visible,
 .navLink:focus-visible,
-.logo:focus-visible,
 .backLink:focus-visible,
 .projectItem:focus-visible,
 .projectsAll:focus-visible,
@@ -492,14 +473,13 @@
     color: #fff;
   }
 
-  .logoDesktopOnly,
   .desktopOnly {
     display: none;
   }
 }
 
 
-/* ── Tab bar (phones) ─────────────────────────────────────────────────────── */
+/* ── Tab bar (phones): a floating pill, always ink ───────────────────────── */
 
 .tabBar {
   display: none;
@@ -508,67 +488,69 @@
 @media (max-width: 900px) {
   .tabBar {
     position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    left: 50%;
+    bottom: calc(0.65rem + env(safe-area-inset-bottom, 0px));
     z-index: 200;
+    transform: translateX(-50%);
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    padding: 0.35rem 0.4rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
-    background: rgba(250, 250, 251, 0.86);
-    backdrop-filter: saturate(180%) blur(20px);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-    border-top: 1px solid var(--color-border);
-  }
-
-  :global([data-theme="dark"]) .tabBar {
-    background: rgba(19, 19, 19, 0.84);
-    border-top-color: rgba(255, 255, 255, 0.08);
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0.15rem;
+    width: min(21rem, calc(100vw - 1.5rem));
+    padding: 0.35rem;
+    border-radius: 999px;
+    background: rgba(30, 25, 20, 0.94);
+    backdrop-filter: saturate(160%) blur(22px);
+    -webkit-backdrop-filter: saturate(160%) blur(22px);
+    box-shadow: 0 0 0 1px rgba(255, 238, 215, 0.14), 0 14px 34px rgba(0, 0, 0, 0.42);
   }
 
   .tab {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 0.15rem;
-    padding: 0.2rem 0 0.1rem;
+    justify-content: center;
+    gap: 0.45rem;
+    height: 2.9rem;
+    border-radius: 999px;
     text-decoration: none;
-    color: var(--color-text-light);
+    color: var(--on-ink-soft);
     -webkit-tap-highlight-color: transparent;
-    transition: color 0.15s ease;
+    transition: color 0.2s ease, background-color 0.25s ease, transform 0.15s ease;
+  }
+
+  .tab:hover {
+    color: var(--on-ink);
+  }
+
+  .tab:active {
+    transform: scale(0.94);
   }
 
   .tabIcon {
     display: grid;
     place-items: center;
-    width: 3.4rem;
-    height: 1.9rem;
-    border-radius: 999px;
-    font-size: 1.25rem;
-    transition: background-color 0.2s ease, transform 0.15s ease;
-  }
-
-  .tab:active .tabIcon {
-    transform: scale(0.92);
+    font-size: 1.2rem;
   }
 
   .tabLabel {
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    font-size: 0.8rem;
+    font-weight: 650;
+    letter-spacing: 0.005em;
   }
 
-  .tabActive {
-    color: var(--color-primary);
-  }
-
-  .tabActive .tabIcon {
-    background: rgba(var(--color-primary-rgb), 0.16);
+  .tabActive,
+  .tabActive:hover {
+    background: var(--on-ink);
+    color: var(--ink);
   }
 }
 
 @media (max-width: 900px) {
   .mobileEmpty {
     display: none;
+  }
+
+  .wordmark {
+    font-size: 1.35rem;
   }
 }

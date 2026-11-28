@@ -1,25 +1,23 @@
 .homePage {
+  /* One page gutter for the hero and every row */
+  --gutter: clamp(1rem, 4vw, 3.5rem);
   min-height: 100vh;
   background: var(--color-background-main);
   color: var(--color-text-primary);
-  overflow: visible;
 }
 
 .emptyState {
-  max-width: 800px;
+  max-width: 40rem;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 8rem 2rem;
 }
 
-.slidersContainer {
-  padding: 2rem 0;
-  position: relative;
-  z-index: 2;
-  overflow: visible;
+.shelves {
+  padding: 1rem 0 3rem;
 }
 
-@media (max-width: 768px) {
-  .slidersContainer {
-    padding: 0.5rem 0;
+@media (max-width: 700px) {
+  .shelves {
+    padding: 0.25rem 0 1.5rem;
   }
 }

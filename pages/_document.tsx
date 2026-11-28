@@ -6,7 +6,7 @@ export default function Document() {
       <Head>
         {/* PWA (viewport meta is injected by Next automatically) */}
         <link rel="manifest" href="/manifest.webmanifest" />
-        <meta name="theme-color" content="#131313" />
+        <meta name="theme-color" content="#0f0d0b" />
         <meta name="application-name" content="Gianluca Belvisi's Blog" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

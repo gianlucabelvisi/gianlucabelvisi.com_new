@@ -1,173 +1,266 @@
-.container {
-  height: 100%;
-  display: grid;
-  grid-template-columns: 1fr repeat(12, minmax(auto, 4.2rem)) 1fr;
-  grid-template-rows: 7.8rem 20rem 4rem auto;
-  gap: 0 2rem;
-  max-width: none;
-  margin: 0;
-  padding: 0;
-  background-color: var(--color-background-main);
+/* Post page (pages/[...slug].tsx): an ink hero, then a sheet of paper with the reading column and two rails */
+
+.article {
+  --measure: 43rem; /* the reading column: about 68 characters of body text */
+  --rail: 15rem;
+  background: var(--ink);
   min-height: 100vh;
-  position: relative;
 }
 
-.postHeader {
-  grid-column: 3 / span 10;
-  grid-row: 1 / 2;
-  position: relative;
-}
+/* ── Hero ────────────────────────────────────────────────────────────────── */
 
-.dateHeader {
-  position: absolute;
-  bottom: 0;
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: 1.3rem;
-  font-weight: 500;
+.hero {
+  position: relative;
+  isolation: isolate;
   display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
+  align-items: flex-end;
+  min-height: clamp(27rem, 74vh, 46rem);
+  padding: calc(var(--header-height) + 2rem) 1.5rem 5.25rem;
+  background: var(--ink);
+  color: var(--on-ink);
+  overflow: hidden;
 }
 
-.metaDivider {
-  color: var(--color-text-light);
+.heroPlain {
+  min-height: 0;
+  padding-top: calc(var(--header-height) + 4rem);
 }
 
-/* Share row shown only where the sticky sidebar is hidden */
-.mobileShare {
+.heroImage img {
+  object-fit: cover;
+  object-position: center 20%;
+  z-index: -2;
+}
+
+.heroShade {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(0deg, var(--ink) 0%, rgba(15, 13, 11, 0.88) 26%, rgba(15, 13, 11, 0.3) 64%, rgba(15, 13, 11, 0.5) 100%),
+    linear-gradient(90deg, rgba(15, 13, 11, 0.55) 0%, rgba(15, 13, 11, 0) 70%);
+}
+
+.heroPlain .heroShade {
   display: none;
 }
 
-.featureImageContainer {
-  grid-column: 3 / span 10;
-  grid-row: 2 / 4;
-  overflow: hidden;
-  position: relative;
+/* Lines up with the reading column below, but may run wider: titles want room */
+.heroInner {
+  width: 100%;
+  max-width: calc(var(--measure) + 12rem);
+  margin: 0 auto;
+  padding-right: 12rem;
 }
 
+.kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.6rem;
+  margin: 0 0 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--on-ink);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
 
-/* Table of contents rail: the otherwise-empty columns right of the post,
-   balancing the share sidebar on the left */
+.kickerLabel {
+  margin-right: 0.25rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-shadow: none;
+  text-decoration: none;
+}
+
+.kickerLabel:hover {
+  background: var(--color-primary-light);
+  color: var(--color-on-primary);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-wonk);
+  font-size: clamp(2.5rem, 1.3rem + 4.4vw, 5rem);
+  font-weight: 470;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.subtitle {
+  margin: 1.3rem 0 0;
+  max-width: 36rem;
+  font-family: var(--font-text);
+  font-style: italic;
+  font-size: clamp(1.15rem, 1rem + 0.6vw, 1.45rem);
+  line-height: 1.4;
+  color: var(--on-ink-soft);
+  text-wrap: pretty;
+}
+
+/* ── The sheet ───────────────────────────────────────────────────────────── */
+
+.sheet {
+  position: relative;
+  z-index: 1;
+  margin-top: -2.25rem;
+  padding: 3.5rem 1.5rem 3rem;
+  border-radius: 30px 30px 0 0;
+  background: var(--color-background-main);
+  color: var(--color-text-primary);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, var(--measure)) minmax(0, 1fr);
+  column-gap: 3rem;
+  align-items: start;
+}
+
+:global([data-theme="dark"]) .sheet {
+  box-shadow: 0 -1px 0 var(--ink-line);
+}
+
+.column {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.shareRail {
+  grid-column: 1;
+  justify-self: end;
+  align-self: stretch;
+}
+
 .tocRail {
-  grid-column: 12 / span 3;
-  grid-row: 4 / span 4;
-  position: relative;
-  z-index: 2;
+  grid-column: 3;
   justify-self: start;
-  width: min(100%, 16rem);
-  padding-right: 1.5rem;
+  align-self: stretch;
+  width: min(100%, var(--rail));
 }
 
-.tocSticky {
+.sticky {
   position: sticky;
   top: calc(var(--header-height) + 2rem);
 }
 
-/* Inline variant is for narrow screens only */
-.tocInline {
+/* Inline table of contents and share row: narrow screens only */
+.tocInline,
+.mobileShare {
   display: none;
 }
 
-.sidebar {
-  grid-column: 3;
-  grid-row: 3 / span 5;
-  position: relative;
-  z-index: 2;
-}
-
-.sidebar > div {
-  position: sticky;
-  top: 2rem;
-}
-
-.post {
-  /* Post content styles */
-}
-
-.mainContent {
-  position: relative;
-  grid-column: 4 / span 8;
-  grid-row: 3 / span 5;
-  background-color: var(--color-background-light);
-  padding: 2rem;
-  z-index: 1;
-  margin-bottom: 1rem;
-}
-
-.postTitle {
-  margin-bottom: 2rem;
-  font-size: 2.5rem;
-  font-weight: bold;
-}
-
-.postSubtitle {
-  margin-bottom: 2rem;
-  text-align: left;
-  font-size: 1.4rem;
-  position: relative;
-  line-height: 1.4;
-}
-
-.postSubtitle .quoteStart {
-  position: absolute;
-  top: 0;
-  left: -1.5rem;
-}
-
-.postSubtitle .quoteEnd {
-  position: absolute;
-  bottom: 0;
-  right: -1.5rem;
-}
+/* ── The writing ─────────────────────────────────────────────────────────── */
 
 .mdxContent {
-  line-height: 1.6;
+  font-family: var(--font-text);
+  font-size: 1.22rem;
+  line-height: 1.68;
+  color: var(--color-text-primary);
+  font-variant-numeric: oldstyle-nums;
+  overflow-wrap: break-word;
 }
 
 .mdxContent p {
-  margin-bottom: var(--spacing-lg);
-  line-height: 1.8;
-  color: var(--color-text-primary);
-  font-size: 1.1rem;
+  margin: 0 0 1.35em;
+  text-wrap: pretty;
 }
 
-.mdxContent h1, .mdxContent h4, .mdxContent h5, .mdxContent h6 {
-  color: var(--color-text-primary);
-  margin-top: var(--spacing-xl);
-  margin-bottom: var(--spacing-lg);
+/* An opening paragraph gets a drop cap in the display face */
+.mdxContent > p:first-child::first-letter {
+  float: left;
+  margin: 0.06em 0.05em 0 -0.03em;
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 100, "WONK" 1;
+  font-size: 4.05em;
+  font-weight: 500;
+  line-height: 0.82;
+  color: var(--color-primary);
 }
 
-.mdxContent h2, .mdxContent h3 {
+.mdxContent h1,
+.mdxContent h2,
+.mdxContent h3,
+.mdxContent h4,
+.mdxContent h5,
+.mdxContent h6 {
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-wonk);
+  font-weight: 520;
+  line-height: 1.08;
+  letter-spacing: -0.018em;
   color: var(--color-text-primary);
-  margin-top: var(--spacing-xl);
-  margin-bottom: var(--spacing-md);
+  text-wrap: balance;
+}
+
+.mdxContent h1,
+.mdxContent h2 {
+  margin: 2.4em 0 0.7em;
+  font-size: 1.85em;
+}
+
+.mdxContent h3 {
+  margin: 2em 0 0.6em;
+  font-size: 1.4em;
+}
+
+.mdxContent h4,
+.mdxContent h5,
+.mdxContent h6 {
+  margin: 1.8em 0 0.5em;
+  font-size: 1.15em;
+}
+
+.mdxContent > :first-child {
+  margin-top: 0;
+}
+
+/* Heading anchors from rehype-slug: land below the fixed header */
+.mdxContent h2[id],
+.mdxContent h3[id] {
+  scroll-margin-top: calc(var(--header-height) + 1rem);
 }
 
 .mdxContent a {
-  color: var(--color-primary);
-  text-decoration: none;
-  font-weight: bold;
+  color: var(--color-link);
+  text-decoration: underline;
+  text-decoration-thickness: 0.07em;
+  text-underline-offset: 0.18em;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
 }
 
 .mdxContent a:hover {
-  color: var(--color-primary-dark);
-  text-decoration: underline;
+  color: var(--color-link-hover);
+  text-decoration-color: currentColor;
+}
+
+.mdxContent strong {
+  font-weight: 650;
 }
 
 .mdxContent ul,
 .mdxContent ol {
   list-style-position: outside;
-  margin-bottom: var(--spacing-lg);
-  padding-left: 1.6rem;
+  margin: 0 0 1.35em;
+  padding-left: 1.5em;
 }
 
-.mdxContent ul li,
-.mdxContent ol li {
-  margin-bottom: var(--spacing-sm);
-  line-height: 1.6;
-  color: var(--color-text-primary);
-  font-size: 1.1rem;
+.mdxContent li {
+  margin-bottom: 0.45em;
+  padding-left: 0.2em;
+}
+
+.mdxContent li::marker {
+  color: var(--color-primary);
+  font-family: var(--font-ui);
+  font-size: 0.85em;
+  font-weight: 700;
 }
 
 /* MDX wraps loose list-item content in a <p>; keep it flowing inline
@@ -187,28 +280,29 @@
 }
 
 .mdxContent blockquote {
-  border-left: 4px solid var(--color-primary-light);
-  padding-left: var(--spacing-lg);
-  margin: var(--spacing-xl) 0;
+  margin: 1.8em 0;
+  padding-left: 1.2em;
+  border-left: 3px solid var(--color-primary);
   font-style: italic;
   color: var(--color-text-secondary);
+}
+
+.mdxContent hr {
+  margin: 2.6em auto;
+  width: 5rem;
+  border: 0;
+  border-top: 2px dotted var(--color-text-light);
 }
 
 /* Only style inline code, not code inside pre blocks */
 .mdxContent code:not(pre code) {
   background: var(--color-background-hover);
   border: 1px solid var(--color-border);
-  padding: 0.15em 0.4em;
-  border-radius: var(--border-radius-sm);
+  padding: 0.12em 0.38em;
+  border-radius: 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.875em;
+  font-size: 0.82em;
   color: var(--color-text-primary);
-}
-
-/* Heading anchors from rehype-slug: land below the fixed header */
-.mdxContent h2[id],
-.mdxContent h3[id] {
-  scroll-margin-top: calc(var(--header-height) + 1rem);
 }
 
 /* CodeBlock component handles all pre styling */
@@ -216,8 +310,8 @@
 .mdxContent img {
   width: 100%;
   height: auto;
-  border-radius: var(--border-radius-md);
-  margin: var(--spacing-xl) 0 var(--spacing-lg) 0;
+  border-radius: 12px;
+  margin: 1.8em 0 1em;
   display: block;
 }
 
@@ -232,20 +326,64 @@
   opacity: 0.7;
 }
 
-.quoteStart {
-  color: #ff9664;
-  margin-right: 0.5rem;
+.mdxContent sup {
+  font-size: 0.65em;
+  line-height: 0;
 }
 
-.quoteEnd {
-  color: #ff9664;
-  margin-left: 0.5rem;
+/* ── Next part of a series ───────────────────────────────────────────────── */
+
+.nextPart {
+  display: grid;
+  gap: 0.5rem;
+  margin: 3rem 0 2.5rem;
+  padding: 1.5rem 1.6rem;
+  border-radius: 18px;
+  background: var(--ink-raised);
+  color: var(--on-ink);
+  text-decoration: none;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease;
 }
 
+.nextPart:hover {
+  color: var(--on-ink);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
 
-/* ── Medium screens: no room for the rail, fall back to the inline toggle ── */
+.nextKicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-primary-light);
+}
 
-@media screen and (max-width: 1439px) {
+.nextTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-wonk);
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.nextTitle svg {
+  flex: none;
+  transition: transform 0.25s ease;
+}
+
+.nextPart:hover .nextTitle svg {
+  transform: translateX(6px);
+}
+
+/* ── Medium screens: no room for the contents rail, fall back to the inline toggle ── */
+
+@media (max-width: 1320px) {
   .tocRail {
     display: none;
   }
@@ -255,23 +393,19 @@
   }
 }
 
-/* ── Mobile layout ────────────────────────────────────────────────────────── */
+/* ── Narrow screens: one column ──────────────────────────────────────────── */
 
-@media screen and (max-width: 900px) {
-  /* Switch from grid to simple vertical flow */
-  .container {
-    display: flex;
-    flex-direction: column;
-    padding-top: 4rem; /* fixed header height */
+@media (max-width: 1000px) {
+  .sheet {
+    grid-template-columns: minmax(0, var(--measure));
+    justify-content: center;
   }
 
-  /* Hide social share sidebar; show the inline row at the end instead */
-  .sidebar {
-    display: none;
+  .column {
+    grid-column: 1;
   }
 
-  /* No table of contents on phones */
-  .tocInline {
+  .shareRail {
     display: none;
   }
 
@@ -279,52 +413,61 @@
     display: block;
   }
 
-  /* Date sits in normal flow, not absolutely positioned */
-  .postHeader {
-    padding: 0.75rem 1rem 0.5rem;
-    position: static;
-    height: auto;
+  .heroInner {
+    max-width: var(--measure);
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .hero {
+    min-height: min(78svh, 40rem);
+    padding: 5rem 1.25rem 4rem;
   }
 
-  .dateHeader {
-    position: static;
-    font-size: 1rem;
-    flex-wrap: wrap;
+  .heroPlain {
+    min-height: 0;
   }
 
-  /* Image: full bleed, 16:9 aspect ratio — fill requires explicit height */
-  .featureImageContainer {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    overflow: hidden;
+  .heroImage img {
+    object-position: center top;
   }
 
-  /* Hide hanging quote marks — they eat into the narrow mobile margin */
-  .postSubtitle .quoteStart,
-  .postSubtitle .quoteEnd {
+  .heroShade {
+    background: linear-gradient(0deg, var(--ink) 2%, rgba(15, 13, 11, 0.88) 34%, rgba(15, 13, 11, 0.12) 70%, rgba(15, 13, 11, 0.4) 100%);
+  }
+
+  .kicker {
+    font-size: 0.8rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .title {
+    font-size: clamp(2.1rem, 9.6vw, 2.9rem);
+  }
+
+  .subtitle {
+    margin-top: 0.9rem;
+  }
+
+  .sheet {
+    margin-top: -1.75rem;
+    padding: 2.25rem 1.25rem 2rem;
+    border-radius: 24px 24px 0 0;
+  }
+
+  /* No table of contents on phones */
+  .tocInline {
     display: none;
   }
 
-  /* Content: almost full width */
-  .mainContent {
-    width: 100%;
-    padding: 1.5rem 1rem;
+  .mdxContent {
+    font-size: 1.12rem;
+    line-height: 1.66;
   }
 
-  .postTitle {
-    font-size: 2rem;
-  }
-
-  .postSubtitle {
-    font-size: 1.2rem;
-  }
-
-  .postSubtitle .quoteStart {
-    left: -1rem;
-  }
-
-  .postSubtitle .quoteEnd {
-    right: -1rem;
+  .mdxContent h1,
+  .mdxContent h2 {
+    font-size: 1.65em;
   }
 }

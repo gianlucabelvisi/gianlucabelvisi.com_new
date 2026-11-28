@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import Link from 'next/link'
-import { FiHome, FiArchive, FiTag, FiGrid, FiSearch, FiMap } from 'react-icons/fi'
+import { FiHome, FiCompass, FiBox, FiSearch, FiMap } from 'react-icons/fi'
 import styles from './BlogMenu.module.css'
 
 /** The blog's sections, as in the phone tab bar (components/Header.tsx) */
 const LINKS = [
   { label: 'Home', href: '/', icon: FiHome },
-  { label: 'Archive', href: '/archive', icon: FiArchive },
-  { label: 'Tags', href: '/tags', icon: FiTag },
-  { label: 'Projects', href: '/projects', icon: FiGrid },
+  { label: 'Browse', href: '/archive', icon: FiCompass },
+  { label: 'Projects', href: '/projects', icon: FiBox },
   { label: 'Search', href: '/search', icon: FiSearch },
 ]
 

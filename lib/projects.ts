@@ -1,5 +1,5 @@
 /**
- * Side projects shown under "Projects" (header dropdown on desktop, Projects tab on mobile, /projects page).
+ * Side projects shown under "Projects" (homepage row, header dropdown on desktop, Projects tab on mobile, /projects page).
  * Add a new project here: it appears everywhere at once. Covers live in public/projects/ (1200 × 750).
  */
 export interface Project {
@@ -13,6 +13,12 @@ export interface Project {
   image: string
   /** Shown in the mobile back bar on the project's page */
   shortTitle: string
+  /** What you can do in there, as short verbs for the card */
+  verbs: string[]
+  /** Label of the main button, e.g. "Walk in" */
+  enter: string
+  /** Slug of the post that tells this project's story, if there is one. Ignored until that post is listed. */
+  story?: string
 }
 
 export const PROJECTS: Project[] = [
@@ -24,6 +30,9 @@ export const PROJECTS: Project[] = [
     kicker: '3D walkthrough',
     blurb: 'Walk through our flat in Sluseholmen, try real furniture from Danish shops, and watch the light change through the day.',
     image: '/projects/apartment.jpg',
+    verbs: ['Walk', 'Furnish', 'Day & night'],
+    enter: 'Walk in',
+    story: 'home-styling-rabbit-hole',
   },
   {
     slug: 'pantelleria',
@@ -33,6 +42,8 @@ export const PROJECTS: Project[] = [
     kicker: 'Island map',
     blurb: 'The real terrain, roads and every dammuso of the island, cel-shaded and explorable like a map.',
     image: '/projects/pantelleria.jpg',
+    verbs: ['Drive', 'Fly', 'Walk', 'Rally'],
+    enter: 'Enter the island',
   },
   {
     slug: 'lund-apartment',
@@ -42,6 +53,8 @@ export const PROJECTS: Project[] = [
     kicker: '3D walkthrough',
     blurb: 'Rådmansgatan 1A rebuilt from the floor plan and the listing photos: open the doors and the fridge, switch the lamps, watch the day go by.',
     image: '/projects/lund-apartment.jpg',
+    verbs: ['Walk', 'Open things', 'Day & night'],
+    enter: 'Walk in',
   },
 ]
 

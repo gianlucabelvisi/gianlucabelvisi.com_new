@@ -4,8 +4,8 @@
   "description": "Homepage of Gianluca Belvisi.",
   "start_url": "/",
   "scope": "/",
-  "background_color": "#131313",
-  "theme_color": "#131313",
+  "background_color": "#0f0d0b",
+  "theme_color": "#0f0d0b",
   "display": "minimal-ui",
   "orientation": "portrait",
   "icons": [
