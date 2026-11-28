@@ -112,12 +112,13 @@ export default function HomeHero({ posts, interval = 7000 }: HomeHeroProps) {
               aria-label={`${i + 1} of ${slides.length}`}
               aria-hidden={!active}
               inert={!active}
+              data-vt-scope
             >
               {wideProps && (
                 <picture className={styles.image}>
                   {tallProps && <source media="(max-width: 700px)" srcSet={tallProps.srcSet} sizes="100vw" />}
                   {/* eslint-disable-next-line jsx-a11y/alt-text -- alt comes with the props from next/image's getImageProps (art direction needs <picture>) */}
-                  <img {...wideProps} />
+                  <img {...wideProps} data-vt-image />
                 </picture>
               )}
               <div className={styles.shade} />

@@ -1,0 +1,41 @@
+/* Video and iframe embeds in a post (YouTube, ResponsiveEmbed): same corners and spacing as the images */
+
+.embed {
+  position: relative;
+  width: 100%;
+  margin: 1.8em 0 1em;
+  border-radius: 12px;
+  background: var(--ink-raised);
+  overflow: hidden;
+}
+
+.embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 1.8em 0 1em;
+  border-radius: 12px;
+}
+
+/* fullWidth: wider than the text column, as far as the page allows */
+.wide {
+  width: min(100% + 12rem, 100vw - 3rem);
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 700px) {
+  /* Phones: edge to edge */
+  .wide {
+    width: 100vw;
+    border-radius: 0;
+  }
+}

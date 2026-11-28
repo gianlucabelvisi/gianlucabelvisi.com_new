@@ -4,20 +4,12 @@ interface SpicyTakeProps {
   children: React.ReactNode
 }
 
+/** An opinion that is going to cost some friends: set loud, on ink */
 export default function SpicyTake({ children }: SpicyTakeProps) {
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.badge}>
-        <span className={styles.pepper1} aria-hidden="true">🌶️</span>
-        <span className={styles.pepper2} aria-hidden="true">🌶️</span>
-        <span className={styles.pepper3} aria-hidden="true">🌶️</span>
-        <span className={styles.badgeText}>Spicy Take</span>
-      </div>
-      <div className={styles.container}>
-        <div className={styles.content}>
-          {children}
-        </div>
-      </div>
+    <div className={styles.take}>
+      <span className={styles.kicker}><span aria-hidden="true">🌶️</span> Spicy take</span>
+      <div className={styles.text}>{children}</div>
     </div>
   )
 }

@@ -9,6 +9,16 @@
   --font-ui: var(--font-ui-face, 'Inter'), -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --display-wonk: "SOFT" 60, "WONK" 1;
 
+  /* Shared shapes for the components that sit inside a post (text boxes, polls, cards…) */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  /* Vertical room a component takes above and below itself */
+  --block-gap: 2.25rem;
+  /* Small uppercase label. Use as: font: var(--kicker); letter-spacing: var(--kicker-tracking); text-transform: uppercase */
+  --kicker: 700 0.72rem/1.2 var(--font-ui);
+  --kicker-tracking: 0.12em;
+
   /* Signature orange */
   --color-primary: #ee6f37;
   --color-primary-dark: #b4501c;
@@ -258,83 +268,63 @@ html[data-theme="dark"] {
   color-scheme: dark;
 }
 
-/* Global table styling for MDX content */
+/* Tables in posts: ruled lines, no boxes. Markdown tables are wrapped in .table-scroll (pages/[...slug].tsx)
+   so a wide one scrolls sideways inside its own strip instead of pushing the page. */
+.mdx-content .table-scroll {
+  overflow-x: auto;
+  margin: var(--block-gap) 0;
+}
+
 .mdx-content table {
   width: 100%;
+  margin: var(--block-gap) 0;
   border-collapse: collapse;
-  margin: 2rem 0;
-  background: var(--color-background-card);
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--color-border);
+  font-family: var(--font-ui);
+  font-size: 0.82em;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.mdx-content .table-scroll table {
+  margin: 0;
+  min-width: 26rem;
 }
 
 .mdx-content table th {
-  background: var(--color-primary);
-  color: white;
-  padding: 1rem 1.5rem;
-  text-align: center;
-  font-weight: 600;
-  font-size: 0.9rem;
-  letter-spacing: 1px;
+  padding: 0 1rem 0.65rem 0;
+  border-bottom: 2px solid var(--color-text-primary);
+  text-align: left;
+  vertical-align: bottom;
+  font: var(--kicker);
+  letter-spacing: var(--kicker-tracking);
   text-transform: uppercase;
+  color: var(--color-text-secondary);
 }
 
 .mdx-content table td {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem 0.75rem 0;
   border-bottom: 1px solid var(--color-border);
-  vertical-align: middle;
+  text-align: left;
+  vertical-align: top;
+}
+
+.mdx-content table th:last-child,
+.mdx-content table td:last-child {
+  padding-right: 0;
+}
+
+.mdx-content table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.mdx-content table th[align="center"],
+.mdx-content table td[align="center"] {
   text-align: center;
-  line-height: 1.5;
-  font-size: 0.95rem;
 }
 
-.mdx-content table tr:hover {
-  background: rgba(232, 124, 72, 0.04);
-}
-
-.mdx-content table tr:last-child td {
-  border-bottom: none;
-}
-
-.mdx-content table tbody tr:nth-child(even) {
-  background: var(--color-background-hover);
-}
-
-.mdx-content table tbody tr:nth-child(even):hover {
-  background: rgba(232, 124, 72, 0.1);
-}
-
-@media screen and (max-width: 768px) {
-  .mdx-content table {
-    font-size: 0.9rem;
-    margin: 1.5rem 0;
-  }
-  
-  .mdx-content table th,
-  .mdx-content table td {
-    padding: 0.8rem 1rem;
-  }
-  
-  .mdx-content table th {
-    font-size: 0.8rem;
-  }
-}
-
-@media screen and (max-width: 480px) {
-  .mdx-content table th,
-  .mdx-content table td {
-    padding: 0.7rem 0.8rem;
-    font-size: 0.85rem;
-  }
-  
-  .mdx-content table {
-    margin: 1rem -0.5rem;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-  }
+.mdx-content table th[align="right"],
+.mdx-content table td[align="right"] {
+  text-align: right;
 }
 
 /* Phones: room for the bottom tab bar (components/Header.tsx sets .has-tabbar) */
@@ -351,4 +341,97 @@ html[data-theme="dark"] {
     overflow: hidden;
     overscroll-behavior: none;
   }
+}
+
+/* ── Page transitions (lib/viewTransitions.ts) ──────────────────────────────
+   The script sets <html data-nav="open-post | close-post | move"> for the length of one transition.
+   Named parts: post-hero (image + shade), post-title, post-sheet (pages/[...slug].tsx),
+   site-header and site-tabbar (components/Header.tsx), which simply stay put. */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.26s;
+}
+
+/* The hero image travels between a card and the top of the post */
+::view-transition-group(post-hero) {
+  animation-duration: 0.56s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Card and hero have different shapes: fill the moving box and crop, never stretch */
+::view-transition-old(post-hero),
+::view-transition-new(post-hero) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* No card to grow from or shrink to (a text link, a card that is off screen): settle in, or let go */
+::view-transition-new(post-hero):only-child {
+  animation: vt-hero-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+::view-transition-old(post-hero):only-child {
+  animation: vt-hero-out 0.3s ease both;
+}
+
+/* The paper comes up from below the screen, and drops back when the post is closed */
+::view-transition-new(post-sheet):only-child {
+  animation: vt-sheet-up 0.62s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+::view-transition-old(post-sheet):only-child {
+  animation: vt-sheet-down 0.34s cubic-bezier(0.5, 0, 0.9, 0.4) both;
+}
+
+/* The title follows the image in, and gets out of the way first on the way out */
+::view-transition-new(post-title):only-child {
+  animation: vt-rise 0.46s cubic-bezier(0.2, 0.8, 0.2, 1) 0.24s both;
+}
+
+::view-transition-old(post-title):only-child {
+  animation: vt-fade-out 0.14s ease both;
+}
+
+/* Closing: the homepage is already there underneath, so don't make it wait for a fade */
+html[data-nav="close-post"]::view-transition-new(root) {
+  animation-duration: 0.16s;
+}
+
+@keyframes vt-sheet-up {
+  from { transform: translateY(78vh); }
+}
+
+@keyframes vt-sheet-down {
+  to { transform: translateY(78vh); opacity: 0.5; }
+}
+
+@keyframes vt-hero-in {
+  from { opacity: 0; transform: scale(1.08); }
+}
+
+@keyframes vt-hero-out {
+  to { opacity: 0; transform: scale(1.04); }
+}
+
+@keyframes vt-rise {
+  from { opacity: 0; transform: translateY(22px); }
+}
+
+@keyframes vt-fade-out {
+  to { opacity: 0; }
+}
+
+/* Browsers without view transitions: the same entrance, minus the travelling image */
+html.nav-enter [data-vt-hero] {
+  animation: vt-hero-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+html.nav-enter [data-vt-title] {
+  animation: vt-rise 0.46s cubic-bezier(0.2, 0.8, 0.2, 1) 0.24s both;
+}
+
+html.nav-enter [data-vt-sheet] {
+  animation: vt-sheet-up 0.62s cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }

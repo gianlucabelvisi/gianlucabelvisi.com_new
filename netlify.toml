@@ -1,0 +1,10 @@
+# Netlify build.
+#
+# With a Convex deploy key in the environment (Site configuration > Environment variables > CONVEX_DEPLOY_KEY),
+# `npm run deploy` pushes the functions in convex/ to that deployment and then builds the site against it:
+# it sets NEXT_PUBLIC_CONVEX_URL for the build, so no URL needs to be configured here.
+# Production gets the production key; give "Deploy Previews" a preview key and each PR gets its own empty backend.
+#
+# Without a key (a fork, a context with no key) the site still builds. The live counters stay off.
+[build]
+  command = "if [ -n \"$CONVEX_DEPLOY_KEY\" ]; then npm run deploy; else npm run build; fi"

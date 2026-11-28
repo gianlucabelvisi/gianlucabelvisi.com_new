@@ -1,9 +1,9 @@
 /**
- * Lightweight, privacy-friendly "one action per browser" memory for Firebase
- * features (polls, reactions, view counter). Nothing is sent to a server: we
+ * Lightweight, privacy-friendly "one action per browser" memory for the live
+ * counters (polls, reactions, view counter). Nothing is sent to a server: we
  * just remember in localStorage what this browser already did so a reload
- * can't double-count. It's a courtesy guard, not a security boundary — the
- * database rules in database.rules.json validate shape, not identity.
+ * can't double-count. It's a courtesy guard, not a security boundary: the
+ * Convex functions in convex/ validate shape, not identity.
  */
 
 const PREFIX = 'blog:'

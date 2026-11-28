@@ -144,6 +144,8 @@ const components = {
     return <code {...props} />
   },
   img: MdxImage,
+  // Markdown tables get a scrolling strip so a wide one can't push the page sideways on a phone
+  table: (props: React.TableHTMLAttributes<HTMLTableElement>) => <div className="table-scroll"><table {...props} /></div>,
   // MDX components
   Highlight,
   BlogSubTitle,
@@ -263,15 +265,18 @@ export default function PostPage({
 
       {/* Ink hero: the post opens in the same dark as the homepage, then the paper rises over it */}
       <header className={`${styles.hero} ${wideProps ? '' : styles.heroPlain}`} data-ink-zone>
-        {wideProps && (
-          <picture className={styles.heroImage}>
-            {tallProps && <source media="(max-width: 700px)" srcSet={tallProps.srcSet} sizes="100vw" />}
-            {/* eslint-disable-next-line jsx-a11y/alt-text -- alt comes with the props from next/image's getImageProps (art direction needs <picture>) */}
-            <img {...wideProps} />
-          </picture>
-        )}
-        <div className={styles.heroShade} />
-        <div className={styles.heroInner}>
+        {/* The three named parts below are what the page transition moves (lib/viewTransitions.ts) */}
+        <div className={styles.heroMedia} data-vt-hero style={{ viewTransitionName: 'post-hero' }}>
+          {wideProps && (
+            <picture className={styles.heroImage}>
+              {tallProps && <source media="(max-width: 700px)" srcSet={tallProps.srcSet} sizes="100vw" />}
+              {/* eslint-disable-next-line jsx-a11y/alt-text -- alt comes with the props from next/image's getImageProps (art direction needs <picture>) */}
+              <img {...wideProps} />
+            </picture>
+          )}
+          <div className={styles.heroShade} />
+        </div>
+        <div className={styles.heroInner} data-vt-title style={{ viewTransitionName: 'post-title' }}>
           <p className={styles.kicker}>
             {series && serial && seriesIndex >= 0 && (
               <Link href={`/?series=${series.slug}`} className={styles.kickerLabel}>{series.title} · {series.unit} {seriesIndex + 1} of {series.posts.length}</Link>
@@ -285,7 +290,7 @@ export default function PostPage({
         </div>
       </header>
 
-      <div className={styles.sheet}>
+      <div className={styles.sheet} data-vt-sheet style={{ viewTransitionName: 'post-sheet' }}>
         {/* Left rail: share (wide screens) */}
         <aside className={styles.shareRail}>
           <div className={styles.sticky}>

@@ -6,19 +6,16 @@ interface ProfitBoxProps {
   percentage: number
 }
 
-const ProfitBox: React.FC<ProfitBoxProps> = ({ subject, percentage }) => {
-  return (
-    <div className={styles.wrapper}>
-      <div className={styles.container}>
-        <h2 className={styles.subject}>
-          {subject}
-        </h2>
-        <div className={styles.profit}>
-          +{percentage}%
-        </div>
+/** One number, shown off: whose return it is and how big */
+const ProfitBox: React.FC<ProfitBoxProps> = ({ subject, percentage }) => (
+  <div className={styles.wrapper}>
+    <div className={styles.box}>
+      <div className={styles.subject}>{subject}</div>
+      <div className={styles.profit}>
+        {percentage >= 0 ? '+' : '−'}{Math.abs(percentage)}<span className={styles.unit}>%</span>
       </div>
     </div>
-  )
-}
+  </div>
+)
 
-export default ProfitBox 
+export default ProfitBox

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { getDatabase, ref, runTransaction } from 'firebase/database';
-import app from '../lib/firebase';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from '../convex/_generated/api';
+import { convex } from '../lib/convex';
 import styles from './UnicornButton.module.css';
 
 interface UnicornButtonProps {
@@ -9,186 +10,152 @@ interface UnicornButtonProps {
   tooltip: string;
 }
 
-interface Particle {
-  id: number;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  symbol: string;
-  color: string;
+interface UnicornViewProps {
+  tooltip: string;
+  count: number;
+  onClick: () => void;
 }
 
-const UnicornButton: React.FC<UnicornButtonProps> = ({ page, id, tooltip }) => {
+interface Particle {
+  id: number;
+  symbol: string;
+  /** Where it flies to, in px from the button's centre */
+  dx: number;
+  dy: number;
+  spin: number;
+  delay: number;
+}
+
+const SYMBOLS = ['✨', '🌈', '💖', '🦄', '⭐', '💫', '🎉'];
+const BURST_MS = 1200;
+
+/**
+ * The unicorn button: a counter the reader can mash to register disapproval (or delight) at a punchline.
+ * Calm at rest, a burst of confetti on every click. Counts live in Convex (convex/unicorns.ts) and are
+ * shared: someone else mashing the same button moves this number too.
+ */
+const LiveUnicornButton: React.FC<UnicornButtonProps> = ({ page, id, tooltip }) => {
+  const count = useQuery(api.unicorns.get, { page, id });
+  // Count the click on screen straight away; the server's number replaces it when it arrives
+  const click = useMutation(api.unicorns.click).withOptimisticUpdate((store, args) => {
+    const current = store.getQuery(api.unicorns.get, args);
+    if (current !== undefined) store.setQuery(api.unicorns.get, args, current + 1);
+  });
+
+  return (
+    <UnicornView
+      tooltip={tooltip}
+      count={count ?? 0}
+      onClick={() => { click({ page, id }).catch(err => console.error('Could not save the click:', err)); }}
+    />
+  );
+};
+
+/** Without a backend the button still works as a toy: it counts this visit's clicks and forgets them */
+const LocalUnicornButton: React.FC<UnicornButtonProps> = ({ tooltip }) => {
   const [count, setCount] = useState(0);
-  const [clicked, setClicked] = useState(false);
+  return <UnicornView tooltip={tooltip} count={count} onClick={() => setCount(n => n + 1)} />;
+};
+
+const UnicornView: React.FC<UnicornViewProps> = ({ tooltip, count, onClick }) => {
+  const [bump, setBump] = useState(0);
   const [showTooltip, setShowTooltip] = useState(false);
   const [particles, setParticles] = useState<Particle[]>([]);
-  const [isHovered, setIsHovered] = useState(false);
   const [tooltipShift, setTooltipShift] = useState(0);
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const nextId = useRef(0);
 
-  // Re-measure once the tooltip is shown and clamp it inside the viewport.
+  // Once shown, nudge the tooltip sideways if it would poke out of the viewport
   useEffect(() => {
     if (!showTooltip) return;
-    // Wait one frame for the tooltip to mount + animate so we measure final size.
-    const id = requestAnimationFrame(() => {
+    const frame = requestAnimationFrame(() => {
       const el = tooltipRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      const margin = 16; // 1rem breathing room from viewport edges
+      const margin = 16;
       let shift = 0;
       if (rect.left < margin) shift = margin - rect.left;
       else if (rect.right > window.innerWidth - margin) shift = (window.innerWidth - margin) - rect.right;
       setTooltipShift(shift);
     });
-    return () => cancelAnimationFrame(id);
+    return () => cancelAnimationFrame(frame);
   }, [showTooltip, tooltip]);
 
-  const magicalSymbols = ['✨', '🌟', '⭐', '💫', '🎉', '🎊', '🌈', '💖', '🦄', '🔮', '🌸', '💎', '🎀', '🌺', '🦋', '🌙', '☄️', '💝'];
-  const colors = ['#ff69b4', '#ffd700', '#ff1493', '#00bfff', '#9370db', '#ff6347', '#00ff7f', '#ff69b4', '#87ceeb', '#dda0dd'];
-
-  const createParticles = () => {
-    const newParticles: Particle[] = [];
-    for (let i = 0; i < 25; i++) {
-      newParticles.push({
-        id: Date.now() + i,
-        x: 0,
-        y: 0,
-        vx: (Math.random() - 0.5) * 12,
-        vy: (Math.random() - 0.5) * 12,
-        life: 1,
-        symbol: magicalSymbols[Math.floor(Math.random() * magicalSymbols.length)],
-        color: colors[Math.floor(Math.random() * colors.length)]
-      });
-    }
-    setParticles(newParticles);
-
-    // Animate particles
-    const animateParticles = () => {
-      setParticles(prev => prev.map(particle => ({
-        ...particle,
-        x: particle.x + particle.vx,
-        y: particle.y + particle.vy,
-        life: particle.life - 0.015,
-        vy: particle.vy + 0.15 // gravity
-      })).filter(particle => particle.life > 0));
-    };
-
-    const intervalId = setInterval(animateParticles, 16);
-    setTimeout(() => {
-      clearInterval(intervalId);
-      setParticles([]);
-    }, 3000);
+  const burst = () => {
+    const fresh: Particle[] = Array.from({ length: 14 }, () => {
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 50 + Math.random() * 90;
+      return {
+        id: nextId.current++,
+        symbol: SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+        dx: Math.cos(angle) * distance,
+        dy: Math.sin(angle) * distance - 30, // biased upwards
+        spin: (Math.random() - 0.5) * 540,
+        delay: Math.random() * 80,
+      };
+    });
+    setParticles(prev => [...prev, ...fresh]);
+    const ids = new Set(fresh.map(p => p.id));
+    window.setTimeout(() => setParticles(prev => prev.filter(p => !ids.has(p.id))), BURST_MS);
   };
 
   const handleClick = () => {
-    const database = getDatabase(app);
-    const reactionRef = ref(database, `unicorn/${page}/${id}`);
-
-    setCount(prevCount => prevCount + 1);
-    setClicked(true);
-    createParticles();
-    
-    setTimeout(() => setClicked(false), 1000);
-
-    runTransaction(reactionRef, (stored) => {
-      if (stored === undefined) {
-        stored = 0;
-      }
-      return stored + 1;
-    });
+    setBump(n => n + 1);
+    burst();
+    onClick();
   };
 
-  useEffect(() => {
-    async function fetchData() {
-      const database = getDatabase(app);
-      const reactionRef = ref(database, `unicorn/${page}/${id}`);
-
-      await runTransaction(reactionRef, (stored) => {
-        setCount(stored || 0);
-        return stored;
-      });
-    }
-    fetchData();
-  }, [id, page]);
+  const hide = () => { setShowTooltip(false); setTooltipShift(0); };
 
   return (
-    <div ref={wrapperRef} className={styles.wrapper}>
+    <div className={styles.wrapper}>
       <button
-        className={`${styles.button} ${clicked ? styles.clicked : ''} ${isHovered ? styles.hovered : ''}`}
+        type="button"
+        className={styles.button}
         onClick={handleClick}
-        onMouseEnter={() => {
-          setShowTooltip(true);
-          setIsHovered(true);
-        }}
-        onMouseLeave={() => {
-          setShowTooltip(false);
-          setIsHovered(false);
-          setTooltipShift(0);
-        }}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={hide}
         onFocus={() => setShowTooltip(true)}
-        onBlur={() => {
-          setShowTooltip(false);
-          setTooltipShift(0);
-        }}
-        aria-label={tooltip}
+        onBlur={hide}
+        aria-label={`${tooltip} (${count})`}
       >
-        <div className={styles.unicornContainer}>
-          <span className={styles.unicorn}>🦄</span>
-          <div className={styles.magicAura}></div>
-          <div className={styles.sparkleRing}>
-            <span className={styles.floatingSparkle} style={{ '--delay': '0s' } as React.CSSProperties}>✨</span>
-            <span className={styles.floatingSparkle} style={{ '--delay': '0.5s' } as React.CSSProperties}>🌟</span>
-            <span className={styles.floatingSparkle} style={{ '--delay': '1s' } as React.CSSProperties}>⭐</span>
-            <span className={styles.floatingSparkle} style={{ '--delay': '1.5s' } as React.CSSProperties}>💫</span>
-            <span className={styles.floatingSparkle} style={{ '--delay': '2s' } as React.CSSProperties}>✨</span>
-            <span className={styles.floatingSparkle} style={{ '--delay': '2.5s' } as React.CSSProperties}>🌟</span>
-          </div>
-        </div>
-        
-        <div className={styles.countContainer}>
-          <span className={styles.count}>{count}</span>
-        </div>
+        {/* key: remounting replays the bump animation on every click */}
+        <span key={bump} className={`${styles.unicorn} ${bump > 0 ? styles.bump : ''}`} aria-hidden="true">🦄</span>
+        <span className={styles.count}>{count.toLocaleString('en-US')}</span>
       </button>
 
-      {/* Particle System */}
-      <div className={styles.particleContainer}>
-        {particles.map(particle => (
-          <div
-            key={particle.id}
+      <span className={styles.particles} aria-hidden="true">
+        {particles.map(p => (
+          <span
+            key={p.id}
             className={styles.particle}
             style={{
-              left: `calc(50% + ${particle.x}px)`,
-              top: `calc(50% + ${particle.y}px)`,
-              opacity: particle.life,
-              color: particle.color,
-              transform: `scale(${particle.life}) rotate(${(1 - particle.life) * 720}deg)`
-            }}
+              '--dx': `${p.dx}px`,
+              '--dy': `${p.dy}px`,
+              '--spin': `${p.spin}deg`,
+              animationDelay: `${p.delay}ms`,
+            } as React.CSSProperties}
           >
-            {particle.symbol}
-          </div>
+            {p.symbol}
+          </span>
         ))}
-      </div>
-      
+      </span>
+
       {showTooltip && (
         <div
           ref={tooltipRef}
           className={styles.tooltip}
+          role="tooltip"
           style={{ transform: `translateX(calc(-50% + ${tooltipShift}px))` }}
         >
-          <div className={styles.tooltipContent}>
-            {tooltip}
-          </div>
-          <div className={styles.tooltipSparkle}>✨</div>
-          <div className={styles.tooltipSparkle2}>🌟</div>
-          <div className={styles.tooltipSparkle3}>⭐</div>
+          {tooltip}
         </div>
       )}
     </div>
   );
 };
 
-export default UnicornButton; 
+const UnicornButton: React.FC<UnicornButtonProps> = props =>
+  convex ? <LiveUnicornButton {...props} /> : <LocalUnicornButton {...props} />;
+
+export default UnicornButton;

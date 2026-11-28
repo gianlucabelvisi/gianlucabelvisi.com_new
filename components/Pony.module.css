@@ -1,0 +1,13 @@
+.pony {
+  display: block;
+  margin: 0 auto;
+  padding: 0.2rem 1rem 1.4rem;
+  max-width: 32rem;
+  font-family: 'Irish Grover', cursive;
+  font-size: 1.55rem;
+  font-style: normal;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--color-text-primary);
+  text-wrap: balance;
+}

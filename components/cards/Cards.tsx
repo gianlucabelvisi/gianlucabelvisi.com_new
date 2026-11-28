@@ -30,7 +30,8 @@ export function ReadCard({ post, progress, meta, priority = false }: ReadCardPro
   const { title, date, onHover } = post.frontmatter
   return (
     <Link href={`/${post.slug}`} className={`${styles.card} ${styles.read}`}>
-      <span className={styles.thumb}>
+      {/* data-vt-image: this thumbnail grows into the post's hero on the way in (lib/viewTransitions.ts) */}
+      <span className={styles.thumb} data-vt-image>
         {image ? (
           <Image src={image} alt="" fill priority={priority} sizes="(max-width: 700px) 62vw, 300px" />
         ) : (

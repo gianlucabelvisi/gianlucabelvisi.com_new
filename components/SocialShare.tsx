@@ -1,19 +1,15 @@
 import { useState } from 'react';
 import {
-  FacebookIcon,
   FacebookShareButton,
-  InstapaperIcon,
   InstapaperShareButton,
-  PinterestIcon,
   PinterestShareButton,
-  RedditIcon,
   RedditShareButton,
-  TwitterIcon,
   TwitterShareButton,
-  WhatsappIcon,
   WhatsappShareButton
 } from "react-share";
 import { FiLink, FiShare2, FiCheck } from 'react-icons/fi';
+import { FaFacebookF, FaPinterestP, FaRedditAlien, FaWhatsapp, FaXTwitter } from 'react-icons/fa6';
+import { SiInstapaper } from 'react-icons/si';
 import { SITE_URL } from '../lib/routes';
 import styles from '../styles/SocialShare.module.css';
 
@@ -58,33 +54,33 @@ const SocialShare = ({ path, title, description, image, layout = 'vertical' }: S
   return (
     <div className={`${styles.socialShare} ${layout === 'horizontal' ? styles.horizontal : ''}`} role="group" aria-label="Share this post">
       <div className={styles.shareItem} data-tooltip="Share on Facebook">
-        <FacebookShareButton url={url} hashtag="#gianlucabelvisi" aria-label="Share on Facebook">
-          <FacebookIcon size={32} round={true} />
+        <FacebookShareButton className={styles.iconButton} resetButtonStyle={false} url={url} hashtag="#gianlucabelvisi" aria-label="Share on Facebook">
+          <FaFacebookF aria-hidden="true" />
         </FacebookShareButton>
       </div>
       <div className={styles.shareItem} data-tooltip="Post on X">
-        <TwitterShareButton url={url} title={title} aria-label="Post on X">
-          <TwitterIcon size={32} round={true} />
+        <TwitterShareButton className={styles.iconButton} resetButtonStyle={false} url={url} title={title} aria-label="Post on X">
+          <FaXTwitter aria-hidden="true" />
         </TwitterShareButton>
       </div>
       <div className={styles.shareItem} data-tooltip="Post to Reddit">
-        <RedditShareButton url={url} title={title} aria-label="Post to Reddit">
-          <RedditIcon size={32} round={true} />
+        <RedditShareButton className={styles.iconButton} resetButtonStyle={false} url={url} title={title} aria-label="Post to Reddit">
+          <FaRedditAlien aria-hidden="true" />
         </RedditShareButton>
       </div>
       <div className={styles.shareItem} data-tooltip="Send on WhatsApp">
-        <WhatsappShareButton url={url} title={title} separator=" — " aria-label="Send on WhatsApp">
-          <WhatsappIcon size={32} round={true} />
+        <WhatsappShareButton className={styles.iconButton} resetButtonStyle={false} url={url} title={title} separator=" — " aria-label="Send on WhatsApp">
+          <FaWhatsapp aria-hidden="true" />
         </WhatsappShareButton>
       </div>
       <div className={styles.shareItem} data-tooltip="Save to Instapaper">
-        <InstapaperShareButton url={url} title={title} description={description} aria-label="Save to Instapaper">
-          <InstapaperIcon size={32} round={true} />
+        <InstapaperShareButton className={styles.iconButton} resetButtonStyle={false} url={url} title={title} description={description} aria-label="Save to Instapaper">
+          <SiInstapaper aria-hidden="true" />
         </InstapaperShareButton>
       </div>
       <div className={styles.shareItem} data-tooltip="Pin on Pinterest">
-        <PinterestShareButton url={url} description={title} media={media} aria-label="Pin on Pinterest">
-          <PinterestIcon size={32} round={true} />
+        <PinterestShareButton className={styles.iconButton} resetButtonStyle={false} url={url} description={title} media={media} aria-label="Pin on Pinterest">
+          <FaPinterestP aria-hidden="true" />
         </PinterestShareButton>
       </div>
       <div className={styles.shareItem} data-tooltip={copied ? 'Link copied!' : 'Copy link'}>

@@ -5,15 +5,12 @@ interface QuestionProps {
   children: React.ReactNode
 }
 
-const Question: React.FC<QuestionProps> = ({ children }) => {
-  return (
-    <div className={styles.question}>
-      <strong className={styles.questionLabel}>
-        Question:
-      </strong>
-      {children}
-    </div>
-  )
-}
+/** The reader interrupting with a question, which the next paragraph then answers */
+const Question: React.FC<QuestionProps> = ({ children }) => (
+  <div className={styles.question}>
+    <span className={styles.mark}>Question</span>
+    <span className={styles.text}>{children}</span>
+  </div>
+)
 
-export default Question 
+export default Question

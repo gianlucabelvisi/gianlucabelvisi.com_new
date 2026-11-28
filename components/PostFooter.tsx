@@ -2,9 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import styles from './PostFooter.module.css';
 
-// Lazy-load Firebase-using components only when the footer scrolls into view.
-// Saves ~80KB JS + a network round-trip on initial post-page load for
-// visitors who never reach the footer.
+// The live counters only mount when the footer scrolls into view, so a reader who never
+// gets this far never opens their subscriptions.
 const Reactions = dynamic(() => import('./Reactions'), { ssr: false });
 const ViewCounter = dynamic(() => import('./ViewCounter'), { ssr: false });
 
@@ -39,18 +38,15 @@ const PostFooter = ({ path, author }: PostFooterProps) => {
 
   return (
     <div ref={containerRef} className={styles.container}>
-      {/* First Line: Reactions and View Counter — Firebase only loads when this is in view */}
-      <div className={styles.reactionsRow}>
+      <p className={styles.prompt}>How was it?</p>
+      {/* Mounted (and subscribed) only once this is in view */}
+      <div className={styles.reactions}>
         {visible && <Reactions id={path} />}
+      </div>
+      <p className={styles.meta}>
+        <span>by <strong>{author}</strong></span>
         {visible && <ViewCounter id={path} />}
-      </div>
-
-      {/* Second Line: Author */}
-      <div className={styles.authorRow}>
-        <div className={styles.authorInfo}>
-          by <strong>{author}</strong>
-        </div>
-      </div>
+      </p>
     </div>
   );
 };

@@ -114,14 +114,14 @@ export default function HomePage({ hero, latest, series, stories, captions, topi
           </Shelf>
         )}
 
-        <LazySection minHeight={320}>
+        <LazySection id="home-projects" minHeight={320}>
           <Shelf title="Projects" hint="things you walk through instead of read" moreHref="/projects">
             {PROJECTS.map(p => <ProjectCard key={p.slug} project={p} onOpen={openProject} />)}
           </Shelf>
         </LazySection>
 
         {captions.length > 0 && (
-          <LazySection minHeight={320}>
+          <LazySection id="home-captions" minHeight={320}>
             <Shelf title="Out of context" hint="captions that wandered off from their posts">
               {captions.map(c => <CaptionCard key={`${c.slug}-${c.anchor}`} caption={c} />)}
             </Shelf>
@@ -129,20 +129,20 @@ export default function HomePage({ hero, latest, series, stories, captions, topi
         )}
 
         {topics.map(topic => (
-          <LazySection key={topic.title} minHeight={300}>
+          <LazySection key={topic.title} id={`home-topic-${topic.title}`} minHeight={300}>
             <Shelf title={topic.title} hint={topic.hint ?? undefined} moreHref={topic.moreHref}>
               {reads(topic.posts)}
             </Shelf>
           </LazySection>
         ))}
 
-        <LazySection minHeight={300}>
+        <LazySection id="home-lucky" minHeight={300}>
           <Shelf title="Lucky dip" hint="reshuffled every hour" moreHref="/tags" moreLabel="Browse by tag">
             {reads(randomized)}
           </Shelf>
         </LazySection>
 
-        <LazySection minHeight={300}>
+        <LazySection id="home-archive" minHeight={300}>
           <Shelf title="From the archive" hint="where it all started" moreHref="/archive" moreLabel="All posts">
             {reads(chronological)}
           </Shelf>

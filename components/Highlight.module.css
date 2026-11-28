@@ -1,31 +1,14 @@
+/* Marker-pen highlight: colour on the lower half of the line, the text itself untouched */
+
 .highlight {
-  padding: 0.2em 0.4em;
-  border-radius: var(--border-radius-sm);
-  font-weight: 500;
-  transition: all 0.2s ease;
+  --marker: rgba(250, 204, 21, 0.55);
+  padding: 0 0.12em;
+  background: linear-gradient(transparent 46%, var(--marker) 46%, var(--marker) 92%, transparent 92%);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
-.yellow {
-  background-color: #fef3c7;
-  color: #92400e;
-}
-
-.blue {
-  background-color: #dbeafe;
-  color: var(--color-secondary-dark);
-}
-
-.green {
-  background-color: #d1fae5;
-  color: #065f46;
-}
-
-.red {
-  background-color: #fecaca;
-  color: #991b1b;
-}
-
-.highlight:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-} 
+.yellow { --marker: rgba(250, 204, 21, 0.55); }
+.blue { --marker: rgba(96, 165, 250, 0.45); }
+.green { --marker: rgba(74, 222, 128, 0.45); }
+.red { --marker: rgba(248, 113, 113, 0.45); }

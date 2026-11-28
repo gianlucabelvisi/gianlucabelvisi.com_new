@@ -1,23 +1,16 @@
-import '@fontsource/irish-grover/index.css';
+import '@fontsource/irish-grover/index.css'
+import styles from './Pony.module.css'
 
 interface PonyProps {
-  children: React.ReactNode;
-  fontSize?: string;
+  children: React.ReactNode
+  fontSize?: string
 }
 
-export default function Pony({ children, fontSize = "1.4rem" }: PonyProps) {
+/** The pony's voice: blunt convictions in the pony's own lettering */
+export default function Pony({ children, fontSize }: PonyProps) {
   return (
-    <span 
-      style={{
-        fontFamily: "Irish Grover, cursive",
-        fontSize: fontSize,
-        paddingBottom: "1.5rem",
-        paddingLeft: "3rem",
-        paddingRight: "3rem",
-        display: "inline-block" // Allows padding while still being inline
-      }}
-    >
+    <span className={styles.pony} style={fontSize ? { fontSize } : undefined}>
       {children}
     </span>
-  );
-} 
+  )
+}

@@ -1,0 +1,195 @@
+/* A one-question poll (components/Poll.tsx) */
+
+.poll {
+  margin: var(--block-gap) 0;
+  padding: 1.5rem 1.5rem 1.2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-background-card);
+  font-family: var(--font-ui);
+}
+
+.kicker {
+  margin: 0 0 0.5rem !important;
+  font: var(--kicker);
+  letter-spacing: var(--kicker-tracking);
+  text-transform: uppercase;
+  color: var(--color-link);
+}
+
+.poll .question {
+  margin: 0 0 1.15rem;
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-wonk);
+  font-size: 1.55rem;
+  font-weight: 520;
+  line-height: 1.12;
+  letter-spacing: -0.018em;
+  color: var(--color-text-primary);
+  text-wrap: balance;
+}
+
+.poll .answers {
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+}
+
+.poll .answers li {
+  margin: 0;
+  padding: 0;
+}
+
+/* An answer, before and after: same shape, so the list doesn't jump when the results come in */
+.option,
+.result {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.7rem 0.95rem 0.7rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background-main);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 0.98rem;
+  line-height: 1.35;
+  text-align: left;
+  overflow: hidden;
+}
+
+.option {
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.15s ease;
+}
+
+.option:hover:not(:disabled),
+.option:focus-visible {
+  border-color: var(--color-text-primary);
+  background: var(--color-background-hover);
+}
+
+.option:disabled {
+  cursor: default;
+}
+
+.option:active {
+  transform: scale(0.99);
+}
+
+.letter {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: var(--color-background-hover);
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.option:hover:not(:disabled) .letter,
+.option:focus-visible .letter {
+  background: var(--color-text-primary);
+  color: var(--color-background-main);
+}
+
+.text {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Results ── */
+
+/* The row fills from the left to this answer's share of the vote */
+.bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--share);
+  background: color-mix(in srgb, var(--color-text-primary) 9%, transparent);
+  transform-origin: left;
+  animation: grow 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes grow {
+  from { transform: scaleX(0); }
+}
+
+.share {
+  position: relative;
+  flex: none;
+  min-width: 3ch;
+  text-align: right;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.leading .share {
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+/* The verdict that goes with an answer, revealed with the results */
+.label {
+  display: block;
+  margin-bottom: 0.1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+}
+
+/* The reader's own choice */
+.mine {
+  border-color: var(--color-primary);
+}
+
+.mine .bar {
+  background: rgba(var(--color-primary-rgb), 0.24);
+}
+
+.mine .letter {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.95rem;
+}
+
+.mine .label {
+  color: var(--color-link);
+}
+
+.footnote {
+  margin: 0.9rem 0 0 !important;
+  font-size: 0.8rem !important;
+  line-height: 1.4 !important;
+  color: var(--color-text-light) !important;
+}
+
+@media (max-width: 700px) {
+  .poll {
+    padding: 1.2rem 1.1rem 1rem;
+    border-radius: var(--radius-md);
+  }
+
+  .poll .question {
+    font-size: 1.35rem;
+  }
+
+  .option,
+  .result {
+    font-size: 0.94rem;
+  }
+}

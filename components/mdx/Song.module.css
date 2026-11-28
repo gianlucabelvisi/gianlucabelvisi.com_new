@@ -1,44 +1,37 @@
-@import url('https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap');
+/* A lyric line (components/mdx/Song.tsx). Consecutive lines stack into a verse. */
 
 .song {
-  background: linear-gradient(135deg, rgba(255, 150, 100, 0.08) 0%, rgba(255, 150, 100, 0.04) 100%);
-  border: 2px solid var(--color-primary-light);
-  border-radius: var(--border-radius-md);
-  padding: var(--spacing-lg);
-  margin: var(--spacing-xl) 0;
+  margin: 0;
   text-align: center;
-  position: relative;
-  box-shadow: var(--shadow-sm);
+  font-style: italic;
+  font-size: 1.04em;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-wrap: balance;
 }
 
+/* A note opens the song… */
 .song::before {
   content: '♪';
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--color-primary-light);
-  color: var(--color-white);
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  font-weight: bold;
+  display: block;
+  margin: var(--block-gap) 0 0.5rem;
+  font-style: normal;
+  font-size: 1.25em;
+  line-height: 1;
+  color: var(--color-primary);
 }
 
-.content {
-  color: var(--color-text-primary);
-  font-style: italic;
-  font-size: 1.1rem;
-  line-height: 1.6;
+/* …but not every line, and not every verse */
+.song + .song::before,
+br + .song::before {
+  content: none;
 }
 
-@media screen and (max-width: 500px) {
-  .song {
-    padding-left: 2rem;
-    font-size: 1.1rem;
-  }
-} 
+/* Room after the last line, unless a verse break (<Break/>) or another line follows */
+.song:not(:has(+ .song)):not(:has(+ br)) {
+  margin-bottom: var(--block-gap);
+}
+
+.song em {
+  font-style: normal;
+}

@@ -1,42 +1,22 @@
-.listenButton {
-  background: var(--color-primary);
-  border: none;
-  border-radius: 4px;
-  width: 1.5rem;
-  height: 1.5rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin: 0 0.25rem;
+.listen {
+  display: inline-grid;
+  place-items: center;
+  width: 1.7em;
+  height: 1.7em;
+  margin: 0 0.15em 0 0.4em;
+  border-radius: 50%;
+  background: rgba(var(--color-primary-rgb), 0.16);
+  /* !important: beats the post's link colour and underline */
+  color: var(--color-link) !important;
+  text-decoration: none !important;
+  font-size: 0.85em;
   vertical-align: middle;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
 }
 
-.listenButton:hover {
-  background: var(--color-primary-dark);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.listenButton:active {
-  transform: translateY(0);
-  transition: all 0.1s ease;
-}
-
-.icon {
-  color: white;
-  font-size: 0.7rem;
-}
-
-@media screen and (max-width: 768px) {
-  .listenButton {
-    width: 1.4rem;
-    height: 1.4rem;
-  }
-  
-  .icon {
-    font-size: 0.65rem;
-  }
+.listen:hover,
+.listen:focus-visible {
+  background: var(--color-primary);
+  color: var(--color-on-primary) !important;
+  transform: scale(1.1);
 }
