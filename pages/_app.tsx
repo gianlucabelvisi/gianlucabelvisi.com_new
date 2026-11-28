@@ -11,6 +11,12 @@ import Header from "../components/Header";
 import SiteFooter from "../components/SiteFooter";
 import RouteProgress from "../components/RouteProgress";
 import { isDarkOnlyRoute } from "../lib/routes";
+import { Fraunces, Literata, Inter } from "next/font/google";
+
+// Self-hosted at build time by next/font. The tokens that use them live in styles/globals.css.
+const displayFont = Fraunces({ subsets: ["latin"], style: ["normal", "italic"], axes: ["SOFT", "WONK", "opsz"], display: "swap" });
+const textFont = Literata({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], display: "swap" });
+const uiFont = Inter({ subsets: ["latin"], display: "swap" });
 
 // Privacy-friendly, cookie-less analytics. Off unless the domain is configured (see .env.example).
 const PLAUSIBLE_DOMAIN = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN;
@@ -48,6 +54,13 @@ export default function App({ Component, pageProps }: AppProps) {
         {/* viewport-fit=cover: the phone tab bar sits above the home indicator via env(safe-area-inset-bottom) */}
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" key="viewport" />
       </Head>
+      <style jsx global>{`
+        :root {
+          --font-display-face: ${displayFont.style.fontFamily};
+          --font-text-face: ${textFont.style.fontFamily};
+          --font-ui-face: ${uiFont.style.fontFamily};
+        }
+      `}</style>
       <a href="#main-content" className="skip-link">Skip to content</a>
       <RouteProgress />
       <Header />

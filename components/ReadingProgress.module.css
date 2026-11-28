@@ -52,9 +52,10 @@
   border-color: var(--color-primary);
 }
 
-@media (max-width: 768px) {
+/* Phones: sit above the floating tab bar */
+@media (max-width: 900px) {
   .backToTop {
     right: 1rem;
-    bottom: calc(1rem + env(safe-area-inset-bottom));
+    bottom: calc(4.6rem + env(safe-area-inset-bottom));
   }
 }

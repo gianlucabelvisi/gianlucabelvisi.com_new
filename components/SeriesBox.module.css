@@ -1,5 +1,6 @@
 .box {
-  margin: 0 0 2rem;
+  font-family: var(--font-ui);
+  margin: 0 0 2.5rem;
   padding: 1.1rem 1.25rem 1rem;
   border-radius: var(--border-radius-md);
   background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.08) 0%, var(--color-background-card) 100%);
@@ -17,12 +18,18 @@
 
 .name {
   margin: 0 0 0.75rem !important;
-  font-size: 1.15rem !important;
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-wonk);
+  font-size: 1.4rem !important;
+  font-weight: 520;
+  letter-spacing: -0.015em;
   color: var(--color-text-primary);
 }
 
 .part {
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  letter-spacing: 0;
   font-weight: 500;
   color: var(--color-text-secondary);
 }

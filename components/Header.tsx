@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/router'
-import { FiHome, FiSearch, FiArchive, FiTag, FiGrid, FiChevronDown, FiChevronLeft, FiArrowRight } from 'react-icons/fi'
+import { FiHome, FiSearch, FiCompass, FiBox, FiChevronDown, FiChevronLeft, FiArrowRight } from 'react-icons/fi'
 import ThemeToggle from './ThemeToggle'
 import { isDarkOnlyRoute } from '../lib/routes'
 import { PROJECTS, projectForPath } from '../lib/projects'
@@ -15,9 +15,11 @@ interface NavItem {
   match?: (pathname: string) => boolean
 }
 
+/** Archive, tags and search are three ways of finding a post, so they share one door */
+const isBrowseRoute = (p: string) => p === '/archive' || p === '/search' || p.startsWith('/tags')
+
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Archive', href: '/archive' },
-  { label: 'Tags', href: '/tags', match: p => p.startsWith('/tags') },
+  { label: 'Browse', href: '/archive', match: isBrowseRoute },
 ]
 
 const isProjectsRoute = (p: string) => p === '/projects' || !!projectForPath(p)
@@ -25,15 +27,15 @@ const isProjectsRoute = (p: string) => p === '/projects' || !!projectForPath(p)
 /** Mobile: an app-style tab bar at the bottom replaces the old hamburger + full-screen overlay */
 const TABS = [
   { label: 'Home', href: '/', icon: FiHome, match: (p: string) => p === '/' },
-  { label: 'Archive', href: '/archive', icon: FiArchive, match: (p: string) => p === '/archive' },
-  { label: 'Tags', href: '/tags', icon: FiTag, match: (p: string) => p.startsWith('/tags') },
-  { label: 'Projects', href: '/projects', icon: FiGrid, match: isProjectsRoute },
-  { label: 'Search', href: '/search', icon: FiSearch, match: (p: string) => p === '/search' },
+  { label: 'Browse', href: '/archive', icon: FiCompass, match: isBrowseRoute },
+  { label: 'Projects', href: '/projects', icon: FiBox, match: isProjectsRoute },
 ]
 
 export default function Header() {
   const [visible, setVisible] = useState(true)
   const [scrolled, setScrolled] = useState(false)
+  // Post pages open on an ink hero (marked data-ink-zone): the header wears the dark look until that scrolls away
+  const [overInk, setOverInk] = useState(false)
   const [projectsOpen, setProjectsOpen] = useState(false)
   const lastScrollY = useRef(0)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -64,11 +66,19 @@ export default function Header() {
 
       setScrolled(currentScrollY > 20)
       lastScrollY.current = currentScrollY
+
+      const zone = document.querySelector('[data-ink-zone]')
+      setOverInk(!!zone && zone.getBoundingClientRect().bottom > 56)
     }
 
+    handleScroll()
     window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+    router.events.on('routeChangeComplete', handleScroll)
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      router.events.off('routeChangeComplete', handleScroll)
+    }
+  }, [router.events])
 
   // Close the projects menu whenever a navigation starts
   useEffect(() => {
@@ -111,8 +121,9 @@ export default function Header() {
   const headerClass = [
     styles.header,
     visible ? styles.visible : styles.hidden,
-    isDarkRoute ? styles.homepage : styles.page,
-    scrolled || !isHomepage ? styles.scrolled : '',
+    isDarkRoute || overInk ? styles.homepage : styles.page,
+    // transparent while it sits on the hero (home, and the ink top of a post); a blurred bar once the page moves under it
+    (scrolled || !isHomepage) && !overInk ? styles.scrolled : '',
     // phones: the tab bar has Home and Search, so on dark pages without a back bar the top bar would be empty
     !project && isDarkRoute ? styles.mobileEmpty : '',
   ].filter(Boolean).join(' ')
@@ -132,11 +143,9 @@ export default function Header() {
             </>
           ) : null}
 
-          {!isHomepage && (
-            <Link href="/" className={`${styles.logo} ${styles.logoDesktopOnly}`} aria-label="Home">
-              <FiHome className={styles.logoIcon} aria-hidden="true" />
-            </Link>
-          )}
+          <Link href="/" className={`${styles.wordmark} ${project ? styles.desktopOnly : ''}`} aria-label="Gianluca Belvisi, home">
+            gianluca<span aria-hidden="true">.</span>
+          </Link>
 
           <div className={styles.controls}>
             <nav className={styles.desktopNav} aria-label="Main navigation">

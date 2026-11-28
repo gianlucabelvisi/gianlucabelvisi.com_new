@@ -1,22 +1,16 @@
+import styles from './FigureLabel.module.css'
+
 interface FigureLabelProps {
   children: React.ReactNode
+  /** Anchor stamped at build time (lib/captions.ts) so a caption can be linked to directly */
+  id?: string
 }
 
-const FigureLabel = ({ children }: FigureLabelProps) => {
-  return (
-    <span style={{
-      display: 'block',
-      width: '100%',
-      textAlign: 'center',
-      marginBottom: '2rem',
-      marginTop: '0.5rem',
-      paddingLeft: '4rem',
-      paddingRight: '4rem',
-      textWrap: 'balance'
-    }}>
-      <em>{children}</em>
-    </span>
-  )
-}
+/** The caption under an image. Often where the joke is. */
+const FigureLabel = ({ children, id }: FigureLabelProps) => (
+  <span id={id} className={styles.label}>
+    <em>{children}</em>
+  </span>
+)
 
-export default FigureLabel 
+export default FigureLabel

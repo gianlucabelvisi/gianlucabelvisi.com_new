@@ -1,0 +1,285 @@
+/* Top of the homepage (components/HomeHero.tsx) */
+
+.hero {
+  padding: calc(var(--header-height) + 0.25rem) var(--gutter, 1rem) 0;
+}
+
+.stage {
+  position: relative;
+  height: clamp(26rem, 70vh, 44rem);
+  border-radius: 26px;
+  overflow: hidden;
+  background: var(--ink-raised);
+  box-shadow: 0 0 0 1px var(--ink-line);
+  isolation: isolate;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+
+.active {
+  opacity: 1;
+  z-index: 1;
+}
+
+.image img {
+  object-fit: cover;
+  object-position: center 22%;
+  transform: scale(1.06);
+  transition: transform 8s ease-out;
+}
+
+/* A slow push-in while a slide is up */
+.active .image img {
+  transform: scale(1);
+}
+
+.shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(15, 13, 11, 0.9) 0%, rgba(15, 13, 11, 0.62) 34%, rgba(15, 13, 11, 0) 68%),
+    linear-gradient(0deg, rgba(15, 13, 11, 0.78) 0%, rgba(15, 13, 11, 0) 46%);
+}
+
+.copy {
+  position: absolute;
+  left: clamp(1.5rem, 4vw, 3.5rem);
+  bottom: clamp(1.75rem, 4.5vw, 3.5rem);
+  width: min(38rem, calc(100% - 3rem));
+  color: var(--on-ink);
+  transform: translateY(14px);
+  opacity: 0;
+  transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 0.1s, opacity 0.7s ease 0.1s;
+}
+
+.active .copy {
+  transform: none;
+  opacity: 1;
+}
+
+.kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.55rem;
+  margin: 0 0 0.9rem;
+  font-size: 0.82rem;
+  color: var(--on-ink-soft);
+}
+
+.kickerLabel {
+  margin-right: 0.2rem;
+  padding: 0.28rem 0.62rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-variation-settings: var(--display-wonk);
+  font-size: clamp(2.3rem, 1.2rem + 3.6vw, 4.4rem);
+  font-weight: 480;
+  line-height: 0.98;
+  letter-spacing: -0.028em;
+  text-wrap: balance;
+}
+
+.title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.title a:hover {
+  color: #fff;
+}
+
+.sub {
+  margin: 1rem 0 0;
+  max-width: 32rem;
+  font-family: var(--font-text);
+  font-size: clamp(1.02rem, 0.95rem + 0.3vw, 1.2rem);
+  line-height: 1.45;
+  color: var(--on-ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: pretty;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.1rem;
+  margin-top: 1.5rem;
+}
+
+.read {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.85rem 1.5rem;
+  border-radius: 999px;
+  background: var(--on-ink);
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: gap 0.2s ease, transform 0.15s ease, background-color 0.2s ease;
+}
+
+.read:hover {
+  gap: 0.8rem;
+  background: #fff;
+  color: var(--ink);
+}
+
+.read:active {
+  transform: scale(0.97);
+}
+
+.tags {
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--on-ink-faint);
+}
+
+/* ── Pager: one segment per slide, the current one fills as its time runs ── */
+
+.pager {
+  position: absolute;
+  z-index: 2;
+  right: clamp(1.5rem, 4vw, 3.5rem);
+  bottom: clamp(1.75rem, 4.5vw, 3.5rem);
+  display: flex;
+  gap: 0.35rem;
+}
+
+.segment {
+  width: 2.4rem;
+  height: 1.5rem; /* generous hit area around a thin bar */
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  align-items: center;
+}
+
+.segmentTrack {
+  display: block;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.32);
+  overflow: hidden;
+  transition: background-color 0.2s ease;
+}
+
+.segment:hover .segmentTrack {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.segmentFill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.segmentRun {
+  transform-origin: left;
+  animation: fill linear both;
+}
+
+@keyframes fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* ── Phones: a full-bleed poster ─────────────────────────────────────────── */
+
+@media (max-width: 700px) {
+  .hero {
+    padding: 0;
+  }
+
+  .stage {
+    height: min(82svh, 46rem);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .image img {
+    object-position: center top;
+  }
+
+  .shade {
+    background: linear-gradient(0deg, var(--ink) 4%, rgba(15, 13, 11, 0.86) 30%, rgba(15, 13, 11, 0) 64%),
+      linear-gradient(180deg, rgba(15, 13, 11, 0.5) 0%, rgba(15, 13, 11, 0) 16%);
+  }
+
+  .copy {
+    left: 1.25rem;
+    right: 1.25rem;
+    bottom: 1.5rem;
+    width: auto;
+    text-align: center;
+  }
+
+  .kicker {
+    justify-content: center;
+    margin-bottom: 0.7rem;
+    font-size: 0.78rem;
+  }
+
+  .title {
+    font-size: clamp(2rem, 9.2vw, 2.7rem);
+  }
+
+  .sub {
+    margin: 0.7rem auto 0;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .actions {
+    justify-content: center;
+    margin-top: 1.1rem;
+  }
+
+  .tags {
+    display: none;
+  }
+
+  .read {
+    padding: 0.8rem 2.2rem;
+  }
+
+  /* Story-style segments along the top */
+  .pager {
+    top: calc(0.6rem + env(safe-area-inset-top, 0px));
+    bottom: auto;
+    left: 1rem;
+    right: 1rem;
+  }
+
+  .segment {
+    flex: 1;
+    width: auto;
+  }
+}

@@ -8,25 +8,27 @@ export interface SeriesEntry {
 
 interface SeriesBoxProps {
   name: string
+  /** serial: numbered, "Part N of M". collection: same family, any order. */
+  kind?: 'serial' | 'collection'
   posts: SeriesEntry[]
   currentSlug: string
 }
 
 /**
- * "Part N of M" box for multi-post series (e.g. Caterina Sforza).
- * Driven by the `series:` frontmatter field; posts sharing the same value
- * are listed in reading order with the current one marked.
+ * The other posts of a series, with the current one marked. Driven by the `series:` frontmatter field
+ * (presentation in lib/series.ts). A serial (Caterina Sforza) shows "Part N of M" at the top of the post;
+ * a collection (the "On…" essays) shows "More from" at the end.
  */
-export default function SeriesBox({ name, posts, currentSlug }: SeriesBoxProps) {
+export default function SeriesBox({ name, kind = 'serial', posts, currentSlug }: SeriesBoxProps) {
   if (posts.length < 2) return null
   const index = posts.findIndex(p => p.slug === currentSlug)
 
   return (
     <aside className={styles.box} aria-labelledby="series-heading">
-      <p className={styles.kicker}>Series</p>
+      <p className={styles.kicker}>{kind === 'serial' ? 'Series' : 'More from the collection'}</p>
       <h2 id="series-heading" className={styles.name}>
         {name}
-        {index >= 0 && <span className={styles.part}> · Part {index + 1} of {posts.length}</span>}
+        {kind === 'serial' && index >= 0 && <span className={styles.part}> · Part {index + 1} of {posts.length}</span>}
       </h2>
       <ol className={styles.list}>
         {posts.map((p, i) => {

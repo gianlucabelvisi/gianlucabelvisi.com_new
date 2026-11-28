@@ -19,7 +19,7 @@ interface ThemeProviderProps {
 }
 
 const STORAGE_KEY = 'blog-theme'
-const TRANSITION_MS = 1100 // Slightly longer than the CSS transition
+const TRANSITION_MS = 500 // Slightly longer than the CSS transition
 
 /**
  * The reader's preferred theme: saved choice first, then OS preference.
